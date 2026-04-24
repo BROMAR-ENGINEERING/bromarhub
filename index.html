@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,6 +159,42 @@
             color: var(--text-secondary);
         }
 
+        .search-results {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 3rem;
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-results-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        [data-theme="dark"] .search-results {
+            background: var(--bg-card);
+        }
+
         .search-icon {
             color: var(--text-secondary);
             font-size: 1.25rem;
@@ -234,14 +271,15 @@
         .card-icon {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #6b7280, #4b5563);
+            background: linear-gradient(135deg, #374151, #1f2937);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
             font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.4);
+            filter: contrast(1.2) brightness(1.1);
         }
 
         .card-title {
@@ -399,6 +437,12 @@
             <input type="text" id="searchInput" placeholder="Search for forms, policies, or resources...">
         </div>
 
+        <div class="search-results" id="searchResults">
+            <h3 class="search-results-title">Search Results</h3>
+            <div class="search-results-grid" id="searchResultsGrid"></div>
+        </div>
+
+        <div id="allSections">
         <section>
             <h2 class="section-title">Forms & Requests</h2>
             <div class="grid">
@@ -515,7 +559,7 @@
 
                 <a href="toolbox-talk-resources.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="resources">
-                        <div class="card-icon">🗣️</div>
+                        <div class="card-icon">🔨</div>
                         <h3 class="card-title">Toolbox Talk Resources</h3>
                         <p class="card-description">Access safety talks and training materials</p>
                     </div>
@@ -627,6 +671,7 @@
                 </a>
             </div>
         </section>
+        </div>
     </div>
 
     <footer class="footer">
@@ -661,19 +706,25 @@
         // Search functionality
         const searchInput = document.getElementById('searchInput');
         const cardLinks = document.querySelectorAll('a[href$=".html"]');
-        const sectionTitles = document.querySelectorAll('.section-title');
-        const sections = document.querySelectorAll('section');
+        const searchResults = document.getElementById('searchResults');
+        const searchResultsGrid = document.getElementById('searchResultsGrid');
+        const allSections = document.getElementById('allSections');
 
         searchInput.addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
 
             if (searchTerm === '') {
-                // Show everything when search is empty
-                cardLinks.forEach(link => link.style.display = 'block');
-                sectionTitles.forEach(title => title.style.display = 'flex');
+                // Show all sections, hide search results
+                allSections.style.display = 'block';
+                searchResults.classList.remove('active');
+                searchResultsGrid.innerHTML = '';
             } else {
-                // Hide all section titles when searching
-                sectionTitles.forEach(title => title.style.display = 'none');
+                // Hide all sections, show search results area
+                allSections.style.display = 'none';
+                searchResults.classList.add('active');
+                searchResultsGrid.innerHTML = '';
+
+                let hasResults = false;
 
                 cardLinks.forEach(link => {
                     const card = link.querySelector('.card');
@@ -683,11 +734,16 @@
                     const description = card.querySelector('.card-description').textContent.toLowerCase();
 
                     if (title.includes(searchTerm) || description.includes(searchTerm)) {
-                        link.style.display = 'block';
-                    } else {
-                        link.style.display = 'none';
+                        hasResults = true;
+                        // Clone the link and card to show in search results
+                        const clonedLink = link.cloneNode(true);
+                        searchResultsGrid.appendChild(clonedLink);
                     }
                 });
+
+                if (!hasResults) {
+                    searchResultsGrid.innerHTML = '<div class="no-results">No results found. Try a different search term.</div>';
+                }
             }
         });
     </script>
