@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bromar Hub - Employee Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1f2937;
+            --primary-dark: #111827;
+            --accent: #f97316;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #000000;
+            --bg-card: #2d2d2d;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #404040;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            padding: 2rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.4;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            display: flex;
+            gap: 0.75rem;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .logo-container {
+            margin-bottom: 2rem;
+            display: block;
+            text-align: center;
+        }
+
+        .logo-image {
+            max-width: 240px;
+            height: auto;
+            display: inline-block;
+        }
+
+        h1 {
+            color: white;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.25rem;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: -3rem auto 3rem;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-icon {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .grid > a {
+            display: flex;
+            height: 100%;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.75rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary);
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .card-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.new {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .footer {
+            background: #000000;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.875rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease-out backwards;
+        }
+
+        .grid .card:nth-child(1) { animation-delay: 0.05s; }
+        .grid .card:nth-child(2) { animation-delay: 0.1s; }
+        .grid .card:nth-child(3) { animation-delay: 0.15s; }
+        .grid .card:nth-child(4) { animation-delay: 0.2s; }
+        .grid .card:nth-child(5) { animation-delay: 0.25s; }
+        .grid .card:nth-child(6) { animation-delay: 0.3s; }
+        .grid .card:nth-child(7) { animation-delay: 0.35s; }
+        .grid .card:nth-child(8) { animation-delay: 0.4s; }
+        .grid .card:nth-child(9) { animation-delay: 0.45s; }
+        .grid .card:nth-child(10) { animation-delay: 0.5s; }
+        .grid .card:nth-child(11) { animation-delay: 0.55s; }
+        .grid .card:nth-child(12) { animation-delay: 0.6s; }
+        .grid .card:nth-child(13) { animation-delay: 0.65s; }
+        .grid .card:nth-child(14) { animation-delay: 0.7s; }
+        .grid .card:nth-child(15) { animation-delay: 0.75s; }
+        .grid .card:nth-child(16) { animation-delay: 0.8s; }
+        .grid .card:nth-child(17) { animation-delay: 0.85s; }
+        .grid .card:nth-child(18) { animation-delay: 0.9s; }
+        .grid .card:nth-child(19) { animation-delay: 0.95s; }
+        .grid .card:nth-child(20) { animation-delay: 1s; }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                margin-top: -2rem;
+            }
+
+            .header-controls {
+                position: static;
+                margin-top: 1rem;
+                justify-content: center;
+            }
+        }
+
+        @media print {
+            .header-controls,
+            .search-bar,
+            .footer {
+                display: none;
+            }
+
+            .card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            .card:hover {
+                transform: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            .header {
+                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="header-controls">
+                <button class="control-btn" id="darkModeToggle">
+                    🌙 Dark Mode
+                </button>
+            </div>
+            <div class="logo-container">
+                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical Services Logo" class="logo-image">
+            </div>
+            <h1>Bromar Hub</h1>
+            <p class="subtitle">Welcome to Bromar Hub — all your employee resources and tools in one convenient place</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search for forms, policies, or resources...">
+        </div>
+
+        <section>
+            <h2 class="section-title">Forms & Requests</h2>
+            <div class="grid">
+                <a href="timesheet-submission.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">⏰</div>
+                        <h3 class="card-title">Timesheet Submission</h3>
+                        <p class="card-description">Submit your weekly timesheet</p>
+                    </div>
+                </a>
+
+                <a href="leave-request.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">📝</div>
+                        <h3 class="card-title">Leave Request Form</h3>
+                        <p class="card-description">Submit your leave request</p>
+                    </div>
+                </a>
+
+                <a href="vehicle-maintenance-request.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">🚗</div>
+                        <h3 class="card-title">Vehicle Maintenance Request</h3>
+                        <p class="card-description">Report vehicle issues and request maintenance services</p>
+                    </div>
+                </a>
+
+                <a href="incident-report.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">⚠️</div>
+                        <h3 class="card-title">Incident Report</h3>
+                        <p class="card-description">Report workplace incidents and accidents immediately</p>
+                    </div>
+                </a>
+
+                <a href="hazard-report.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">🛡️</div>
+                        <h3 class="card-title">Hazard Report</h3>
+                        <p class="card-description">Identify and report workplace hazards and safety concerns</p>
+                    </div>
+                </a>
+
+                <a href="uniform-request.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">👕</div>
+                        <h3 class="card-title">Uniform Request</h3>
+                        <p class="card-description">Request new uniforms or replacement items</p>
+                    </div>
+                </a>
+
+                <a href="ppe-request.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">🦺</div>
+                        <h3 class="card-title">PPE Request</h3>
+                        <p class="card-description">Request personal protective equipment and safety gear</p>
+                    </div>
+                </a>
+
+                <a href="expense-claim.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">💰</div>
+                        <h3 class="card-title">Expense Claim Form</h3>
+                        <p class="card-description">Submit expenses for reimbursement</p>
+                    </div>
+                </a>
+
+                <a href="employee-change-details.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">👤</div>
+                        <h3 class="card-title">Employee Change of Details</h3>
+                        <p class="card-description">Update your personal information and contact details</p>
+                        <span class="badge new">New</span>
+                    </div>
+                </a>
+
+                <a href="toolbox-discussion-submission.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">💬</div>
+                        <h3 class="card-title">Toolbox Discussion Submission</h3>
+                        <p class="card-description">Submit topics for upcoming toolbox talk discussions</p>
+                    </div>
+                </a>
+
+                <a href="suggestions-feedback.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">💡</div>
+                        <h3 class="card-title">Suggestions & Feedback</h3>
+                        <p class="card-description">Share your ideas and feedback anonymously or with your name</p>
+                        <span class="badge new">New</span>
+                    </div>
+                </a>
+
+                <a href="callout-roster-change.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="forms">
+                        <div class="card-icon">🔄</div>
+                        <h3 class="card-title">Call Out Roster Change Request</h3>
+                        <p class="card-description">Only submit this request if you and another employee have already agreed to swap weeks</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Resources & Documentation</h2>
+            <div class="grid">
+                <a href="vehicle-maintenance-audit.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">🔍</div>
+                        <h3 class="card-title">Vehicle Maintenance Audit</h3>
+                        <p class="card-description">View vehicle maintenance history and audit logs</p>
+                    </div>
+                </a>
+
+                <a href="toolbox-talk-resources.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">🗣️</div>
+                        <h3 class="card-title">Toolbox Talk Resources</h3>
+                        <p class="card-description">Access safety talks and training materials</p>
+                    </div>
+                </a>
+
+                <a href="company-policies.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">📋</div>
+                        <h3 class="card-title">Company Policies</h3>
+                        <p class="card-description">Browse all company policies and procedures</p>
+                    </div>
+                </a>
+
+                <a href="eba.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">📜</div>
+                        <h3 class="card-title">Enterprise Bargaining Agreement</h3>
+                        <p class="card-description">View the current EBA terms and conditions</p>
+                    </div>
+                </a>
+
+                <a href="safety-data-sheets.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">⚗️</div>
+                        <h3 class="card-title">Safety Data Sheets (SDS)</h3>
+                        <p class="card-description">Access safety information for hazardous materials</p>
+                    </div>
+                </a>
+
+                <a href="faq.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">❓</div>
+                        <h3 class="card-title">FAQ Section</h3>
+                        <p class="card-description">Find answers to commonly asked questions</p>
+                    </div>
+                </a>
+
+                <a href="first-aiders.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="resources">
+                        <div class="card-icon">🏥</div>
+                        <h3 class="card-title">First Aiders</h3>
+                        <p class="card-description">List of qualified first aiders and their contact information</p>
+                        <span class="badge">Important</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Schedules & Rosters</h2>
+            <div class="grid">
+                <a href="callout-roster.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="schedules">
+                        <div class="card-icon">📞</div>
+                        <h3 class="card-title">Call Out Roster</h3>
+                        <p class="card-description">View current on-call schedule and contact information</p>
+                    </div>
+                </a>
+
+                <a href="rdo-roster.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="schedules">
+                        <div class="card-icon">📅</div>
+                        <h3 class="card-title">RDO Roster</h3>
+                        <p class="card-description">Check rostered days off schedule</p>
+                    </div>
+                </a>
+
+                <a href="etu-rdo-calendar.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="schedules">
+                        <div class="card-icon">🗓️</div>
+                        <h3 class="card-title">ETU RDO Calendar</h3>
+                        <p class="card-description">View ETU rostered days off calendar</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Standards & Knowledge</h2>
+            <div class="grid">
+                <a href="standards.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="standards">
+                        <div class="card-icon">⚡</div>
+                        <h3 class="card-title">Standards</h3>
+                        <p class="card-description">A collection of Australian and international standards, regulations, and code references</p>
+                    </div>
+                </a>
+
+                <a href="technical-resources.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="standards">
+                        <div class="card-icon">📚</div>
+                        <h3 class="card-title">Technical Resources</h3>
+                        <p class="card-description">Technical guides, diagrams, and reference materials</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Client Sites</h2>
+            <div class="grid">
+                <a href="site-resources.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="sites">
+                        <div class="card-icon">🏢</div>
+                        <h3 class="card-title">Site Resources</h3>
+                        <p class="card-description">Access client-specific information, forms, and site documentation</p>
+                        <span class="badge">Important</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Bromar Electrical Services. This page is intended for Bromar employees only. For support, contact administration or management.</p>
+    </footer>
+
+    <script>
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', currentTheme);
+        updateDarkModeButton(currentTheme);
+
+        darkModeToggle.addEventListener('click', function() {
+            const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateDarkModeButton(theme);
+        });
+
+        function updateDarkModeButton(theme) {
+            if (theme === 'dark') {
+                darkModeToggle.innerHTML = '☀️ Light Mode';
+            } else {
+                darkModeToggle.innerHTML = '🌙 Dark Mode';
+            }
+        }
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const cardLinks = document.querySelectorAll('a[href$=".html"]');
+
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            cardLinks.forEach(link => {
+                const card = link.querySelector('.card');
+                if (!card) return;
+                
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const description = card.querySelector('.card-description').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    link.style.display = 'block';
+                } else {
+                    link.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
