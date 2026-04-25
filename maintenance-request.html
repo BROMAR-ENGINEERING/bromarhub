@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BROMAR — Vehicle Maintenance Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f0f3f6;
+    --surface: #ffffff;
+    --ink: #1a2332;
+    --ink-heading: #111827;
+    --ink-soft: #6b7280;
+    --ink-label: #374151;
+    --accent: #e85a2b;
+    --accent-hover: #d14a1e;
+    --accent-light: #fef3ee;
+    --border: #e5e7eb;
+    --border-focus: #e85a2b;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --input-bg: #f9fafb;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1113;
+      --surface: #1a1d21;
+      --ink: #e4e4e7;
+      --ink-heading: #f4f4f5;
+      --ink-soft: #71717a;
+      --ink-label: #a1a1aa;
+      --accent: #f0723f;
+      --accent-hover: #e85a2b;
+      --accent-light: rgba(240, 114, 63, 0.12);
+      --border: #2a2d32;
+      --border-focus: #f0723f;
+      --success: #22c55e;
+      --success-light: rgba(34, 197, 94, 0.1);
+      --input-bg: #13161a;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 16px 80px;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin-bottom: 16px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+  .back-link svg { width: 14px; height: 14px; }
+
+  /* Header card */
+  .header-card {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 44px 40px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1e5bb8 0%, #2e8b57 50%, #e85a2b 100%);
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .logo-img {
+    height: 64px;
+    width: auto;
+    display: block;
+  }
+
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--ink-heading);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* Form body */
+  form {
+    background: var(--surface);
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 36px 40px 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .form-section { margin-bottom: 32px; }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .field-group { margin-bottom: 16px; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-label);
+    margin-bottom: 6px;
+  }
+
+  .required { color: var(--accent); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  textarea {
+    width: 100%;
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+
+  input::placeholder, textarea::placeholder { color: #9ca3af; }
+
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(232, 90, 43, 0.12);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 110px;
+    font-family: inherit;
+  }
+
+  /* Attention checkboxes */
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+  }
+
+  .check-pill {
+    position: relative;
+  }
+
+  .check-pill input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .check-pill label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 0;
+    transition: all 0.18s;
+    user-select: none;
+  }
+
+  .check-pill label .emoji { font-size: 16px; line-height: 1; flex-shrink: 0; }
+  .check-pill label .text { flex: 1; }
+
+  .check-pill label:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .check-pill input:checked + label {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Custom checkmark box */
+  .checkmark {
+    width: 17px;
+    height: 17px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 4px;
+    background: var(--surface);
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    transition: all 0.18s;
+    margin-left: auto;
+  }
+
+  .check-pill input:checked + label .checkmark {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .checkmark::after {
+    content: '';
+    display: none;
+    width: 10px;
+    height: 10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 6l3 3 5-5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .check-pill input:checked + label .checkmark::after { display: block; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  /* Submit */
+  .submit-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .submit-note {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-right: auto;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover { background: var(--input-bg); color: var(--ink); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 6px rgba(232, 90, 43, 0.25);
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(232, 90, 43, 0.32);
+  }
+
+  /* Success */
+  .success-banner {
+    display: none;
+    background: var(--success-light);
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 28px;
+    gap: 10px;
+    align-items: center;
+  }
+  .success-banner.show { display: flex; }
+
+  /* Credit */
+  .credit {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  /* Animations */
+  .back-link, .header-card, form, .credit {
+    animation: fadeUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+  .header-card { animation-delay: 0.05s; }
+  form { animation-delay: 0.12s; }
+  .credit { animation-delay: 0.18s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 16px 12px 60px; }
+    .header-card { padding: 36px 20px 28px; }
+    form { padding: 28px 20px; }
+    .logo-img { height: 48px; }
+    .field-row, .field-row-3 { grid-template-columns: 1fr; gap: 0; }
+    .field-row .field-group:not(:last-child),
+    .field-row-3 .field-group:not(:last-child) { margin-bottom: 16px; }
+    .submit-row { flex-wrap: wrap; }
+    .submit-note { width: 100%; }
+    .btn-secondary, .btn-primary { flex: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <a href="./index.html" class="back-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+    All forms
+  </a>
+
+  <div class="header-card">
+    <div class="logo">
+      <img src="Bromar-Primary-Logo-Full-Colour.png" alt="BROMAR" class="logo-img" />
+    </div>
+    <h1>Vehicle Maintenance Request</h1>
+    <p class="subtitle">Complete the form below — a confirmation will be sent to your email.</p>
+  </div>
+
+  <form id="maintenanceForm" novalidate>
+
+    <div class="success-banner" id="successBanner">
+      <span>✅</span>
+      <span>Your request has been submitted — the workshop team will be in touch shortly.</span>
+    </div>
+
+    <!-- DRIVER DETAILS -->
+    <div class="form-section">
+      <div class="section-label">Driver Details</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="fullName">Full Name <span class="required">*</span></label>
+          <input type="text" id="fullName" name="fullName" placeholder="Old Mate" required />
+        </div>
+        <div class="field-group">
+          <label for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" name="email" placeholder="oldmate@bromar.com.au" required />
+        </div>
+      </div>
+
+      <div class="field-group" style="max-width:calc(50% - 8px);">
+        <label for="phone">Phone Number <span class="required">*</span></label>
+        <input type="tel" id="phone" name="phone" placeholder="04xx xxx xxx" required />
+      </div>
+    </div>
+
+    <!-- VEHICLE DETAILS -->
+    <div class="form-section">
+      <div class="section-label">Vehicle Details</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="rego">Registration <span class="required">*</span></label>
+          <input type="text" id="rego" name="rego" placeholder="ABC-123" required />
+        </div>
+        <div class="field-group">
+          <label for="make">Make <span class="required">*</span></label>
+          <input type="text" id="make" name="make" placeholder="e.g. Volkswagen" required />
+        </div>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field-group">
+          <label for="model">Model <span class="required">*</span></label>
+          <input type="text" id="model" name="model" placeholder="e.g. Transporter" required />
+        </div>
+        <div class="field-group">
+          <label for="odometer">Odometer (km) <span class="required">*</span></label>
+          <input type="number" id="odometer" name="odometer" placeholder="e.g. 125000" min="0" required />
+        </div>
+        <div class="field-group">
+          <label for="serviceDue">Service Due at (km)</label>
+          <input type="number" id="serviceDue" name="serviceDue" placeholder="e.g. 130000" min="0" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEMS REQUIRING ATTENTION -->
+    <div class="form-section">
+      <div class="section-label">Items Requiring Attention</div>
+
+      <div class="checkbox-grid">
+
+        <div class="check-pill">
+          <input type="checkbox" id="tyres" name="attention" value="Tyres" />
+          <label for="tyres"><span class="emoji">🛞</span><span class="text">Tyres</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="wipers" name="attention" value="Wipers" />
+          <label for="wipers"><span class="emoji">🌧️</span><span class="text">Wipers</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="windscreen" name="attention" value="Windscreen" />
+          <label for="windscreen"><span class="emoji">🪟</span><span class="text">Windscreen</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="brakes" name="attention" value="Brakes" />
+          <label for="brakes"><span class="emoji">🛑</span><span class="text">Brakes</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="oil" name="attention" value="Oil & Fluids" />
+          <label for="oil"><span class="emoji">🛢️</span><span class="text">Oil &amp; Fluids</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="battery" name="attention" value="Battery" />
+          <label for="battery"><span class="emoji">🔋</span><span class="text">Battery</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="lights" name="attention" value="Lights" />
+          <label for="lights"><span class="emoji">💡</span><span class="text">Lights</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="aircon" name="attention" value="Air Conditioning" />
+          <label for="aircon"><span class="emoji">❄️</span><span class="text">Air Conditioning</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="suspension" name="attention" value="Suspension" />
+          <label for="suspension"><span class="emoji">🔩</span><span class="text">Suspension</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="belts" name="attention" value="Belts & Hoses" />
+          <label for="belts"><span class="emoji">⚙️</span><span class="text">Belts &amp; Hoses</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="transmission" name="attention" value="Transmission" />
+          <label for="transmission"><span class="emoji">🔧</span><span class="text">Transmission</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="body" name="attention" value="Body / Panel Damage" />
+          <label for="body"><span class="emoji">🚗</span><span class="text">Body / Panel Damage</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="exhaust" name="attention" value="Exhaust" />
+          <label for="exhaust"><span class="emoji">💨</span><span class="text">Exhaust</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="enginelight" name="attention" value="Engine / Warning Light" />
+          <label for="enginelight"><span class="emoji">⚠️</span><span class="text">Engine / Warning Light</span><span class="checkmark"></span></label>
+        </div>
+
+        <div class="check-pill">
+          <input type="checkbox" id="regdue" name="attention" value="Registration Due" />
+          <label for="regdue"><span class="emoji">📋</span><span class="text">Registration Due</span><span class="checkmark"></span></label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="form-section">
+      <div class="section-label">Additional Comments</div>
+      <textarea id="comments" name="comments" placeholder="Any additional comments or concerns…"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="submit-row">
+      <span class="submit-note">* Required fields</span>
+      <button type="reset" class="btn-secondary">Clear</button>
+      <button type="submit" class="btn-primary">Submit Request</button>
+    </div>
+
+  </form>
+
+  <div class="credit">© 2026 BROMAR · Intended for BROMAR employees only. For any issues please contact <a href="mailto:admin@bromar.com.au" style="color:var(--accent);text-decoration:none;">admin@bromar.com.au</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  emailjs.init('4JW7VbCEAqZt9p4Jj');
+
+  const form = document.getElementById('maintenanceForm');
+  const banner = document.getElementById('successBanner');
+  const submitBtn = form.querySelector('.btn-primary');
+
+  // Auto-uppercase rego
+  document.getElementById('rego').addEventListener('input', function () {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    // Validate required fields
+    const required = [...form.querySelectorAll('[required]')];
+    let firstInvalid = null;
+
+    required.forEach(el => {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+      if (!el.value.trim()) {
+        el.style.borderColor = '#dc2626';
+        el.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+        if (!firstInvalid) firstInvalid = el;
+      }
+    });
+
+    if (firstInvalid) {
+      firstInvalid.focus();
+      return;
+    }
+
+    // Collect checked attention items
+    const checked = [...form.querySelectorAll('input[name="attention"]:checked')]
+      .map(cb => cb.value);
+    const attentionItems = checked.length > 0 ? checked.join(', ') : 'None selected';
+
+    // Build submitted date
+    const now = new Date();
+    const submittedDate = now.toLocaleDateString('en-AU', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    // Template params — match these to your EmailJS template variables
+    const templateParams = {
+      submitted_date:   submittedDate,
+      employee_name:    document.getElementById('fullName').value.trim(),
+      employee_email:   document.getElementById('email').value.trim(),
+      employee_phone:   document.getElementById('phone').value.trim(),
+      registration:     document.getElementById('rego').value.trim(),
+      make:             document.getElementById('make').value.trim(),
+      model:            document.getElementById('model').value.trim(),
+      odometer:         document.getElementById('odometer').value.trim(),
+      service_due:      document.getElementById('serviceDue').value.trim() || 'Not provided',
+      attention_items:  attentionItems,
+      comments:         document.getElementById('comments').value.trim() || 'None',
+    };
+
+    // Disable button while sending
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    emailjs.send('BromarEmail', 'vehicle_maint_req', templateParams)
+      .then(() => {
+        banner.classList.add('show');
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        form.reset();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+        setTimeout(() => banner.classList.remove('show'), 8000);
+      })
+      .catch((err) => {
+        console.error('EmailJS error:', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+        alert('Something went wrong — please try again or contact admin@bromar.com.au');
+      });
+  });
+
+  // Clear validation styling on input
+  form.querySelectorAll('[required]').forEach(el => {
+    el.addEventListener('input', () => {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+    });
+  });
+</script>
+</body>
+</html>
