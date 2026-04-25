@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Incident Report Form</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --warning-border: #fde68a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+        --warning-bg: rgba(245, 158, 11, 0.1);
+        --warning-border: rgba(245, 158, 11, 0.3);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    /* Animated background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Home icon button — top left of header */
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Header card with logo */
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Form card */
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* Warning banner */
+    .warning-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--text-secondary);
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .warning-banner svg {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      color: var(--warning);
+      margin-top: 2px;
+    }
+
+    /* Section dividers */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    /* Field groups */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) {
+      .field-row { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+    
+    /* Custom date/time picker icons */
+    input[type="date"],
+    input[type="time"] {
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    input[type="date"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    }
+    input[type="time"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      input[type="date"],
+      input[type="time"] {
+        color-scheme: dark;
+      }
+      input[type="date"] {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      }
+      input[type="time"] {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+      }
+    }
+    
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--text-faded);
+      margin-top: 5px;
+    }
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Incident type chips */
+    .incident-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .incident-chip input[type="radio"] { display: none; }
+    .incident-chip label {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+    }
+    .incident-chip input:checked + label {
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.25);
+    }
+    .incident-chip label:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+    .incident-chip input:checked + label:hover { color: white; }
+
+    /* Severity chips */
+    .severity-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .severity-chip input[type="radio"] { display: none; }
+    .severity-chip label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+    }
+    .severity-chip label:hover { border-color: var(--input-focus); }
+    .severity-chip input:checked + label {
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    /* Color-coded severity levels */
+    .severity-chip input[value="Low"]:checked + label {
+      background: #10b981;
+      border-color: #10b981;
+    }
+    .severity-chip input[value="Medium"]:checked + label {
+      background: #f59e0b;
+      border-color: #f59e0b;
+    }
+    .severity-chip input[value="High"]:checked + label {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+    .severity-chip input[value="Critical"]:checked + label {
+      background: #991b1b;
+      border-color: #991b1b;
+    }
+
+    /* Checkbox */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0;
+      margin: 0;
+      padding: 12px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .checkbox-label:hover { border-color: var(--brand-orange); background: var(--brand-orange-soft); }
+    .checkbox-label input[type="checkbox"] { display: none; }
+    .checkbox-custom {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border: 2px solid var(--input-border);
+      border-radius: 5px;
+      background: var(--brand-white);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .checkbox-label input:checked ~ .checkbox-custom {
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
+    }
+    .checkbox-label input:checked ~ .checkbox-custom::after {
+      content: '';
+      display: block;
+      width: 5px; height: 9px;
+      border: 2px solid white;
+      border-top: none; border-left: none;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .checkbox-label input:checked ~ .checkbox-text { color: var(--brand-orange); font-weight: 600; }
+
+    /* Submit button */
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 520px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+    }
+
+    /* Success banner */
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    .success-banner.show { display: flex; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Footer note */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+    .footer-disclaimer p + p { margin-top: 8px; }
+    .footer-details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+    }
+    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-left a { color: var(--brand-primary); text-decoration: none; }
+    .footer-left a:hover { text-decoration: underline; }
+    .footer-right { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="./index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <div class="logo-container">
+      <picture>
+        <source srcset="Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Incident Report Form</h1>
+    <p class="header-subtitle">Report workplace incidents, hazards, or near misses — all reports are confidential</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="incidentForm" novalidate>
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Incident report submitted successfully — a confirmation has been sent to your email and management.</span>
+      </div>
+
+      <div class="warning-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+          <strong>Important:</strong> For medical emergencies, call 000 immediately. This form is for incident reporting and documentation purposes only. All reports are treated confidentially and reviewed by management.
+        </div>
+      </div>
+
+      <!-- REPORTER DETAILS -->
+      <div class="section-label">Reporter Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-name">
+          <label for="reporter_name">Your Full Name <span class="required">*</span></label>
+          <input type="text" id="reporter_name" name="reporter_name" placeholder="John Smith" autocomplete="name"/>
+          <span class="error-msg">Please enter your full name</span>
+        </div>
+        <div class="field-group" id="group-email">
+          <label for="reporter_email">Your Email Address <span class="required">*</span></label>
+          <input type="email" id="reporter_email" name="reporter_email" placeholder="name@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-phone">
+          <label for="reporter_phone">Your Phone Number</label>
+          <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
+        </div>
+        <div class="field-group" id="group-position">
+          <label for="reporter_position">Your Position/Role</label>
+          <input type="text" id="reporter_position" name="reporter_position" placeholder="e.g., Site Supervisor, Electrician"/>
+        </div>
+      </div>
+
+      <!-- INCIDENT DETAILS -->
+      <div class="section-label">Incident Details</div>
+
+      <div class="field-group" id="group-incident-type">
+        <label>Type of Incident <span class="required">*</span></label>
+        <div class="incident-chips">
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-injury" value="Injury"/>
+            <label for="it-injury">🩹 Injury</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-near-miss" value="Near Miss"/>
+            <label for="it-near-miss">⚠️ Near Miss</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-property" value="Property Damage"/>
+            <label for="it-property">🔨 Property Damage</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-hazard" value="Hazard"/>
+            <label for="it-hazard">⚡ Hazard</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-vehicle" value="Vehicle Incident"/>
+            <label for="it-vehicle">🚗 Vehicle Incident</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-environmental" value="Environmental"/>
+            <label for="it-environmental">🌿 Environmental</label>
+          </div>
+          <div class="incident-chip">
+            <input type="radio" name="incident_type" id="it-other" value="Other"/>
+            <label for="it-other">📝 Other</label>
+          </div>
+        </div>
+        <span class="error-msg">Please select an incident type</span>
+      </div>
+
+      <div class="field-group" id="group-severity">
+        <label>Severity Level <span class="required">*</span></label>
+        <div class="severity-chips">
+          <div class="severity-chip">
+            <input type="radio" name="severity" id="sev-low" value="Low"/>
+            <label for="sev-low">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              Low
+            </label>
+          </div>
+          <div class="severity-chip">
+            <input type="radio" name="severity" id="sev-medium" value="Medium"/>
+            <label for="sev-medium">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              Medium
+            </label>
+          </div>
+          <div class="severity-chip">
+            <input type="radio" name="severity" id="sev-high" value="High"/>
+            <label for="sev-high">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              High
+            </label>
+          </div>
+          <div class="severity-chip">
+            <input type="radio" name="severity" id="sev-critical" value="Critical"/>
+            <label for="sev-critical">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              Critical
+            </label>
+          </div>
+        </div>
+        <span class="error-msg">Please select a severity level</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-date">
+          <label for="incident_date">Incident Date <span class="required">*</span></label>
+          <input type="date" id="incident_date" name="incident_date"/>
+          <span class="error-msg">Please select the incident date</span>
+        </div>
+        <div class="field-group" id="group-time">
+          <label for="incident_time">Incident Time <span class="required">*</span></label>
+          <input type="time" id="incident_time" name="incident_time"/>
+          <span class="error-msg">Please select the incident time</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-location">
+          <label for="incident_location">Location <span class="required">*</span></label>
+          <input type="text" id="incident_location" name="incident_location" placeholder="e.g., Building 3, Workshop Floor"/>
+          <span class="error-msg">Please enter the incident location</span>
+        </div>
+        <div class="field-group" id="group-site-address">
+          <label for="site_address">Site Address <span class="required">*</span></label>
+          <input type="text" id="site_address" name="site_address" placeholder="e.g., 123 Smith Street, Suburb"/>
+          <span class="error-msg">Please enter the site address</span>
+        </div>
+      </div>
+
+      <!-- PEOPLE INVOLVED -->
+      <div class="section-label">People Involved</div>
+
+      <div class="field-group full">
+        <label for="injured_person">Injured Person's Name</label>
+        <input type="text" id="injured_person" name="injured_person" placeholder="Leave blank if not applicable"/>
+        <span class="field-hint">If someone was injured, provide their name</span>
+      </div>
+
+      <div class="field-group full">
+        <label for="witness_names">Witness Names</label>
+        <input type="text" id="witness_names" name="witness_names" placeholder="e.g., John Smith, Jane Doe"/>
+        <span class="field-hint">Separate multiple names with commas</span>
+      </div>
+
+      <!-- INCIDENT DESCRIPTION -->
+      <div class="section-label">Incident Description</div>
+
+      <div class="field-group full" id="group-description">
+        <label for="incident_description">What Happened? <span class="required">*</span></label>
+        <textarea id="incident_description" name="incident_description" placeholder="Describe the incident in detail: what happened, how it happened, what were the conditions at the time..." style="min-height: 140px;"></textarea>
+        <span class="field-hint">Be as detailed as possible — include sequence of events, equipment involved, and environmental conditions</span>
+        <span class="error-msg">Please describe what happened</span>
+      </div>
+
+      <div class="field-group full">
+        <label for="immediate_action">Immediate Actions Taken</label>
+        <textarea id="immediate_action" name="immediate_action" placeholder="What was done immediately after the incident? First aid administered? Area secured? Supervisor notified?"></textarea>
+      </div>
+
+      <div class="field-group full">
+        <label for="root_cause">Suspected Root Cause</label>
+        <textarea id="root_cause" name="root_cause" placeholder="What do you think caused this incident? Equipment failure? Unsafe procedure? Environmental factors?"></textarea>
+      </div>
+
+      <!-- ADDITIONAL INFORMATION -->
+      <div class="section-label">Additional Information</div>
+
+      <div class="field-group" id="group-medical">
+        <label class="checkbox-label">
+          <input type="checkbox" id="medical_attention" name="medical_attention" value="Yes"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">Medical attention was required or sought</span>
+        </label>
+      </div>
+
+      <div class="field-group" id="group-site-notified">
+        <label class="checkbox-label">
+          <input type="checkbox" id="site_notified" name="site_notified" value="Yes"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">The site contact or site safety team was notified of this incident</span>
+        </label>
+      </div>
+
+      <div class="field-group full">
+        <label for="additional_notes">Additional Notes or Comments</label>
+        <textarea id="additional_notes" name="additional_notes" placeholder="Any other relevant information..."></textarea>
+      </div>
+
+      <div class="field-group full" id="group-confirmation">
+        <label class="checkbox-label">
+          <input type="checkbox" id="information_correct" name="information_correct" value="Yes"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">I confirm that the above information is true and accurate to the best of my knowledge</span>
+        </label>
+        <span class="error-msg">Please confirm that the information is correct</span>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Report</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>All incident reports are reviewed by management. Reports are kept confidential and are used solely for safety improvement purposes.</em></p>
+        <p><em>If you have immediate safety concerns or witness an emergency situation, please contact your supervisor or call 000 for emergencies.</em></p>
+      </div>
+      <div class="footer-details">
+        <div class="footer-left">
+          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
+        </div>
+        <div class="footer-right">
+          <!-- Place your ISO certification badge image here: <img src="iso-badge.png" alt="ISO Certification" style="max-height:60px;"/> -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — UPDATE THESE VALUES
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:   "4JW7VbCEAqZt9p4Jj",
+      serviceId:   "BromarEmail",
+      templateId:  "incident_report",  // You'll need to create this template in EmailJS
+    },
+    safetyEmails: [
+      "ashleys@bromar.com.au",
+      // Add safety officer or management emails here
+    ]
+  };
+  // ============================================================
+
+  // Initialise EmailJS
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // Set max date to today for incident date
+  const incidentDate = document.getElementById('incident_date');
+  const today = new Date().toISOString().split('T')[0];
+  incidentDate.max = today;
+
+  // ---- Validation ----
+  function getIncidentType() {
+    const checked = document.querySelector('input[name="incident_type"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  function getSeverity() {
+    const checked = document.querySelector('input[name="severity"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const name        = document.getElementById('reporter_name').value.trim();
+    const email       = document.getElementById('reporter_email').value.trim();
+    const incidentType = getIncidentType();
+    const severity    = getSeverity();
+    const date        = document.getElementById('incident_date').value;
+    const time        = document.getElementById('incident_time').value;
+    const location    = document.getElementById('incident_location').value.trim();
+    const siteAddress = document.getElementById('site_address').value.trim();
+    const description = document.getElementById('incident_description').value.trim();
+    const confirmed   = document.getElementById('information_correct').checked;
+
+    check('group-name',        name.length > 1);
+    check('group-email',       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    check('group-incident-type', incidentType.length > 0);
+    check('group-severity',    severity.length > 0);
+    check('group-date',        !!date);
+    check('group-time',        !!time);
+    check('group-location',    location.length > 3);
+    check('group-site-address', siteAddress.length > 3);
+    check('group-description', description.length > 10);
+    check('group-confirmation', confirmed);
+
+    return valid;
+  }
+
+  // ---- Form submit ----
+  const incidentForm = document.getElementById('incidentForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  incidentForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Report';
+      return;
+    }
+
+    const formatDate = (val) => {
+      if (!val) return '';
+      const [y, m, d] = val.split('-');
+      return new Date(y, m - 1, d).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const formatTime = (val) => {
+      if (!val) return '';
+      return new Date('2000-01-01T' + val).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const templateParams = {
+      reporter_name:       document.getElementById('reporter_name').value.trim(),
+      reporter_email:      document.getElementById('reporter_email').value.trim(),
+      reporter_phone:      document.getElementById('reporter_phone').value.trim() || 'Not provided',
+      reporter_position:   document.getElementById('reporter_position').value.trim() || 'Not provided',
+      incident_type:       getIncidentType(),
+      severity:            getSeverity(),
+      incident_date:       formatDate(document.getElementById('incident_date').value),
+      incident_time:       formatTime(document.getElementById('incident_time').value),
+      incident_location:   document.getElementById('incident_location').value.trim(),
+      site_address:        document.getElementById('site_address').value.trim(),
+      injured_person:      document.getElementById('injured_person').value.trim() || 'None',
+      witness_names:       document.getElementById('witness_names').value.trim() || 'None',
+      incident_description: document.getElementById('incident_description').value.trim(),
+      immediate_action:    document.getElementById('immediate_action').value.trim() || 'Not specified',
+      root_cause:          document.getElementById('root_cause').value.trim() || 'Not specified',
+      medical_attention:   document.getElementById('medical_attention').checked ? 'Yes' : 'No',
+      site_notified:       document.getElementById('site_notified').checked ? 'Yes' : 'No',
+      information_confirmed: document.getElementById('information_correct').checked ? 'Yes - Reporter confirmed accuracy' : 'No',
+      additional_notes:    document.getElementById('additional_notes').value.trim() || 'None',
+      submitted_date:      new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric', hour: '2-digit', minute: '2-digit' }),
+      safety_emails:       CONFIG.safetyEmails.join(', '),
+      to_email:            document.getElementById('reporter_email').value.trim(),
+    };
+
+    try {
+      // Send incident report via EmailJS
+      await emailjs.send(
+        CONFIG.emailjs.serviceId,
+        CONFIG.emailjs.templateId,
+        templateParams
+      );
+
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      document.getElementById('incidentForm').reset();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 10000);
+
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      alert('Something went wrong — please contact management directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Report';
+    }
+  });
+
+  // Clear error state on input change
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      el.classList.remove('error');
+      const grp = el.closest('[id^="group-"]');
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+  
+  document.querySelectorAll('.incident-chip input, .severity-chip input').forEach(el => {
+    el.addEventListener('change', () => {
+      const name = el.getAttribute('name');
+      const grp = document.getElementById('group-' + name.replace('_', '-'));
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+</script>
+</body>
+</html>
