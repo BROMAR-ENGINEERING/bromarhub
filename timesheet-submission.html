@@ -1213,18 +1213,8 @@
     });
     const standby = document.getElementById('standby').checked ? 'Yes' : 'No';
 
-    // Build timesheet entries
-    let timesheetHTML = '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">';
-    timesheetHTML += '<thead><tr style="background: #f3f4f6;">';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Day</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Normal Hrs</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">OT Hrs</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Job #</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Client</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Allowances</th>';
-    timesheetHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Comment</th>';
-    timesheetHTML += '</tr></thead><tbody>';
+    // Build timesheet entries - only the <tr> rows, not the full table
+    let timesheetHTML = '';
 
     let totalHours = 0;
     let totalNormalHours = 0;
@@ -1260,22 +1250,26 @@
           const comment = jobRow.querySelector('[name$="_comment"]')?.value || '-';
 
           const allowances = [];
-          if (siteAllowance) allowances.push('Site Allowance');
+          if (siteAllowance) allowances.push('Site');
           if (laha) allowances.push('LAHA');
           const allowanceText = allowances.length > 0 ? allowances.join(', ') : '-';
 
           const normalHoursVal = parseFloat(normalHours) || 0;
           const overtimeHoursVal = parseFloat(overtimeHours) || 0;
 
-          timesheetHTML += '<tr>';
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${dayName} ${dayDate}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${type}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${normalHoursVal.toFixed(1)}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${overtimeHoursVal.toFixed(1)}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${jobNumber}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${client}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${allowanceText}</td>`;
-          timesheetHTML += `<td style="border: 1px solid #ddd; padding: 8px;">${comment}</td>`;
+          // Determine row background color (alternating)
+          const rowCount = timesheetHTML.split('<tr').length - 1;
+          const bgColor = rowCount % 2 === 0 ? '#ffffff' : '#f9fafb';
+
+          timesheetHTML += `<tr style="background:${bgColor};">`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${dayName} ${dayDate}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${type}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${normalHoursVal.toFixed(1)}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${overtimeHoursVal.toFixed(1)}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${jobNumber}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${client}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${allowanceText}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${comment}</td>`;
           timesheetHTML += '</tr>';
 
           totalNormalHours += normalHoursVal;
@@ -1284,8 +1278,6 @@
         }
       });
     });
-
-    timesheetHTML += '</tbody></table>';
 
     const templateParams = {
       employee_name: employeeName,
