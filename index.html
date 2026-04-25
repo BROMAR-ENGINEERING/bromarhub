@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,6 +25,32 @@
             --text-secondary: #94a3b8;
             --border: #404040;
             --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .header {
+            background: linear-gradient(135deg, #2d2d2d 0%, #2d2d2d 100%);
+        }
+
+        [data-theme="dark"] h1 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .subtitle {
+            color: #d1d5db;
+        }
+
+        [data-theme="dark"] .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .control-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        [data-theme="dark"] .header::before {
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
 
         * {
@@ -110,14 +135,28 @@
             display: inline-block;
         }
 
+        .logo-image.dark-logo {
+            display: none;
+        }
+
+        [data-theme="dark"] .logo-image.light-logo {
+            display: none;
+        }
+
+        [data-theme="dark"] .logo-image.dark-logo {
+            display: inline-block;
+        }
+
         h1 {
             color: #1f2937;
             font-size: 3rem;
-            font-weight: 700;
+            font-weight: 900;
             margin-bottom: 0.5rem;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
             text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Arial Black', 'Arial Bold', sans-serif;
         }
 
         .subtitle {
@@ -424,10 +463,11 @@
                 </button>
             </div>
             <div class="logo-container">
-                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical Services Logo" class="logo-image">
+                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical Services Logo" class="logo-image light-logo">
+                <img src="Bromar-Primary-Logo-Reverse-White.png" alt="Bromar Electrical Services Logo" class="logo-image dark-logo">
             </div>
             <h1>Bromar Hub</h1>
-            <p class="subtitle">Welcome to Bromar Hub — all your employee resources and tools in one convenient place</p>
+            <p class="subtitle">Welcome to Bromar Hub — all employee resources and tools in one convenient place</p>
         </div>
     </header>
 
@@ -581,14 +621,6 @@
                     </div>
                 </a>
 
-                <a href="safety-data-sheets.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="resources">
-                        <div class="card-icon">⚗️</div>
-                        <h3 class="card-title">Safety Data Sheets (SDS)</h3>
-                        <p class="card-description">Access safety information for hazardous materials</p>
-                    </div>
-                </a>
-
                 <a href="faq.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="resources">
                         <div class="card-icon">❓</div>
@@ -679,14 +711,39 @@
     </footer>
 
     <script>
-        // Dark mode toggle
+        // Dark mode toggle with system preference detection
         const darkModeToggle = document.getElementById('darkModeToggle');
         const htmlElement = document.documentElement;
 
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
+        // Check for system preference first, then saved preference
+        function getInitialTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                return savedTheme;
+            }
+            // Detect system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        }
+
+        // Set initial theme
+        const currentTheme = getInitialTheme();
         htmlElement.setAttribute('data-theme', currentTheme);
         updateDarkModeButton(currentTheme);
+
+        // Listen for system preference changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                // Only auto-switch if user hasn't manually set a preference
+                if (!localStorage.getItem('theme')) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    htmlElement.setAttribute('data-theme', newTheme);
+                    updateDarkModeButton(newTheme);
+                }
+            });
+        }
 
         darkModeToggle.addEventListener('click', function() {
             const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
