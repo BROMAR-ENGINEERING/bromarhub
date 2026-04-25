@@ -1,1 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Work Order Completion Form</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --warning-border: #fde68a;
+    }
 
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+        --warning-bg: rgba(245, 158, 11, 0.1);
+        --warning-border: rgba(245, 158, 11, 0.3);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    /* Animated background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Home icon button — top left of header */
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Header card with logo */
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Form card */
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* Section dividers */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    /* Field groups */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) {
+      .field-row { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+    
+    /* Custom date picker icons */
+    input[type="date"] {
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    input[type="date"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      input[type="date"] {
+        color-scheme: dark;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      }
+    }
+    
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--text-faded);
+      margin-top: 5px;
+    }
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Status chips */
+    .status-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .status-chip input[type="radio"] { display: none; }
+    .status-chip label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+    }
+    .status-chip label:hover { border-color: var(--input-focus); }
+    .status-chip input:checked + label {
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    /* Color-coded status levels */
+    .status-chip input[value="Completed"]:checked + label {
+      background: #10b981;
+      border-color: #10b981;
+    }
+    .status-chip input[value="Not Completed"]:checked + label {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+    .status-chip input[value="N/A"]:checked + label {
+      background: #6b7280;
+      border-color: #6b7280;
+    }
+
+    /* Urgency chips */
+    .urgency-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .urgency-chip input[type="radio"] { display: none; }
+    .urgency-chip label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+    }
+    .urgency-chip label:hover { border-color: var(--input-focus); }
+    .urgency-chip input:checked + label {
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .urgency-chip input[value="Low"]:checked + label {
+      background: #10b981;
+      border-color: #10b981;
+    }
+    .urgency-chip input[value="Medium"]:checked + label {
+      background: #f59e0b;
+      border-color: #f59e0b;
+    }
+    .urgency-chip input[value="High"]:checked + label {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+    .urgency-chip input[value="Critical"]:checked + label {
+      background: #991b1b;
+      border-color: #991b1b;
+    }
+
+    /* Checkbox */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0;
+      margin: 0;
+      padding: 12px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .checkbox-label:hover { border-color: var(--brand-orange); background: var(--brand-orange-soft); }
+    .checkbox-label input[type="checkbox"] { display: none; }
+    .checkbox-custom {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border: 2px solid var(--input-border);
+      border-radius: 5px;
+      background: var(--brand-white);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .checkbox-label input:checked ~ .checkbox-custom {
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
+    }
+    .checkbox-label input:checked ~ .checkbox-custom::after {
+      content: '';
+      display: block;
+      width: 5px; height: 9px;
+      border: 2px solid white;
+      border-top: none; border-left: none;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .checkbox-label input:checked ~ .checkbox-text { color: var(--brand-orange); font-weight: 600; }
+
+    /* Conditional section */
+    .conditional-section {
+      margin-top: 20px;
+      padding: 20px;
+      border: 2px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--brand-light);
+      display: none;
+    }
+    .conditional-section.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Submit button */
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 520px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+    }
+
+    /* Success banner */
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    .success-banner.show { display: flex; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Footer note */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+    .footer-disclaimer p + p { margin-top: 8px; }
+    .footer-details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+    }
+    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-left a { color: var(--brand-primary); text-decoration: none; }
+    .footer-left a:hover { text-decoration: underline; }
+    .footer-right { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="./index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <div class="logo-container">
+      <picture>
+        <source srcset="Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Work Order Completion</h1>
+    <p class="header-subtitle">Submit completed work order details and any remedial work requirements</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="workOrderForm" novalidate>
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Work order completion submitted successfully — a confirmation has been sent to your email and management.</span>
+      </div>
+
+      <!-- TECHNICIAN DETAILS -->
+      <div class="section-label">Technician Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-name">
+          <label for="technician_name">Your Full Name <span class="required">*</span></label>
+          <input type="text" id="technician_name" name="technician_name" placeholder="John Smith" autocomplete="name"/>
+          <span class="error-msg">Please enter your full name</span>
+        </div>
+        <div class="field-group" id="group-email">
+          <label for="technician_email">Your Email Address <span class="required">*</span></label>
+          <input type="email" id="technician_email" name="technician_email" placeholder="name@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <!-- WORK ORDER DETAILS -->
+      <div class="section-label">Work Order Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-date">
+          <label for="completion_date">Completion Date <span class="required">*</span></label>
+          <input type="date" id="completion_date" name="completion_date"/>
+          <span class="error-msg">Please select the completion date</span>
+        </div>
+        <div class="field-group" id="group-work-order">
+          <label for="work_order_number">Work Order Number <span class="required">*</span></label>
+          <input type="text" id="work_order_number" name="work_order_number" placeholder="WO-12345"/>
+          <span class="error-msg">Please enter the work order number</span>
+        </div>
+      </div>
+
+      <div class="field-group" id="group-asset">
+        <label for="asset_number">Asset Number <span class="required">*</span></label>
+        <input type="text" id="asset_number" name="asset_number" placeholder="AST-67890"/>
+        <span class="error-msg">Please enter the asset number</span>
+      </div>
+
+      <!-- REMEDIAL WORKS -->
+      <div class="section-label">Remedial Works</div>
+
+      <div class="field-group full">
+        <label for="remedial_works">List of Remedials Performed</label>
+        <textarea id="remedial_works" name="remedial_works" placeholder="Describe any remedial work, repairs, or maintenance performed during this work order..." style="min-height: 120px;"></textarea>
+        <span class="field-hint">Include details of parts replaced, repairs completed, or maintenance actions taken</span>
+      </div>
+
+      <!-- IMPROVEMENT SUGGESTIONS -->
+      <div class="section-label">Improvement Suggestions</div>
+
+      <div class="field-group full">
+        <label for="improvement_suggestions">How Could This Work Order Be Improved?</label>
+        <textarea id="improvement_suggestions" name="improvement_suggestions" placeholder="Suggest improvements to procedures, documentation, parts availability, or work order clarity..."></textarea>
+        <span class="field-hint">Your feedback helps us improve our processes and work order quality</span>
+      </div>
+
+      <!-- OTHER COMMENTS -->
+      <div class="section-label">Additional Comments</div>
+
+      <div class="field-group full">
+        <label for="other_comments">Other Comments</label>
+        <textarea id="other_comments" name="other_comments" placeholder="Any other relevant information, observations, or notes..."></textarea>
+      </div>
+
+      <!-- COMPLETION STATUS -->
+      <div class="section-label">Completion Status</div>
+
+      <div class="field-group" id="group-status">
+        <label>Work Order Status <span class="required">*</span></label>
+        <div class="status-chips">
+          <div class="status-chip">
+            <input type="radio" name="completion_status" id="status-completed" value="Completed"/>
+            <label for="status-completed">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              Completed
+            </label>
+          </div>
+          <div class="status-chip">
+            <input type="radio" name="completion_status" id="status-not-completed" value="Not Completed"/>
+            <label for="status-not-completed">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              Not Completed
+            </label>
+          </div>
+          <div class="status-chip">
+            <input type="radio" name="completion_status" id="status-na" value="N/A"/>
+            <label for="status-na">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              N/A
+            </label>
+          </div>
+        </div>
+        <span class="error-msg">Please select a completion status</span>
+      </div>
+
+      <!-- NEW WORK ORDER REQUIRED -->
+      <div class="field-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="new_work_order_required" name="new_work_order_required" value="Yes"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">A new work order needs to be raised to address remedial work</span>
+        </label>
+      </div>
+
+      <!-- CONDITIONAL SECTION: New Work Order Details -->
+      <div class="conditional-section" id="newWorkOrderSection">
+        <div class="field-group" id="group-urgency">
+          <label>Urgency Level <span class="required">*</span></label>
+          <div class="urgency-chips">
+            <div class="urgency-chip">
+              <input type="radio" name="urgency_level" id="urgency-low" value="Low"/>
+              <label for="urgency-low">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+                Low
+              </label>
+            </div>
+            <div class="urgency-chip">
+              <input type="radio" name="urgency_level" id="urgency-medium" value="Medium"/>
+              <label for="urgency-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+                Medium
+              </label>
+            </div>
+            <div class="urgency-chip">
+              <input type="radio" name="urgency_level" id="urgency-high" value="High"/>
+              <label for="urgency-high">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+                High
+              </label>
+            </div>
+            <div class="urgency-chip">
+              <input type="radio" name="urgency_level" id="urgency-critical" value="Critical"/>
+              <label for="urgency-critical">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+                Critical
+              </label>
+            </div>
+          </div>
+          <span class="error-msg">Please select an urgency level</span>
+        </div>
+
+        <div class="field-group full" id="group-remedial-description">
+          <label for="remedial_description">Description of Required Remedial Work <span class="required">*</span></label>
+          <textarea id="remedial_description" name="remedial_description" placeholder="Provide detailed description of the remedial work required for the new work order..." style="min-height: 120px;"></textarea>
+          <span class="field-hint">Include specific details, parts required, estimated time, and any safety concerns</span>
+          <span class="error-msg">Please describe the remedial work required</span>
+        </div>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Completion</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>All work order completions are reviewed by Tyreycle. Remedial work requests will be prioritized based on urgency and safety considerations. Please ensure any required materials/parts are ordered to prioritize timely repairs.</em></p>
+        <p><em>For urgent safety concerns or equipment failures, please contact your supervisor immediately — do not wait for work order processing.</em></p>
+      </div>
+      <div class="footer-details">
+        <div class="footer-left">
+          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
+        </div>
+        <div class="footer-right">
+          <!-- Place your ISO certification badge image here: <img src="iso-badge.png" alt="ISO Certification" style="max-height:60px;"/> -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — UPDATE THESE VALUES
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:   "4JW7VbCEAqZt9p4Jj",
+      serviceId:   "BromarEmail",
+      templateId:  "work_order_completion",  // You'll need to create this template in EmailJS
+    },
+    managementEmails: [
+      "ashleys@bromar.com.au",
+      // Add management emails here
+    ]
+  };
+  // ============================================================
+
+  // Initialise EmailJS
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // Set max date to today for completion date
+  const completionDate = document.getElementById('completion_date');
+  const today = new Date().toISOString().split('T')[0];
+  completionDate.max = today;
+
+  // Toggle new work order section
+  const newWorkOrderCheckbox = document.getElementById('new_work_order_required');
+  const newWorkOrderSection = document.getElementById('newWorkOrderSection');
+
+  newWorkOrderCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+      newWorkOrderSection.classList.add('show');
+    } else {
+      newWorkOrderSection.classList.remove('show');
+      // Clear the conditional fields
+      document.querySelectorAll('#newWorkOrderSection input[type="radio"]').forEach(el => el.checked = false);
+      document.getElementById('remedial_description').value = '';
+      // Remove errors from conditional fields
+      document.getElementById('group-urgency').classList.remove('has-error');
+      document.getElementById('group-remedial-description').classList.remove('has-error');
+    }
+  });
+
+  // ---- Validation ----
+  function getCompletionStatus() {
+    const checked = document.querySelector('input[name="completion_status"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  function getUrgencyLevel() {
+    const checked = document.querySelector('input[name="urgency_level"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const name              = document.getElementById('technician_name').value.trim();
+    const email             = document.getElementById('technician_email').value.trim();
+    const date              = document.getElementById('completion_date').value;
+    const workOrderNumber   = document.getElementById('work_order_number').value.trim();
+    const assetNumber       = document.getElementById('asset_number').value.trim();
+    const completionStatus  = getCompletionStatus();
+    const newWorkOrderReq   = document.getElementById('new_work_order_required').checked;
+    const urgencyLevel      = getUrgencyLevel();
+    const remedialDesc      = document.getElementById('remedial_description').value.trim();
+
+    check('group-name',        name.length > 1);
+    check('group-email',       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    check('group-date',        !!date);
+    check('group-work-order',  workOrderNumber.length > 0);
+    check('group-asset',       assetNumber.length > 0);
+    check('group-status',      completionStatus.length > 0);
+
+    // Conditional validation for new work order
+    if (newWorkOrderReq) {
+      check('group-urgency',             urgencyLevel.length > 0);
+      check('group-remedial-description', remedialDesc.length > 10);
+    }
+
+    return valid;
+  }
+
+  // ---- Form submit ----
+  const workOrderForm = document.getElementById('workOrderForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  workOrderForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Completion';
+      return;
+    }
+
+    const formatDate = (val) => {
+      if (!val) return '';
+      const [y, m, d] = val.split('-');
+      return new Date(y, m - 1, d).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const newWorkOrderReq = document.getElementById('new_work_order_required').checked;
+
+    const templateParams = {
+      technician_name:         document.getElementById('technician_name').value.trim(),
+      technician_email:        document.getElementById('technician_email').value.trim(),
+      completion_date:         formatDate(document.getElementById('completion_date').value),
+      work_order_number:       document.getElementById('work_order_number').value.trim(),
+      asset_number:            document.getElementById('asset_number').value.trim(),
+      remedial_works:          document.getElementById('remedial_works').value.trim() || 'None specified',
+      improvement_suggestions: document.getElementById('improvement_suggestions').value.trim() || 'None provided',
+      other_comments:          document.getElementById('other_comments').value.trim() || 'None',
+      completion_status:       getCompletionStatus(),
+      new_work_order_required: newWorkOrderReq ? 'Yes' : 'No',
+      urgency_level:           newWorkOrderReq ? getUrgencyLevel() : 'N/A',
+      remedial_description:    newWorkOrderReq ? document.getElementById('remedial_description').value.trim() : 'N/A',
+      submitted_date:          new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric', hour: '2-digit', minute: '2-digit' }),
+      management_emails:       CONFIG.managementEmails.join(', '),
+      to_email:                document.getElementById('technician_email').value.trim(),
+    };
+
+    try {
+      // Send work order completion via EmailJS
+      await emailjs.send(
+        CONFIG.emailjs.serviceId,
+        CONFIG.emailjs.templateId,
+        templateParams
+      );
+
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      document.getElementById('workOrderForm').reset();
+      newWorkOrderSection.classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 10000);
+
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      alert('Something went wrong — please contact management directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Completion';
+    }
+  });
+
+  // Clear error state on input change
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      el.classList.remove('error');
+      const grp = el.closest('[id^="group-"]');
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+  
+  document.querySelectorAll('.status-chip input, .urgency-chip input').forEach(el => {
+    el.addEventListener('change', () => {
+      const name = el.getAttribute('name');
+      const grp = document.getElementById('group-' + name.replace('_', '-'));
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+
+  // Clear form on reset
+  workOrderForm.addEventListener('reset', function() {
+    setTimeout(() => {
+      newWorkOrderSection.classList.remove('show');
+      document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+      document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    }, 0);
+  });
+</script>
+</body>
+</html>
