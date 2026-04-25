@@ -100,6 +100,33 @@
     margin-bottom: 24px;
   }
 
+  .home-btn {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: all 0.2s;
+    z-index: 2;
+  }
+
+  .home-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .home-btn svg { width: 18px; height: 18px; }
+
   .logo-img {
     height: 64px;
     width: auto;
@@ -391,14 +418,12 @@
 <body>
 <div class="container">
 
-  <a href="./index.html" class="back-link">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 12H5M12 19l-7-7 7-7"/>
-    </svg>
-    All forms
-  </a>
-
   <div class="header-card">
+    <a href="./index.html" class="home-btn" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
     <div class="logo">
       <picture>
         <source srcset="Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
