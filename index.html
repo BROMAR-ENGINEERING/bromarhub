@@ -192,6 +192,7 @@
             font-size: 1rem;
             font-family: 'DM Sans', sans-serif;
             color: var(--text-primary);
+            background: transparent;
         }
 
         .search-bar input::placeholder {
@@ -244,6 +245,10 @@
         }
 
         [data-theme="dark"] .search-bar input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        [data-theme="dark"] .search-icon {
             color: var(--text-secondary);
         }
 
@@ -503,69 +508,76 @@
 
         <div id="allSections">
         <section>
-            <h2 class="section-title">Forms & Requests</h2>
+            <h2 class="section-title">Job Management</h2>
             <div class="grid">
                 <a href="timesheet-submission.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="forms">
+                    <div class="card" data-category="job-management">
                         <div class="card-icon">⏰</div>
                         <h3 class="card-title">Timesheet Submission</h3>
                         <p class="card-description">Submit your weekly timesheet</p>
                     </div>
                 </a>
 
+                <!-- <a href="jobsheet-submission.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="job-management">
+                        <div class="card-icon">📋</div>
+                        <h3 class="card-title">Jobsheet Submission</h3>
+                        <p class="card-description">Submit completed job sheets and site reports</p>
+                        <span class="badge coming-soon">Coming Soon</span>
+                    </div>
+                <!-- </a> -->
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Employee Resources</h2>
+            <div class="grid">
                 <a href="leave-request.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="forms">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">📝</div>
                         <h3 class="card-title">Leave Request Form</h3>
                         <p class="card-description">Submit your leave request</p>
                     </div>
                 </a>
 
-                <a href="vehicle-maintenance-request.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">🚗</div>
-                        <h3 class="card-title">Vehicle Maintenance Request</h3>
-                        <p class="card-description">Report vehicle issues and request maintenance services</p>
-                    </div>
-                </a>
-
-                <a href="incident-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">⚠️</div>
-                        <h3 class="card-title">Incident Report</h3>
-                        <p class="card-description">Report workplace incidents and accidents immediately</p>
-                    </div>
-                </a>
-
-                <!-- <a href="hazard-report.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">🛡️</div>
-                        <h3 class="card-title">Hazard Report</h3>
-                        <p class="card-description">Identify and report workplace hazards and safety concerns</p>
+                <!-- <a href="eba.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="employee">
+                        <div class="card-icon">📜</div>
+                        <h3 class="card-title">Enterprise Bargaining Agreement</h3>
+                        <p class="card-description">View the current EBA terms and conditions</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
 
-                <!-- <a href="uniform-request.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">👕</div>
-                        <h3 class="card-title">Uniform Request</h3>
-                        <p class="card-description">Request new uniforms or replacement items</p>
+                <!-- <a href="company-policies.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="employee">
+                        <div class="card-icon">📋</div>
+                        <h3 class="card-title">Company Policies</h3>
+                        <p class="card-description">Browse all company policies and procedures</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
 
-                <!-- <a href="ppe-request.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">🦺</div>
-                        <h3 class="card-title">PPE Request</h3>
-                        <p class="card-description">Request personal protective equipment and safety gear</p>
+                <!-- <a href="toolbox-discussion-submission.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="employee">
+                        <div class="card-icon">💬</div>
+                        <h3 class="card-title">Toolbox Discussion Submission</h3>
+                        <p class="card-description">Submit topics for upcoming toolbox talk discussions</p>
+                        <span class="badge coming-soon">Coming Soon</span>
+                    </div>
+                <!-- </a> -->
+
+                <!-- <a href="toolbox-talk-resources.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="employee">
+                        <div class="card-icon">🔨</div>
+                        <h3 class="card-title">Toolbox Talk Resources</h3>
+                        <p class="card-description">Access safety talks and training materials</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
 
                 <!-- <a href="expense-claim.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">💰</div>
                         <h3 class="card-title">Expense Claim Form</h3>
                         <p class="card-description">Submit expenses for reimbursement</p>
@@ -574,7 +586,7 @@
                 <!-- </a> -->
 
                 <!-- <a href="employee-change-details.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">👤</div>
                         <h3 class="card-title">Employee Change of Details</h3>
                         <p class="card-description">Update your personal information and contact details</p>
@@ -582,17 +594,8 @@
                     </div>
                 <!-- </a> -->
 
-                <!-- <a href="toolbox-discussion-submission.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">💬</div>
-                        <h3 class="card-title">Toolbox Discussion Submission</h3>
-                        <p class="card-description">Submit topics for upcoming toolbox talk discussions</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
                 <!-- <a href="suggestions-feedback.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">💡</div>
                         <h3 class="card-title">Suggestions & Feedback</h3>
                         <p class="card-description">Share your ideas and feedback anonymously or with your name</p>
@@ -600,58 +603,8 @@
                     </div>
                 <!-- </a> -->
 
-                <!-- <a href="callout-roster-change.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">🔄</div>
-                        <h3 class="card-title">Call Out Roster Change Request</h3>
-                        <p class="card-description">Only submit this request if you and another employee have already agreed to swap weeks</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Resources & Documentation</h2>
-            <div class="grid">
-                <!-- <a href="vehicle-maintenance-audit.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
-                        <div class="card-icon">🔍</div>
-                        <h3 class="card-title">Vehicle Maintenance Audit</h3>
-                        <p class="card-description">View vehicle maintenance history and audit logs</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="toolbox-talk-resources.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
-                        <div class="card-icon">🔨</div>
-                        <h3 class="card-title">Toolbox Talk Resources</h3>
-                        <p class="card-description">Access safety talks and training materials</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="company-policies.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
-                        <div class="card-icon">📋</div>
-                        <h3 class="card-title">Company Policies</h3>
-                        <p class="card-description">Browse all company policies and procedures</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="eba.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
-                        <div class="card-icon">📜</div>
-                        <h3 class="card-title">Enterprise Bargaining Agreement</h3>
-                        <p class="card-description">View the current EBA terms and conditions</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
                 <!-- <a href="faq.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">❓</div>
                         <h3 class="card-title">FAQ Section</h3>
                         <p class="card-description">Find answers to commonly asked questions</p>
@@ -660,7 +613,7 @@
                 <!-- </a> -->
 
                 <!-- <a href="first-aiders.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="resources">
+                    <div class="card" data-category="employee">
                         <div class="card-icon">🏥</div>
                         <h3 class="card-title">First Aiders</h3>
                         <p class="card-description">List of qualified first aiders and their contact information</p>
@@ -671,54 +624,21 @@
         </section>
 
         <section>
-            <h2 class="section-title">Schedules & Rosters</h2>
+            <h2 class="section-title">Fleet Management</h2>
             <div class="grid">
-                <!-- <a href="callout-roster.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules">
-                        <div class="card-icon">📞</div>
-                        <h3 class="card-title">Call Out Roster</h3>
-                        <p class="card-description">View current on-call schedule and contact information</p>
-                        <span class="badge coming-soon">Coming Soon</span>
+                <a href="vehicle-maintenance-request.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="fleet">
+                        <div class="card-icon">🚗</div>
+                        <h3 class="card-title">Vehicle Maintenance Request</h3>
+                        <p class="card-description">Report vehicle issues and request maintenance services</p>
                     </div>
-                <!-- </a> -->
+                </a>
 
-                <!-- <a href="rdo-roster.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules">
-                        <div class="card-icon">📅</div>
-                        <h3 class="card-title">RDO Roster</h3>
-                        <p class="card-description">Check rostered days off schedule</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="etu-rdo-calendar.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules">
-                        <div class="card-icon">🗓️</div>
-                        <h3 class="card-title">ETU RDO Calendar</h3>
-                        <p class="card-description">View ETU rostered days off calendar</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Standards & Knowledge</h2>
-            <div class="grid">
-                <!-- <a href="standards.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="standards">
-                        <div class="card-icon">⚡</div>
-                        <h3 class="card-title">Standards</h3>
-                        <p class="card-description">A collection of Australian and international standards, regulations, and code references</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="technical-resources.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="standards">
-                        <div class="card-icon">📚</div>
-                        <h3 class="card-title">Technical Resources</h3>
-                        <p class="card-description">Technical guides, diagrams, and reference materials</p>
+                <!-- <a href="vehicle-maintenance-audit.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="fleet">
+                        <div class="card-icon">🔍</div>
+                        <h3 class="card-title">Vehicle Maintenance Audit</h3>
+                        <p class="card-description">View vehicle maintenance history and audit logs</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
