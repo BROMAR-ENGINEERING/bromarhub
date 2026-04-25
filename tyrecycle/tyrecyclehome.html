@@ -92,6 +92,43 @@
             z-index: 1;
         }
 
+        .home-link {
+            position: absolute;
+            top: 1rem;
+            left: 2rem;
+            z-index: 10;
+            font-size: 1.25rem;
+            text-decoration: none;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.6rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .home-link:hover {
+            background: rgba(0, 0, 0, 0.4);
+            color: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+        }
+
+        [data-theme="dark"] .home-link {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        [data-theme="dark"] .home-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 1);
+        }
+
         .header-controls {
             position: absolute;
             top: 1rem;
@@ -384,10 +421,22 @@
                 margin-top: -2rem;
             }
 
+            .home-link {
+                position: static;
+                display: inline-flex;
+                margin-bottom: 1rem;
+            }
+
             .header-controls {
                 position: static;
                 margin-top: 1rem;
                 justify-content: center;
+            }
+
+            .header-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
             }
         }
 
@@ -423,6 +472,12 @@
 <body>
     <header class="header">
         <div class="header-content">
+            <a href="index.html" class="home-link" title="Back to Home">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </a>
             <div class="header-controls">
                 <button class="control-btn" id="darkModeToggle">
                     🌙 Dark Mode
