@@ -68,6 +68,33 @@
       }
     }
 
+    /* Force light mode when class is added */
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --day-header-bg: #f8f9fd;
+      --job-row-bg: #fafbff;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -139,6 +166,39 @@
       transform: translateY(-1px);
     }
     .home-icon svg { width: 18px; height: 18px; }
+
+    /* Theme toggle button — top left next to home */
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      left: 64px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    
+    /* Show/hide icons based on theme */
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
 
     /* Header card with logo */
     .header-card {
@@ -648,6 +708,36 @@
       animation: slideIn 0.3s ease;
     }
     .success-banner.show { display: flex; }
+    
+    /* Info banner for auto-save */
+    .info-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    .info-banner.show { display: flex; }
+    @media (prefers-color-scheme: dark) {
+      .info-banner {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+      }
+    }
+    html.light-mode .info-banner {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+    
     @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
 
     /* Footer note */
@@ -701,6 +791,22 @@
         <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
       </svg>
     </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
     <div class="logo-container">
       <picture>
         <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
@@ -718,6 +824,11 @@
       <div class="success-banner" id="successBanner">
         <span>✅</span>
         <span>Timesheet submitted successfully — a confirmation has been sent to your email and the admin team.</span>
+      </div>
+
+      <div class="info-banner" id="autoSaveBanner">
+        <span>💾</span>
+        <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
       </div>
 
       <!-- EMPLOYEE DETAILS -->
@@ -834,10 +945,214 @@
     generateWeek();
   }
 
-  // Wait for DOM to be fully loaded
+  // ============================================================
+  // AUTO-SAVE FORM DATA TO LOCAL STORAGE
+  // ============================================================
+  const STORAGE_KEY = 'timesheet_draft';
+
+  // Save form data to localStorage
+  function saveFormData() {
+    const formData = {
+      employee_name: document.getElementById('employee_name').value,
+      employee_email: document.getElementById('employee_email').value,
+      week_starting: weekStartingInput.value,
+      standby: document.getElementById('standby').checked,
+      days: []
+    };
+
+    // Save data for each day
+    document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
+      const dayData = {
+        disabled: dayCard.classList.contains('disabled'),
+        jobs: []
+      };
+
+      const jobRows = dayCard.querySelectorAll('.job-row');
+      jobRows.forEach((jobRow) => {
+        const jobId = jobRow.dataset.jobId;
+        if (!jobId) return;
+
+        const jobData = {
+          type: jobRow.querySelector('.job-type')?.value || '',
+          other_type: jobRow.querySelector('[name$="_other_type"]')?.value || '',
+          normal_hours: jobRow.querySelector('.normal-hours')?.value || '',
+          overtime_hours: jobRow.querySelector('.overtime-hours')?.value || '',
+          job_number: jobRow.querySelector('[name$="_number"]')?.value || '',
+          client: jobRow.querySelector('[name$="_client"]')?.value || '',
+          site_allowance: jobRow.querySelector('[name$="_site_allowance"]')?.checked || false,
+          laha: jobRow.querySelector('[name$="_laha"]')?.checked || false,
+          comment: jobRow.querySelector('[name$="_comment"]')?.value || ''
+        };
+
+        // Only save if there's any data in this job
+        if (jobData.type || jobData.normal_hours || jobData.overtime_hours) {
+          dayData.jobs.push(jobData);
+        }
+      });
+
+      formData.days.push(dayData);
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+  }
+
+  // Restore form data from localStorage
+  function restoreFormData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (!savedData) return;
+
+    try {
+      const formData = JSON.parse(savedData);
+
+      // Show info banner that saved data was restored
+      const infoBanner = document.getElementById('autoSaveBanner');
+      infoBanner.classList.add('show');
+      setTimeout(() => infoBanner.classList.remove('show'), 6000);
+
+      // Restore employee details
+      document.getElementById('employee_name').value = formData.employee_name || '';
+      document.getElementById('employee_email').value = formData.employee_email || '';
+      
+      // Restore week starting and regenerate days
+      if (formData.week_starting) {
+        weekStartingInput.value = formData.week_starting;
+        generateWeek();
+        
+        // Wait for DOM to update, then restore day data
+        setTimeout(() => {
+          restoreDayData(formData);
+        }, 100);
+      }
+
+      // Restore standby checkbox
+      document.getElementById('standby').checked = formData.standby || false;
+
+    } catch (err) {
+      console.error('Error restoring form data:', err);
+    }
+  }
+
+  // Restore individual day data
+  function restoreDayData(formData) {
+    document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
+      if (!formData.days[dayIndex]) return;
+
+      const dayData = formData.days[dayIndex];
+      const dayBody = dayCard.querySelector('.day-body');
+
+      // Handle disabled state for weekends
+      if (dayData.disabled) {
+        dayCard.classList.add('disabled');
+      } else {
+        dayCard.classList.remove('disabled');
+        
+        // For weekends, toggle the worked switch
+        const weekendToggle = dayCard.querySelector('.weekend-worked');
+        if (weekendToggle && dayData.jobs.length > 0) {
+          weekendToggle.checked = true;
+          weekendToggle.dispatchEvent(new Event('change'));
+        }
+      }
+
+      // Skip if disabled
+      if (dayData.disabled) return;
+
+      // Restore jobs for this day
+      const existingJobs = dayBody.querySelectorAll('.job-row');
+      
+      dayData.jobs.forEach((jobData, jobIndex) => {
+        let jobRow;
+
+        // Use existing job row or add new one
+        if (existingJobs[jobIndex]) {
+          jobRow = existingJobs[jobIndex];
+        } else {
+          // Add new job row
+          const addBtn = dayBody.querySelector('.add-job-btn');
+          addBtn.click();
+          jobRow = dayBody.querySelectorAll('.job-row')[jobIndex];
+        }
+
+        if (!jobRow) return;
+
+        // Restore job data
+        const typeSelect = jobRow.querySelector('.job-type');
+        if (typeSelect) {
+          typeSelect.value = jobData.type;
+          typeSelect.dispatchEvent(new Event('change')); // Trigger change to show/hide fields
+        }
+
+        setTimeout(() => {
+          if (jobData.other_type) {
+            const otherTypeInput = jobRow.querySelector('[name$="_other_type"]');
+            if (otherTypeInput) otherTypeInput.value = jobData.other_type;
+          }
+
+          const normalHours = jobRow.querySelector('.normal-hours');
+          if (normalHours) {
+            normalHours.value = jobData.normal_hours;
+            normalHours.dispatchEvent(new Event('input'));
+          }
+
+          const overtimeHours = jobRow.querySelector('.overtime-hours');
+          if (overtimeHours) {
+            overtimeHours.value = jobData.overtime_hours;
+            overtimeHours.dispatchEvent(new Event('input'));
+          }
+
+          const jobNumber = jobRow.querySelector('[name$="_number"]');
+          if (jobNumber) jobNumber.value = jobData.job_number;
+
+          const client = jobRow.querySelector('[name$="_client"]');
+          if (client) client.value = jobData.client;
+
+          const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]');
+          if (siteAllowance) siteAllowance.checked = jobData.site_allowance;
+
+          const laha = jobRow.querySelector('[name$="_laha"]');
+          if (laha) laha.checked = jobData.laha;
+
+          const comment = jobRow.querySelector('[name$="_comment"]');
+          if (comment) comment.value = jobData.comment;
+        }, 50);
+      });
+    });
+  }
+
+  // Clear saved form data
+  function clearFormData() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  // Auto-save on any input change (debounced)
+  let saveTimeout;
+  function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveFormData, 500); // Save 500ms after user stops typing
+  }
+
+  // Attach auto-save listeners to the form
+  document.addEventListener('input', (e) => {
+    if (e.target.closest('#timesheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('#timesheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  // Restore form data when page loads
   document.addEventListener('DOMContentLoaded', function() {
     // Set default to current week's Monday
     setWeekStarting(new Date());
+    
+    // Then restore saved data if it exists
+    setTimeout(() => {
+      restoreFormData();
+    }, 200);
   });
 
   document.getElementById('prevWeek').addEventListener('click', () => {
@@ -1305,6 +1620,10 @@
       const banner = document.getElementById('successBanner');
       banner.classList.add('show');
       timesheetForm.reset();
+      
+      // Clear saved form data after successful submission
+      clearFormData();
+      
       setWeekStarting(new Date()); // Reset to current week
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => banner.classList.remove('show'), 8000);
@@ -1330,6 +1649,29 @@
     setTimeout(() => {
       setWeekStarting(new Date());
     }, 10);
+  });
+
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+
+  // Check for saved theme preference or default to system preference
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    html.classList.add('light-mode');
+  }
+
+  themeToggle.addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    
+    // Save preference
+    if (html.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
   });
 </script>
 </body>
