@@ -819,7 +819,7 @@
 
   <!-- FORM CARD -->
   <div class="form-card">
-    <form id="timesheetForm" novalidate>
+    <form id="timesheetForm" novalidate autocomplete="off">
 
       <div class="success-banner" id="successBanner">
         <span>✅</span>
@@ -853,7 +853,7 @@
       <div class="week-selector">
         <div class="field-group" id="group-week">
           <label for="week_starting">Week Starting (Monday) <span class="required">*</span></label>
-          <input type="date" id="week_starting" name="week_starting"/>
+          <input type="date" id="week_starting" name="week_starting" autocomplete="off"/>
           <span class="error-msg">Please select week starting date</span>
         </div>
         <div class="week-nav">
@@ -999,15 +999,21 @@
   // Restore form data from localStorage
   function restoreFormData() {
     const savedData = localStorage.getItem(STORAGE_KEY);
-    if (!savedData) return;
+    if (!savedData) {
+      console.log('No saved timesheet data found');
+      return;
+    }
 
     try {
       const formData = JSON.parse(savedData);
+      console.log('Restoring saved timesheet data:', formData);
 
       // Show info banner that saved data was restored
       const infoBanner = document.getElementById('autoSaveBanner');
-      infoBanner.classList.add('show');
-      setTimeout(() => infoBanner.classList.remove('show'), 6000);
+      if (infoBanner) {
+        infoBanner.classList.add('show');
+        setTimeout(() => infoBanner.classList.remove('show'), 6000);
+      }
 
       // Restore employee details
       document.getElementById('employee_name').value = formData.employee_name || '';
@@ -1169,7 +1175,31 @@
 
   weekStartingInput.addEventListener('change', () => {
     if (weekStartingInput.value) {
+      const selectedDate = new Date(weekStartingInput.value);
+      const dayOfWeek = selectedDate.getDay();
+      
+      // If not a Monday (1), find the nearest Monday
+      if (dayOfWeek !== 1) {
+        const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // If Sunday, next day; otherwise find next Monday
+        selectedDate.setDate(selectedDate.getDate() + daysToMonday);
+        weekStartingInput.value = selectedDate.toISOString().split('T')[0];
+      }
+      
       setWeekStarting(new Date(weekStartingInput.value));
+    }
+  });
+
+  // Add visual feedback for date picker - show only Mondays are valid
+  weekStartingInput.addEventListener('click', function() {
+    // Add a small helper text
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;font-size:11px;color:var(--text-muted);margin-top:4px;';
+    hint.textContent = 'Please select a Monday';
+    hint.id = 'monday-hint';
+    
+    if (!document.getElementById('monday-hint')) {
+      this.parentElement.appendChild(hint);
+      setTimeout(() => hint.remove(), 3000);
     }
   });
 
@@ -1326,27 +1356,27 @@
         </div>
         <div class="job-field full other-type-field" style="display: none;">
           <label>Specify Type</label>
-          <input type="text" name="${jobId}_other_type" placeholder="Enter type..."/>
+          <input type="text" name="${jobId}_other_type" placeholder="Enter type..." autocomplete="off"/>
         </div>
         <div class="job-field">
           <label>Normal Hours</label>
-          <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="24" step="0.5" placeholder="0.0"/>
+          <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field">
           <label>Overtime Hours</label>
-          <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.5" placeholder="0.0"/>
+          <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field job-number-field" style="display: none;">
           <label>Job Number</label>
-          <input type="text" name="${jobId}_number" placeholder="e.g. J12345"/>
+          <input type="text" name="${jobId}_number" placeholder="e.g. J12345" autocomplete="off"/>
         </div>
         <div class="job-field client-field" style="display: none;">
           <label>Client</label>
-          <input type="text" name="${jobId}_client" placeholder="Client name"/>
+          <input type="text" name="${jobId}_client" placeholder="Client name" autocomplete="off"/>
         </div>
         <div class="job-field full">
           <label>Comment</label>
-          <textarea name="${jobId}_comment" rows="2" placeholder="Add notes about this job..."></textarea>
+          <textarea name="${jobId}_comment" rows="2" placeholder="Add notes about this job..." autocomplete="off"></textarea>
         </div>
       </div>
       <div class="job-checkboxes allowance-checkboxes" style="display: none;">
