@@ -814,7 +814,7 @@
       </picture>
     </div>
     <h1 class="header-title">Employee Timesheet</h1>
-    <p class="header-subtitle">Submit your weekly timesheet — a confirmation will be sent to your email</p>
+    <p class="header-subtitle">Submit your weekly timesheet by Tuesday at the latest for pay processing on Wednesday. Consider long weekends, annual leave, and public holidays — a confirmation will be sent to your email</p>
   </div>
 
   <!-- FORM CARD -->
@@ -1256,6 +1256,15 @@
         `}
       </div>
       <div class="day-body" data-day="${index}">
+        ${!isWeekend ? `
+          <div class="day-allowance" style="margin-bottom: 12px;">
+            <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+              <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">LAHA applies to this day</span>
+            </label>
+          </div>
+        ` : ''}
         <!-- Jobs will be added here -->
       </div>
     `;
@@ -1327,6 +1336,7 @@
   let jobCounter = 0;
 
   function addJobRow(dayBody, dayIndex) {
+    const isWeekend = dayIndex >= 5; // Saturday (5) and Sunday (6)
     const jobCount = dayBody.querySelectorAll('.job-row').length;
     const jobId = `job-${dayIndex}-${jobCounter++}`;
     
@@ -1358,17 +1368,19 @@
           <label>Specify Type</label>
           <input type="text" name="${jobId}_other_type" placeholder="Enter type..." autocomplete="off"/>
         </div>
-        <div class="job-field">
-          <label>Normal Hours</label>
-          <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
-        </div>
-        <div class="job-field">
+        ${!isWeekend ? `
+          <div class="job-field">
+            <label>Normal Hours</label>
+            <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="8" step="0.5" placeholder="0.0" autocomplete="off"/>
+          </div>
+        ` : ''}
+        <div class="job-field ${!isWeekend ? '' : 'full'}">
           <label>Overtime Hours</label>
           <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field job-number-field" style="display: none;">
           <label>Job Number</label>
-          <input type="text" name="${jobId}_number" placeholder="e.g. J12345" autocomplete="off"/>
+          <input type="text" name="${jobId}_number" placeholder="e.g. J12345" autocomplete="off" style="text-transform: uppercase;"/>
         </div>
         <div class="job-field client-field" style="display: none;">
           <label>Client</label>
@@ -1383,10 +1395,6 @@
         <label class="checkbox-label">
           <input type="checkbox" name="${jobId}_site_allowance" value="Yes"/>
           Site Allowance
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" name="${jobId}_laha" value="Yes"/>
-          LAHA
         </label>
       </div>
     `;
@@ -1424,8 +1432,35 @@
     // Hours change - update total (both normal and overtime)
     const normalHoursInput = jobRow.querySelector('.normal-hours');
     const overtimeHoursInput = jobRow.querySelector('.overtime-hours');
-    normalHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
-    overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
+    
+    if (normalHoursInput) {
+      normalHoursInput.addEventListener('input', () => {
+        // Check if total normal hours for the day exceed 8
+        const dayBody = normalHoursInput.closest('.day-body');
+        const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+        let totalNormal = 0;
+        allNormalInputs.forEach(input => {
+          totalNormal += parseFloat(input.value) || 0;
+        });
+        
+        if (totalNormal > 8) {
+          normalHoursInput.setCustomValidity('Total normal hours for this day cannot exceed 8 hours');
+          normalHoursInput.reportValidity();
+          // Reset to max allowed
+          const currentVal = parseFloat(normalHoursInput.value) || 0;
+          const excess = totalNormal - 8;
+          normalHoursInput.value = (currentVal - excess).toFixed(1);
+        } else {
+          normalHoursInput.setCustomValidity('');
+        }
+        
+        updateDayTotal(dayIndex);
+      });
+    }
+    
+    if (overtimeHoursInput) {
+      overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
+    }
 
     // Remove button
     const removeBtn = jobRow.querySelector('.remove-job');
@@ -1442,6 +1477,14 @@
           addButton.disabled = false;
           addButton.textContent = '+ Add Job';
         }
+      });
+    }
+
+    // Auto-uppercase job number field
+    const jobNumberInput = jobRow.querySelector('[name$="_number"]');
+    if (jobNumberInput) {
+      jobNumberInput.addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
       });
     }
   }
@@ -1574,6 +1617,10 @@
       const dayName = dayCard.querySelector('.day-name').textContent;
       const dayDate = dayCard.querySelector('.day-date').textContent;
       const jobRows = dayCard.querySelectorAll('.job-row');
+      
+      // Check if LAHA applies to this day
+      const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
+      const dayHasLaha = lahaCheckbox ? lahaCheckbox.checked : false;
 
       jobRows.forEach((jobRow, jobIdx) => {
         const typeSelect = jobRow.querySelector('.job-type');
@@ -1591,12 +1638,11 @@
           const jobNumber = jobRow.querySelector('[name$="_number"]')?.value || '-';
           const client = jobRow.querySelector('[name$="_client"]')?.value || '-';
           const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]')?.checked;
-          const laha = jobRow.querySelector('[name$="_laha"]')?.checked;
           const comment = jobRow.querySelector('[name$="_comment"]')?.value || '-';
 
           const allowances = [];
           if (siteAllowance) allowances.push('Site');
-          if (laha) allowances.push('LAHA');
+          if (dayHasLaha) allowances.push('LAHA');
           const allowanceText = allowances.length > 0 ? allowances.join(', ') : '-';
 
           const normalHoursVal = parseFloat(normalHours) || 0;
@@ -1632,6 +1678,7 @@
       total_normal_hours: totalNormalHours.toFixed(1),
       total_overtime_hours: totalOvertimeHours.toFixed(1),
       standby: standby,
+      standby_yes: standby === 'Yes', // Boolean for conditional display
       timesheet_entries: timesheetHTML,
       submitted_date: new Date().toLocaleDateString('en-AU', { 
         day: 'numeric', month: 'long', year: 'numeric' 
