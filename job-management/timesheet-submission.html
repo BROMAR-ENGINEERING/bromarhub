@@ -964,6 +964,8 @@
     document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
       const dayData = {
         disabled: dayCard.classList.contains('disabled'),
+        laha: dayCard.querySelector('.laha-checkbox')?.checked || false,
+        office: dayCard.querySelector('.office-checkbox')?.checked || false,
         jobs: []
       };
 
@@ -980,7 +982,6 @@
           job_number: jobRow.querySelector('[name$="_number"]')?.value || '',
           client: jobRow.querySelector('[name$="_client"]')?.value || '',
           site_allowance: jobRow.querySelector('[name$="_site_allowance"]')?.checked || false,
-          laha: jobRow.querySelector('[name$="_laha"]')?.checked || false,
           comment: jobRow.querySelector('[name$="_comment"]')?.value || ''
         };
 
@@ -1062,6 +1063,17 @@
 
       // Skip if disabled
       if (dayData.disabled) return;
+
+      // Restore day-level checkboxes
+      const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
+      if (lahaCheckbox && dayData.laha !== undefined) {
+        lahaCheckbox.checked = dayData.laha;
+      }
+      
+      const officeCheckbox = dayCard.querySelector('.office-checkbox');
+      if (officeCheckbox && dayData.office !== undefined) {
+        officeCheckbox.checked = dayData.office;
+      }
 
       // Restore jobs for this day
       const existingJobs = dayBody.querySelectorAll('.job-row');
@@ -1257,11 +1269,16 @@
       </div>
       <div class="day-body" data-day="${index}">
         ${!isWeekend ? `
-          <div class="day-allowance" style="margin-bottom: 12px;">
-            <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+          <div class="day-allowances" style="margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <label class="checkbox-label" style="padding: 8px 12px; margin: 0; flex: 1; min-width: 150px;">
               <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
               <span class="checkbox-custom"></span>
-              <span class="checkbox-text">LAHA applies to this day</span>
+              <span class="checkbox-text">LAHA</span>
+            </label>
+            <label class="checkbox-label" style="padding: 8px 12px; margin: 0; flex: 1; min-width: 150px;">
+              <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">Work from office/workshop</span>
             </label>
           </div>
         ` : ''}
@@ -1621,6 +1638,10 @@
       // Check if LAHA applies to this day
       const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
       const dayHasLaha = lahaCheckbox ? lahaCheckbox.checked : false;
+      
+      // Check if work from office/workshop
+      const officeCheckbox = dayCard.querySelector('.office-checkbox');
+      const dayHasOffice = officeCheckbox ? officeCheckbox.checked : false;
 
       jobRows.forEach((jobRow, jobIdx) => {
         const typeSelect = jobRow.querySelector('.job-type');
@@ -1643,6 +1664,7 @@
           const allowances = [];
           if (siteAllowance) allowances.push('Site');
           if (dayHasLaha) allowances.push('LAHA');
+          if (dayHasOffice) allowances.push('Office/Workshop');
           const allowanceText = allowances.length > 0 ? allowances.join(', ') : '-';
 
           const normalHoursVal = parseFloat(normalHours) || 0;
