@@ -1646,8 +1646,10 @@
       jobRows.forEach((jobRow, jobIdx) => {
         const typeSelect = jobRow.querySelector('.job-type');
         let type = typeSelect.value;
-        const normalHours = jobRow.querySelector('[name$="_hours"]').value;
-        const overtimeHours = jobRow.querySelector('[name$="_overtime"]').value;
+        const normalHoursInput = jobRow.querySelector('[name$="_hours"]');
+        const overtimeHoursInput = jobRow.querySelector('[name$="_overtime"]');
+        const normalHours = normalHoursInput ? normalHoursInput.value : '';
+        const overtimeHours = overtimeHoursInput ? overtimeHoursInput.value : '';
         
         // If type is "Other", get the custom type
         if (type === 'Other') {
@@ -1729,7 +1731,8 @@
 
     } catch (err) {
       console.error('EmailJS error:', err);
-      alert('Something went wrong — please contact management or admin directly.');
+      console.error('Error details:', err.text || err.message);
+      alert('Something went wrong sending the email. Error: ' + (err.text || err.message || 'Unknown error') + '. Please contact admin@bromar.com.au directly.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Timesheet';
