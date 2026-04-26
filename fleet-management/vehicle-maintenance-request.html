@@ -47,6 +47,25 @@
     }
   }
 
+  /* Force light mode when toggled */
+  html.light-mode {
+    --bg: #f0f3f6;
+    --surface: #ffffff;
+    --ink: #1a2332;
+    --ink-heading: #111827;
+    --ink-soft: #6b7280;
+    --ink-label: #374151;
+    --accent: #e85a2b;
+    --accent-hover: #d14a1e;
+    --accent-light: #fef3ee;
+    --border: #e5e7eb;
+    --border-focus: #e85a2b;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --input-bg: #f9fafb;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -126,6 +145,49 @@
   }
 
   .home-btn svg { width: 18px; height: 18px; }
+
+  .theme-toggle {
+    position: absolute;
+    top: 18px;
+    left: 64px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+    outline: none;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .theme-toggle:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .theme-toggle svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  /* Show sun in dark mode (clicking switches to light), show moon in light mode */
+  .sun-icon { display: block; }
+  .moon-icon { display: none; }
+  html.light-mode .sun-icon { display: none; }
+  html.light-mode .moon-icon { display: block; }
 
   .logo-img {
     height: 64px;
@@ -424,10 +486,20 @@
         <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
       </svg>
     </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
     <div class="logo">
       <picture>
+        <source srcset="../Bromar-Primary-Logo-Full-Colour.png" media="html.light-mode" />
         <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
-        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="BROMAR" class="logo-img" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="BROMAR" class="logo-img" id="logoImg" />
       </picture>
     </div>
     <h1>Vehicle Maintenance Request</h1>
@@ -683,6 +755,43 @@
       el.style.borderColor = '';
       el.style.boxShadow = '';
     });
+  });
+
+  // ---- Theme toggle ----
+  const themeToggle = document.getElementById('themeToggle');
+  const htmlEl = document.documentElement;
+  const logoImg = document.getElementById('logoImg');
+
+  const LOGO_LIGHT = '../Bromar-Primary-Logo-Full-Colour.png';
+  const LOGO_DARK  = '../Bromar-Primary-Logo-Reverse-White.png';
+
+  function applyTheme(isLight) {
+    if (isLight) {
+      htmlEl.classList.add('light-mode');
+      logoImg.src = LOGO_LIGHT;
+      localStorage.setItem('theme', 'light');
+    } else {
+      htmlEl.classList.remove('light-mode');
+      // Respect system preference for logo
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      logoImg.src = systemDark ? LOGO_DARK : LOGO_LIGHT;
+      localStorage.removeItem('theme');
+    }
+  }
+
+  // On load — restore saved preference
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    applyTheme(true);
+  } else {
+    // Ensure logo matches system dark mode on initial load
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    logoImg.src = systemDark ? LOGO_DARK : LOGO_LIGHT;
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const isCurrentlyLight = htmlEl.classList.contains('light-mode');
+    applyTheme(!isCurrentlyLight);
   });
 </script>
 </body>
