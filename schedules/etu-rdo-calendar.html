@@ -321,12 +321,6 @@
       transform:translateY(-1px);
       box-shadow:0 6px 18px rgba(194,68,14,0.32);
     }
-    .loading {
-      text-align: center;
-      padding: 3rem;
-      color: var(--text-muted);
-      font-size: 1.1rem;
-    }
     @media (max-width: 768px) {
       .header-card, .calendar-card { padding-left: 22px; padding-right: 22px; }
       .fc-toolbar { flex-direction: column; gap: 1rem; }
@@ -379,9 +373,7 @@
       </div>
     </div>
 
-    <div id="calendar">
-      <div class="loading">Loading calendar data...</div>
-    </div>
+    <div id="calendar"></div>
 
     <div style="text-align: center; margin-top: 2rem;">
       <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" class="download-link" target="_blank" rel="noopener noreferrer">
@@ -402,92 +394,184 @@
     localStorage.setItem('theme', html.classList.contains('light-mode') ? 'light' : '');
   });
 
-  // Calendar initialization
-  document.addEventListener('DOMContentLoaded', async function() {
+  // Calendar data - directly from ETU Victoria ICS feed
+  document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
 
-    async function fetchETUEvents() {
-      try {
-        // Try direct fetch first
-        const icsUrl = 'https://www.etuvic.com.au/?post_type=tribe_events&ical=1&eventDisplay=list';
-        let response = await fetch(icsUrl);
-        
-        // If CORS blocked, try with proxy
-        if (!response.ok) {
-          const corsProxy = 'https://api.allorigins.win/raw?url=';
-          response = await fetch(corsProxy + encodeURIComponent(icsUrl));
-        }
-        
-        const icsText = await response.text();
-        return parseICS(icsText);
-      } catch (error) {
-        console.error('Error loading calendar:', error);
-        return [];
-      }
-    }
-
-    function parseICS(icsText) {
-      const events = [];
-      const lines = icsText.split('\n');
-      let currentEvent = null;
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (line === 'BEGIN:VEVENT') {
-          currentEvent = {};
-        } else if (line === 'END:VEVENT' && currentEvent) {
-          if (currentEvent.start && currentEvent.title) {
-            let className = 'rdo';
-            const title = currentEvent.title.toLowerCase();
-            const category = (currentEvent.category || '').toLowerCase();
-            
-            if (category.includes('lockdown') || title.includes('lockdown')) {
-              className = 'lockdown';
-            } else if (category.includes('public') || title.includes('public holiday')) {
-              className = 'holiday';
-            }
-            
-            events.push({
-              title: currentEvent.title,
-              start: currentEvent.start,
-              end: currentEvent.end,
-              className: className
-            });
-          }
-          currentEvent = null;
-        } else if (currentEvent) {
-          if (line.startsWith('DTSTART')) {
-            const dateMatch = line.match(/(\d{8})/);
-            if (dateMatch) {
-              const date = dateMatch[1];
-              currentEvent.start = `${date.substr(0,4)}-${date.substr(4,2)}-${date.substr(6,2)}`;
-            }
-          } else if (line.startsWith('DTEND')) {
-            const dateMatch = line.match(/(\d{8})/);
-            if (dateMatch) {
-              const date = dateMatch[1];
-              currentEvent.end = `${date.substr(0,4)}-${date.substr(4,2)}-${date.substr(6,2)}`;
-            }
-          } else if (line.startsWith('SUMMARY:')) {
-            currentEvent.title = line.replace('SUMMARY:', '').replace(/\\,/g, ',');
-          } else if (line.startsWith('CATEGORIES:')) {
-            currentEvent.category = line.replace('CATEGORIES:', '');
-          }
-        }
-      }
-      
-      return events;
-    }
-
-    const allEvents = await fetchETUEvents();
-
-    if (allEvents.length === 0) {
-      calendarEl.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">Unable to load calendar. Please visit the <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" target="_blank" rel="noopener noreferrer" style="color:var(--brand-orange);">official ETU calendar</a>.</p>';
-      return;
-    }
-
-    console.log(`Loaded ${allEvents.length} events`);
+    // Full calendar events from ETU (2026-2029+)
+    const events = [
+      {title:'Lockdown Weekend',start:'2026-04-25',end:'2026-04-27',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-04-27',end:'2026-04-29',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-05-11',end:'2026-05-12',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-05-23',end:'2026-05-25',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-05-25',end:'2026-05-26',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-06-06',end:'2026-06-08',className:'lockdown'},
+      {title:"King's Birthday",start:'2026-06-08',end:'2026-06-09',className:'holiday'},
+      {title:'Contracting RDO',start:'2026-06-09',end:'2026-06-10',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-06-22',end:'2026-06-23',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-07-04',end:'2026-07-06',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-07-06',end:'2026-07-07',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-07-20',end:'2026-07-21',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-08-01',end:'2026-08-03',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-08-03',end:'2026-08-04',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-08-17',end:'2026-08-18',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-08-29',end:'2026-08-31',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-08-31',end:'2026-09-01',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-09-14',end:'2026-09-15',className:'rdo'},
+      {title:'AFL Grand Final Eve',start:'2026-09-25',end:'2026-09-26',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2026-09-26',end:'2026-09-28',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-09-28',end:'2026-09-29',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-10-10',end:'2026-10-12',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-10-12',end:'2026-10-13',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-10-26',end:'2026-10-27',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2026-10-31',end:'2026-11-02',className:'lockdown'},
+      {title:'Contracting RDO',start:'2026-11-02',end:'2026-11-03',className:'rdo'},
+      {title:'Melbourne Cup',start:'2026-11-03',end:'2026-11-04',className:'holiday'},
+      {title:'Contracting RDO',start:'2026-11-04',end:'2026-11-05',className:'rdo'},
+      {title:'Contracting RDO',start:'2026-11-16',end:'2026-11-17',className:'rdo'},
+      {title:'Picnic Day',start:'2026-12-07',end:'2026-12-08',className:'holiday'},
+      {title:'Christmas Day',start:'2026-12-25',end:'2026-12-26',className:'holiday'},
+      {title:'Boxing Day',start:'2026-12-26',end:'2026-12-27',className:'holiday'},
+      {title:'Boxing Day',start:'2026-12-28',end:'2026-12-29',className:'holiday'},
+      {title:"New Year's Day",start:'2027-01-01',end:'2027-01-02',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-01-11',end:'2027-01-12',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-01-12',end:'2027-01-13',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-01-23',end:'2027-01-25',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-01-25',end:'2027-01-26',className:'rdo'},
+      {title:'Australia Day',start:'2027-01-26',end:'2027-01-27',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-02-08',end:'2027-02-09',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-02-20',end:'2027-02-22',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-02-22',end:'2027-02-23',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-03-06',end:'2027-03-08',className:'lockdown'},
+      {title:'Labour Day',start:'2027-03-08',end:'2027-03-09',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-03-09',end:'2027-03-10',className:'rdo'},
+      {title:'Good Friday',start:'2027-03-26',end:'2027-03-27',className:'holiday'},
+      {title:'Easter Saturday',start:'2027-03-27',end:'2027-03-28',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2027-03-27',end:'2027-03-29',className:'lockdown'},
+      {title:'Easter Sunday',start:'2027-03-28',end:'2027-03-29',className:'holiday'},
+      {title:'Easter Monday',start:'2027-03-29',end:'2027-03-30',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-03-30',end:'2027-03-31',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-03-31',end:'2027-04-01',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-04-12',end:'2027-04-13',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-04-24',end:'2027-04-26',className:'lockdown'},
+      {title:'Anzac Day',start:'2027-04-26',end:'2027-04-27',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-04-27',end:'2027-04-28',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-05-10',end:'2027-05-11',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-05-22',end:'2027-05-24',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-05-24',end:'2027-05-25',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-06-12',end:'2027-06-14',className:'lockdown'},
+      {title:"King's Birthday",start:'2027-06-14',end:'2027-06-15',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-06-15',end:'2027-06-16',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-06-28',end:'2027-06-29',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-07-10',end:'2027-07-12',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-07-12',end:'2027-07-13',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-07-24',end:'2027-07-26',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-07-26',end:'2027-07-27',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-08-09',end:'2027-08-10',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-08-21',end:'2027-08-23',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-08-23',end:'2027-08-24',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-09-06',end:'2027-09-07',className:'rdo'},
+      {title:'AFL Grand Final Eve',start:'2027-09-24',end:'2027-09-25',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2027-09-25',end:'2027-09-27',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-09-27',end:'2027-09-28',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-10-04',end:'2027-10-05',className:'rdo'},
+      {title:'Contracting RDO',start:'2027-10-18',end:'2027-10-19',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-10-30',end:'2027-11-01',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-11-01',end:'2027-11-02',className:'rdo'},
+      {title:'Melbourne Cup',start:'2027-11-02',end:'2027-11-03',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-11-03',end:'2027-11-04',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2027-11-13',end:'2027-11-15',className:'lockdown'},
+      {title:'Contracting RDO',start:'2027-11-15',end:'2027-11-16',className:'rdo'},
+      {title:'Picnic Day',start:'2027-12-06',end:'2027-12-07',className:'holiday'},
+      {title:'Contracting RDO',start:'2027-12-24',end:'2027-12-25',className:'rdo'},
+      {title:'Christmas',start:'2027-12-27',end:'2027-12-28',className:'holiday'},
+      {title:'Boxing Day',start:'2027-12-28',end:'2027-12-29',className:'holiday'},
+      {title:"New Year's Day",start:'2028-01-03',end:'2028-01-04',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-01-10',end:'2028-01-11',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-01-11',end:'2028-01-12',className:'rdo'},
+      {title:'Australia Day',start:'2028-01-26',end:'2028-01-27',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-01-27',end:'2028-01-28',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-01-28',end:'2028-01-29',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-01-29',end:'2028-01-31',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-02-07',end:'2028-02-08',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-02-19',end:'2028-02-21',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-02-21',end:'2028-02-22',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-03-11',end:'2028-03-13',className:'lockdown'},
+      {title:'Labour Day',start:'2028-03-13',end:'2028-03-14',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-03-14',end:'2028-03-15',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-03-27',end:'2028-03-28',className:'rdo'},
+      {title:'Good Friday',start:'2028-04-14',end:'2028-04-15',className:'holiday'},
+      {title:'Easter Saturday',start:'2028-04-15',end:'2028-04-16',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2028-04-15',end:'2028-04-17',className:'lockdown'},
+      {title:'Easter Sunday',start:'2028-04-16',end:'2028-04-17',className:'holiday'},
+      {title:'Easter Monday',start:'2028-04-17',end:'2028-04-18',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-04-20',end:'2028-04-21',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-04-21',end:'2028-04-22',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-04-22',end:'2028-04-24',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-04-24',end:'2028-04-25',className:'rdo'},
+      {title:'Anzac Day',start:'2028-04-25',end:'2028-04-26',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-05-15',end:'2028-05-16',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-05-27',end:'2028-05-29',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-05-29',end:'2028-05-30',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-06-10',end:'2028-06-12',className:'lockdown'},
+      {title:"King's Birthday",start:'2028-06-12',end:'2028-06-13',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-06-13',end:'2028-06-14',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-06-26',end:'2028-06-27',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-07-08',end:'2028-07-10',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-07-10',end:'2028-07-11',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-07-24',end:'2028-07-25',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-08-05',end:'2028-08-07',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-08-07',end:'2028-08-08',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-08-21',end:'2028-08-22',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-09-02',end:'2028-09-04',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-09-04',end:'2028-09-05',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-09-18',end:'2028-09-19',className:'rdo'},
+      {title:'AFL Grand Final Eve',start:'2028-09-29',end:'2028-09-30',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2028-09-30',end:'2028-10-02',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-10-02',end:'2028-10-03',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-10-14',end:'2028-10-16',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-10-16',end:'2028-10-17',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2028-11-04',end:'2028-11-06',className:'lockdown'},
+      {title:'Contracting RDO',start:'2028-11-06',end:'2028-11-07',className:'rdo'},
+      {title:'Melbourne Cup',start:'2028-11-07',end:'2028-11-08',className:'holiday'},
+      {title:'Contracting RDO',start:'2028-11-08',end:'2028-11-09',className:'rdo'},
+      {title:'Contracting RDO',start:'2028-11-20',end:'2028-11-21',className:'rdo'},
+      {title:'Picnic Day',start:'2028-12-04',end:'2028-12-05',className:'holiday'},
+      {title:'Christmas Day',start:'2028-12-25',end:'2028-12-26',className:'holiday'},
+      {title:'Boxing Day',start:'2028-12-26',end:'2028-12-27',className:'holiday'},
+      {title:"New Year's Day",start:'2029-01-01',end:'2029-01-02',className:'holiday'},
+      {title:'Contracting RDO',start:'2029-01-09',end:'2029-01-10',className:'rdo'},
+      {title:'Australia Day',start:'2029-01-26',end:'2029-01-27',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2029-01-27',end:'2029-01-29',className:'lockdown'},
+      {title:'Contracting RDO',start:'2029-01-29',end:'2029-01-30',className:'rdo'},
+      {title:'Contracting RDO',start:'2029-02-12',end:'2029-02-13',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-02-24',end:'2029-02-26',className:'lockdown'},
+      {title:'Contracting RDO',start:'2029-02-26',end:'2029-02-27',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-03-10',end:'2029-03-12',className:'lockdown'},
+      {title:'Labour Day',start:'2029-03-12',end:'2029-03-13',className:'holiday'},
+      {title:'Contracting RDO',start:'2029-03-13',end:'2029-03-14',className:'rdo'},
+      {title:'Good Friday',start:'2029-03-30',end:'2029-03-31',className:'holiday'},
+      {title:'Easter Saturday',start:'2029-03-31',end:'2029-04-01',className:'holiday'},
+      {title:'Lockdown Weekend',start:'2029-03-31',end:'2029-04-02',className:'lockdown'},
+      {title:'Easter Sunday',start:'2029-04-01',end:'2029-04-02',className:'holiday'},
+      {title:'Easter Monday',start:'2029-04-02',end:'2029-04-03',className:'holiday'},
+      {title:'Contracting RDO',start:'2029-04-03',end:'2029-04-04',className:'rdo'},
+      {title:'Contracting RDO',start:'2029-04-04',end:'2029-04-05',className:'rdo'},
+      {title:'Anzac Day',start:'2029-04-25',end:'2029-04-26',className:'holiday'},
+      {title:'Contracting RDO',start:'2029-04-26',end:'2029-04-27',className:'rdo'},
+      {title:'Contracting RDO',start:'2029-04-27',end:'2029-04-28',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-04-28',end:'2029-04-30',className:'lockdown'},
+      {title:'Contracting RDO',start:'2029-05-14',end:'2029-05-15',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-05-26',end:'2029-05-28',className:'lockdown'},
+      {title:'Contracting RDO',start:'2029-05-28',end:'2029-05-29',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-06-09',end:'2029-06-11',className:'lockdown'},
+      {title:"King's Birthday",start:'2029-06-11',end:'2029-06-12',className:'holiday'},
+      {title:'Contracting RDO',start:'2029-06-12',end:'2029-06-13',className:'rdo'},
+      {title:'Contracting RDO',start:'2029-06-25',end:'2029-06-26',className:'rdo'},
+      {title:'Lockdown Weekend',start:'2029-07-07',end:'2029-07-09',className:'lockdown'},
+      {title:'Contracting RDO',start:'2029-07-09',end:'2029-07-10',className:'rdo'},
+      {title:'Contracting RDO',start:'2029-07-23',end:'2029-07-24',className:'rdo'}
+    ];
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
@@ -501,7 +585,7 @@
         month: 'Month',
         list: 'List'
       },
-      events: allEvents,
+      events: events,
       eventClick: function(info) {
         const start = info.event.start.toLocaleDateString('en-AU', { 
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
