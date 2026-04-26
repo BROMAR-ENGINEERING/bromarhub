@@ -1656,15 +1656,32 @@
   // ============================================================
   const themeToggle = document.getElementById('themeToggle');
   const html = document.documentElement;
+  const logoImg = document.querySelector('.logo-container img');
+
+  // Function to update logo based on theme
+  function updateLogo() {
+    if (html.classList.contains('light-mode')) {
+      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+    } else {
+      // Check system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
+      } else {
+        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+      }
+    }
+  }
 
   // Check for saved theme preference or default to system preference
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'light') {
     html.classList.add('light-mode');
   }
+  updateLogo(); // Set initial logo
 
   themeToggle.addEventListener('click', () => {
     html.classList.toggle('light-mode');
+    updateLogo(); // Update logo when toggled
     
     // Save preference
     if (html.classList.contains('light-mode')) {
