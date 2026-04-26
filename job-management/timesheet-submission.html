@@ -1568,18 +1568,20 @@
       const overtimeHoursInput = row.querySelector('.overtime-hours');
       
       // Only validate if type is selected or any hours entered
-      const hasData = typeSelect.value || normalHoursInput.value || overtimeHoursInput.value;
+      const normalValue = normalHoursInput ? normalHoursInput.value : '';
+      const overtimeValue = overtimeHoursInput ? overtimeHoursInput.value : '';
+      const hasData = typeSelect.value || normalValue || overtimeValue;
       
       if (hasData) {
         if (!typeSelect.value) {
           typeSelect.classList.add('error');
           valid = false;
         }
-        const normalHours = parseFloat(normalHoursInput.value) || 0;
-        const overtimeHours = parseFloat(overtimeHoursInput.value) || 0;
+        const normalHours = parseFloat(normalValue) || 0;
+        const overtimeHours = parseFloat(overtimeValue) || 0;
         if (normalHours <= 0 && overtimeHours <= 0) {
-          normalHoursInput.classList.add('error');
-          overtimeHoursInput.classList.add('error');
+          if (normalHoursInput) normalHoursInput.classList.add('error');
+          if (overtimeHoursInput) overtimeHoursInput.classList.add('error');
           valid = false;
         }
       }
