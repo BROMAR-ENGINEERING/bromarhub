@@ -321,6 +321,12 @@
       transform:translateY(-1px);
       box-shadow:0 6px 18px rgba(194,68,14,0.32);
     }
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
     @media (max-width: 768px) {
       .header-card, .calendar-card { padding-left: 22px; padding-right: 22px; }
       .fc-toolbar { flex-direction: column; gap: 1rem; }
@@ -373,7 +379,9 @@
       </div>
     </div>
 
-    <div id="calendar"></div>
+    <div id="calendar">
+      <div class="loading">Loading calendar data...</div>
+    </div>
 
     <div style="text-align: center; margin-top: 2rem;">
       <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" class="download-link" target="_blank" rel="noopener noreferrer">
@@ -398,13 +406,18 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const calendarEl = document.getElementById('calendar');
 
-    // CHANGE THIS URL to your GitHub raw file URL
-    // Example: 'https://raw.githubusercontent.com/yourusername/yourrepo/main/etu-calendar.ics'
-    const icsUrl = 'etu-calendar.ics'; // Replace with your GitHub URL
-
-    async function fetchICSEvents(url) {
+    async function fetchETUEvents() {
       try {
-        const response = await fetch(url);
+        // Try direct fetch first
+        const icsUrl = 'https://www.etuvic.com.au/?post_type=tribe_events&ical=1&eventDisplay=list';
+        let response = await fetch(icsUrl);
+        
+        // If CORS blocked, try with proxy
+        if (!response.ok) {
+          const corsProxy = 'https://api.allorigins.win/raw?url=';
+          response = await fetch(corsProxy + encodeURIComponent(icsUrl));
+        }
+        
         const icsText = await response.text();
         return parseICS(icsText);
       } catch (error) {
@@ -467,12 +480,14 @@
       return events;
     }
 
-    const allEvents = await fetchICSEvents(icsUrl);
+    const allEvents = await fetchETUEvents();
 
     if (allEvents.length === 0) {
-      calendarEl.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">Unable to load calendar. Please check the ICS file URL or visit the <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" target="_blank" rel="noopener noreferrer">official ETU calendar</a>.</p>';
+      calendarEl.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">Unable to load calendar. Please visit the <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" target="_blank" rel="noopener noreferrer" style="color:var(--brand-orange);">official ETU calendar</a>.</p>';
       return;
     }
+
+    console.log(`Loaded ${allEvents.length} events`);
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
