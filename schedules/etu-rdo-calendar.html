@@ -1,1 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ETU RDO Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+  <style>
+    :root {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-border: #d1d9f0;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --rdo: #457B9D;
+      --holiday: #E63946;
+      --lockdown: #2A9D8F;
+    }
 
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-border: #2a2d32;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+      }
+    }
+
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-border: #d1d9f0;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      left: 64px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #1a56db, #0e9f6e, #ff6b35);
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .calendar-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .legend-dot.rdo { background: var(--rdo); }
+    .legend-dot.holiday { background: var(--holiday); }
+    .legend-dot.lockdown { background: var(--lockdown); }
+
+    #calendar { background: transparent; }
+    .fc { font-family: 'DM Sans', sans-serif; }
+    .fc-toolbar-title {
+      font-family: 'Bebas Neue', sans-serif !important;
+      font-size: 1.8rem !important;
+      letter-spacing: 2px;
+      color: var(--text-primary);
+    }
+    .fc-button {
+      background: var(--brand-orange) !important;
+      border: none !important;
+      border-radius: var(--radius-sm) !important;
+      padding: 0.6rem 1.2rem !important;
+      font-weight: 600 !important;
+      text-transform: uppercase;
+      font-size: 0.85rem !important;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease !important;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25) !important;
+    }
+    .fc-button:hover {
+      background: #a3380b !important;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32) !important;
+    }
+    .fc-button-active { background: #1a56db !important; }
+    .fc-daygrid-day:hover { background: var(--input-bg); }
+    .fc-day-today { background: var(--brand-light) !important; }
+    .fc-day-today .fc-daygrid-day-number {
+      background: var(--brand-orange);
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .fc-col-header-cell {
+      background: var(--brand-dark);
+      color: var(--brand-white);
+      padding: 1rem 0.5rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      border: none !important;
+    }
+    .fc-daygrid-day { border-color: var(--input-border) !important; }
+    .fc-event {
+      border: none !important;
+      border-radius: 6px !important;
+      padding: 4px 8px !important;
+      margin: 2px 0 !important;
+      font-size: 0.85rem !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .fc-event:hover {
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    }
+    .fc-event.rdo { background: var(--rdo) !important; color: white !important; }
+    .fc-event.holiday { background: var(--holiday) !important; color: white !important; }
+    .fc-event.lockdown { background: var(--lockdown) !important; color: white !important; }
+    .fc-daygrid-day-number {
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.5rem;
+      color: var(--text-primary);
+    }
+    .download-link {
+      display:inline-block;
+      background:var(--brand-orange);
+      color:white;
+      padding:0.8rem 1.5rem;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:600;
+      transition:all 0.2s ease;
+      box-shadow:0 2px 6px rgba(194,68,14,0.25);
+    }
+    .download-link:hover {
+      background:#a3380b;
+      transform:translateY(-1px);
+      box-shadow:0 6px 18px rgba(194,68,14,0.32);
+    }
+    @media (max-width: 768px) {
+      .header-card, .calendar-card { padding-left: 22px; padding-right: 22px; }
+      .fc-toolbar { flex-direction: column; gap: 1rem; }
+      .fc-toolbar-title { font-size: 1.3rem !important; }
+      .legend { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="header-card">
+    <a href="index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <h1 class="header-title">ETU RDO Calendar</h1>
+    <p class="header-subtitle">Rostered Days Off, Public Holidays & Lockdown Weekends</p>
+  </div>
+
+  <div class="calendar-card">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot rdo"></div>
+        <span>Contracting RDO</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot holiday"></div>
+        <span>Public Holiday</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot lockdown"></div>
+        <span>Lockdown Weekend</span>
+      </div>
+    </div>
+
+    <div id="calendar"></div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" class="download-link" target="_blank" rel="noopener noreferrer">
+        Visit Official ETU Calendar
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Theme toggle
+  const themeToggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') html.classList.add('light-mode');
+  themeToggle.addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    localStorage.setItem('theme', html.classList.contains('light-mode') ? 'light' : '');
+  });
+
+  // Calendar initialization
+  document.addEventListener('DOMContentLoaded', async function() {
+    const calendarEl = document.getElementById('calendar');
+
+    // CHANGE THIS URL to your GitHub raw file URL
+    // Example: 'https://raw.githubusercontent.com/yourusername/yourrepo/main/etu-calendar.ics'
+    const icsUrl = 'etu-calendar.ics'; // Replace with your GitHub URL
+
+    async function fetchICSEvents(url) {
+      try {
+        const response = await fetch(url);
+        const icsText = await response.text();
+        return parseICS(icsText);
+      } catch (error) {
+        console.error('Error loading calendar:', error);
+        return [];
+      }
+    }
+
+    function parseICS(icsText) {
+      const events = [];
+      const lines = icsText.split('\n');
+      let currentEvent = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (line === 'BEGIN:VEVENT') {
+          currentEvent = {};
+        } else if (line === 'END:VEVENT' && currentEvent) {
+          if (currentEvent.start && currentEvent.title) {
+            let className = 'rdo';
+            const title = currentEvent.title.toLowerCase();
+            const category = (currentEvent.category || '').toLowerCase();
+            
+            if (category.includes('lockdown') || title.includes('lockdown')) {
+              className = 'lockdown';
+            } else if (category.includes('public') || title.includes('public holiday')) {
+              className = 'holiday';
+            }
+            
+            events.push({
+              title: currentEvent.title,
+              start: currentEvent.start,
+              end: currentEvent.end,
+              className: className
+            });
+          }
+          currentEvent = null;
+        } else if (currentEvent) {
+          if (line.startsWith('DTSTART')) {
+            const dateMatch = line.match(/(\d{8})/);
+            if (dateMatch) {
+              const date = dateMatch[1];
+              currentEvent.start = `${date.substr(0,4)}-${date.substr(4,2)}-${date.substr(6,2)}`;
+            }
+          } else if (line.startsWith('DTEND')) {
+            const dateMatch = line.match(/(\d{8})/);
+            if (dateMatch) {
+              const date = dateMatch[1];
+              currentEvent.end = `${date.substr(0,4)}-${date.substr(4,2)}-${date.substr(6,2)}`;
+            }
+          } else if (line.startsWith('SUMMARY:')) {
+            currentEvent.title = line.replace('SUMMARY:', '').replace(/\\,/g, ',');
+          } else if (line.startsWith('CATEGORIES:')) {
+            currentEvent.category = line.replace('CATEGORIES:', '');
+          }
+        }
+      }
+      
+      return events;
+    }
+
+    const allEvents = await fetchICSEvents(icsUrl);
+
+    if (allEvents.length === 0) {
+      calendarEl.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">Unable to load calendar. Please check the ICS file URL or visit the <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" target="_blank" rel="noopener noreferrer">official ETU calendar</a>.</p>';
+      return;
+    }
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,listYear'
+      },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        list: 'List'
+      },
+      events: allEvents,
+      eventClick: function(info) {
+        const start = info.event.start.toLocaleDateString('en-AU', { 
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        let message = info.event.title + '\n' + start;
+        if (info.event.end && info.event.end > info.event.start) {
+          const end = new Date(info.event.end);
+          end.setDate(end.getDate() - 1);
+          message += '\nTo: ' + end.toLocaleDateString('en-AU', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          });
+        }
+        alert(message);
+      },
+      height: 'auto',
+      fixedWeekCount: false,
+      eventDisplay: 'block'
+    });
+
+    calendar.render();
+  });
+</script>
+</body>
+</html>
