@@ -658,7 +658,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const PDF_FILENAME = 'eba2025-2029.pdf';
+  const PDF_FILENAME = 'EBA.2025-2029.Bromar Electrical Services (Aust) (Updated 9Oct).pdf';
   
   // Set PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -733,9 +733,40 @@
       loadingOverlay.classList.remove('hidden');
       errorMessage.classList.remove('show');
       
-      const loadingTask = pdfjsLib.getDocument(PDF_FILENAME);
+      console.log('Attempting to load PDF:', PDF_FILENAME);
+      
+      // First check if file exists
+      const response = await fetch(PDF_FILENAME);
+      console.log('Fetch response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}. File "${PDF_FILENAME}" not found.`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+      
+      if (!contentType || !contentType.includes('pdf')) {
+        console.warn('Warning: Content-Type is not PDF:', contentType);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      console.log('PDF file size:', arrayBuffer.byteLength, 'bytes');
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('PDF file is empty (0 bytes)');
+      }
+      
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+      });
+      
       pdfDoc = await loadingTask.promise;
       totalPages = pdfDoc.numPages;
+      
+      console.log('PDF loaded successfully. Total pages:', totalPages);
       
       pageInfo.textContent = `Page ${currentPage}/${totalPages}`;
       
@@ -745,7 +776,18 @@
       
     } catch (error) {
       console.error('Error loading PDF:', error);
+      console.error('Error details:', error.message);
       loadingOverlay.classList.add('hidden');
+      errorMessage.innerHTML = `
+        <strong>Could not load PDF.</strong><br>
+        Error: ${error.message}<br><br>
+        Possible causes:<br>
+        • File "eba2025-2029.pdf" does not exist in this folder<br>
+        • PDF file is corrupted or invalid<br>
+        • File path is incorrect<br>
+        • Browser security settings blocking file access<br><br>
+        <em>Check the browser console (F12) for more details.</em>
+      `;
       errorMessage.classList.add('show');
     }
   }
