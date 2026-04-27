@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1445,6 +1444,7 @@
     const clientField = jobRow.querySelector('.client-field');
     const otherTypeField = jobRow.querySelector('.other-type-field');
     const allowanceCheckboxes = jobRow.querySelector('.allowance-checkboxes');
+    const normalHoursInput = jobRow.querySelector('.normal-hours');
     
     typeSelect.addEventListener('change', (e) => {
       if (e.target.value === 'Job Number') {
@@ -1463,10 +1463,18 @@
         allowanceCheckboxes.style.display = 'none';
         otherTypeField.style.display = 'none';
       }
+      
+      // Auto-fill 8 hours for leave types (if normal hours field exists and is empty)
+      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave'];
+      if (normalHoursInput && leaveTypes.includes(e.target.value)) {
+        if (!normalHoursInput.value || normalHoursInput.value === '0') {
+          normalHoursInput.value = '8';
+          updateDayTotal(dayIndex); // Directly update the day total
+        }
+      }
     });
 
     // Hours change - update total (both normal and overtime)
-    const normalHoursInput = jobRow.querySelector('.normal-hours');
     const overtimeHoursInput = jobRow.querySelector('.overtime-hours');
     
     if (normalHoursInput) {
