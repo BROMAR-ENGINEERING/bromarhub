@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Service Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --info-text: #1e40af;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+        --info-bg: rgba(59, 130, 246, 0.1);
+        --info-border: rgba(59, 130, 246, 0.3);
+        --info-text: #60a5fa;
+      }
+    }
+
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --info-text: #1e40af;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      left: 64px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 720px) {
+      .field-row { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Job number section */
+    .job-number-section {
+      background: var(--brand-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .job-number-toggle {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .radio-option {
+      flex: 1;
+      position: relative;
+    }
+
+    .radio-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-option label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--brand-white);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .radio-option input:checked + label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+    }
+
+    .radio-option label:hover {
+      border-color: var(--brand-primary);
+    }
+
+    .job-number-fields {
+      display: none;
+    }
+
+    .job-number-fields.active {
+      display: block;
+    }
+
+    /* Task section */
+    .task-card {
+      background: var(--brand-white);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+
+    .task-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .task-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .remove-task {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .remove-task:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .add-task-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .add-task-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .add-task-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Labour section */
+    .labour-card {
+      background: var(--brand-white);
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .labour-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.1);
+    }
+
+    .labour-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .labour-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .remove-labour {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .remove-labour:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .hours-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 620px) {
+      .hours-inputs { grid-template-columns: 1fr; }
+    }
+
+    .add-labour-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .add-labour-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .add-labour-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .success-banner, .info-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .success-banner {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+    
+    .info-banner {
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      color: var(--info-text);
+    }
+    
+    .success-banner.show, .info-banner.show { display: flex; }
+    
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+    .footer-details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+    }
+    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-left a { color: var(--brand-primary); text-decoration: none; }
+    .footer-left a:hover { text-decoration: underline; }
+
+    @media (max-width: 720px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+      .job-number-toggle { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="../index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="logo-container">
+      <picture>
+        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Daily Service Report</h1>
+    <p class="header-subtitle">Quick daily documentation — data saved for weekly job sheet compilation</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="serviceReportForm" novalidate autocomplete="off">
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Service report saved successfully — data will be available for weekly job sheet.</span>
+      </div>
+
+      <!-- BASIC INFO -->
+      <div class="section-label">Basic Information</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-date">
+          <label for="service_date">Date <span class="required">*</span></label>
+          <input type="date" id="service_date" name="service_date" autocomplete="off"/>
+          <span class="error-msg">Please select a date</span>
+        </div>
+      </div>
+
+      <!-- JOB NUMBER SECTION -->
+      <div class="section-label">Job Number</div>
+
+      <div class="job-number-section">
+        <div class="job-number-toggle">
+          <div class="radio-option">
+            <input type="radio" id="existing_job" name="job_number_type" value="existing" checked/>
+            <label for="existing_job">📋 Use Existing Job Number</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="new_job" name="job_number_type" value="new"/>
+            <label for="new_job">✨ Create New Job Number</label>
+          </div>
+        </div>
+
+        <!-- Existing job number field -->
+        <div id="existing-job-fields" class="job-number-fields active">
+          <div class="field-group" id="group-existing-number">
+            <label for="existing_job_number">Job Number <span class="required">*</span></label>
+            <input type="text" id="existing_job_number" name="existing_job_number" placeholder="e.g. J12345" autocomplete="off" style="text-transform: uppercase;"/>
+            <span class="error-msg">Please enter an existing job number</span>
+          </div>
+        </div>
+
+        <!-- New job number fields -->
+        <div id="new-job-fields" class="job-number-fields">
+          <div class="field-row">
+            <div class="field-group full" id="group-new-client">
+              <label for="new_client_name">Client Name <span class="required">*</span></label>
+              <input type="text" id="new_client_name" name="new_client_name" placeholder="Client or company name" autocomplete="off"/>
+              <span class="error-msg">Please enter client name</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group" id="group-new-contact">
+              <label for="new_contact_person">Contact Person</label>
+              <input type="text" id="new_contact_person" name="new_contact_person" placeholder="Primary contact" autocomplete="off"/>
+            </div>
+            <div class="field-group" id="group-new-phone">
+              <label for="new_contact_phone">Contact Phone</label>
+              <input type="text" id="new_contact_phone" name="new_contact_phone" placeholder="Phone number" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="field-group full" id="group-new-address">
+            <label for="new_site_address">Site Address <span class="required">*</span></label>
+            <textarea id="new_site_address" name="new_site_address" rows="2" placeholder="Job site address" autocomplete="off"></textarea>
+            <span class="error-msg">Please enter site address</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORK PERFORMED -->
+      <div class="section-label">Work Performed</div>
+
+      <div id="tasksContainer">
+        <!-- Task entries will be added here dynamically -->
+      </div>
+
+      <button type="button" class="add-task-btn" id="addTaskBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+        Add Task
+      </button>
+
+      <!-- LABOUR -->
+      <div class="section-label">Labour</div>
+
+      <div id="labourContainer">
+        <!-- Labour entries will be added here dynamically -->
+      </div>
+
+      <button type="button" class="add-labour-btn" id="addLabourBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+        Add Labour Entry
+      </button>
+
+      <!-- NOTES -->
+      <div class="section-label">Additional Notes</div>
+
+      <div class="field-group full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3" placeholder="Any additional observations, issues, or client feedback..." autocomplete="off"></textarea>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Save Report</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>💡 This daily service report is saved locally and can be loaded into your weekly job sheet for easy compilation.</em></p>
+        <p><em>Submit your weekly job sheet by Tuesday to ensure timely processing.</em></p>
+      </div>
+      <div class="footer-details">
+        <div class="footer-left">
+          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+  const logoImg = document.querySelector('.logo-container img');
+
+  function updateLogo() {
+    if (html.classList.contains('light-mode')) {
+      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
+      } else {
+        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+      }
+    }
+  }
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    html.classList.add('light-mode');
+  }
+  updateLogo();
+
+  themeToggle.addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    updateLogo();
+    
+    if (html.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
+  });
+
+  // ============================================================
+  // JOB NUMBER TYPE TOGGLE
+  // ============================================================
+  const jobNumberTypeRadios = document.querySelectorAll('input[name="job_number_type"]');
+  const existingJobFields = document.getElementById('existing-job-fields');
+  const newJobFields = document.getElementById('new-job-fields');
+
+  jobNumberTypeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'existing') {
+        existingJobFields.classList.add('active');
+        newJobFields.classList.remove('active');
+      } else {
+        existingJobFields.classList.remove('active');
+        newJobFields.classList.add('active');
+      }
+    });
+  });
+
+  // Auto-uppercase job number
+  document.getElementById('existing_job_number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+
+  // ============================================================
+  // TASKS MANAGEMENT
+  // ============================================================
+  const tasksContainer = document.getElementById('tasksContainer');
+  const addTaskBtn = document.getElementById('addTaskBtn');
+  let taskCounter = 0;
+
+  function createTaskEntry() {
+    const taskId = `task-${taskCounter++}`;
+    const taskCard = document.createElement('div');
+    taskCard.className = 'task-card';
+    taskCard.dataset.taskId = taskId;
+
+    const taskCount = tasksContainer.querySelectorAll('.task-card').length;
+
+    let taskHTML = `
+      <div class="task-header">
+        <span class="task-title">Task ${taskCount + 1}</span>
+        ${taskCount > 0 ? '<button type="button" class="remove-task">Remove</button>' : ''}
+      </div>
+      <div>
+        <label for="${taskId}_description" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+          Task Description ${taskCount === 0 ? '<span class="required">*</span>' : ''}
+        </label>
+        <textarea 
+          id="${taskId}_description" 
+          name="${taskId}_description" 
+          class="task-description"
+          rows="3" 
+          placeholder="Describe the work completed..." 
+          autocomplete="off"
+          style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary); resize: vertical; font-family: 'DM Sans', sans-serif;"
+        ></textarea>
+      </div>
+    `;
+
+    taskCard.innerHTML = taskHTML;
+    tasksContainer.appendChild(taskCard);
+
+    // Add event listener for remove button
+    const removeBtn = taskCard.querySelector('.remove-task');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        taskCard.remove();
+        renumberTasks();
+      });
+    }
+  }
+
+  function renumberTasks() {
+    const tasks = tasksContainer.querySelectorAll('.task-card');
+    tasks.forEach((task, index) => {
+      const title = task.querySelector('.task-title');
+      title.textContent = `Task ${index + 1}`;
+      
+      // Update required indicator - only first task is required
+      const label = task.querySelector('label');
+      const requiredSpan = label.querySelector('.required');
+      if (index === 0 && !requiredSpan) {
+        label.innerHTML = `Task Description <span class="required">*</span>`;
+      } else if (index !== 0 && requiredSpan) {
+        label.innerHTML = 'Task Description';
+      }
+    });
+  }
+
+  addTaskBtn.addEventListener('click', createTaskEntry);
+
+  // Add first task by default
+  createTaskEntry();
+
+  // ============================================================
+  // LABOUR MANAGEMENT
+  // ============================================================
+  const labourContainer = document.getElementById('labourContainer');
+  const addLabourBtn = document.getElementById('addLabourBtn');
+  let labourCounter = 0;
+
+  function createLabourEntry() {
+    const labourId = `labour-${labourCounter++}`;
+    const labourCard = document.createElement('div');
+    labourCard.className = 'labour-card';
+    labourCard.dataset.labourId = labourId;
+
+    const labourCount = labourContainer.querySelectorAll('.labour-card').length;
+
+    let labourHTML = `
+      <div class="labour-header">
+        <span class="labour-title">Labour Entry ${labourCount + 1}</span>
+        ${labourCount > 0 ? '<button type="button" class="remove-labour">Remove</button>' : ''}
+      </div>
+
+      <div class="labour-employee-select">
+        <label for="${labourId}_employee" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+          Employee ${labourCount === 0 ? '<span class="required">*</span>' : ''}
+        </label>
+        <select id="${labourId}_employee" name="${labourId}_employee" style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);">
+          <option value="">Select employee...</option>
+          <option value="Adam Tugwell">Adam Tugwell</option>
+          <option value="Ashley Shirreff">Ashley Shirreff</option>
+          <option value="Chris Leddin">Chris Leddin</option>
+          <option value="Corey Murphy">Corey Murphy</option>
+          <option value="Genie Poplawski">Genie Poplawski</option>
+          <option value="James Minogue">James Minogue</option>
+          <option value="Jemma Scott">Jemma Scott</option>
+          <option value="Jet Wesley">Jet Wesley</option>
+          <option value="John Henshall">John Henshall</option>
+          <option value="Mohin Anand">Mohin Anand</option>
+          <option value="Nathan McRae">Nathan McRae</option>
+          <option value="Nick Basile">Nick Basile</option>
+          <option value="Ryan Stingel">Ryan Stingel</option>
+          <option value="Sam Crimmin">Sam Crimmin</option>
+          <option value="Tim Purdy">Tim Purdy</option>
+          <option value="Tom Elpis">Tom Elpis</option>
+        </select>
+      </div>
+
+      <div class="hours-inputs">
+        <div>
+          <label for="${labourId}_normal" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">Normal Hours</label>
+          <input 
+            type="number" 
+            id="${labourId}_normal" 
+            name="${labourId}_normal"
+            class="normal-hours"
+            min="0" 
+            max="8" 
+            step="0.5" 
+            placeholder="0.0"
+            autocomplete="off"
+            style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+          />
+        </div>
+        <div>
+          <label for="${labourId}_overtime" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">Overtime Hours</label>
+          <input 
+            type="number" 
+            id="${labourId}_overtime" 
+            name="${labourId}_overtime"
+            class="overtime-hours"
+            min="0" 
+            max="24" 
+            step="0.5" 
+            placeholder="0.0"
+            autocomplete="off"
+            style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+          />
+        </div>
+      </div>
+    `;
+
+    labourCard.innerHTML = labourHTML;
+    labourContainer.appendChild(labourCard);
+
+    // Add event listener for remove button
+    const removeBtn = labourCard.querySelector('.remove-labour');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        labourCard.remove();
+        renumberLabour();
+      });
+    }
+
+    // Validate normal hours
+    const normalInput = labourCard.querySelector('.normal-hours');
+    normalInput.addEventListener('input', function() {
+      const value = parseFloat(this.value) || 0;
+      if (value > 8) {
+        this.value = 8;
+        this.classList.add('error');
+        setTimeout(() => this.classList.remove('error'), 2000);
+      }
+    });
+  }
+
+  function renumberLabour() {
+    const entries = labourContainer.querySelectorAll('.labour-card');
+    entries.forEach((entry, index) => {
+      const title = entry.querySelector('.labour-title');
+      title.textContent = `Labour Entry ${index + 1}`;
+      
+      // Update required indicator
+      const label = entry.querySelector('label');
+      const requiredSpan = label.querySelector('.required');
+      if (index === 0 && !requiredSpan) {
+        label.innerHTML = `Employee <span class="required">*</span>`;
+      } else if (index !== 0 && requiredSpan) {
+        label.innerHTML = 'Employee';
+      }
+    });
+  }
+
+  addLabourBtn.addEventListener('click', createLabourEntry);
+
+  // Add first labour entry by default
+  createLabourEntry();
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const date = document.getElementById('service_date').value;
+    const jobNumberType = document.querySelector('input[name="job_number_type"]:checked')?.value;
+
+    check('group-date', !!date);
+
+    // Validate job number based on type
+    if (jobNumberType === 'existing') {
+      const existingJobNumber = document.getElementById('existing_job_number').value.trim();
+      check('group-existing-number', existingJobNumber.length > 0);
+    } else {
+      const clientName = document.getElementById('new_client_name').value.trim();
+      const siteAddress = document.getElementById('new_site_address').value.trim();
+      check('group-new-client', clientName.length > 0);
+      check('group-new-address', siteAddress.length > 0);
+    }
+
+    // Check if at least first task has description
+    const firstTask = document.querySelector('.task-card .task-description');
+    const hasTaskDescription = firstTask && firstTask.value.trim().length > 5;
+    if (!hasTaskDescription) {
+      if (firstTask) {
+        firstTask.classList.add('error');
+        firstTask.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      valid = false;
+    } else {
+      if (firstTask) firstTask.classList.remove('error');
+    }
+
+    // Check if at least first labour has employee selected
+    const firstLabour = document.querySelector('.labour-card select');
+    const hasEmployee = firstLabour && firstLabour.value !== '';
+    if (!hasEmployee) {
+      if (firstLabour) {
+        firstLabour.classList.add('error');
+      }
+      valid = false;
+    } else {
+      if (firstLabour) firstLabour.classList.remove('error');
+    }
+
+    return valid;
+  }
+
+  // Clear error on input
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+      e.target.classList.remove('error');
+      const group = e.target.closest('.field-group');
+      if (group) group.classList.remove('has-error');
+    }
+  });
+
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
+  const serviceReportForm = document.getElementById('serviceReportForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  serviceReportForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Report';
+      return;
+    }
+
+    // Collect form data
+    const date = document.getElementById('service_date').value;
+    const jobNumberType = document.querySelector('input[name="job_number_type"]:checked')?.value;
+    
+    let jobNumber = '';
+    let clientDetails = null;
+    
+    if (jobNumberType === 'existing') {
+      jobNumber = document.getElementById('existing_job_number').value.trim().toUpperCase();
+    } else {
+      jobNumber = 'NEW JOB';
+      clientDetails = {
+        name: document.getElementById('new_client_name').value.trim(),
+        contact: document.getElementById('new_contact_person').value.trim(),
+        phone: document.getElementById('new_contact_phone').value.trim(),
+        address: document.getElementById('new_site_address').value.trim()
+      };
+    }
+
+    // Collect tasks
+    const tasks = [];
+    const taskCards = document.querySelectorAll('.task-card');
+    taskCards.forEach(card => {
+      const taskId = card.dataset.taskId;
+      const description = card.querySelector(`#${taskId}_description`)?.value.trim();
+      if (description) {
+        tasks.push(description);
+      }
+    });
+
+    // Collect labour
+    const labour = [];
+    const labourCards = document.querySelectorAll('.labour-card');
+    labourCards.forEach(card => {
+      const labourId = card.dataset.labourId;
+      const employee = card.querySelector(`#${labourId}_employee`)?.value;
+      const normalHours = parseFloat(card.querySelector(`#${labourId}_normal`)?.value) || 0;
+      const overtimeHours = parseFloat(card.querySelector(`#${labourId}_overtime`)?.value) || 0;
+      
+      if (employee && (normalHours > 0 || overtimeHours > 0)) {
+        labour.push({
+          employee,
+          normalHours,
+          overtimeHours
+        });
+      }
+    });
+
+    const reportData = {
+      date,
+      jobNumber,
+      clientDetails,
+      tasks,
+      labour,
+      notes: document.getElementById('notes').value.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    // Save to local storage
+    const storageKey = `service_report_${date}`;
+    
+    try {
+      // Get existing reports for this date
+      let existingReports = [];
+      const existing = localStorage.getItem(storageKey);
+      if (existing) {
+        existingReports = JSON.parse(existing);
+        if (!Array.isArray(existingReports)) {
+          existingReports = [existingReports];
+        }
+      }
+
+      // Add new report
+      existingReports.push(reportData);
+      
+      // Save back to storage
+      localStorage.setItem(storageKey, JSON.stringify(existingReports));
+
+      // Show success message
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      
+      // Reset form
+      serviceReportForm.reset();
+      document.getElementById('service_date').value = new Date().toISOString().split('T')[0];
+      
+      // Reset job number toggle
+      document.getElementById('existing_job').checked = true;
+      existingJobFields.classList.add('active');
+      newJobFields.classList.remove('active');
+      
+      // Reset tasks and labour
+      tasksContainer.innerHTML = '';
+      taskCounter = 0;
+      createTaskEntry();
+      
+      labourContainer.innerHTML = '';
+      labourCounter = 0;
+      createLabourEntry();
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 6000);
+
+    } catch (err) {
+      console.error('Error saving service report:', err);
+      alert('Error saving report. Please try again or contact support.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Report';
+    }
+  });
+
+  // Form reset
+  serviceReportForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      document.getElementById('service_date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('existing_job').checked = true;
+      existingJobFields.classList.add('active');
+      newJobFields.classList.remove('active');
+      
+      tasksContainer.innerHTML = '';
+      taskCounter = 0;
+      createTaskEntry();
+      
+      labourContainer.innerHTML = '';
+      labourCounter = 0;
+      createLabourEntry();
+    }, 10);
+  });
+
+  // ============================================================
+  // INITIALIZE
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set default date to today
+    document.getElementById('service_date').value = new Date().toISOString().split('T')[0];
+  });
+</script>
+</body>
+</html>
