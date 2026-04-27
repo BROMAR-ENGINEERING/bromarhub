@@ -649,10 +649,7 @@
       </svg>
     </button>
     <div class="logo-container">
-      <picture>
-        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
-        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
-      </picture>
+      <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" id="logoImage" />
     </div>
     <h1 class="header-title">Enterprise Bargaining Agreement</h1>
     <p class="header-subtitle">Search and browse through the Enterprise Bargaining Agreement 2025-2029</p>
@@ -740,7 +737,7 @@
   // ============================================================
   const themeToggle = document.getElementById('themeToggle');
   const html = document.documentElement;
-  const logoImg = document.querySelector('.logo-container img');
+  const logoImg = document.getElementById('logoImage');
 
   function updateLogo() {
     if (html.classList.contains('light-mode')) {
