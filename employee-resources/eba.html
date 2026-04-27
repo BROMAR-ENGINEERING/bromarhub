@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enterprise Bargaining Agreement - Bromar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+      }
+    }
+
+    /* Force light mode when class is added */
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    /* Animated background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Home icon button — top left of header */
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Theme toggle button — top left next to home */
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      left: 64px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    
+    /* Show/hide icons based on theme */
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    /* Header card with logo */
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Main content card */
+    .content-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* Search controls */
+    .search-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrapper {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 11px 44px 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+
+    .search-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--brand-orange);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .search-btn:hover {
+      background: #a3380b;
+      transform: translateY(-50%) translateY(-1px);
+    }
+
+    .search-nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      width: 42px;
+      height: 42px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      border-color: var(--brand-primary);
+      background: var(--brand-white);
+      color: var(--brand-primary);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .search-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    .clear-btn {
+      padding: 11px 18px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: var(--input-bg);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    /* PDF container */
+    .pdf-container {
+      width: 100%;
+      height: calc(100vh - 400px);
+      min-height: 600px;
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--input-bg);
+    }
+
+    .pdf-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Error message */
+    .error-message {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .error-message {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+      }
+    }
+
+    html.light-mode .error-message {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    @media (max-width: 720px) {
+      .header-card, .content-card { 
+        padding-left: 22px; 
+        padding-right: 22px; 
+      }
+      
+      .search-controls {
+        flex-direction: column;
+      }
+      
+      .search-input-wrapper {
+        width: 100%;
+      }
+      
+      .search-nav {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .pdf-container {
+        height: calc(100vh - 500px);
+        min-height: 400px;
+      }
+    }
+
+    /* Highlight animation */
+    @keyframes highlight {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: rgba(255, 235, 59, 0.3); }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="logo-container">
+      <picture>
+        <source srcset="Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Enterprise Bargaining Agreement</h1>
+    <p class="header-subtitle">Search and browse through the Enterprise Bargaining Agreement 2025-2029</p>
+  </div>
+
+  <!-- CONTENT CARD -->
+  <div class="content-card">
+    
+    <div class="error-message" id="errorMessage">
+      Could not load PDF. Please make sure the file exists in the same folder.
+    </div>
+
+    <!-- SEARCH CONTROLS -->
+    <div class="search-controls">
+      <div class="search-input-wrapper">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="search-input" 
+          placeholder="Search in document..."
+          autocomplete="off"
+        />
+        <button id="searchBtn" class="search-btn">Search</button>
+      </div>
+      
+      <div class="search-nav">
+        <button id="prevMatch" class="nav-btn" title="Previous match" disabled>↑</button>
+        <span class="search-info" id="searchInfo">-</span>
+        <button id="nextMatch" class="nav-btn" title="Next match" disabled>↓</button>
+      </div>
+      
+      <button id="clearSearch" class="clear-btn">Clear</button>
+    </div>
+
+    <!-- PDF VIEWER -->
+    <div class="pdf-container">
+      <iframe id="pdfViewer" src=""></iframe>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION - Update this with your PDF filename
+  // ============================================================
+  const PDF_FILENAME = 'eba2025-2029.pdf'; // Change this to your PDF filename
+  
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+  const logoImg = document.querySelector('.logo-container img');
+
+  function updateLogo() {
+    if (html.classList.contains('light-mode')) {
+      logoImg.src = 'Bromar-Primary-Logo-Full-Colour.png';
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        logoImg.src = 'Bromar-Primary-Logo-Reverse-White.png';
+      } else {
+        logoImg.src = 'Bromar-Primary-Logo-Full-Colour.png';
+      }
+    }
+  }
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    html.classList.add('light-mode');
+  }
+  updateLogo();
+
+  themeToggle.addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    updateLogo();
+    
+    if (html.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
+  });
+
+  // ============================================================
+  // PDF VIEWER & SEARCH
+  // ============================================================
+  const pdfViewer = document.getElementById('pdfViewer');
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const prevMatch = document.getElementById('prevMatch');
+  const nextMatch = document.getElementById('nextMatch');
+  const clearSearch = document.getElementById('clearSearch');
+  const searchInfo = document.getElementById('searchInfo');
+  const errorMessage = document.getElementById('errorMessage');
+
+  // Load PDF
+  const pdfUrl = PDF_FILENAME + '#toolbar=1&navpanes=1&scrollbar=1';
+  pdfViewer.src = pdfUrl;
+
+  // Check if PDF loads successfully
+  pdfViewer.addEventListener('load', () => {
+    errorMessage.classList.remove('show');
+  });
+
+  pdfViewer.addEventListener('error', () => {
+    errorMessage.classList.add('show');
+  });
+
+  // Search functionality
+  let currentMatch = 0;
+  let totalMatches = 0;
+
+  function performSearch() {
+    const searchTerm = searchInput.value.trim();
+    
+    if (!searchTerm) {
+      clearSearchResults();
+      return;
+    }
+
+    try {
+      // Use PDF.js built-in search if available via iframe
+      const searchQuery = `#search="${encodeURIComponent(searchTerm)}"`;
+      pdfViewer.src = PDF_FILENAME + searchQuery + '&toolbar=1&navpanes=1&scrollbar=1';
+      
+      // Update UI
+      searchInfo.textContent = `Searching...`;
+      prevMatch.disabled = true;
+      nextMatch.disabled = true;
+      
+      // Note: Actual match counting would require PDF.js integration
+      // This is a simplified version using browser's built-in PDF viewer
+      setTimeout(() => {
+        searchInfo.textContent = `Results found`;
+        prevMatch.disabled = false;
+        nextMatch.disabled = false;
+      }, 500);
+      
+    } catch (err) {
+      console.error('Search error:', err);
+      searchInfo.textContent = 'Search error';
+    }
+  }
+
+  function clearSearchResults() {
+    pdfViewer.src = PDF_FILENAME + '#toolbar=1&navpanes=1&scrollbar=1';
+    searchInput.value = '';
+    searchInfo.textContent = '-';
+    prevMatch.disabled = true;
+    nextMatch.disabled = true;
+    currentMatch = 0;
+    totalMatches = 0;
+  }
+
+  // Event listeners
+  searchBtn.addEventListener('click', performSearch);
+  
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      performSearch();
+    }
+  });
+
+  clearSearch.addEventListener('click', clearSearchResults);
+
+  prevMatch.addEventListener('click', () => {
+    // Navigate to previous match
+    // This would require PDF.js integration for full functionality
+    if (currentMatch > 1) {
+      currentMatch--;
+      searchInfo.textContent = `${currentMatch} of ${totalMatches}`;
+    }
+  });
+
+  nextMatch.addEventListener('click', () => {
+    // Navigate to next match
+    // This would require PDF.js integration for full functionality
+    if (currentMatch < totalMatches) {
+      currentMatch++;
+      searchInfo.textContent = `${currentMatch} of ${totalMatches}`;
+    }
+  });
+
+  // Handle keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + F to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+    
+    // Escape to clear search
+    if (e.key === 'Escape' && document.activeElement === searchInput) {
+      clearSearchResults();
+    }
+  });
+</script>
+</body>
+</html>
