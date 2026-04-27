@@ -105,7 +105,7 @@
             background: rgba(31, 41, 55, 0.1);
             border: 1px solid rgba(31, 41, 55, 0.2);
             color: #1f2937;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem;
             border-radius: 8px;
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
@@ -113,15 +113,29 @@
             font-weight: 500;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
         }
 
         .control-btn:hover {
             background: rgba(31, 41, 55, 0.15);
             transform: translateY(-2px);
         }
+
+        .control-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Show/hide icons based on theme */
+        .sun-icon { display: none; }
+        .moon-icon { display: block; }
+        
+        [data-theme="dark"] .sun-icon { display: block; }
+        [data-theme="dark"] .moon-icon { display: none; }
 
         .logo-container {
             margin-bottom: 2rem;
@@ -246,6 +260,58 @@
 
         [data-theme="dark"] .search-bar input::placeholder {
             color: var(--text-secondary);
+        }
+
+        /* Announcement Banner */
+        .announcement-banner {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 4px solid #3b82f6;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .announcement-banner.hidden {
+            display: none;
+        }
+
+        .announcement-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .announcement-content {
+            flex: 1;
+        }
+
+        .announcement-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 0.25rem;
+        }
+
+        .announcement-text {
+            font-size: 0.875rem;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+
+        [data-theme="dark"] .announcement-banner {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-color: #3b82f6;
+        }
+
+        [data-theme="dark"] .announcement-title {
+            color: #93c5fd;
+        }
+
+        [data-theme="dark"] .announcement-text {
+            color: #bfdbfe;
         }
 
         [data-theme="dark"] .search-icon {
@@ -482,8 +548,21 @@
     <header class="header">
         <div class="header-content">
             <div class="header-controls">
-                <button class="control-btn" id="darkModeToggle">
-                    🌙 Dark Mode
+                <button class="control-btn" id="darkModeToggle" aria-label="Toggle dark mode">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
                 </button>
             </div>
             <div class="logo-container">
@@ -504,6 +583,14 @@
         <div class="search-results" id="searchResults">
             <h3 class="search-results-title">Search Results</h3>
             <div class="search-results-grid" id="searchResultsGrid"></div>
+        </div>
+
+        <!-- Announcement Banner (Coming Soon) -->
+        <div class="announcement-banner" id="announcementBanner">
+            <span class="announcement-icon">📢</span>
+            <div class="announcement-content">
+                <div class="announcement-text">Announcement Banner - Coming Soon</div>
+            </div>
         </div>
 
         <div id="allSections">
@@ -547,14 +634,13 @@
                     </div>
                 </a>
 
-                <!-- <a href="safety/hazard-report.html" style="text-decoration: none; color: inherit;"> -->
+                <a href="safety/hazard-report.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="safety" data-keywords="danger risk unsafe hazard safety concern">
                         <div class="card-icon">🛡️</div>
                         <h3 class="card-title">Hazard Report</h3>
                         <p class="card-description">Identify and report workplace hazards and safety concerns</p>
-                        <span class="badge coming-soon">Coming Soon</span>
                     </div>
-                <!-- </a> -->
+                </a>
 
                 <!-- <a href="safety/uniform-request.html" style="text-decoration: none; color: inherit;"> -->
                     <div class="card" data-category="safety" data-keywords="clothes clothing shirt pants workwear uniform">
@@ -570,6 +656,15 @@
                         <div class="card-icon">🦺</div>
                         <h3 class="card-title">PPE Request</h3>
                         <p class="card-description">Request personal protective equipment and safety gear</p>
+                        <span class="badge coming-soon">Coming Soon</span>
+                    </div>
+                <!-- </a> -->
+
+                <!-- <a href="safety/first-aiders.html" style="text-decoration: none; color: inherit;"> -->
+                    <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact">
+                        <div class="card-icon">🏥</div>
+                        <h3 class="card-title">First Aiders</h3>
+                        <p class="card-description">List of qualified first aiders and their contact information</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
@@ -701,14 +796,13 @@
                     </div>
                 </a>
 
-                <!-- <a href="employee-resources/employee-change-details.html" style="text-decoration: none; color: inherit;"> -->
+                <a href="employee-resources/employee-change-details.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="employee" data-keywords="change details update address phone contact information personal">
                         <div class="card-icon">👤</div>
                         <h3 class="card-title">Employee Change of Details</h3>
                         <p class="card-description">Update your personal information and contact details</p>
-                        <span class="badge coming-soon">Coming Soon</span>
                     </div>
-                <!-- </a> -->
+                </a>
 
                 <!-- <a href="employee-resources/suggestions-feedback.html" style="text-decoration: none; color: inherit;"> -->
                     <div class="card" data-category="employee" data-keywords="suggestion feedback idea complaint anonymous improve">
@@ -724,15 +818,6 @@
                         <div class="card-icon">❓</div>
                         <h3 class="card-title">FAQ Section</h3>
                         <p class="card-description">Find answers to commonly asked questions</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="employee-resources/first-aiders.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="first aid aider medical emergency injury help contact">
-                        <div class="card-icon">🏥</div>
-                        <h3 class="card-title">First Aiders</h3>
-                        <p class="card-description">List of qualified first aiders and their contact information</p>
                         <span class="badge coming-soon">Coming Soon</span>
                     </div>
                 <!-- </a> -->
@@ -838,7 +923,6 @@
         // Set initial theme
         const currentTheme = getInitialTheme();
         htmlElement.setAttribute('data-theme', currentTheme);
-        updateDarkModeButton(currentTheme);
 
         // Listen for system preference changes
         if (window.matchMedia) {
@@ -847,7 +931,6 @@
                 if (!localStorage.getItem('theme')) {
                     const newTheme = e.matches ? 'dark' : 'light';
                     htmlElement.setAttribute('data-theme', newTheme);
-                    updateDarkModeButton(newTheme);
                 }
             });
         }
@@ -856,16 +939,7 @@
             const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             htmlElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-            updateDarkModeButton(theme);
         });
-
-        function updateDarkModeButton(theme) {
-            if (theme === 'dark') {
-                darkModeToggle.innerHTML = '☀️ Light Mode';
-            } else {
-                darkModeToggle.innerHTML = '🌙 Dark Mode';
-            }
-        }
 
         // Search functionality
         const searchInput = document.getElementById('searchInput');
