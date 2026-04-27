@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -869,12 +870,24 @@
         <!-- Days will be generated here by JavaScript -->
       </div>
 
+      <!-- GENERAL COMMENTS -->
+      <div class="section-label">Additional Comments</div>
+
+      <div class="field-group full">
+        <label for="general_comments">General Comments / Notes</label>
+        <textarea id="general_comments" name="general_comments" rows="3" placeholder="Add any general notes about this week's timesheet..." autocomplete="off"></textarea>
+        <span class="field-hint">Optional - Add any additional information, clarifications, or notes about your timesheet for this week.</span>
+      </div>
+
       <!-- ON-CALL STANDBY -->
       <div class="standby-section">
         <label class="standby-label">
           <input type="checkbox" id="standby" name="standby" value="Yes"/>
           <span>📞 I was on call/afterhours standby this week</span>
         </label>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0 32px; line-height: 1.5;">
+          <em>Only tick this box if you have been on standby from Monday to Thursday and the previous weekend</em>
+        </p>
       </div>
 
       <!-- SUBMIT -->
@@ -957,6 +970,7 @@
       employee_email: document.getElementById('employee_email').value,
       week_starting: weekStartingInput.value,
       standby: document.getElementById('standby').checked,
+      general_comments: document.getElementById('general_comments').value,
       days: []
     };
 
@@ -1019,6 +1033,11 @@
       // Restore employee details
       document.getElementById('employee_name').value = formData.employee_name || '';
       document.getElementById('employee_email').value = formData.employee_email || '';
+      
+      // Restore general comments
+      if (formData.general_comments) {
+        document.getElementById('general_comments').value = formData.general_comments;
+      }
       
       // Restore week starting and regenerate days
       if (formData.week_starting) {
@@ -1619,6 +1638,7 @@
       day: 'numeric', month: 'long', year: 'numeric' 
     });
     const standby = document.getElementById('standby').checked ? 'Yes' : 'No';
+    const generalComments = document.getElementById('general_comments').value.trim() || 'No additional comments provided.';
 
     // Build timesheet entries - only the <tr> rows, not the full table
     let timesheetHTML = '';
@@ -1705,6 +1725,7 @@
       total_overtime_hours: totalOvertimeHours.toFixed(1),
       standby: standby,
       standby_yes: standby === 'Yes', // Boolean for conditional display
+      general_comments: generalComments,
       timesheet_entries: timesheetHTML,
       submitted_date: new Date().toLocaleDateString('en-AU', { 
         day: 'numeric', month: 'long', year: 'numeric' 
