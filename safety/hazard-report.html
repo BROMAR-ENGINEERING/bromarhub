@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hazard Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --risk-low: #0e9f6e;
+      --risk-medium: #f59e0b;
+      --risk-high: #ef4444;
+      --risk-critical: #991b1b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+      }
+    }
+
+    /* Force light mode when class is added */
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    /* Animated background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Home icon button — top left of header */
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Theme toggle button — top right of header */
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    /* Header card with logo */
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Form card */
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* Section dividers */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    /* Field groups */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) {
+      .field-row { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+    input[type="date"], input[type="time"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      input[type="date"], input[type="time"] {
+        color-scheme: dark;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23d4d4d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      }
+    }
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--text-faded);
+      margin-top: 5px;
+    }
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Hazard type chips */
+    .leave-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .leave-chip input[type="checkbox"], .leave-chip input[type="radio"] { display: none; }
+    .leave-chip label {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+    }
+    .leave-chip input:checked + label {
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.25);
+    }
+    .leave-chip label:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+    .leave-chip input:checked + label:hover { color: white; }
+
+    /* Risk rating chips with colour-coding */
+    .risk-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 520px) {
+      .risk-chips { grid-template-columns: repeat(2, 1fr); }
+    }
+    .risk-chip input { display: none; }
+    .risk-chip label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 8px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+      letter-spacing: 0;
+      text-align: center;
+    }
+    .risk-chip label .risk-icon {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    .risk-chip label:hover { transform: translateY(-1px); }
+    .risk-chip[data-risk="low"] input:checked + label {
+      background: var(--risk-low); border-color: var(--risk-low); color: white;
+      box-shadow: 0 4px 12px rgba(14, 159, 110, 0.3);
+    }
+    .risk-chip[data-risk="medium"] input:checked + label {
+      background: var(--risk-medium); border-color: var(--risk-medium); color: white;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    .risk-chip[data-risk="high"] input:checked + label {
+      background: var(--risk-high); border-color: var(--risk-high); color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    .risk-chip[data-risk="critical"] input:checked + label {
+      background: var(--risk-critical); border-color: var(--risk-critical); color: white;
+      box-shadow: 0 4px 12px rgba(153, 27, 27, 0.4);
+    }
+
+    /* Divider above submit row */
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    /* Submit row */
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 520px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+    }
+
+    /* Success banner */
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    .success-banner.show { display: flex; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Info card for high/critical risk warning */
+    .risk-warning-card {
+      background: var(--brand-orange-soft);
+      border: 1.5px solid var(--brand-orange);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      animation: slideIn 0.3s ease;
+      display: none;
+    }
+    .risk-warning-card.show { display: block; }
+    .risk-warning-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--brand-orange);
+      margin-bottom: 4px;
+    }
+    .risk-warning-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Checkbox */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0;
+      margin: 0;
+      padding: 12px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .checkbox-label:hover { border-color: var(--brand-orange); background: var(--brand-orange-soft); }
+    .checkbox-label input[type="checkbox"] { display: none; }
+    .checkbox-custom {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border: 2px solid var(--input-border);
+      border-radius: 5px;
+      background: var(--brand-white);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .checkbox-label input:checked ~ .checkbox-custom {
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
+    }
+    .checkbox-label input:checked ~ .checkbox-custom::after {
+      content: '';
+      display: block;
+      width: 5px; height: 9px;
+      border: 2px solid white;
+      border-top: none; border-left: none;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .checkbox-label input:checked ~ .checkbox-text { color: var(--brand-orange); font-weight: 600; }
+
+    /* Footer note */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+    .footer-disclaimer p + p { margin-top: 8px; }
+    .footer-details {
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+      text-align: center;
+    }
+    .footer-details p { margin-bottom: 4px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-details a { color: var(--brand-primary); text-decoration: none; }
+    .footer-details a:hover { text-decoration: underline; }
+    .footer-badge { margin-top: 12px; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="../index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="logo-container">
+      <picture>
+        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Hazard Report</h1>
+    <p class="header-subtitle">Report a hazard or unsafe condition — a confirmation will be sent to your email</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="hazardForm" novalidate>
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Hazard report submitted successfully — a confirmation has been sent to your email and the admin &amp; management team.</span>
+      </div>
+
+      <!-- REPORTER DETAILS -->
+      <div class="section-label">Reporter Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-name">
+          <label for="reporter_name">Full Name <span class="required">*</span></label>
+          <input type="text" id="reporter_name" name="reporter_name" placeholder="Old Mate" autocomplete="name"/>
+          <span class="error-msg">Please enter your full name</span>
+        </div>
+        <div class="field-group" id="group-email">
+          <label for="reporter_email">Email Address <span class="required">*</span></label>
+          <input type="email" id="reporter_email" name="reporter_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-phone">
+          <label for="reporter_phone">Phone Number <span class="required">*</span></label>
+          <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
+          <span class="error-msg">Please enter your phone number</span>
+        </div>
+        <div class="field-group">
+          <label for="reporter_role">Role / Position</label>
+          <input type="text" id="reporter_role" name="reporter_role" placeholder="e.g. Site Supervisor"/>
+        </div>
+      </div>
+
+      <!-- HAZARD DETAILS -->
+      <div class="section-label">Hazard Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-date">
+          <label for="hazard_date">Date Observed <span class="required">*</span></label>
+          <input type="date" id="hazard_date" name="hazard_date"/>
+          <span class="error-msg">Please select the date observed</span>
+        </div>
+        <div class="field-group">
+          <label for="hazard_time">Time Observed</label>
+          <input type="time" id="hazard_time" name="hazard_time"/>
+        </div>
+      </div>
+
+      <div class="field-group full" id="group-location">
+        <label for="hazard_location">Location <span class="required">*</span></label>
+        <input type="text" id="hazard_location" name="hazard_location" placeholder="e.g. Warehouse loading bay, Job site address, Office kitchen"/>
+        <span class="error-msg">Please enter the hazard location</span>
+      </div>
+
+      <!-- HAZARD TYPE -->
+      <div class="field-group" id="group-hazard-type">
+        <label>Hazard Type <span class="required">*</span></label>
+        <div class="leave-chips">
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-slip" value="Slip / Trip / Fall"/>
+            <label for="ht-slip">⚠️ Slip / Trip / Fall</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-electrical" value="Electrical"/>
+            <label for="ht-electrical">⚡ Electrical</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-chemical" value="Chemical / Hazardous Substance"/>
+            <label for="ht-chemical">🧪 Chemical</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-fire" value="Fire / Explosion"/>
+            <label for="ht-fire">🔥 Fire / Explosion</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-machinery" value="Machinery / Equipment"/>
+            <label for="ht-machinery">⚙️ Machinery / Equipment</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-manual" value="Manual Handling"/>
+            <label for="ht-manual">💪 Manual Handling</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-vehicle" value="Vehicle / Traffic"/>
+            <label for="ht-vehicle">🚛 Vehicle / Traffic</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-falling" value="Falling Objects / Working at Heights"/>
+            <label for="ht-falling">🏗️ Falling Objects / Heights</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-ergonomic" value="Ergonomic"/>
+            <label for="ht-ergonomic">🪑 Ergonomic</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-environmental" value="Environmental (noise, dust, heat)"/>
+            <label for="ht-environmental">🌡️ Environmental</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-biological" value="Biological"/>
+            <label for="ht-biological">🦠 Biological</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-psychosocial" value="Psychosocial"/>
+            <label for="ht-psychosocial">🧠 Psychosocial</label>
+          </div>
+          <div class="leave-chip">
+            <input type="checkbox" name="hazard_type" id="ht-other" value="Other"/>
+            <label for="ht-other">❓ Other</label>
+          </div>
+        </div>
+        <span class="error-msg">Please select at least one hazard type</span>
+      </div>
+
+      <div class="field-group full" id="group-description">
+        <label for="hazard_description">Description of Hazard <span class="required">*</span></label>
+        <textarea id="hazard_description" name="hazard_description" placeholder="Describe what you observed — what is the hazard, who or what could be affected, and how?"></textarea>
+        <span class="error-msg">Please describe the hazard</span>
+      </div>
+
+      <!-- RISK ASSESSMENT -->
+      <div class="section-label">Risk Assessment</div>
+
+      <div class="field-group" id="group-risk">
+        <label>Risk Rating <span class="required">*</span></label>
+        <div class="risk-chips">
+          <div class="risk-chip" data-risk="low">
+            <input type="radio" name="risk_rating" id="risk-low" value="Low"/>
+            <label for="risk-low">
+              <span class="risk-icon">🟢</span>
+              <span>Low</span>
+            </label>
+          </div>
+          <div class="risk-chip" data-risk="medium">
+            <input type="radio" name="risk_rating" id="risk-medium" value="Medium"/>
+            <label for="risk-medium">
+              <span class="risk-icon">🟡</span>
+              <span>Medium</span>
+            </label>
+          </div>
+          <div class="risk-chip" data-risk="high">
+            <input type="radio" name="risk_rating" id="risk-high" value="High"/>
+            <label for="risk-high">
+              <span class="risk-icon">🟠</span>
+              <span>High</span>
+            </label>
+          </div>
+          <div class="risk-chip" data-risk="critical">
+            <input type="radio" name="risk_rating" id="risk-critical" value="Critical"/>
+            <label for="risk-critical">
+              <span class="risk-icon">🔴</span>
+              <span>Critical</span>
+            </label>
+          </div>
+        </div>
+        <span class="field-hint">Low: minor injury possible · Medium: injury requires first aid · High: serious injury likely · Critical: imminent danger / life-threatening</span>
+        <span class="error-msg">Please select a risk rating</span>
+      </div>
+
+      <!-- High/Critical warning card -->
+      <div class="field-group full">
+        <div class="risk-warning-card" id="riskWarning">
+          <div class="risk-warning-header">
+            <span>🚨</span>
+            <span>Urgent Action Required</span>
+          </div>
+          <p class="risk-warning-text">For High or Critical risks, notify your supervisor immediately by phone — do not rely on this form alone. If anyone is in imminent danger, call <strong>000</strong>.</p>
+        </div>
+      </div>
+
+      <!-- IMMEDIATE ACTION -->
+      <div class="section-label">Action Taken</div>
+
+      <div class="field-group full">
+        <label for="immediate_action">Immediate Action Taken / Interim Controls</label>
+        <textarea id="immediate_action" name="immediate_action" placeholder="What did you do to make the area safe? e.g. isolated the equipment, placed warning signs, notified supervisor..."></textarea>
+        <span class="field-hint">Describe any steps taken to reduce the risk before this report was submitted.</span>
+      </div>
+
+      <div class="field-group full">
+        <label for="suggested_action">Suggested Corrective Action</label>
+        <textarea id="suggested_action" name="suggested_action" placeholder="What do you recommend to permanently eliminate or control this hazard?"></textarea>
+      </div>
+
+      <!-- SUPPORTING EVIDENCE -->
+      <div class="section-label">Supporting Evidence</div>
+
+      <div class="field-group full">
+        <label class="checkbox-label">
+          <input type="checkbox" id="has_photos" name="has_photos"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">I have photos or documents to support this report</span>
+        </label>
+        <span class="field-hint">If ticked, please email photos/documents separately to admin@bromar.com.au with the subject line "Hazard Report — [your name]".</span>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Report</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>This hazard report will be reviewed by management as part of Bromar's WHS obligations. All reports are taken seriously and treated confidentially where possible.</em></p>
+        <p><em>For imminent danger or serious incidents requiring emergency services, call 000 first — then complete this form.</em></p>
+      </div>
+      <div class="footer-details">
+        <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+        <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322</p>
+        <p>EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a> &nbsp;|&nbsp; REC: 30340</p>
+        <p>ABN: 45 634 835 939 &nbsp;&nbsp;&nbsp; ACN: 634 835 939</p>
+        <div class="footer-badge">
+          <!-- Place your ISO certification badge image here: <img src="iso-badge.png" alt="ISO Certification" style="max-height:60px;"/> -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — UPDATE TEMPLATE ID FOR HAZARD REPORTS
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:   "4JW7VbCEAqZt9p4Jj",
+      serviceId:   "BromarEmail",
+      templateId:  "hazard_admin",  // <-- create this template in EmailJS
+    },
+    adminEmails: [
+      "ashleys@bromar.com.au",
+    ]
+  };
+  // ============================================================
+
+  // Initialise EmailJS
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // ---- Set max date to today (you can't report a hazard from the future) ----
+  const dateInput = document.getElementById('hazard_date');
+  const today = new Date().toISOString().split('T')[0];
+  dateInput.max = today;
+  dateInput.value = today;  // default to today
+
+  // ---- Risk rating warning toggle ----
+  const riskWarning = document.getElementById('riskWarning');
+  document.querySelectorAll('input[name="risk_rating"]').forEach(el => {
+    el.addEventListener('change', () => {
+      if (el.value === 'High' || el.value === 'Critical') {
+        riskWarning.classList.add('show');
+      } else {
+        riskWarning.classList.remove('show');
+      }
+    });
+  });
+
+  // ---- Helpers ----
+  function getHazardTypes() {
+    const checked = [...document.querySelectorAll('input[name="hazard_type"]:checked')];
+    return checked.map(el => el.value).join(', ');
+  }
+
+  function getRiskRating() {
+    const checked = document.querySelector('input[name="risk_rating"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  // ---- Validation ----
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const name        = document.getElementById('reporter_name').value.trim();
+    const email       = document.getElementById('reporter_email').value.trim();
+    const phone       = document.getElementById('reporter_phone').value.trim();
+    const date        = document.getElementById('hazard_date').value;
+    const location    = document.getElementById('hazard_location').value.trim();
+    const description = document.getElementById('hazard_description').value.trim();
+
+    check('group-name',         name.length > 1);
+    check('group-email',        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    check('group-phone',        phone.length > 5);
+    check('group-date',         !!date);
+    check('group-location',     location.length > 1);
+    check('group-hazard-type',  getHazardTypes().length > 0);
+    check('group-description',  description.length > 5);
+    check('group-risk',         getRiskRating().length > 0);
+
+    return valid;
+  }
+
+  // ---- Form submit ----
+  const hazardForm = document.getElementById('hazardForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  hazardForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Report';
+      return;
+    }
+
+    const formatDate = (val) => {
+      if (!val) return '';
+      const [y, m, d] = val.split('-');
+      return new Date(y, m - 1, d).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const reporterName  = document.getElementById('reporter_name').value.trim();
+    const reporterEmail = document.getElementById('reporter_email').value.trim();
+    const reporterPhone = document.getElementById('reporter_phone').value.trim();
+    const reporterRole  = document.getElementById('reporter_role').value.trim() || 'Not specified';
+    const hazardDate    = formatDate(document.getElementById('hazard_date').value);
+    const hazardTime    = document.getElementById('hazard_time').value || 'Not specified';
+    const hazardLoc     = document.getElementById('hazard_location').value.trim();
+    const hazardTypes   = getHazardTypes();
+    const hazardDesc    = document.getElementById('hazard_description').value.trim();
+    const riskRating    = getRiskRating();
+    const immediateAct  = document.getElementById('immediate_action').value.trim() || 'None reported.';
+    const suggestedAct  = document.getElementById('suggested_action').value.trim() || 'None provided.';
+    const hasPhotos     = document.getElementById('has_photos').checked ? 'Yes — supporting documents to follow by email' : 'No';
+    const submitted     = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+
+    const templateParams = {
+      reporter_name:     reporterName,
+      reporter_email:    reporterEmail,
+      reporter_phone:    reporterPhone,
+      reporter_role:     reporterRole,
+      hazard_date:       hazardDate,
+      hazard_time:       hazardTime,
+      hazard_location:   hazardLoc,
+      hazard_type:       hazardTypes,
+      hazard_description: hazardDesc,
+      risk_rating:       riskRating,
+      immediate_action:  immediateAct,
+      suggested_action:  suggestedAct,
+      has_photos:        hasPhotos,
+      submitted_date:    submitted,
+      admin_emails:      CONFIG.adminEmails.join(', '),
+      to_email:          reporterEmail,
+    };
+
+    try {
+      await emailjs.send(
+        CONFIG.emailjs.serviceId,
+        CONFIG.emailjs.templateId,
+        templateParams
+      );
+
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      document.getElementById('hazardForm').reset();
+      riskWarning.classList.remove('show');
+      dateInput.value = today;  // reset default
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 8000);
+
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      alert('Something went wrong — please contact management or admin directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Report';
+    }
+  });
+
+  // Clear error state on input change
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      el.classList.remove('error');
+      const grp = el.closest('[id^="group-"]');
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+  document.querySelectorAll('.leave-chip input, .risk-chip input').forEach(el => {
+    el.addEventListener('change', () => {
+      const grp = el.closest('[id^="group-"]');
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const htmlEl = document.documentElement;
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    htmlEl.classList.add('light-mode');
+  }
+
+  themeToggle.addEventListener('click', () => {
+    htmlEl.classList.toggle('light-mode');
+    if (htmlEl.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
+  });
+</script>
+
+</body>
+</html>
