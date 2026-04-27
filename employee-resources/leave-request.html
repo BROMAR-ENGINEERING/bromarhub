@@ -161,11 +161,11 @@
     }
     .home-icon svg { width: 18px; height: 18px; }
 
-    /* Theme toggle button — top left next to home */
+    /* Theme toggle button — top right of header */
     .theme-toggle {
       position: absolute;
       top: 18px;
-      left: 64px;
+      right: 18px;
       width: 38px;
       height: 38px;
       display: inline-flex;
@@ -372,6 +372,8 @@
       font-size: 0.76rem;
       color: var(--text-faded);
       margin-top: 5px;
+      display: block;
+      text-align: left;
     }
     .error-msg {
       font-size: 0.76rem;
@@ -508,6 +510,48 @@
     .success-banner.show { display: flex; }
     @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
 
+    /* Public holidays info card */
+    .holidays-card {
+      background: var(--brand-orange-soft);
+      border: 1.5px solid var(--brand-orange);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      animation: slideIn 0.3s ease;
+    }
+    .holidays-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--brand-orange);
+    }
+    .holidays-icon { font-size: 1.1rem; }
+    .holidays-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 10px;
+    }
+    .holidays-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(194, 68, 14, 0.15);
+    }
+    .holidays-list li:last-child { border-bottom: none; }
+    .holidays-list .holiday-name { font-weight: 500; }
+    .holidays-list .holiday-date { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; }
+    .holidays-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin: 0;
+    }
+
     /* Checkbox */
     .checkbox-label {
       display: flex;
@@ -571,17 +615,13 @@
     }
     .footer-disclaimer p + p { margin-top: 8px; }
     .footer-details {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
       border-top: 1px solid var(--divider);
       padding-top: 16px;
+      text-align: center;
     }
-    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
-    .footer-left a { color: var(--brand-primary); text-decoration: none; }
-    .footer-left a:hover { text-decoration: underline; }
-    .footer-right { flex-shrink: 0; }
+    .footer-details p { margin-bottom: 4px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-details a { color: var(--brand-primary); text-decoration: none; }
+    .footer-details a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -617,7 +657,7 @@
       </picture>
     </div>
     <h1 class="header-title">Employee Leave Request</h1>
-    <p class="header-subtitle">Complete the form below — a confirmation will be sent to your email</p>
+    <p class="header-subtitle">Apply for leave using this form. Ensure all details are correct before submitting — a confirmation email will be sent to you upon submission.</p>
   </div>
 
   <!-- FORM CARD -->
@@ -713,19 +753,23 @@
       </div>
 
       <div class="field-group" id="group-days">
-        <label for="num_days">Number of Working Days <span class="required">*</span></label>
-        <input type="number" id="num_days" name="num_days" min="0.5" max="365" step="0.5" placeholder="e.g. 5"/>
-        <div id="days-display">📅 <span id="days-calc-text"></span> calendar days</div>
-        <span class="field-hint">Excludes weekends. Adjust if public holidays apply.</span>
+        <label for="num_days">Working Days of Leave <span class="required">*</span></label>
+        <input type="number" id="num_days" name="num_days" min="0" max="365" step="0.5" placeholder="Auto-calculated from dates"/>
+        <div id="days-display">📅 <span id="days-calc-text"></span> calendar days total</div>
+        <span class="field-hint">Auto-calculated: weekdays in your leave period, minus VIC public holidays. You can override if needed.</span>
         <span class="error-msg">Please enter the number of working days</span>
       </div>
 
-      <div class="field-group" id="group-public-holidays">
-        <label class="checkbox-label">
-          <input type="checkbox" id="public_holidays" name="public_holidays" value="Yes"/>
-          <span class="checkbox-custom"></span>
-          <span class="checkbox-text">Public holidays are included in this leave period</span>
-        </label>
+      <!-- Public holidays in selected period -->
+      <div class="field-group full" id="holidays-card-wrapper" style="display: none;">
+        <div class="holidays-card" id="holidaysCard">
+          <div class="holidays-card-header">
+            <span class="holidays-icon">🎉</span>
+            <span class="holidays-title">Victorian Public Holidays in your leave period</span>
+          </div>
+          <ul class="holidays-list" id="holidaysList"></ul>
+          <p class="holidays-note">These have been excluded from your working days count above.</p>
+        </div>
       </div>
 
       <!-- REASON -->
@@ -752,14 +796,10 @@
         <p><em>The information contained in this template is general in nature. If you are unsure about how it applies to your situation you can call our Infoline on 13 13 94 or speak with a union, industry association or a workplace relations professional.</em></p>
       </div>
       <div class="footer-details">
-        <div class="footer-left">
           <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
-          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
-          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
-        </div>
-        <div class="footer-right">
-          <!-- Place your ISO certification badge image here: <img src="iso-badge.png" alt="ISO Certification" style="max-height:60px;"/> -->
-        </div>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322</p>
+          <p>EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a> &nbsp;|&nbsp; REC: 30340</p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939</p>
       </div>
     </div>
   </div>
@@ -790,25 +830,189 @@
   const daysDisp   = document.getElementById('days-display');
   const daysCalc   = document.getElementById('days-calc-text');
 
-  function calcCalendarDays() {
-    const s = new Date(startInput.value);
-    const e = new Date(endInput.value);
-    if (startInput.value && endInput.value && e >= s) {
-      const diff = Math.round((e - s) / (1000*60*60*24)) + 1;
-      daysCalc.textContent = diff;
-      daysDisp.classList.add('visible');
-    } else {
+  // ============================================================
+  // VICTORIAN PUBLIC HOLIDAYS (2025-2029)
+  // Source: business.vic.gov.au — verify and update annually
+  // ============================================================
+  const VIC_PUBLIC_HOLIDAYS = [
+    // 2025
+    { date: '2025-01-01', name: "New Year's Day" },
+    { date: '2025-01-27', name: 'Australia Day (observed)' },
+    { date: '2025-03-10', name: 'Labour Day' },
+    { date: '2025-04-18', name: 'Good Friday' },
+    { date: '2025-04-19', name: 'Saturday before Easter Sunday' },
+    { date: '2025-04-20', name: 'Easter Sunday' },
+    { date: '2025-04-21', name: 'Easter Monday' },
+    { date: '2025-04-25', name: 'ANZAC Day' },
+    { date: '2025-06-09', name: "King's Birthday" },
+    { date: '2025-09-26', name: 'AFL Grand Final Friday' },
+    { date: '2025-11-04', name: 'Melbourne Cup Day' },
+    { date: '2025-12-25', name: 'Christmas Day' },
+    { date: '2025-12-26', name: 'Boxing Day' },
+
+    // 2026
+    { date: '2026-01-01', name: "New Year's Day" },
+    { date: '2026-01-26', name: 'Australia Day' },
+    { date: '2026-03-09', name: 'Labour Day' },
+    { date: '2026-04-03', name: 'Good Friday' },
+    { date: '2026-04-04', name: 'Saturday before Easter Sunday' },
+    { date: '2026-04-05', name: 'Easter Sunday' },
+    { date: '2026-04-06', name: 'Easter Monday' },
+    { date: '2026-04-25', name: 'ANZAC Day' },
+    { date: '2026-06-08', name: "King's Birthday" },
+    { date: '2026-09-25', name: 'AFL Grand Final Friday' },
+    { date: '2026-11-03', name: 'Melbourne Cup Day' },
+    { date: '2026-12-25', name: 'Christmas Day' },
+    { date: '2026-12-28', name: 'Boxing Day (observed)' },
+
+    // 2027
+    { date: '2027-01-01', name: "New Year's Day" },
+    { date: '2027-01-26', name: 'Australia Day' },
+    { date: '2027-03-08', name: 'Labour Day' },
+    { date: '2027-03-26', name: 'Good Friday' },
+    { date: '2027-03-27', name: 'Saturday before Easter Sunday' },
+    { date: '2027-03-28', name: 'Easter Sunday' },
+    { date: '2027-03-29', name: 'Easter Monday' },
+    { date: '2027-04-26', name: 'ANZAC Day (observed)' },
+    { date: '2027-06-14', name: "King's Birthday" },
+    { date: '2027-10-01', name: 'AFL Grand Final Friday' },
+    { date: '2027-11-02', name: 'Melbourne Cup Day' },
+    { date: '2027-12-27', name: 'Christmas Day (observed)' },
+    { date: '2027-12-28', name: 'Boxing Day (observed)' },
+
+    // 2028
+    { date: '2028-01-03', name: "New Year's Day (observed)" },
+    { date: '2028-01-26', name: 'Australia Day' },
+    { date: '2028-03-13', name: 'Labour Day' },
+    { date: '2028-04-14', name: 'Good Friday' },
+    { date: '2028-04-15', name: 'Saturday before Easter Sunday' },
+    { date: '2028-04-16', name: 'Easter Sunday' },
+    { date: '2028-04-17', name: 'Easter Monday' },
+    { date: '2028-04-25', name: 'ANZAC Day' },
+    { date: '2028-06-12', name: "King's Birthday" },
+    { date: '2028-09-29', name: 'AFL Grand Final Friday' },
+    { date: '2028-11-07', name: 'Melbourne Cup Day' },
+    { date: '2028-12-25', name: 'Christmas Day' },
+    { date: '2028-12-26', name: 'Boxing Day' },
+
+    // 2029
+    { date: '2029-01-01', name: "New Year's Day" },
+    { date: '2029-01-26', name: 'Australia Day' },
+    { date: '2029-03-12', name: 'Labour Day' },
+    { date: '2029-03-30', name: 'Good Friday' },
+    { date: '2029-03-31', name: 'Saturday before Easter Sunday' },
+    { date: '2029-04-01', name: 'Easter Sunday' },
+    { date: '2029-04-02', name: 'Easter Monday' },
+    { date: '2029-04-25', name: 'ANZAC Day' },
+    { date: '2029-06-11', name: "King's Birthday" },
+    { date: '2029-09-28', name: 'AFL Grand Final Friday' },
+    { date: '2029-11-06', name: 'Melbourne Cup Day' },
+    { date: '2029-12-25', name: 'Christmas Day' },
+    { date: '2029-12-26', name: 'Boxing Day' },
+  ];
+
+  // Build a Map for fast lookup
+  const holidayMap = new Map(VIC_PUBLIC_HOLIDAYS.map(h => [h.date, h.name]));
+
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function calcLeaveDays() {
+    const sVal = startInput.value;
+    const eVal = endInput.value;
+    const numDaysInput = document.getElementById('num_days');
+    const holidaysWrapper = document.getElementById('holidays-card-wrapper');
+    const holidaysList = document.getElementById('holidaysList');
+
+    if (!sVal || !eVal) {
       daysDisp.classList.remove('visible');
+      holidaysWrapper.style.display = 'none';
+      return;
+    }
+
+    const [sy, sm, sd] = sVal.split('-').map(Number);
+    const [ey, em, ed] = eVal.split('-').map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const end = new Date(ey, em - 1, ed);
+
+    // Leave period is BETWEEN the two dates (exclusive of both)
+    // Last day of work = day they last worked (not on leave)
+    // Return to work = first day back (not on leave)
+    const leaveStart = new Date(start);
+    leaveStart.setDate(leaveStart.getDate() + 1); // day after last day of work
+    const leaveEnd = new Date(end);
+    leaveEnd.setDate(leaveEnd.getDate() - 1); // day before return
+
+    if (leaveEnd < leaveStart) {
+      // No actual leave days between (e.g. Fri last day, Mon return)
+      daysDisp.classList.remove('visible');
+      holidaysWrapper.style.display = 'none';
+      document.getElementById('num_days').value = 0;
+      return;
+    }
+
+    // Total calendar days of leave
+    const calDays = Math.round((leaveEnd - leaveStart) / (1000*60*60*24)) + 1;
+    daysCalc.textContent = calDays;
+    daysDisp.classList.add('visible');
+
+    // Walk each day in the leave period and tally working days + holidays
+    let workingDays = 0;
+    const holidaysFound = [];
+
+    const cursor = new Date(leaveStart);
+    while (cursor <= leaveEnd) {
+      const dow = cursor.getDay(); // 0 = Sun, 6 = Sat
+      const iso = isoDate(cursor);
+      const isWeekday = dow >= 1 && dow <= 5;
+      const holidayName = holidayMap.get(iso);
+
+      if (holidayName && isWeekday) {
+        // Public holiday on a weekday — counted as off, listed
+        holidaysFound.push({ date: iso, name: holidayName, weekday: cursor.toLocaleDateString('en-AU', { weekday: 'short' }) });
+      } else if (isWeekday) {
+        workingDays++;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Auto-fill the working days field
+    numDaysInput.value = workingDays;
+    numDaysInput.classList.remove('error');
+    document.getElementById('group-days').classList.remove('has-error');
+
+    // Show holidays card if any
+    if (holidaysFound.length > 0) {
+      holidaysList.innerHTML = holidaysFound.map(h => {
+        const d = new Date(h.date);
+        const formatted = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+        return `<li><span class="holiday-name">${h.name}</span><span class="holiday-date">${formatted}</span></li>`;
+      }).join('');
+      holidaysWrapper.style.display = 'block';
+    } else {
+      holidaysWrapper.style.display = 'none';
     }
   }
-  startInput.addEventListener('change', calcCalendarDays);
-  endInput.addEventListener('change', calcCalendarDays);
+
+  startInput.addEventListener('change', calcLeaveDays);
+  endInput.addEventListener('change', calcLeaveDays);
 
   // Set min date to today
   const today = new Date().toISOString().split('T')[0];
   startInput.min = today;
   endInput.min   = today;
-  startInput.addEventListener('change', () => { endInput.min = startInput.value; });
+  startInput.addEventListener('change', () => {
+    endInput.min = startInput.value;
+    // If the end date is empty or before the new start, pre-fill it with the start date
+    // so the date picker opens to that month instead of jumping to today.
+    if (!endInput.value || endInput.value < startInput.value) {
+      endInput.value = startInput.value;
+    }
+  });
 
   // ---- Validation ----
   function getLeaveType() {
@@ -891,7 +1095,11 @@
       employee_name:  employeeName,
       employee_email: employeeEmail,
       employee_phone: employeePhone,
-      public_holidays: document.getElementById('public_holidays').checked ? 'Yes — public holidays included' : 'No',
+      public_holidays: (function(){
+        const items = document.querySelectorAll('#holidaysList li .holiday-name');
+        if (items.length === 0) return 'None in this period';
+        return Array.from(items).map(el => el.textContent).join(', ');
+      })(),
       leave_type:     leaveType,
       start_date:     startDate,
       end_date:       endDate,
