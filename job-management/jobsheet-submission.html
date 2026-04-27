@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employee Job Sheet Submission</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --info-text: #1e40af;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+        --info-bg: rgba(59, 130, 246, 0.1);
+        --info-border: rgba(59, 130, 246, 0.3);
+        --info-text: #60a5fa;
+      }
+    }
+
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --info-text: #1e40af;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 980px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      left: 64px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 720px) {
+      .field-row { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Job number section */
+    .job-number-section {
+      background: var(--brand-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .job-number-toggle {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .radio-option {
+      flex: 1;
+      position: relative;
+    }
+
+    .radio-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-option label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--brand-white);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .radio-option input:checked + label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+    }
+
+    .radio-option label:hover {
+      border-color: var(--brand-primary);
+    }
+
+    .job-number-fields {
+      display: none;
+    }
+
+    .job-number-fields.active {
+      display: block;
+    }
+
+    /* Job type badges */
+    .job-type-badges {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .job-type-badge {
+      flex: 1;
+      min-width: 150px;
+      position: relative;
+    }
+
+    .job-type-badge input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .job-type-badge label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 16px 12px;
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--brand-white);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .job-type-badge input:checked + label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+    }
+
+    .job-type-badge label:hover {
+      border-color: var(--brand-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.1);
+    }
+
+    .badge-icon {
+      font-size: 1.5rem;
+    }
+
+    .badge-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Labour section */
+    .labour-card {
+      background: var(--brand-white);
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .labour-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.1);
+    }
+
+    .labour-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .labour-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .remove-labour {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .remove-labour:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .labour-employee-select {
+      margin-bottom: 16px;
+    }
+
+    .labour-week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .labour-week-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .labour-week-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .labour-day {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      transition: all 0.2s;
+    }
+
+    .labour-day:hover {
+      border-color: var(--brand-primary);
+    }
+
+    .labour-day-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .labour-hours-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .labour-hours-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      text-align: center;
+      background: var(--brand-white);
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .labour-hours-input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.1);
+      outline: none;
+    }
+
+    .labour-hours-input.error {
+      border-color: var(--error);
+    }
+
+    .labour-hours-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    .labour-totals {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--brand-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .labour-total-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .labour-total-label {
+      color: var(--text-muted);
+    }
+
+    .labour-total-value {
+      color: var(--brand-primary);
+      font-size: 1rem;
+    }
+
+    .add-labour-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .add-labour-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .add-labour-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Task section */
+    .task-card {
+      background: var(--brand-white);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+
+    .task-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .task-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .remove-task, .remove-material {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .remove-task:hover, .remove-material:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .add-task-btn, .add-material-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .add-task-btn:hover, .add-material-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .add-task-btn svg, .add-material-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Material section */
+    .material-card {
+      background: var(--brand-white);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+
+    .material-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
+    }
+
+    .material-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .material-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .material-search-container {
+      position: relative;
+    }
+
+    .material-search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--brand-white);
+      border: 1.5px solid var(--input-border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .material-search-results.show {
+      display: block;
+    }
+
+    .material-search-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--divider);
+      transition: all 0.2s;
+    }
+
+    .material-search-item:last-child {
+      border-bottom: none;
+    }
+
+    .material-search-item:hover {
+      background: var(--brand-light);
+    }
+
+    .material-item-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .material-item-code {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .material-fields {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 620px) {
+      .material-fields {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Radio button styling for confirmations */
+    input[type="radio"]:checked + span {
+      color: var(--brand-orange);
+    }
+
+    label:has(input[type="radio"]:checked) {
+      border-color: var(--brand-orange) !important;
+      background: var(--brand-orange-soft) !important;
+    }
+
+    label:has(input[type="radio"]):hover {
+      border-color: var(--brand-primary) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.1);
+    }
+
+    /* Success/Info banners */
+    .success-banner, .info-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .success-banner {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+    
+    .info-banner {
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      color: var(--info-text);
+    }
+    
+    .success-banner.show, .info-banner.show { display: flex; }
+    
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Form controls */
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    /* Footer */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.7;
+    }
+    .footer-details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+    }
+    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-left a { color: var(--brand-primary); text-decoration: none; }
+    .footer-left a:hover { text-decoration: underline; }
+    .footer-right { flex-shrink: 0; }
+
+    @media (max-width: 720px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+      .job-type-badges { flex-direction: column; }
+      .job-type-badge { min-width: 100%; }
+      .job-number-toggle { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="../index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="logo-container">
+      <picture>
+        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Job Sheet</h1>
+    <p class="header-subtitle">Submit job details for processing — a confirmation will be sent to your email</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="jobsheetForm" novalidate autocomplete="off">
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Job sheet submitted successfully — a confirmation has been sent to your email and the admin team.</span>
+      </div>
+
+      <div class="info-banner" id="autoSaveBanner">
+        <span>💾</span>
+        <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
+      </div>
+
+      <!-- EMPLOYEE DETAILS -->
+      <div class="section-label">Employee Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-name">
+          <label for="employee_name">Employee Name <span class="required">*</span></label>
+          <select id="employee_name" name="employee_name">
+            <option value="">Select employee...</option>
+            <!-- TODO: Long-term - integrate with SharePoint list for dynamic employee management -->
+            <option value="Adam Tugwell">Adam Tugwell</option>
+            <option value="Ashley Shirreff">Ashley Shirreff</option>
+            <option value="Chris Leddin">Chris Leddin</option>
+            <option value="Corey Murphy">Corey Murphy</option>
+            <option value="Genie Poplawski">Genie Poplawski</option>
+            <option value="James Minogue">James Minogue</option>
+            <option value="Jemma Scott">Jemma Scott</option>
+            <option value="Jet Wesley">Jet Wesley</option>
+            <option value="John Henshall">John Henshall</option>
+            <option value="Mohin Anand">Mohin Anand</option>
+            <option value="Nathan McRae">Nathan McRae</option>
+            <option value="Nick Basile">Nick Basile</option>
+            <option value="Ryan Stingel">Ryan Stingel</option>
+            <option value="Sam Crimmin">Sam Crimmin</option>
+            <option value="Tim Purdy">Tim Purdy</option>
+            <option value="Tom Elpis">Tom Elpis</option>
+          </select>
+          <span class="error-msg">Please select an employee</span>
+        </div>
+        <div class="field-group" id="group-email">
+          <label for="employee_email">Email Address <span class="required">*</span></label>
+          <input type="email" id="employee_email" name="employee_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-date">
+          <label for="job_date">Date <span class="required">*</span></label>
+          <input type="date" id="job_date" name="job_date" autocomplete="off"/>
+          <span class="error-msg">Please select a date</span>
+        </div>
+      </div>
+
+      <!-- JOB NUMBER SECTION -->
+      <div class="section-label">Job Number</div>
+
+      <div class="job-number-section">
+        <div class="job-number-toggle">
+          <div class="radio-option">
+            <input type="radio" id="existing_job" name="job_number_type" value="existing" checked/>
+            <label for="existing_job">📋 Use Existing Job Number</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="new_job" name="job_number_type" value="new"/>
+            <label for="new_job">✨ Create New Job Number</label>
+          </div>
+        </div>
+
+        <!-- Existing job number field -->
+        <div id="existing-job-fields" class="job-number-fields active">
+          <div class="field-group" id="group-existing-number">
+            <label for="existing_job_number">Job Number <span class="required">*</span></label>
+            <input type="text" id="existing_job_number" name="existing_job_number" placeholder="e.g. J12345" autocomplete="off" style="text-transform: uppercase;"/>
+            <span class="error-msg">Please enter an existing job number</span>
+          </div>
+        </div>
+
+        <!-- New job number fields -->
+        <div id="new-job-fields" class="job-number-fields">
+          <div class="field-row">
+            <div class="field-group full" id="group-new-client">
+              <label for="new_client_name">Client Name <span class="required">*</span></label>
+              <input type="text" id="new_client_name" name="new_client_name" placeholder="Client or company name" autocomplete="off"/>
+              <span class="error-msg">Please enter client name</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group" id="group-new-contact">
+              <label for="new_contact_person">Contact Person</label>
+              <input type="text" id="new_contact_person" name="new_contact_person" placeholder="Primary contact" autocomplete="off"/>
+            </div>
+            <div class="field-group" id="group-new-phone">
+              <label for="new_contact_phone">Contact Phone</label>
+              <input type="text" id="new_contact_phone" name="new_contact_phone" placeholder="Phone number" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="field-group full" id="group-new-address">
+            <label for="new_site_address">Site Address <span class="required">*</span></label>
+            <textarea id="new_site_address" name="new_site_address" rows="2" placeholder="Job site address" autocomplete="off"></textarea>
+            <span class="error-msg">Please enter site address</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- JOB TYPE -->
+      <div class="section-label">Job Type</div>
+
+      <div class="job-type-badges">
+        <div class="job-type-badge">
+          <input type="radio" id="type_cost_plus" name="job_type" value="Cost Plus" checked/>
+          <label for="type_cost_plus">
+            <span class="badge-icon">💰</span>
+            <span class="badge-title">Cost Plus</span>
+            <span class="badge-desc">Time & materials</span>
+          </label>
+        </div>
+        <div class="job-type-badge">
+          <input type="radio" id="type_quoted" name="job_type" value="Quoted"/>
+          <label for="type_quoted">
+            <span class="badge-icon">📝</span>
+            <span class="badge-title">Quoted</span>
+            <span class="badge-desc">Fixed price</span>
+          </label>
+        </div>
+        <div class="job-type-badge">
+          <input type="radio" id="type_callout" name="job_type" value="Call Out"/>
+          <label for="type_callout">
+            <span class="badge-icon">🚨</span>
+            <span class="badge-title">Call Out</span>
+            <span class="badge-desc">Emergency service</span>
+          </label>
+        </div>
+        <div class="job-type-badge">
+          <input type="radio" id="type_unknown" name="job_type" value="Unknown"/>
+          <label for="type_unknown">
+            <span class="badge-icon">❓</span>
+            <span class="badge-title">Unknown</span>
+            <span class="badge-desc">To be determined</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- JOB DETAILS -->
+      <div class="section-label">Job Details</div>
+
+      <!-- TASKS SECTION -->
+      <div id="tasksContainer">
+        <!-- Task entries will be added here dynamically -->
+      </div>
+
+      <button type="button" class="add-task-btn" id="addTaskBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+        Add Task
+      </button>
+
+      <!-- LABOUR SECTION -->
+      <div class="section-label">Labour</div>
+
+      <div id="labourContainer">
+        <!-- Labour entries will be added here dynamically -->
+      </div>
+
+      <button type="button" class="add-labour-btn" id="addLabourBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+        Add Labour Entry
+      </button>
+
+      <!-- MATERIALS SECTION -->
+      <div class="section-label">Materials</div>
+
+      <div id="materialsContainer">
+        <!-- Material entries will be added here dynamically -->
+      </div>
+
+      <button type="button" class="add-material-btn" id="addMaterialBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+        Add Material
+      </button>
+
+      <div class="field-group full" style="margin-top: 20px;">
+          <label for="materials_cost">Materials Cost ($)</label>
+          <input type="number" id="materials_cost" name="materials_cost" min="0" step="0.01" placeholder="0.00" autocomplete="off"/>
+        </div>
+      </div>
+
+      <div class="field-group full">
+        <label for="additional_notes">Additional Notes</label>
+        <textarea id="additional_notes" name="additional_notes" rows="3" placeholder="Any additional information, special requirements, or observations..." autocomplete="off"></textarea>
+      </div>
+
+      <!-- REQUIRED CONFIRMATIONS -->
+      <div class="section-label">Confirmation</div>
+
+      <div class="field-group full" id="group-job-complete">
+        <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: block;">
+          Is this job completed? <span class="required">*</span>
+        </label>
+        <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+          <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--brand-light); border: 2px solid var(--input-border); border-radius: var(--radius-sm); cursor: pointer; flex: 1; transition: all 0.2s;">
+            <input type="radio" id="job_complete_yes" name="job_complete" value="Yes" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--brand-orange);"/>
+            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Yes - Job is complete</span>
+          </label>
+          <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--brand-light); border: 2px solid var(--input-border); border-radius: var(--radius-sm); cursor: pointer; flex: 1; transition: all 0.2s;">
+            <input type="radio" id="job_complete_no" name="job_complete" value="No" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--brand-orange);"/>
+            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">No - Job is ongoing</span>
+          </label>
+        </div>
+        <span class="error-msg">Please select whether the job is completed</span>
+      </div>
+
+      <div class="field-group full" id="group-materials-booked">
+        <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; background: var(--brand-light); border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); cursor: pointer;">
+          <input type="checkbox" id="materials_booked" name="materials_booked" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--brand-orange);"/>
+          <span style="flex: 1; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+            Has all material been booked out? <span class="required">*</span>
+            <span style="display: block; font-size: 0.75rem; font-weight: 400; color: var(--text-muted); margin-top: 4px;">Confirm that all materials have been properly logged and accounted for</span>
+          </span>
+        </label>
+        <span class="error-msg">Please confirm if materials have been booked out</span>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Job Sheet</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>Please ensure all job sheet details are accurate and complete. For urgent matters, please contact the admin team directly.</em></p>
+        <p><em>For any questions or issues, please contact admin@bromar.com.au</em></p>
+      </div>
+      <div class="footer-details">
+        <div class="footer-left">
+          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
+        </div>
+        <div class="footer-right">
+          <!-- ISO certification badge if needed -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:   "4JW7VbCEAqZt9p4Jj",
+      serviceId:   "BromarEmail",
+      templateId:  "jobsheet_submit", // You'll need to create this template
+    },
+    adminEmails: [
+      "ashleys@bromar.com.au",
+    ]
+  };
+
+  // Initialize EmailJS
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // ============================================================
+  // TASKS MANAGEMENT
+  // ============================================================
+  const tasksContainer = document.getElementById('tasksContainer');
+  const addTaskBtn = document.getElementById('addTaskBtn');
+  let taskCounter = 0;
+
+  function createTaskEntry() {
+    const taskId = `task-${taskCounter++}`;
+    const taskCard = document.createElement('div');
+    taskCard.className = 'task-card';
+    taskCard.dataset.taskId = taskId;
+
+    const taskCount = tasksContainer.querySelectorAll('.task-card').length;
+
+    let taskHTML = `
+      <div class="task-header">
+        <span class="task-title">Task ${taskCount + 1}</span>
+        ${taskCount > 0 ? '<button type="button" class="remove-task">Remove</button>' : ''}
+      </div>
+      <div>
+        <label for="${taskId}_description" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+          Task Description ${taskCount === 0 ? '<span class="required">*</span>' : ''}
+        </label>
+        <textarea 
+          id="${taskId}_description" 
+          name="${taskId}_description" 
+          class="task-description"
+          rows="3" 
+          placeholder="Describe the work completed or to be completed..." 
+          autocomplete="off"
+          style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary); resize: vertical; font-family: 'DM Sans', sans-serif;"
+        ></textarea>
+      </div>
+    `;
+
+    taskCard.innerHTML = taskHTML;
+    tasksContainer.appendChild(taskCard);
+
+    // Add event listener for remove button
+    const removeBtn = taskCard.querySelector('.remove-task');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        taskCard.remove();
+        renumberTasks();
+      });
+    }
+  }
+
+  function renumberTasks() {
+    const tasks = tasksContainer.querySelectorAll('.task-card');
+    tasks.forEach((task, index) => {
+      const title = task.querySelector('.task-title');
+      title.textContent = `Task ${index + 1}`;
+      
+      // Update required indicator - only first task is required
+      const label = task.querySelector('label');
+      const requiredSpan = label.querySelector('.required');
+      if (index === 0 && !requiredSpan) {
+        label.innerHTML = `Task Description <span class="required">*</span>`;
+      } else if (index !== 0 && requiredSpan) {
+        label.innerHTML = 'Task Description';
+      }
+    });
+  }
+
+  addTaskBtn.addEventListener('click', createTaskEntry);
+
+  // Add first task by default
+  createTaskEntry();
+
+  // ============================================================
+  // LABOUR MANAGEMENT
+  // ============================================================
+  const labourContainer = document.getElementById('labourContainer');
+  const addLabourBtn = document.getElementById('addLabourBtn');
+  let labourCounter = 0;
+
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  function createLabourEntry() {
+    const labourId = `labour-${labourCounter++}`;
+    const labourCard = document.createElement('div');
+    labourCard.className = 'labour-card';
+    labourCard.dataset.labourId = labourId;
+
+    const labourCount = labourContainer.querySelectorAll('.labour-card').length;
+
+    let labourHTML = `
+      <div class="labour-header">
+        <span class="labour-title">Labour Entry ${labourCount + 1}</span>
+        ${labourCount > 0 ? '<button type="button" class="remove-labour">Remove</button>' : ''}
+      </div>
+
+      <div class="labour-employee-select">
+        <label for="${labourId}_employee" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+          Employee <span class="required">*</span>
+        </label>
+        <select id="${labourId}_employee" name="${labourId}_employee" style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);">
+          <option value="">Select employee...</option>
+          <!-- TODO: Long-term - integrate with SharePoint list for dynamic employee management -->
+          <option value="Adam Tugwell">Adam Tugwell</option>
+          <option value="Ashley Shirreff">Ashley Shirreff</option>
+          <option value="Chris Leddin">Chris Leddin</option>
+          <option value="Corey Murphy">Corey Murphy</option>
+          <option value="Genie Poplawski">Genie Poplawski</option>
+          <option value="James Minogue">James Minogue</option>
+          <option value="Jemma Scott">Jemma Scott</option>
+          <option value="Jet Wesley">Jet Wesley</option>
+          <option value="John Henshall">John Henshall</option>
+          <option value="Mohin Anand">Mohin Anand</option>
+          <option value="Nathan McRae">Nathan McRae</option>
+          <option value="Nick Basile">Nick Basile</option>
+          <option value="Ryan Stingel">Ryan Stingel</option>
+          <option value="Sam Crimmin">Sam Crimmin</option>
+          <option value="Tim Purdy">Tim Purdy</option>
+          <option value="Tom Elpis">Tom Elpis</option>
+        </select>
+      </div>
+
+      <div class="labour-week-grid">
+    `;
+
+    // Create day entries
+    dayNames.forEach((day, index) => {
+      labourHTML += `
+        <div class="labour-day">
+          <div class="labour-day-name">${day}</div>
+          <div class="labour-hours-inputs">
+            <div class="labour-hours-label">Normal</div>
+            <input 
+              type="number" 
+              class="labour-hours-input normal-hours" 
+              name="${labourId}_${day.toLowerCase()}_normal"
+              data-labour-id="${labourId}"
+              data-day="${index}"
+              min="0" 
+              max="8" 
+              step="0.5" 
+              placeholder="0"
+              autocomplete="off"
+            />
+            <div class="labour-hours-label" style="margin-top: 4px;">Overtime</div>
+            <input 
+              type="number" 
+              class="labour-hours-input overtime-hours" 
+              name="${labourId}_${day.toLowerCase()}_overtime"
+              data-labour-id="${labourId}"
+              data-day="${index}"
+              min="0" 
+              max="24" 
+              step="0.5" 
+              placeholder="0"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+      `;
+    });
+
+    labourHTML += `
+      </div>
+      
+      <div class="labour-totals">
+        <div class="labour-total-item">
+          <span class="labour-total-label">Normal Hours:</span>
+          <span class="labour-total-value" data-total="normal-${labourId}">0.0</span>
+        </div>
+        <div class="labour-total-item">
+          <span class="labour-total-label">Overtime:</span>
+          <span class="labour-total-value" data-total="overtime-${labourId}">0.0</span>
+        </div>
+        <div class="labour-total-item">
+          <span class="labour-total-label">Total:</span>
+          <span class="labour-total-value" data-total="total-${labourId}">0.0</span>
+        </div>
+      </div>
+    `;
+
+    labourCard.innerHTML = labourHTML;
+    labourContainer.appendChild(labourCard);
+
+    // Add event listeners for remove button
+    const removeBtn = labourCard.querySelector('.remove-labour');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        labourCard.remove();
+        renumberLabourEntries();
+      });
+    }
+
+    // Add event listeners for hours inputs
+    const normalInputs = labourCard.querySelectorAll('.normal-hours');
+    const overtimeInputs = labourCard.querySelectorAll('.overtime-hours');
+
+    normalInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        validateNormalHours(this);
+        updateLabourTotals(labourId);
+      });
+    });
+
+    overtimeInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        updateLabourTotals(labourId);
+      });
+    });
+  }
+
+  function validateNormalHours(input) {
+    const value = parseFloat(input.value) || 0;
+    if (value > 8) {
+      input.value = 8;
+      input.classList.add('error');
+      setTimeout(() => input.classList.remove('error'), 2000);
+    }
+  }
+
+  function updateLabourTotals(labourId) {
+    const card = document.querySelector(`[data-labour-id="${labourId}"]`);
+    if (!card) return;
+
+    let totalNormal = 0;
+    let totalOvertime = 0;
+
+    const normalInputs = card.querySelectorAll('.normal-hours');
+    const overtimeInputs = card.querySelectorAll('.overtime-hours');
+
+    normalInputs.forEach(input => {
+      totalNormal += parseFloat(input.value) || 0;
+    });
+
+    overtimeInputs.forEach(input => {
+      totalOvertime += parseFloat(input.value) || 0;
+    });
+
+    const totalHours = totalNormal + totalOvertime;
+
+    document.querySelector(`[data-total="normal-${labourId}"]`).textContent = totalNormal.toFixed(1);
+    document.querySelector(`[data-total="overtime-${labourId}"]`).textContent = totalOvertime.toFixed(1);
+    document.querySelector(`[data-total="total-${labourId}"]`).textContent = totalHours.toFixed(1);
+  }
+
+  function renumberLabourEntries() {
+    const entries = labourContainer.querySelectorAll('.labour-card');
+    entries.forEach((entry, index) => {
+      const title = entry.querySelector('.labour-title');
+      title.textContent = `Labour Entry ${index + 1}`;
+    });
+  }
+
+  addLabourBtn.addEventListener('click', createLabourEntry);
+
+  // Add first labour entry by default
+  createLabourEntry();
+
+  // ============================================================
+  // MATERIALS MANAGEMENT
+  // ============================================================
+  const materialsContainer = document.getElementById('materialsContainer');
+  const addMaterialBtn = document.getElementById('addMaterialBtn');
+  let materialCounter = 0;
+
+  // Sample material database - replace with actual database/API call
+  const materialsDatabase = [
+    { code: 'M001', name: 'Copper Wire 2.5mm', unit: 'meter' },
+    { code: 'M002', name: 'Conduit 20mm PVC', unit: 'meter' },
+    { code: 'M003', name: 'Junction Box IP65', unit: 'piece' },
+    { code: 'M004', name: 'Cable Ties 200mm', unit: 'pack' },
+    { code: 'M005', name: 'RCD Safety Switch', unit: 'piece' },
+    { code: 'M006', name: 'LED Downlight 10W', unit: 'piece' },
+    { code: 'M007', name: 'Power Point GPO', unit: 'piece' },
+    { code: 'M008', name: 'Light Switch Single', unit: 'piece' },
+    { code: 'M009', name: 'Circuit Breaker 20A', unit: 'piece' },
+    { code: 'M010', name: 'Electrical Tape', unit: 'roll' },
+    { code: 'M011', name: 'Cable Trunking 50x50', unit: 'meter' },
+    { code: 'M012', name: 'Weatherproof Socket', unit: 'piece' },
+    { code: 'M013', name: 'Flex Cable 3 Core', unit: 'meter' },
+    { code: 'M014', name: 'MCB 16A Single Pole', unit: 'piece' },
+    { code: 'M015', name: 'Earth Rod 1.2m', unit: 'piece' },
+  ];
+
+  function createMaterialEntry() {
+    const materialId = `material-${materialCounter++}`;
+    const materialCard = document.createElement('div');
+    materialCard.className = 'material-card';
+    materialCard.dataset.materialId = materialId;
+
+    const materialCount = materialsContainer.querySelectorAll('.material-card').length;
+
+    let materialHTML = `
+      <div class="material-header">
+        <span class="material-title">Material ${materialCount + 1}</span>
+        ${materialCount > 0 ? '<button type="button" class="remove-material">Remove</button>' : ''}
+      </div>
+      
+      <!-- Material Type Selection -->
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+          Material Type
+        </label>
+        <div style="display: flex; gap: 12px;">
+          <label class="material-type-option" style="flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--brand-light); border: 2px solid var(--input-border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="${materialId}_type" value="stock" class="material-type-radio" checked style="accent-color: var(--brand-orange);"/>
+            <span style="font-size: 0.85rem; font-weight: 600;">Stock Item</span>
+          </label>
+          <label class="material-type-option" style="flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--brand-light); border: 2px solid var(--input-border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="${materialId}_type" value="purchase" class="material-type-radio" style="accent-color: var(--brand-orange);"/>
+            <span style="font-size: 0.85rem; font-weight: 600;">Purchase</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Stock Item Section -->
+      <div class="stock-section" id="${materialId}_stock_section">
+        <div class="material-search-container">
+          <label for="${materialId}_search" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+            Search Material
+          </label>
+          <input 
+            type="text" 
+            id="${materialId}_search" 
+            class="material-search-input"
+            placeholder="Start typing to search materials..."
+            autocomplete="off"
+            style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+          />
+          <div class="material-search-results" id="${materialId}_results"></div>
+        </div>
+
+        <input type="hidden" id="${materialId}_code" name="${materialId}_code" />
+        <input type="hidden" id="${materialId}_name" name="${materialId}_name" />
+
+        <div style="margin-top: 12px;">
+          <label style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="${materialId}_custom_toggle" class="custom-material-toggle" style="width: 16px; height: 16px; accent-color: var(--brand-orange);"/>
+            <span>Not in list? Add custom material</span>
+          </label>
+        </div>
+
+        <div class="custom-material-fields" id="${materialId}_custom_fields" style="display: none; margin-top: 12px;">
+          <div style="margin-bottom: 10px;">
+            <label for="${materialId}_custom_name" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+              Material Name
+            </label>
+            <input 
+              type="text" 
+              id="${materialId}_custom_name" 
+              placeholder="Enter material name"
+              autocomplete="off"
+              style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+            />
+          </div>
+        </div>
+
+        <div class="material-fields" style="margin-top: 12px;">
+          <div>
+            <label for="${materialId}_selected" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+              Selected Material
+            </label>
+            <input 
+              type="text" 
+              id="${materialId}_selected" 
+              readonly
+              placeholder="No material selected"
+              style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--footer-bg); color: var(--text-muted); cursor: not-allowed;"
+            />
+          </div>
+          <div>
+            <label for="${materialId}_quantity" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+              Quantity
+            </label>
+            <input 
+              type="number" 
+              id="${materialId}_quantity" 
+              name="${materialId}_quantity"
+              min="0"
+              step="1"
+              placeholder="0"
+              autocomplete="off"
+              style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Purchase Section -->
+      <div class="purchase-section" id="${materialId}_purchase_section" style="display: none;">
+        <div style="margin-bottom: 12px;">
+          <label for="${materialId}_supplier" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+            Supplier <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="${materialId}_supplier" 
+            placeholder="e.g., AWM, Middy's, Rexel, etc."
+            autocomplete="off"
+            style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+          />
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label for="${materialId}_purchase_summary" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+            Purchase Summary <span class="required">*</span>
+          </label>
+          <textarea 
+            id="${materialId}_purchase_summary" 
+            rows="3"
+            placeholder="Describe what was purchased (e.g., 'Assorted conduit fittings, cable ties, junction boxes')"
+            autocomplete="off"
+            style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary); resize: vertical; font-family: 'DM Sans', sans-serif;"
+          ></textarea>
+        </div>
+
+        <!-- Reimbursement Section -->
+        <div style="background: var(--brand-light); border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 12px;">
+            <input 
+              type="checkbox" 
+              id="${materialId}_needs_reimbursement" 
+              class="reimbursement-checkbox"
+              style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--brand-orange);"
+            />
+            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+              💰 This purchase was made by an employee and needs reimbursement
+            </span>
+          </label>
+
+          <div id="${materialId}_reimbursement_details" style="display: none;">
+            <div style="margin-bottom: 12px;">
+              <label for="${materialId}_purchased_by" style="font-size: 0.83rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; display: block;">
+                Purchased By <span class="required">*</span>
+              </label>
+              <select 
+                id="${materialId}_purchased_by" 
+                style="width: 100%; padding: 11px 14px; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font-size: 0.93rem; background: var(--input-bg); color: var(--text-primary);"
+              >
+                <option value="">Select employee...</option>
+                <option value="Adam Tugwell">Adam Tugwell</option>
+                <option value="Ashley Shirreff">Ashley Shirreff</option>
+                <option value="Chris Leddin">Chris Leddin</option>
+                <option value="Corey Murphy">Corey Murphy</option>
+                <option value="Genie Poplawski">Genie Poplawski</option>
+                <option value="James Minogue">James Minogue</option>
+                <option value="Jemma Scott">Jemma Scott</option>
+                <option value="Jet Wesley">Jet Wesley</option>
+                <option value="John Henshall">John Henshall</option>
+                <option value="Mohin Anand">Mohin Anand</option>
+                <option value="Nathan McRae">Nathan McRae</option>
+                <option value="Nick Basile">Nick Basile</option>
+                <option value="Ryan Stingel">Ryan Stingel</option>
+                <option value="Sam Crimmin">Sam Crimmin</option>
+                <option value="Tim Purdy">Tim Purdy</option>
+                <option value="Tom Elpis">Tom Elpis</option>
+              </select>
+            </div>
+
+            <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: var(--radius-sm); padding: 12px;">
+              <div style="display: flex; align-items: start; gap: 10px;">
+                <span style="font-size: 1.2rem;">ℹ️</span>
+                <div>
+                  <p style="font-size: 0.85rem; font-weight: 600; color: var(--info-text); margin-bottom: 6px;">
+                    Reminder: Employee Expense Claim Required
+                  </p>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px;">
+                    The employee must complete an expense claim form to receive reimbursement.
+                  </p>
+                  <a 
+                    href="../employee-expense-claim.html" 
+                    target="_blank"
+                    style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--brand-orange); text-decoration: none; padding: 6px 12px; background: var(--brand-white); border: 1px solid var(--brand-orange); border-radius: 6px; transition: all 0.2s;"
+                    onmouseover="this.style.background='var(--brand-orange-soft)'"
+                    onmouseout="this.style.background='var(--brand-white)'"
+                  >
+                    📝 Open Expense Claim Form
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M1 11L11 1M11 1H4M11 1v7"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    materialCard.innerHTML = materialHTML;
+    materialsContainer.appendChild(materialCard);
+
+    // Setup material type toggle
+    const typeRadios = materialCard.querySelectorAll('.material-type-radio');
+    const stockSection = materialCard.querySelector(`#${materialId}_stock_section`);
+    const purchaseSection = materialCard.querySelector(`#${materialId}_purchase_section`);
+
+    typeRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'stock') {
+          stockSection.style.display = 'block';
+          purchaseSection.style.display = 'none';
+        } else {
+          stockSection.style.display = 'none';
+          purchaseSection.style.display = 'block';
+        }
+      });
+    });
+
+    // Setup reimbursement toggle
+    const reimbursementCheckbox = materialCard.querySelector(`#${materialId}_needs_reimbursement`);
+    const reimbursementDetails = materialCard.querySelector(`#${materialId}_reimbursement_details`);
+
+    if (reimbursementCheckbox && reimbursementDetails) {
+      reimbursementCheckbox.addEventListener('change', function() {
+        reimbursementDetails.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+
+    // Setup custom material toggle
+    const customToggle = materialCard.querySelector(`#${materialId}_custom_toggle`);
+    const customFields = materialCard.querySelector(`#${materialId}_custom_fields`);
+    const searchInput = materialCard.querySelector('.material-search-input');
+    const customNameInput = materialCard.querySelector(`#${materialId}_custom_name`);
+    const selectedInput = materialCard.querySelector(`#${materialId}_selected`);
+    const codeInput = materialCard.querySelector(`#${materialId}_code`);
+    const nameInput = materialCard.querySelector(`#${materialId}_name`);
+
+    customToggle.addEventListener('change', function() {
+      if (this.checked) {
+        customFields.style.display = 'block';
+        searchInput.disabled = true;
+        searchInput.style.opacity = '0.5';
+        // Clear search selection
+        selectedInput.value = '';
+        codeInput.value = '';
+        nameInput.value = '';
+      } else {
+        customFields.style.display = 'none';
+        searchInput.disabled = false;
+        searchInput.style.opacity = '1';
+        customNameInput.value = '';
+      }
+    });
+
+    // Update selected input when custom name is entered
+    customNameInput.addEventListener('input', function() {
+      if (customToggle.checked) {
+        selectedInput.value = this.value;
+        nameInput.value = this.value;
+        codeInput.value = 'CUSTOM';
+      }
+    });
+
+    // Setup search functionality
+    const resultsDiv = materialCard.querySelector('.material-search-results');
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.toLowerCase().trim();
+      
+      if (query.length < 2) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = materialsDatabase.filter(material => 
+        material.name.toLowerCase().includes(query) || 
+        material.code.toLowerCase().includes(query)
+      );
+
+      if (matches.length > 0) {
+        resultsDiv.innerHTML = matches.map(material => `
+          <div class="material-search-item" data-code="${material.code}" data-name="${material.name}">
+            <div class="material-item-name">${material.name}</div>
+            <div class="material-item-code">Code: ${material.code} | Unit: ${material.unit}</div>
+          </div>
+        `).join('');
+        resultsDiv.classList.add('show');
+
+        // Add click handlers to results
+        resultsDiv.querySelectorAll('.material-search-item').forEach(item => {
+          item.addEventListener('click', function() {
+            const code = this.dataset.code;
+            const name = this.dataset.name;
+            
+            selectedInput.value = `${name} (${code})`;
+            codeInput.value = code;
+            nameInput.value = name;
+            searchInput.value = '';
+            resultsDiv.classList.remove('show');
+          });
+        });
+      } else {
+        resultsDiv.innerHTML = '<div class="material-search-item" style="cursor: default; color: var(--text-muted);">No materials found</div>';
+        resultsDiv.classList.add('show');
+      }
+    });
+
+    // Close results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!materialCard.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+
+    // Add event listener for remove button
+    const removeBtn = materialCard.querySelector('.remove-material');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        materialCard.remove();
+        renumberMaterials();
+      });
+    }
+  }
+
+  function renumberMaterials() {
+    const materials = materialsContainer.querySelectorAll('.material-card');
+    materials.forEach((material, index) => {
+      const title = material.querySelector('.material-title');
+      title.textContent = `Material ${index + 1}`;
+    });
+  }
+
+  addMaterialBtn.addEventListener('click', createMaterialEntry);
+
+  // Add first material entry by default
+  createMaterialEntry();
+
+  // ============================================================
+  // AUTO-SAVE FORM DATA TO LOCAL STORAGE
+  // ============================================================
+  const STORAGE_KEY = 'jobsheet_draft';
+
+  function saveFormData() {
+    const formData = {
+      employee_name: document.getElementById('employee_name').value,
+      employee_email: document.getElementById('employee_email').value,
+      job_date: document.getElementById('job_date').value,
+      job_number_type: document.querySelector('input[name="job_number_type"]:checked')?.value,
+      existing_job_number: document.getElementById('existing_job_number').value,
+      new_client_name: document.getElementById('new_client_name').value,
+      new_contact_person: document.getElementById('new_contact_person').value,
+      new_contact_phone: document.getElementById('new_contact_phone').value,
+      new_site_address: document.getElementById('new_site_address').value,
+      job_type: document.querySelector('input[name="job_type"]:checked')?.value,
+      additional_notes: document.getElementById('additional_notes').value,
+      job_complete: document.querySelector('input[name="job_complete"]:checked')?.value,
+      materials_booked: document.getElementById('materials_booked').checked,
+      tasks: [],
+      labour_entries: [],
+      materials: []
+    };
+
+    // Save tasks
+    const taskCards = document.querySelectorAll('.task-card');
+    taskCards.forEach(card => {
+      const taskId = card.dataset.taskId;
+      const description = card.querySelector(`#${taskId}_description`)?.value || '';
+      if (description) {
+        formData.tasks.push({ description });
+      }
+    });
+
+    // Save labour entries
+    const labourCards = document.querySelectorAll('.labour-card');
+    labourCards.forEach(card => {
+      const labourId = card.dataset.labourId;
+      const employeeSelect = card.querySelector(`select[name="${labourId}_employee"]`);
+      
+      const labourEntry = {
+        employee: employeeSelect ? employeeSelect.value : '',
+        hours: {}
+      };
+
+      dayNames.forEach((day) => {
+        const normalInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_normal"]`);
+        const overtimeInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_overtime"]`);
+        
+        labourEntry.hours[day] = {
+          normal: normalInput ? normalInput.value : '',
+          overtime: overtimeInput ? overtimeInput.value : ''
+        };
+      });
+
+      formData.labour_entries.push(labourEntry);
+    });
+
+    // Save materials
+    const materialCards = document.querySelectorAll('.material-card');
+    materialCards.forEach(card => {
+      const materialId = card.dataset.materialId;
+      const type = card.querySelector(`input[name="${materialId}_type"]:checked`)?.value || 'stock';
+      
+      if (type === 'stock') {
+        const code = card.querySelector(`#${materialId}_code`)?.value || '';
+        const name = card.querySelector(`#${materialId}_name`)?.value || '';
+        const quantity = card.querySelector(`#${materialId}_quantity`)?.value || '';
+        
+        if (name && quantity) {
+          formData.materials.push({ type: 'stock', code, name, quantity });
+        }
+      } else {
+        const supplier = card.querySelector(`#${materialId}_supplier`)?.value || '';
+        const summary = card.querySelector(`#${materialId}_purchase_summary`)?.value || '';
+        const needsReimbursement = card.querySelector(`#${materialId}_needs_reimbursement`)?.checked || false;
+        const purchasedBy = card.querySelector(`#${materialId}_purchased_by`)?.value || '';
+        
+        if (supplier && summary) {
+          formData.materials.push({ 
+            type: 'purchase', 
+            supplier, 
+            summary,
+            needsReimbursement,
+            purchasedBy: needsReimbursement ? purchasedBy : ''
+          });
+        }
+      }
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+  }
+
+  function restoreFormData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (!savedData) return;
+
+    try {
+      const formData = JSON.parse(savedData);
+      
+      // Show info banner
+      const infoBanner = document.getElementById('autoSaveBanner');
+      if (infoBanner) {
+        infoBanner.classList.add('show');
+        setTimeout(() => infoBanner.classList.remove('show'), 6000);
+      }
+
+      // Restore form fields
+      document.getElementById('employee_name').value = formData.employee_name || '';
+      document.getElementById('employee_email').value = formData.employee_email || '';
+      document.getElementById('job_date').value = formData.job_date || '';
+      
+      // Restore job number type
+      if (formData.job_number_type) {
+        const radio = document.querySelector(`input[name="job_number_type"][value="${formData.job_number_type}"]`);
+        if (radio) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change'));
+        }
+      }
+      
+      document.getElementById('existing_job_number').value = formData.existing_job_number || '';
+      document.getElementById('new_client_name').value = formData.new_client_name || '';
+      document.getElementById('new_contact_person').value = formData.new_contact_person || '';
+      document.getElementById('new_contact_phone').value = formData.new_contact_phone || '';
+      document.getElementById('new_site_address').value = formData.new_site_address || '';
+      
+      // Restore job type
+      if (formData.job_type) {
+        const typeRadio = document.querySelector(`input[name="job_type"][value="${formData.job_type}"]`);
+        if (typeRadio) typeRadio.checked = true;
+      }
+      
+      document.getElementById('additional_notes').value = formData.additional_notes || '';
+      
+      // Restore radio button selections
+      if (formData.job_complete) {
+        const jobCompleteRadio = document.querySelector(`input[name="job_complete"][value="${formData.job_complete}"]`);
+        if (jobCompleteRadio) jobCompleteRadio.checked = true;
+      }
+      
+      // Restore checkbox
+      document.getElementById('materials_booked').checked = formData.materials_booked || false;
+
+      // Restore tasks
+      if (formData.tasks && formData.tasks.length > 0) {
+        tasksContainer.innerHTML = '';
+        taskCounter = 0;
+        
+        formData.tasks.forEach((task, index) => {
+          createTaskEntry();
+          setTimeout(() => {
+            const cards = document.querySelectorAll('.task-card');
+            const card = cards[index];
+            if (card) {
+              const taskId = card.dataset.taskId;
+              const textarea = card.querySelector(`#${taskId}_description`);
+              if (textarea) textarea.value = task.description;
+            }
+          }, 50);
+        });
+      }
+
+      // Restore labour entries
+      if (formData.labour_entries && formData.labour_entries.length > 0) {
+        // Clear default labour entry
+        labourContainer.innerHTML = '';
+        labourCounter = 0;
+        
+        formData.labour_entries.forEach((labourEntry, index) => {
+          createLabourEntry();
+          
+          setTimeout(() => {
+            const cards = document.querySelectorAll('.labour-card');
+            const card = cards[index];
+            if (!card) return;
+
+            const labourId = card.dataset.labourId;
+            const employeeSelect = card.querySelector(`select[name="${labourId}_employee"]`);
+            if (employeeSelect && labourEntry.employee) {
+              employeeSelect.value = labourEntry.employee;
+            }
+
+            dayNames.forEach((day) => {
+              if (labourEntry.hours[day]) {
+                const normalInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_normal"]`);
+                const overtimeInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_overtime"]`);
+                
+                if (normalInput && labourEntry.hours[day].normal) {
+                  normalInput.value = labourEntry.hours[day].normal;
+                }
+                if (overtimeInput && labourEntry.hours[day].overtime) {
+                  overtimeInput.value = labourEntry.hours[day].overtime;
+                }
+              }
+            });
+
+            updateLabourTotals(labourId);
+          }, 100);
+        });
+      }
+
+      // Restore materials
+      if (formData.materials && formData.materials.length > 0) {
+        materialsContainer.innerHTML = '';
+        materialCounter = 0;
+        
+        formData.materials.forEach((material, index) => {
+          createMaterialEntry();
+          setTimeout(() => {
+            const cards = document.querySelectorAll('.material-card');
+            const card = cards[index];
+            if (card) {
+              const materialId = card.dataset.materialId;
+              
+              // Set material type
+              if (material.type === 'purchase') {
+                const purchaseRadio = card.querySelector(`input[name="${materialId}_type"][value="purchase"]`);
+                if (purchaseRadio) {
+                  purchaseRadio.checked = true;
+                  purchaseRadio.dispatchEvent(new Event('change'));
+                }
+                
+                // Restore purchase details
+                const supplierInput = card.querySelector(`#${materialId}_supplier`);
+                const summaryInput = card.querySelector(`#${materialId}_purchase_summary`);
+                const reimbursementCheckbox = card.querySelector(`#${materialId}_needs_reimbursement`);
+                const purchasedBySelect = card.querySelector(`#${materialId}_purchased_by`);
+                
+                if (supplierInput) supplierInput.value = material.supplier || '';
+                if (summaryInput) summaryInput.value = material.summary || '';
+                
+                if (material.needsReimbursement && reimbursementCheckbox) {
+                  reimbursementCheckbox.checked = true;
+                  reimbursementCheckbox.dispatchEvent(new Event('change'));
+                  
+                  if (purchasedBySelect && material.purchasedBy) {
+                    setTimeout(() => {
+                      purchasedBySelect.value = material.purchasedBy;
+                    }, 100);
+                  }
+                }
+              } else {
+                // Restore stock item details
+                const codeInput = card.querySelector(`#${materialId}_code`);
+                const nameInput = card.querySelector(`#${materialId}_name`);
+                const selectedInput = card.querySelector(`#${materialId}_selected`);
+                const quantityInput = card.querySelector(`#${materialId}_quantity`);
+                
+                if (codeInput) codeInput.value = material.code || '';
+                if (nameInput) nameInput.value = material.name || '';
+                if (selectedInput && material.name) {
+                  selectedInput.value = material.code === 'CUSTOM' 
+                    ? material.name 
+                    : `${material.name} (${material.code})`;
+                }
+                if (quantityInput) quantityInput.value = material.quantity || '';
+                
+                // If custom material, check the toggle
+                if (material.code === 'CUSTOM') {
+                  const customToggle = card.querySelector(`#${materialId}_custom_toggle`);
+                  const customNameInput = card.querySelector(`#${materialId}_custom_name`);
+                  if (customToggle) {
+                    customToggle.checked = true;
+                    customToggle.dispatchEvent(new Event('change'));
+                  }
+                  if (customNameInput) customNameInput.value = material.name;
+                }
+              }
+            }
+          }, 50);
+        });
+      }
+
+    } catch (err) {
+      console.error('Error restoring form data:', err);
+    }
+  }
+
+  function clearFormData() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  // Auto-save on input change (debounced)
+  let saveTimeout;
+  function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveFormData, 500);
+  }
+
+  document.addEventListener('input', (e) => {
+    if (e.target.closest('#jobsheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('#jobsheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  // ============================================================
+  // JOB NUMBER TYPE TOGGLE
+  // ============================================================
+  const jobNumberTypeRadios = document.querySelectorAll('input[name="job_number_type"]');
+  const existingJobFields = document.getElementById('existing-job-fields');
+  const newJobFields = document.getElementById('new-job-fields');
+
+  jobNumberTypeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'existing') {
+        existingJobFields.classList.add('active');
+        newJobFields.classList.remove('active');
+      } else {
+        existingJobFields.classList.remove('active');
+        newJobFields.classList.add('active');
+      }
+    });
+  });
+
+  // Auto-uppercase job number
+  document.getElementById('existing_job_number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const name = document.getElementById('employee_name').value;
+    const email = document.getElementById('employee_email').value.trim();
+    const jobDate = document.getElementById('job_date').value;
+    const jobNumberType = document.querySelector('input[name="job_number_type"]:checked')?.value;
+    const jobComplete = document.querySelector('input[name="job_complete"]:checked');
+    const materialsBooked = document.getElementById('materials_booked').checked;
+
+    // Check if at least first task has description
+    const firstTask = document.querySelector('.task-card .task-description');
+    const hasTaskDescription = firstTask && firstTask.value.trim().length > 5;
+
+    check('group-name', name !== '');
+    check('group-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    check('group-date', !!jobDate);
+    check('group-job-complete', !!jobComplete);
+    check('group-materials-booked', materialsBooked);
+
+    // Validate first task
+    if (!hasTaskDescription) {
+      if (firstTask) {
+        firstTask.classList.add('error');
+        firstTask.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      valid = false;
+    } else {
+      if (firstTask) firstTask.classList.remove('error');
+    }
+
+    // Validate job number based on type
+    if (jobNumberType === 'existing') {
+      const existingJobNumber = document.getElementById('existing_job_number').value.trim();
+      check('group-existing-number', existingJobNumber.length > 0);
+    } else {
+      const clientName = document.getElementById('new_client_name').value.trim();
+      const siteAddress = document.getElementById('new_site_address').value.trim();
+      check('group-new-client', clientName.length > 0);
+      check('group-new-address', siteAddress.length > 0);
+    }
+
+    return valid;
+  }
+
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
+  const jobsheetForm = document.getElementById('jobsheetForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  jobsheetForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Job Sheet';
+      return;
+    }
+
+    // Collect form data
+    const employeeName = document.getElementById('employee_name').value.trim();
+    const employeeEmail = document.getElementById('employee_email').value.trim();
+    const jobDate = new Date(document.getElementById('job_date').value).toLocaleDateString('en-AU', { 
+      day: 'numeric', month: 'long', year: 'numeric' 
+    });
+    
+    const jobNumberType = document.querySelector('input[name="job_number_type"]:checked')?.value;
+    let jobNumber = '';
+    let clientDetails = '';
+    
+    if (jobNumberType === 'existing') {
+      jobNumber = document.getElementById('existing_job_number').value.trim();
+    } else {
+      jobNumber = 'NEW JOB - To Be Assigned';
+      const clientName = document.getElementById('new_client_name').value.trim();
+      const contactPerson = document.getElementById('new_contact_person').value.trim();
+      const contactPhone = document.getElementById('new_contact_phone').value.trim();
+      const siteAddress = document.getElementById('new_site_address').value.trim();
+      
+      clientDetails = `
+        <strong>Client:</strong> ${clientName}<br>
+        ${contactPerson ? `<strong>Contact:</strong> ${contactPerson}<br>` : ''}
+        ${contactPhone ? `<strong>Phone:</strong> ${contactPhone}<br>` : ''}
+        <strong>Site Address:</strong> ${siteAddress}
+      `;
+    }
+    
+    const jobType = document.querySelector('input[name="job_type"]:checked')?.value || '';
+    const additionalNotes = document.getElementById('additional_notes').value.trim() || 'None';
+    const jobComplete = document.querySelector('input[name="job_complete"]:checked')?.value || 'Not specified';
+    const materialsBooked = document.getElementById('materials_booked').checked ? 'Yes' : 'No';
+
+    // Collect tasks data
+    let tasksHTML = '';
+    const taskCards = document.querySelectorAll('.task-card');
+    taskCards.forEach((card, index) => {
+      const taskId = card.dataset.taskId;
+      const description = card.querySelector(`#${taskId}_description`)?.value.trim();
+      
+      if (description) {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+        tasksHTML += `<tr style="background:${bgColor};">`;
+        tasksHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;font-weight:600;">Task ${index + 1}</td>`;
+        tasksHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${description}</td>`;
+        tasksHTML += '</tr>';
+      }
+    });
+
+    // Collect labour data
+    let labourHTML = '';
+    let grandTotalNormal = 0;
+    let grandTotalOvertime = 0;
+    let grandTotal = 0;
+
+    const labourCards = document.querySelectorAll('.labour-card');
+    labourCards.forEach((card, index) => {
+      const labourId = card.dataset.labourId;
+      const employeeSelect = card.querySelector(`select[name="${labourId}_employee"]`);
+      const employeeName = employeeSelect ? employeeSelect.value : '';
+
+      if (!employeeName) return; // Skip if no employee selected
+
+      let entryTotalNormal = 0;
+      let entryTotalOvertime = 0;
+
+      // Build row for this employee
+      let rowHTML = `<tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">`;
+      rowHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;font-weight:600;">${employeeName}</td>`;
+
+      dayNames.forEach((day) => {
+        const normalInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_normal"]`);
+        const overtimeInput = card.querySelector(`input[name="${labourId}_${day.toLowerCase()}_overtime"]`);
+        
+        const normalHours = parseFloat(normalInput ? normalInput.value : 0) || 0;
+        const overtimeHours = parseFloat(overtimeInput ? overtimeInput.value : 0) || 0;
+        
+        entryTotalNormal += normalHours;
+        entryTotalOvertime += overtimeHours;
+
+        const dayTotal = normalHours + overtimeHours;
+        const cellContent = dayTotal > 0 
+          ? `${normalHours > 0 ? normalHours.toFixed(1) : ''}${normalHours > 0 && overtimeHours > 0 ? '+' : ''}${overtimeHours > 0 ? overtimeHours.toFixed(1) + 'OT' : ''}`
+          : '-';
+        
+        rowHTML += `<td style="padding:10px 8px;font-size:11px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${cellContent}</td>`;
+      });
+
+      const entryTotal = entryTotalNormal + entryTotalOvertime;
+      rowHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:600;">${entryTotalNormal.toFixed(1)}</td>`;
+      rowHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:600;">${entryTotalOvertime.toFixed(1)}</td>`;
+      rowHTML += `<td style="padding:10px 8px;font-size:12px;color:#1a56db;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:700;">${entryTotal.toFixed(1)}</td>`;
+      rowHTML += '</tr>';
+
+      labourHTML += rowHTML;
+      grandTotalNormal += entryTotalNormal;
+      grandTotalOvertime += entryTotalOvertime;
+      grandTotal += entryTotal;
+    });
+
+    // Add totals row
+    if (labourCards.length > 0) {
+      labourHTML += `<tr style="background:#f0f4ff;border-top:2px solid #1a56db;">`;
+      labourHTML += `<td style="padding:12px 8px;font-size:13px;color:#111827;font-weight:700;">TOTALS</td>`;
+      labourHTML += `<td colspan="7" style="padding:12px 8px;"></td>`;
+      labourHTML += `<td style="padding:12px 8px;font-size:13px;color:#111827;text-align:center;font-weight:700;">${grandTotalNormal.toFixed(1)}</td>`;
+      labourHTML += `<td style="padding:12px 8px;font-size:13px;color:#111827;text-align:center;font-weight:700;">${grandTotalOvertime.toFixed(1)}</td>`;
+      labourHTML += `<td style="padding:12px 8px;font-size:14px;color:#1a56db;text-align:center;font-weight:700;">${grandTotal.toFixed(1)}</td>`;
+      labourHTML += '</tr>';
+    }
+
+    // Collect materials data
+    let materialsHTML = '';
+    const materialCards = document.querySelectorAll('.material-card');
+    materialCards.forEach((card, index) => {
+      const materialId = card.dataset.materialId;
+      const type = card.querySelector(`input[name="${materialId}_type"]:checked`)?.value || 'stock';
+      
+      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+      
+      if (type === 'stock') {
+        const code = card.querySelector(`#${materialId}_code`)?.value;
+        const name = card.querySelector(`#${materialId}_name`)?.value;
+        const quantity = card.querySelector(`#${materialId}_quantity`)?.value;
+        
+        if (name && quantity) {
+          materialsHTML += `<tr style="background:${bgColor};">`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">Stock Item</td>`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${code || 'CUSTOM'}</td>`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${name}</td>`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:600;">${quantity}</td>`;
+          materialsHTML += '</tr>';
+        }
+      } else {
+        const supplier = card.querySelector(`#${materialId}_supplier`)?.value;
+        const summary = card.querySelector(`#${materialId}_purchase_summary`)?.value;
+        const needsReimbursement = card.querySelector(`#${materialId}_needs_reimbursement`)?.checked;
+        const purchasedBy = card.querySelector(`#${materialId}_purchased_by`)?.value;
+        
+        if (supplier && summary) {
+          materialsHTML += `<tr style="background:${bgColor};">`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">Purchase</td>`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;" colspan="2">${supplier}</td>`;
+          materialsHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${summary}</td>`;
+          materialsHTML += '</tr>';
+          
+          // Add reimbursement row if needed
+          if (needsReimbursement && purchasedBy) {
+            materialsHTML += `<tr style="background:${bgColor};">`;
+            materialsHTML += `<td colspan="4" style="padding:8px 8px 10px 24px;font-size:11px;color:#c2440e;border-bottom:1px solid #f3f4f6;">`;
+            materialsHTML += `💰 <strong>Reimbursement Required:</strong> Purchased by ${purchasedBy} - Employee expense claim needed`;
+            materialsHTML += `</td>`;
+            materialsHTML += '</tr>';
+          }
+        }
+      }
+    });
+
+    const templateParams = {
+      employee_name: employeeName,
+      employee_email: employeeEmail,
+      job_date: jobDate,
+      job_number: jobNumber,
+      is_new_job: jobNumberType === 'new',
+      client_details: clientDetails,
+      job_type: jobType,
+      tasks_table: tasksHTML,
+      labour_table: labourHTML,
+      total_normal_hours: grandTotalNormal.toFixed(1),
+      total_overtime_hours: grandTotalOvertime.toFixed(1),
+      total_hours: grandTotal.toFixed(1),
+      materials_table: materialsHTML,
+      additional_notes: additionalNotes,
+      job_complete: jobComplete,
+      materials_booked: materialsBooked,
+      submitted_date: new Date().toLocaleDateString('en-AU', { 
+        day: 'numeric', month: 'long', year: 'numeric' 
+      }),
+      admin_emails: CONFIG.adminEmails.join(', '),
+      to_email: employeeEmail,
+    };
+
+    try {
+      await emailjs.send(
+        CONFIG.emailjs.serviceId,
+        CONFIG.emailjs.templateId,
+        templateParams
+      );
+
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      jobsheetForm.reset();
+      
+      // Clear saved form data after successful submission
+      clearFormData();
+      
+      // Reset to today's date
+      document.getElementById('job_date').value = new Date().toISOString().split('T')[0];
+      
+      // Reset job number type toggle
+      document.getElementById('existing_job').checked = true;
+      existingJobFields.classList.add('active');
+      newJobFields.classList.remove('active');
+      
+      // Reset labour entries
+      labourContainer.innerHTML = '';
+      labourCounter = 0;
+      createLabourEntry();
+      
+      // Reset tasks
+      tasksContainer.innerHTML = '';
+      taskCounter = 0;
+      createTaskEntry();
+      
+      // Reset materials
+      materialsContainer.innerHTML = '';
+      materialCounter = 0;
+      createMaterialEntry();
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 8000);
+
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      alert('Something went wrong sending the email. Error: ' + (err.text || err.message || 'Unknown error') + '. Please contact admin@bromar.com.au directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Job Sheet';
+    }
+  });
+
+  // Clear error state on input change
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+      e.target.classList.remove('error');
+      const group = e.target.closest('.field-group');
+      if (group) group.classList.remove('has-error');
+    }
+  });
+  
+  // Also clear error on checkbox/radio change
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('input[type="checkbox"], input[type="radio"]')) {
+      const group = e.target.closest('.field-group');
+      if (group) group.classList.remove('has-error');
+    }
+  });
+
+  // Clear form reset
+  jobsheetForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      document.getElementById('job_date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('existing_job').checked = true;
+      existingJobFields.classList.add('active');
+      newJobFields.classList.remove('active');
+      
+      // Reset labour entries
+      labourContainer.innerHTML = '';
+      labourCounter = 0;
+      createLabourEntry();
+      
+      // Reset tasks
+      tasksContainer.innerHTML = '';
+      taskCounter = 0;
+      createTaskEntry();
+      
+      // Reset materials
+      materialsContainer.innerHTML = '';
+      materialCounter = 0;
+      createMaterialEntry();
+    }, 10);
+  });
+
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+  const logoImg = document.querySelector('.logo-container img');
+
+  function updateLogo() {
+    if (html.classList.contains('light-mode')) {
+      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
+      } else {
+        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+      }
+    }
+  }
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    html.classList.add('light-mode');
+  }
+  updateLogo();
+
+  themeToggle.addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    updateLogo();
+    
+    if (html.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
+  });
+
+  // ============================================================
+  // INITIALIZE
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set default date to today
+    document.getElementById('job_date').value = new Date().toISOString().split('T')[0];
+    
+    // Restore saved data if it exists
+    setTimeout(() => {
+      restoreFormData();
+    }, 200);
+  });
+</script>
+</body>
+</html>
