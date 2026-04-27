@@ -152,11 +152,11 @@
     }
     .home-icon svg { width: 18px; height: 18px; }
 
-    /* Theme toggle button — top left next to home */
+    /* Theme toggle button — top right */
     .theme-toggle {
       position: absolute;
       top: 18px;
-      left: 64px;
+      right: 18px;
       width: 38px;
       height: 38px;
       display: inline-flex;
@@ -405,6 +405,39 @@
       border-color: #a3380b;
     }
 
+    /* Download section at bottom */
+    .download-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider);
+      display: flex;
+      justify-content: center;
+    }
+
+    .download-btn-large {
+      padding: 14px 32px;
+      border: 1.5px solid var(--brand-orange);
+      border-radius: var(--radius-sm);
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(194, 68, 14, 0.2);
+    }
+
+    .download-btn-large:hover {
+      background: #a3380b;
+      border-color: #a3380b;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(194, 68, 14, 0.3);
+    }
+
     /* PDF container */
     .pdf-container {
       width: 100%;
@@ -504,24 +537,58 @@
       .controls-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 16px;
       }
       
-      .search-controls,
-      .page-controls {
+      .search-controls {
         width: 100%;
+        flex-direction: column;
       }
       
       .search-input-wrapper {
         width: 100%;
       }
+
+      .search-nav {
+        width: 100%;
+        justify-content: center;
+      }
       
       .page-controls {
-        justify-content: space-between;
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .page-nav {
+        order: 1;
+      }
+
+      .page-info {
+        order: 2;
+        min-width: auto;
+      }
+
+      .zoom-controls {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .zoom-controls .nav-btn {
+        flex: 1;
+        max-width: 80px;
       }
       
       .pdf-container {
-        height: calc(100vh - 600px);
-        min-height: 400px;
+        height: calc(100vh - 650px);
+        min-height: 500px;
+      }
+
+      .download-btn-large {
+        width: 100%;
+        justify-content: center;
       }
     }
 
@@ -631,14 +698,9 @@
         <span class="page-info" id="pageInfo">Page -/-</span>
         <div class="zoom-controls">
           <button id="zoomOut" class="nav-btn" title="Zoom out">-</button>
+          <button id="fitWidth" class="nav-btn" title="Fit to width">⬌</button>
           <button id="zoomIn" class="nav-btn" title="Zoom in">+</button>
         </div>
-        <button id="downloadPdf" class="download-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-          </svg>
-          Download
-        </button>
       </div>
     </div>
 
@@ -649,6 +711,16 @@
         <div class="loading-text">Loading PDF...</div>
       </div>
       <canvas id="pdfCanvas"></canvas>
+    </div>
+
+    <!-- DOWNLOAD SECTION -->
+    <div class="download-section">
+      <button id="downloadPdf" class="download-btn-large">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Download Full Document
+      </button>
     </div>
 
   </div>
@@ -723,6 +795,7 @@
   let currentPage = 1;
   let totalPages = 0;
   let scale = 1.5;
+  let isFitWidth = false;
   let searchMatches = [];
   let currentMatchIndex = -1;
   let isRendering = false;
@@ -799,7 +872,17 @@
     
     try {
       const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: scale });
+      
+      // Calculate scale for fit-to-width mode
+      let renderScale = scale;
+      if (isFitWidth) {
+        const container = document.getElementById('pdfContainer');
+        const containerWidth = container.clientWidth - 40; // Subtract padding
+        const viewport = page.getViewport({ scale: 1 });
+        renderScale = containerWidth / viewport.width;
+      }
+      
+      const viewport = page.getViewport({ scale: renderScale });
       
       canvas.height = viewport.height;
       canvas.width = viewport.width;
@@ -839,15 +922,40 @@
   });
 
   // Zoom controls
+  const fitWidth = document.getElementById('fitWidth');
+
   zoomIn.addEventListener('click', () => {
+    isFitWidth = false;
     scale += 0.25;
     renderPage(currentPage);
   });
 
   zoomOut.addEventListener('click', () => {
     if (scale > 0.5) {
+      isFitWidth = false;
       scale -= 0.25;
       renderPage(currentPage);
+    }
+  });
+
+  fitWidth.addEventListener('click', () => {
+    isFitWidth = !isFitWidth;
+    renderPage(currentPage);
+  });
+
+  // Auto fit-to-width on mobile
+  if (window.innerWidth <= 720) {
+    isFitWidth = true;
+  }
+
+  // Re-render on window resize for fit-to-width mode
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    if (isFitWidth) {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        renderPage(currentPage);
+      }, 300);
     }
   });
 
