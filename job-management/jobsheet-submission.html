@@ -1005,6 +1005,11 @@
         <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
       </div>
 
+      <div class="info-banner" id="serviceReportsInfo" style="display: none;">
+        <span>📋</span>
+        <span id="serviceReportsCount"></span>
+      </div>
+
       <!-- EMPLOYEE DETAILS -->
       <div class="section-label">Employee Details</div>
 
@@ -1138,7 +1143,12 @@
       </div>
 
       <!-- JOB DETAILS -->
-      <div class="section-label">Job Details</div>
+      <div class="section-label">
+        Job Details
+        <button type="button" id="loadServiceReportsBtn" style="margin-left: auto; padding: 6px 14px; font-size: 0.75rem; font-weight: 600; background: var(--brand-secondary); color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;">
+          📋 LOAD SERVICE REPORTS
+        </button>
+      </div>
 
       <!-- TASKS SECTION -->
       <div id="tasksContainer">
@@ -1271,6 +1281,178 @@
 
   // Initialize EmailJS
   emailjs.init(CONFIG.emailjs.publicKey);
+
+  // ============================================================
+  // LOAD SERVICE REPORTS FUNCTIONALITY
+  // ============================================================
+  const loadServiceReportsBtn = document.getElementById('loadServiceReportsBtn');
+  const serviceReportsInfo = document.getElementById('serviceReportsInfo');
+  const serviceReportsCount = document.getElementById('serviceReportsCount');
+
+  function getWeekDates(startDate) {
+    const dates = [];
+    const start = new Date(startDate);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    return dates;
+  }
+
+  function loadServiceReports() {
+    const jobDate = document.getElementById('job_date').value;
+    if (!jobDate) {
+      alert('Please select a job date first');
+      return;
+    }
+
+    // Get the week starting from job date (find Monday)
+    const selectedDate = new Date(jobDate);
+    const dayOfWeek = selectedDate.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : (1 - dayOfWeek);
+    const weekStart = new Date(selectedDate);
+    weekStart.setDate(selectedDate.getDate() + daysToMonday);
+
+    const weekDates = getWeekDates(weekStart);
+    
+    let totalReports = 0;
+    const aggregatedData = {
+      tasks: [],
+      labour: {}, // By employee and day
+      materials: []
+    };
+
+    // Load all service reports for the week
+    weekDates.forEach((date, dayIndex) => {
+      const storageKey = `service_report_${date}`;
+      const stored = localStorage.getItem(storageKey);
+      
+      if (stored) {
+        try {
+          let reports = JSON.parse(stored);
+          if (!Array.isArray(reports)) {
+            reports = [reports];
+          }
+
+          reports.forEach(report => {
+            totalReports++;
+
+            // Aggregate tasks
+            if (report.tasks) {
+              aggregatedData.tasks.push({
+                description: `[${report.date}] ${report.tasks}`,
+                jobNumber: report.jobNumber
+              });
+            }
+
+            // Aggregate labour
+            const employee = report.employee;
+            if (!aggregatedData.labour[employee]) {
+              aggregatedData.labour[employee] = {
+                Mon: { normal: 0, overtime: 0 },
+                Tue: { normal: 0, overtime: 0 },
+                Wed: { normal: 0, overtime: 0 },
+                Thu: { normal: 0, overtime: 0 },
+                Fri: { normal: 0, overtime: 0 },
+                Sat: { normal: 0, overtime: 0 },
+                Sun: { normal: 0, overtime: 0 }
+              };
+            }
+
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const dayName = dayNames[dayIndex];
+            
+            aggregatedData.labour[employee][dayName].normal += report.normalHours || 0;
+            aggregatedData.labour[employee][dayName].overtime += report.overtimeHours || 0;
+          });
+
+        } catch (err) {
+          console.error(`Error loading report for ${date}:`, err);
+        }
+      }
+    });
+
+    if (totalReports === 0) {
+      alert('No service reports found for this week');
+      return;
+    }
+
+    // Populate the form
+    populateFormWithData(aggregatedData, totalReports);
+  }
+
+  function populateFormWithData(data, count) {
+    // Clear existing data
+    tasksContainer.innerHTML = '';
+    labourContainer.innerHTML = '';
+    taskCounter = 0;
+    labourCounter = 0;
+
+    // Add tasks
+    if (data.tasks.length > 0) {
+      data.tasks.forEach(task => {
+        createTaskEntry();
+        const taskCards = document.querySelectorAll('.task-card');
+        const lastCard = taskCards[taskCards.length - 1];
+        const taskId = lastCard.dataset.taskId;
+        const textarea = lastCard.querySelector(`#${taskId}_description`);
+        if (textarea) {
+          textarea.value = task.description;
+        }
+      });
+    } else {
+      createTaskEntry(); // At least one task
+    }
+
+    // Add labour
+    const employeeNames = Object.keys(data.labour);
+    if (employeeNames.length > 0) {
+      employeeNames.forEach(employeeName => {
+        createLabourEntry();
+        const labourCards = document.querySelectorAll('.labour-card');
+        const lastCard = labourCards[labourCards.length - 1];
+        const labourId = lastCard.dataset.labourId;
+
+        // Set employee
+        const employeeSelect = lastCard.querySelector(`select[name="${labourId}_employee"]`);
+        if (employeeSelect) {
+          employeeSelect.value = employeeName;
+        }
+
+        // Set hours for each day
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        dayNames.forEach(day => {
+          const normalInput = lastCard.querySelector(`input[name="${labourId}_${day.toLowerCase()}_normal"]`);
+          const overtimeInput = lastCard.querySelector(`input[name="${labourId}_${day.toLowerCase()}_overtime"]`);
+          
+          if (normalInput && data.labour[employeeName][day].normal > 0) {
+            normalInput.value = data.labour[employeeName][day].normal.toFixed(1);
+          }
+          if (overtimeInput && data.labour[employeeName][day].overtime > 0) {
+            overtimeInput.value = data.labour[employeeName][day].overtime.toFixed(1);
+          }
+        });
+
+        // Update totals
+        updateLabourTotals(labourId);
+      });
+    } else {
+      createLabourEntry(); // At least one labour entry
+    }
+
+    // Show info banner
+    serviceReportsCount.textContent = `Loaded ${count} service report${count > 1 ? 's' : ''} from this week`;
+    serviceReportsInfo.style.display = 'flex';
+    setTimeout(() => {
+      serviceReportsInfo.style.display = 'none';
+    }, 8000);
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  loadServiceReportsBtn.addEventListener('click', loadServiceReports);
 
   // ============================================================
   // TASKS MANAGEMENT
