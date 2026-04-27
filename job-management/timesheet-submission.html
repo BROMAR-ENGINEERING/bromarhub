@@ -1464,12 +1464,26 @@
         otherTypeField.style.display = 'none';
       }
       
-      // Auto-fill 8 hours for leave types (if normal hours field exists and is empty)
+      // Auto-fill hours for leave types - fill remaining hours up to 8
       const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave'];
       if (normalHoursInput && leaveTypes.includes(e.target.value)) {
         if (!normalHoursInput.value || normalHoursInput.value === '0') {
-          normalHoursInput.value = '8';
-          updateDayTotal(dayIndex); // Directly update the day total
+          // Calculate how many hours are already used on this day
+          const dayBody = normalHoursInput.closest('.day-body');
+          const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+          let totalNormal = 0;
+          allNormalInputs.forEach(input => {
+            if (input !== normalHoursInput) { // Don't count the current input
+              totalNormal += parseFloat(input.value) || 0;
+            }
+          });
+          
+          // Fill the remaining hours up to 8
+          const remainingHours = 8 - totalNormal;
+          if (remainingHours > 0) {
+            normalHoursInput.value = remainingHours.toFixed(1);
+            updateDayTotal(dayIndex); // Update the day total
+          }
         }
       }
     });
