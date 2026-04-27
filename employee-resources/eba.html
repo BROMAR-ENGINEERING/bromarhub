@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Enterprise Bargaining Agreement - Bromar</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --brand-primary: #1a56db;
@@ -234,11 +235,23 @@
       box-shadow: var(--card-shadow);
     }
 
+    /* Controls bar */
+    .controls-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--divider);
+    }
+
     /* Search controls */
     .search-controls {
       display: flex;
       gap: 12px;
-      margin-bottom: 24px;
+      flex: 1;
+      min-width: 300px;
       flex-wrap: wrap;
     }
 
@@ -347,21 +360,106 @@
       border-color: var(--text-muted);
     }
 
+    /* Page controls */
+    .page-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .page-nav {
+      display: flex;
+      gap: 6px;
+    }
+
+    .page-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .zoom-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .download-btn {
+      padding: 11px 18px;
+      border: 1.5px solid var(--brand-orange);
+      border-radius: var(--radius-sm);
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .download-btn:hover {
+      background: #a3380b;
+      border-color: #a3380b;
+    }
+
     /* PDF container */
     .pdf-container {
       width: 100%;
-      height: calc(100vh - 400px);
+      height: calc(100vh - 450px);
       min-height: 600px;
       border: 2px solid var(--input-border);
       border-radius: var(--radius-sm);
-      overflow: hidden;
-      background: var(--input-bg);
+      overflow: auto;
+      background: #525659;
+      position: relative;
     }
 
-    .pdf-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+    #pdfCanvas {
+      display: block;
+      margin: 20px auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--brand-white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--input-border);
+      border-top-color: var(--brand-orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
     }
 
     /* Error message */
@@ -386,6 +484,9 @@
         border-color: rgba(239, 68, 68, 0.3);
         color: #fca5a5;
       }
+      .loading-overlay {
+        background: var(--brand-white);
+      }
     }
 
     html.light-mode .error-message {
@@ -400,29 +501,57 @@
         padding-right: 22px; 
       }
       
-      .search-controls {
+      .controls-bar {
         flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-controls,
+      .page-controls {
+        width: 100%;
       }
       
       .search-input-wrapper {
         width: 100%;
       }
       
-      .search-nav {
-        width: 100%;
+      .page-controls {
         justify-content: space-between;
       }
       
       .pdf-container {
-        height: calc(100vh - 500px);
+        height: calc(100vh - 600px);
         min-height: 400px;
       }
     }
 
-    /* Highlight animation */
-    @keyframes highlight {
-      0%, 100% { background-color: transparent; }
-      50% { background-color: rgba(255, 235, 59, 0.3); }
+    /* Text layer for search highlighting */
+    .textLayer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      opacity: 0.2;
+      line-height: 1.0;
+    }
+
+    .textLayer > span {
+      color: transparent;
+      position: absolute;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+
+    .textLayer .highlight {
+      background-color: rgba(255, 255, 0, 0.4);
+      border-radius: 2px;
+    }
+
+    .textLayer .highlight.selected {
+      background-color: rgba(255, 153, 0, 0.6);
     }
   </style>
 </head>
@@ -431,7 +560,7 @@
 
   <!-- HEADER -->
   <div class="header-card">
-    <a href="index.html" class="home-icon" aria-label="Home">
+    <a href="../index.html" class="home-icon" aria-label="Home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
       </svg>
@@ -454,8 +583,8 @@
     </button>
     <div class="logo-container">
       <picture>
-        <source srcset="Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
-        <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
       </picture>
     </div>
     <h1 class="header-title">Enterprise Bargaining Agreement</h1>
@@ -466,34 +595,60 @@
   <div class="content-card">
     
     <div class="error-message" id="errorMessage">
-      Could not load PDF. Please make sure the file exists in the same folder.
+      Could not load PDF. Please make sure the file "eba2025-2029.pdf" exists in the same folder.
     </div>
 
-    <!-- SEARCH CONTROLS -->
-    <div class="search-controls">
-      <div class="search-input-wrapper">
-        <input 
-          type="text" 
-          id="searchInput" 
-          class="search-input" 
-          placeholder="Search in document..."
-          autocomplete="off"
-        />
-        <button id="searchBtn" class="search-btn">Search</button>
+    <!-- CONTROLS BAR -->
+    <div class="controls-bar">
+      <!-- SEARCH CONTROLS -->
+      <div class="search-controls">
+        <div class="search-input-wrapper">
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="Search in document..."
+            autocomplete="off"
+          />
+          <button id="searchBtn" class="search-btn">Search</button>
+        </div>
+        
+        <div class="search-nav">
+          <button id="prevMatch" class="nav-btn" title="Previous match" disabled>↑</button>
+          <span class="search-info" id="searchInfo">-</span>
+          <button id="nextMatch" class="nav-btn" title="Next match" disabled>↓</button>
+        </div>
+        
+        <button id="clearSearch" class="clear-btn">Clear</button>
       </div>
-      
-      <div class="search-nav">
-        <button id="prevMatch" class="nav-btn" title="Previous match" disabled>↑</button>
-        <span class="search-info" id="searchInfo">-</span>
-        <button id="nextMatch" class="nav-btn" title="Next match" disabled>↓</button>
+
+      <!-- PAGE CONTROLS -->
+      <div class="page-controls">
+        <div class="page-nav">
+          <button id="prevPage" class="nav-btn" title="Previous page">←</button>
+          <button id="nextPage" class="nav-btn" title="Next page">→</button>
+        </div>
+        <span class="page-info" id="pageInfo">Page -/-</span>
+        <div class="zoom-controls">
+          <button id="zoomOut" class="nav-btn" title="Zoom out">-</button>
+          <button id="zoomIn" class="nav-btn" title="Zoom in">+</button>
+        </div>
+        <button id="downloadPdf" class="download-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Download
+        </button>
       </div>
-      
-      <button id="clearSearch" class="clear-btn">Clear</button>
     </div>
 
     <!-- PDF VIEWER -->
-    <div class="pdf-container">
-      <iframe id="pdfViewer" src=""></iframe>
+    <div class="pdf-container" id="pdfContainer">
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading PDF...</div>
+      </div>
+      <canvas id="pdfCanvas"></canvas>
     </div>
 
   </div>
@@ -501,10 +656,13 @@
 
 <script>
   // ============================================================
-  // CONFIGURATION - Update this with your PDF filename
+  // CONFIGURATION
   // ============================================================
-  const PDF_FILENAME = 'eba2025-2029.pdf'; // Change this to your PDF filename
+  const PDF_FILENAME = 'eba2025-2029.pdf';
   
+  // Set PDF.js worker
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
   // ============================================================
   // THEME TOGGLE
   // ============================================================
@@ -514,12 +672,12 @@
 
   function updateLogo() {
     if (html.classList.contains('light-mode')) {
-      logoImg.src = 'Bromar-Primary-Logo-Full-Colour.png';
+      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
     } else {
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        logoImg.src = 'Bromar-Primary-Logo-Reverse-White.png';
+        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
       } else {
-        logoImg.src = 'Bromar-Primary-Logo-Full-Colour.png';
+        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
       }
     }
   }
@@ -542,77 +700,162 @@
   });
 
   // ============================================================
-  // PDF VIEWER & SEARCH
+  // PDF VIEWER & CONTROLS
   // ============================================================
-  const pdfViewer = document.getElementById('pdfViewer');
+  const canvas = document.getElementById('pdfCanvas');
+  const ctx = canvas.getContext('2d');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const errorMessage = document.getElementById('errorMessage');
+  const pageInfo = document.getElementById('pageInfo');
   const searchInput = document.getElementById('searchInput');
   const searchBtn = document.getElementById('searchBtn');
   const prevMatch = document.getElementById('prevMatch');
   const nextMatch = document.getElementById('nextMatch');
   const clearSearch = document.getElementById('clearSearch');
   const searchInfo = document.getElementById('searchInfo');
-  const errorMessage = document.getElementById('errorMessage');
+  const prevPage = document.getElementById('prevPage');
+  const nextPage = document.getElementById('nextPage');
+  const zoomIn = document.getElementById('zoomIn');
+  const zoomOut = document.getElementById('zoomOut');
+  const downloadPdf = document.getElementById('downloadPdf');
+
+  let pdfDoc = null;
+  let currentPage = 1;
+  let totalPages = 0;
+  let scale = 1.5;
+  let searchMatches = [];
+  let currentMatchIndex = -1;
+  let isRendering = false;
 
   // Load PDF
-  const pdfUrl = PDF_FILENAME + '#toolbar=1&navpanes=1&scrollbar=1';
-  pdfViewer.src = pdfUrl;
+  async function loadPDF() {
+    try {
+      loadingOverlay.classList.remove('hidden');
+      errorMessage.classList.remove('show');
+      
+      const loadingTask = pdfjsLib.getDocument(PDF_FILENAME);
+      pdfDoc = await loadingTask.promise;
+      totalPages = pdfDoc.numPages;
+      
+      pageInfo.textContent = `Page ${currentPage}/${totalPages}`;
+      
+      await renderPage(currentPage);
+      
+      loadingOverlay.classList.add('hidden');
+      
+    } catch (error) {
+      console.error('Error loading PDF:', error);
+      loadingOverlay.classList.add('hidden');
+      errorMessage.classList.add('show');
+    }
+  }
 
-  // Check if PDF loads successfully
-  pdfViewer.addEventListener('load', () => {
-    errorMessage.classList.remove('show');
+  // Render page
+  async function renderPage(pageNum) {
+    if (isRendering) return;
+    isRendering = true;
+    
+    try {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: scale });
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      };
+      
+      await page.render(renderContext).promise;
+      
+      currentPage = pageNum;
+      pageInfo.textContent = `Page ${currentPage}/${totalPages}`;
+      
+      // Update page navigation buttons
+      prevPage.disabled = currentPage <= 1;
+      nextPage.disabled = currentPage >= totalPages;
+      
+    } catch (error) {
+      console.error('Error rendering page:', error);
+    } finally {
+      isRendering = false;
+    }
+  }
+
+  // Page navigation
+  prevPage.addEventListener('click', () => {
+    if (currentPage > 1) {
+      renderPage(currentPage - 1);
+    }
   });
 
-  pdfViewer.addEventListener('error', () => {
-    errorMessage.classList.add('show');
+  nextPage.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      renderPage(currentPage + 1);
+    }
+  });
+
+  // Zoom controls
+  zoomIn.addEventListener('click', () => {
+    scale += 0.25;
+    renderPage(currentPage);
+  });
+
+  zoomOut.addEventListener('click', () => {
+    if (scale > 0.5) {
+      scale -= 0.25;
+      renderPage(currentPage);
+    }
   });
 
   // Search functionality
-  let currentMatch = 0;
-  let totalMatches = 0;
-
-  function performSearch() {
-    const searchTerm = searchInput.value.trim();
+  async function performSearch() {
+    const searchTerm = searchInput.value.trim().toLowerCase();
     
     if (!searchTerm) {
       clearSearchResults();
       return;
     }
 
-    try {
-      // Use PDF.js built-in search if available via iframe
-      const searchQuery = `#search="${encodeURIComponent(searchTerm)}"`;
-      pdfViewer.src = PDF_FILENAME + searchQuery + '&toolbar=1&navpanes=1&scrollbar=1';
+    searchMatches = [];
+    currentMatchIndex = -1;
+    
+    // Search through all pages
+    for (let i = 1; i <= totalPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ').toLowerCase();
       
-      // Update UI
-      searchInfo.textContent = `Searching...`;
+      if (pageText.includes(searchTerm)) {
+        searchMatches.push(i);
+      }
+    }
+    
+    if (searchMatches.length > 0) {
+      currentMatchIndex = 0;
+      searchInfo.textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+      prevMatch.disabled = false;
+      nextMatch.disabled = false;
+      
+      // Go to first match
+      await renderPage(searchMatches[0]);
+    } else {
+      searchInfo.textContent = 'No matches';
       prevMatch.disabled = true;
       nextMatch.disabled = true;
-      
-      // Note: Actual match counting would require PDF.js integration
-      // This is a simplified version using browser's built-in PDF viewer
-      setTimeout(() => {
-        searchInfo.textContent = `Results found`;
-        prevMatch.disabled = false;
-        nextMatch.disabled = false;
-      }, 500);
-      
-    } catch (err) {
-      console.error('Search error:', err);
-      searchInfo.textContent = 'Search error';
     }
   }
 
   function clearSearchResults() {
-    pdfViewer.src = PDF_FILENAME + '#toolbar=1&navpanes=1&scrollbar=1';
     searchInput.value = '';
+    searchMatches = [];
+    currentMatchIndex = -1;
     searchInfo.textContent = '-';
     prevMatch.disabled = true;
     nextMatch.disabled = true;
-    currentMatch = 0;
-    totalMatches = 0;
   }
 
-  // Event listeners
   searchBtn.addEventListener('click', performSearch);
   
   searchInput.addEventListener('keypress', (e) => {
@@ -623,25 +866,31 @@
 
   clearSearch.addEventListener('click', clearSearchResults);
 
-  prevMatch.addEventListener('click', () => {
-    // Navigate to previous match
-    // This would require PDF.js integration for full functionality
-    if (currentMatch > 1) {
-      currentMatch--;
-      searchInfo.textContent = `${currentMatch} of ${totalMatches}`;
+  prevMatch.addEventListener('click', async () => {
+    if (currentMatchIndex > 0) {
+      currentMatchIndex--;
+      searchInfo.textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+      await renderPage(searchMatches[currentMatchIndex]);
     }
   });
 
-  nextMatch.addEventListener('click', () => {
-    // Navigate to next match
-    // This would require PDF.js integration for full functionality
-    if (currentMatch < totalMatches) {
-      currentMatch++;
-      searchInfo.textContent = `${currentMatch} of ${totalMatches}`;
+  nextMatch.addEventListener('click', async () => {
+    if (currentMatchIndex < searchMatches.length - 1) {
+      currentMatchIndex++;
+      searchInfo.textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+      await renderPage(searchMatches[currentMatchIndex]);
     }
   });
 
-  // Handle keyboard shortcuts
+  // Download PDF
+  downloadPdf.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = PDF_FILENAME;
+    link.download = PDF_FILENAME;
+    link.click();
+  });
+
+  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // Ctrl/Cmd + F to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -653,7 +902,19 @@
     if (e.key === 'Escape' && document.activeElement === searchInput) {
       clearSearchResults();
     }
+
+    // Arrow keys for page navigation (when not in search input)
+    if (document.activeElement !== searchInput) {
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        renderPage(currentPage - 1);
+      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        renderPage(currentPage + 1);
+      }
+    }
   });
+
+  // Initialize
+  loadPDF();
 </script>
 </body>
 </html>
