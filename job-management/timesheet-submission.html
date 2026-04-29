@@ -1,11 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Employee Timesheet Submission</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --brand-primary: #1a56db;
@@ -40,782 +40,786 @@
       --job-row-bg: #fafbff;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --brand-orange: #f0723f;
-        --brand-orange-soft: rgba(240, 114, 63, 0.12);
-        --brand-dark: #f4f4f5;
-        --brand-mid: #a1a1aa;
-        --brand-light: rgba(240, 114, 63, 0.08);
-        --brand-white: #1a1d21;
-        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
-        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
-        --input-bg: #13161a;
-        --input-bg-focus: #1a1d21;
-        --input-border: #2a2d32;
-        --input-focus: #f0723f;
-        --text-primary: #f4f4f5;
-        --text-secondary: #d4d4d8;
-        --text-muted: #a1a1aa;
-        --text-faded: #71717a;
-        --divider: #2a2d32;
-        --footer-bg: #13161a;
-        --success-bg: rgba(34, 197, 94, 0.1);
-        --success-border: rgba(34, 197, 94, 0.3);
-        --success-text: #4ade80;
-        --day-header-bg: #1a1d23;
-        --job-row-bg: #13161a;
-      }
-    }
+```
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-orange: #f0723f;
+    --brand-orange-soft: rgba(240, 114, 63, 0.12);
+    --brand-dark: #f4f4f5;
+    --brand-mid: #a1a1aa;
+    --brand-light: rgba(240, 114, 63, 0.08);
+    --brand-white: #1a1d21;
+    --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+    --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    --input-bg: #13161a;
+    --input-bg-focus: #1a1d21;
+    --input-border: #2a2d32;
+    --input-focus: #f0723f;
+    --text-primary: #f4f4f5;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --text-faded: #71717a;
+    --divider: #2a2d32;
+    --footer-bg: #13161a;
+    --success-bg: rgba(34, 197, 94, 0.1);
+    --success-border: rgba(34, 197, 94, 0.3);
+    --success-text: #4ade80;
+    --day-header-bg: #1a1d23;
+    --job-row-bg: #13161a;
+  }
+}
 
-    /* Force light mode when class is added */
-    html.light-mode {
-      --brand-orange: #c2440e;
-      --brand-orange-soft: #fff3ee;
-      --brand-dark: #111827;
-      --brand-mid: #374151;
-      --brand-light: #f3f6ff;
-      --brand-white: #ffffff;
-      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
-      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
-      --input-bg: #fafbff;
-      --input-bg-focus: #ffffff;
-      --input-border: #d1d9f0;
-      --input-focus: #1a56db;
-      --text-primary: #111827;
-      --text-secondary: #374151;
-      --text-muted: #6b7280;
-      --text-faded: #9ca3af;
-      --divider: #e5e7eb;
-      --footer-bg: #fafafa;
-      --success-bg: #f0fdf4;
-      --success-border: #bbf7d0;
-      --success-text: #15803d;
-      --day-header-bg: #f8f9fd;
-      --job-row-bg: #fafbff;
-    }
+/* Force light mode when class is added */
+html.light-mode {
+  --brand-orange: #c2440e;
+  --brand-orange-soft: #fff3ee;
+  --brand-dark: #111827;
+  --brand-mid: #374151;
+  --brand-light: #f3f6ff;
+  --brand-white: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+  --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --input-bg: #fafbff;
+  --input-bg-focus: #ffffff;
+  --input-border: #d1d9f0;
+  --input-focus: #1a56db;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-faded: #9ca3af;
+  --divider: #e5e7eb;
+  --footer-bg: #fafafa;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-text: #15803d;
+  --day-header-bg: #f8f9fd;
+  --job-row-bg: #fafbff;
+}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg-gradient);
-      min-height: 100vh;
-      padding: 40px 16px 60px;
-      color: var(--brand-dark);
-    }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  padding: 40px 16px 60px;
+  color: var(--brand-dark);
+}
 
-    /* Animated background blobs */
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.35;
-      z-index: 0;
-      pointer-events: none;
-    }
-    body::before {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #bfcfff, #e0e8ff);
-      top: -100px; left: -100px;
-      animation: blob1 12s ease-in-out infinite;
-    }
-    body::after {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
-      bottom: -80px; right: -80px;
-      animation: blob2 15s ease-in-out infinite;
-    }
-    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
-    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
-    @media (prefers-color-scheme: dark) {
-      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
-      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
-    }
+/* Animated background blobs */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+body::before {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #bfcfff, #e0e8ff);
+  top: -100px; left: -100px;
+  animation: blob1 12s ease-in-out infinite;
+}
+body::after {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+  bottom: -80px; right: -80px;
+  animation: blob2 15s ease-in-out infinite;
+}
+@keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+@keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+@media (prefers-color-scheme: dark) {
+  body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+  body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+}
 
-    .page-wrapper {
-      max-width: 980px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
+.page-wrapper {
+  max-width: 980px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
 
-    /* Home icon button — top left */
-    .home-icon {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .home-icon:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .home-icon svg { width: 18px; height: 18px; }
+/* Home icon button — top left */
+.home-icon {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--brand-white);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.2s;
+  z-index: 2;
+}
+.home-icon:hover {
+  color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  background: var(--brand-orange-soft);
+  transform: translateY(-1px);
+}
+.home-icon svg { width: 18px; height: 18px; }
 
-    /* Theme toggle button — top right */
-    .theme-toggle {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .theme-toggle:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .theme-toggle svg { width: 18px; height: 18px; }
-    
-    /* Show/hide icons based on theme */
-    .sun-icon { display: none; }
-    .moon-icon { display: block; }
-    
-    html.light-mode .sun-icon { display: block; }
-    html.light-mode .moon-icon { display: none; }
+/* Theme toggle button — top right */
+.theme-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--brand-white);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 2;
+}
+.theme-toggle:hover {
+  color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  background: var(--brand-orange-soft);
+  transform: translateY(-1px);
+}
+.theme-toggle svg { width: 18px; height: 18px; }
 
-    /* Header card with logo */
-    .header-card {
-      background: var(--brand-white);
-      color: var(--text-primary);
-      border-radius: var(--radius) var(--radius) 0 0;
-      padding: 36px 40px 28px;
-      text-align: center;
-      border-bottom: 3px solid var(--brand-light);
-      position: relative;
-      overflow: hidden;
-    }
-    .header-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-    }
+/* Show/hide icons based on theme */
+.sun-icon { display: none; }
+.moon-icon { display: block; }
 
-    .logo-container {
-      margin-bottom: 20px;
-    }
-    .logo-container img {
-      max-height: 80px;
-      max-width: 260px;
-      object-fit: contain;
-    }
+html.light-mode .sun-icon { display: block; }
+html.light-mode .moon-icon { display: none; }
 
-    .header-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.4rem;
-      letter-spacing: 2.5px;
-      color: var(--text-primary);
-      margin-bottom: 6px;
-    }
-    .header-subtitle {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      font-weight: 400;
-    }
+/* Header card with logo */
+.header-card {
+  background: var(--brand-white);
+  color: var(--text-primary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 36px 40px 28px;
+  text-align: center;
+  border-bottom: 3px solid var(--brand-light);
+  position: relative;
+  overflow: hidden;
+}
+.header-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+}
 
-    /* Form card */
-    .form-card {
-      background: var(--brand-white);
-      border-radius: 0 0 var(--radius) var(--radius);
-      color: var(--text-primary);
-      padding: 36px 40px 40px;
-      box-shadow: var(--card-shadow);
-    }
+.logo-container {
+  margin-bottom: 20px;
+}
+.logo-container img {
+  max-height: 80px;
+  max-width: 260px;
+  object-fit: contain;
+}
 
-    /* Section dividers */
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--brand-orange);
-      margin: 28px 0 18px;
-    }
-    .section-label:first-child { margin-top: 0; }
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
-      opacity: 0.25;
-    }
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.4rem;
+  letter-spacing: 2.5px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.header-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
 
-    /* Field groups */
-    .field-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-    @media (max-width: 720px) {
-      .field-row { grid-template-columns: 1fr; }
-      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
-    }
+/* Form card */
+.form-card {
+  background: var(--brand-white);
+  border-radius: 0 0 var(--radius) var(--radius);
+  color: var(--text-primary);
+  padding: 36px 40px 40px;
+  box-shadow: var(--card-shadow);
+}
 
-    .field-group {
-      margin-bottom: 18px;
-    }
-    .field-group.full { grid-column: 1 / -1; }
+/* Section dividers */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--brand-orange);
+  margin: 28px 0 18px;
+}
+.section-label:first-child { margin-top: 0; }
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+  opacity: 0.25;
+}
 
-    label {
-      display: block;
-      font-size: 0.83rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 7px;
-      letter-spacing: 0.2px;
-    }
-    label .required {
-      color: var(--brand-accent);
-      margin-left: 3px;
-    }
+/* Field groups */
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (max-width: 720px) {
+  .field-row { grid-template-columns: 1fr; }
+  .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+}
 
-    input[type="text"],
-    input[type="email"],
-    input[type="date"],
-    input[type="number"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.93rem;
-      color: var(--text-primary);
-      background: var(--input-bg);
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-      outline: none;
-      appearance: none;
-    }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--input-focus);
-      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
-      background: var(--input-bg-focus);
-    }
+.field-group {
+  margin-bottom: 18px;
+}
+.field-group.full { grid-column: 1 / -1; }
 
-    input.error, select.error, textarea.error {
-      border-color: var(--error);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
+label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  letter-spacing: 0.2px;
+}
+label .required {
+  color: var(--brand-accent);
+  margin-left: 3px;
+}
 
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      padding-right: 36px;
-      cursor: pointer;
-    }
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+  appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  background: var(--input-bg-focus);
+}
 
-    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+input.error, select.error, textarea.error {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
 
-    .error-msg {
-      font-size: 0.76rem;
-      color: var(--error);
-      margin-top: 5px;
-      display: none;
-    }
-    .field-group.has-error .error-msg { display: block; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
 
-    /* Week selector */
-    .week-selector {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-      margin-bottom: 24px;
-    }
-    .week-selector .field-group {
-      flex: 1;
-      margin-bottom: 0;
-    }
-    .week-nav {
-      display: flex;
-      gap: 6px;
-    }
-    .week-nav button {
-      width: 42px;
-      height: 42px;
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      background: var(--input-bg);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      font-weight: 600;
-    }
-    .week-nav button:hover {
-      border-color: var(--brand-primary);
-      background: var(--brand-white);
-      color: var(--brand-primary);
-    }
-    .week-nav .clear-week-btn {
-      width: auto;
-      padding: 0 16px;
-      font-size: 0.875rem;
-      margin-left: 6px;
-    }
-    .week-nav .clear-week-btn:hover {
-      border-color: #dc2626;
-      color: #dc2626;
-      background: #fef2f2;
-    }
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 
-    /* Timesheet days container */
-    .timesheet-days {
-      margin: 24px 0;
-    }
+.error-msg {
+  font-size: 0.76rem;
+  color: var(--error);
+  margin-top: 5px;
+  display: none;
+}
+.field-group.has-error .error-msg { display: block; }
 
-    /* Individual day card */
-    .day-card {
-      background: var(--brand-white);
-      border: 2px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      margin-bottom: 20px;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-    .day-card:hover {
-      border-color: var(--brand-primary);
-    }
+/* Week selector */
+.week-selector {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+.week-selector .field-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+.week-nav {
+  display: flex;
+  gap: 6px;
+}
+.week-nav button {
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.week-nav button:hover {
+  border-color: var(--brand-primary);
+  background: var(--brand-white);
+  color: var(--brand-primary);
+}
+.week-nav .clear-week-btn {
+  width: auto;
+  padding: 0 16px;
+  font-size: 0.875rem;
+  margin-left: 6px;
+}
+.week-nav .clear-week-btn:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
 
-    .day-header {
-      background: var(--day-header-bg);
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--divider);
-    }
-    .day-name {
-      font-weight: 700;
-      font-size: 1rem;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .day-date {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-    .day-total {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--brand-primary);
-      background: var(--brand-light);
-      padding: 4px 12px;
-      border-radius: 20px;
-    }
+/* Timesheet days container */
+.timesheet-days {
+  margin: 24px 0;
+}
 
-    /* Weekend toggle switch */
-    .weekend-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-    .toggle-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      display: inline-block;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--input-border);
-      transition: 0.3s;
-      border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
-    }
-    .toggle-switch input:checked + .toggle-slider {
-      background-color: var(--brand-secondary);
-    }
-    .toggle-switch input:checked + .toggle-slider:before {
-      transform: translateX(20px);
-    }
+/* Individual day card */
+.day-card {
+  background: var(--brand-white);
+  border: 2px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.day-card:hover {
+  border-color: var(--brand-primary);
+}
 
-    /* Disabled day state */
-    .day-card.disabled .day-body {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .day-card.disabled .day-header {
-      background: var(--footer-bg);
-    }
+.day-header {
+  background: var(--day-header-bg);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--divider);
+}
+.day-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.day-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.day-total {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: var(--brand-light);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
 
-    .day-body {
-      padding: 16px;
-    }
+/* Weekend toggle switch */
+.weekend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  display: inline-block;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--input-border);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--brand-secondary);
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
 
-    /* Job row */
-    .job-row {
-      background: var(--job-row-bg);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      margin-bottom: 12px;
-      transition: all 0.2s;
-    }
-    .job-row:hover {
-      border-color: var(--brand-primary);
-      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
-    }
+/* Disabled day state */
+.day-card.disabled .day-body {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.day-card.disabled .day-header {
+  background: var(--footer-bg);
+}
 
-    .job-row-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .job-number-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-    }
-    .remove-job {
-      background: none;
-      border: none;
-      color: var(--error);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-    .remove-job:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
+.day-body {
+  padding: 16px;
+}
 
-    .job-fields {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    @media (max-width: 720px) {
-      .job-fields { grid-template-columns: 1fr; }
-    }
+/* Job row */
+.job-row {
+  background: var(--job-row-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+.job-row:hover {
+  border-color: var(--brand-primary);
+  box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
+}
 
-    .job-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .job-field.full {
-      grid-column: 1 / -1;
-    }
-    .job-field label {
-      font-size: 0.75rem;
-      margin-bottom: 2px;
-    }
-    .job-field input,
-    .job-field select,
-    .job-field textarea {
-      font-size: 0.85rem;
-      padding: 8px 11px;
-    }
+.job-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.job-number-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.remove-job {
+  background: none;
+  border: none;
+  color: var(--error);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.remove-job:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
 
-    .job-checkboxes {
-      display: flex;
-      gap: 12px;
-      margin-top: 8px;
-    }
+.job-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+@media (max-width: 720px) {
+  .job-fields { grid-template-columns: 1fr; }
+}
 
-    /* Checkbox styling */
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      user-select: none;
-    }
-    .checkbox-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-      accent-color: var(--brand-orange);
-    }
-    .checkbox-label input[type="radio"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-      accent-color: var(--brand-orange);
-    }
+.job-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.job-field.full {
+  grid-column: 1 / -1;
+}
+.job-field label {
+  font-size: 0.75rem;
+  margin-bottom: 2px;
+}
+.job-field input,
+.job-field select,
+.job-field textarea {
+  font-size: 0.85rem;
+  padding: 8px 11px;
+}
 
-    /* Add job button */
-    .add-job-btn {
-      width: 100%;
-      padding: 10px;
-      border: 1.5px dashed var(--input-border);
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .add-job-btn:hover {
-      border-color: var(--brand-primary);
-      color: var(--brand-primary);
-      background: var(--brand-light);
-    }
-    .add-job-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+.job-checkboxes {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
 
-    /* Standby checkbox */
-    .standby-section {
-      background: var(--brand-light);
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      margin: 24px 0;
-    }
-    .standby-label {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      user-select: none;
-    }
-    .standby-label input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      accent-color: var(--brand-orange);
-    }
+/* Checkbox styling */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--brand-orange);
+}
+.checkbox-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--brand-orange);
+}
 
-    /* Submit button */
-    .form-divider {
-      height: 1px;
-      background: var(--divider);
-      margin: 28px 0 22px;
-    }
+/* Add job button */
+.add-job-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1.5px dashed var(--input-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.add-job-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-light);
+}
+.add-job-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-    .submit-row {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      align-items: center;
-    }
-    .submit-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-right: auto;
-    }
-    .btn-secondary {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+/* Standby checkbox */
+.standby-section {
+  background: var(--brand-light);
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin: 24px 0;
+}
+.standby-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+}
+.standby-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--brand-orange);
+}
 
-    .submit-btn {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 12px 28px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: var(--brand-orange);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
-    }
-    .submit-btn:hover {
-      background: #a3380b;
-      filter: brightness(1.05);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
-    }
-    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+/* Submit button */
+.form-divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 28px 0 22px;
+}
 
-    /* Success banner */
-    .success-banner {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      background: var(--success-bg);
-      border: 1px solid var(--success-border);
-      color: var(--success-text);
-      padding: 14px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 24px;
-      animation: slideIn 0.3s ease;
-    }
-    .success-banner.show { display: flex; }
-    
-    /* Info banner for auto-save */
-    .info-banner {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1e40af;
-      padding: 14px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 24px;
-      animation: slideIn 0.3s ease;
-    }
-    .info-banner.show { display: flex; }
-    @media (prefers-color-scheme: dark) {
-      .info-banner {
-        background: rgba(59, 130, 246, 0.1);
-        border-color: rgba(59, 130, 246, 0.3);
-        color: #60a5fa;
-      }
-    }
-    html.light-mode .info-banner {
-      background: #eff6ff;
-      border-color: #bfdbfe;
-      color: #1e40af;
-    }
-    
-    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.submit-row {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.submit-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: auto;
+}
+.btn-secondary {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
 
-    /* Footer note */
-    .form-footer {
-      margin-top: 32px;
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-    .footer-disclaimer {
-      border: 1px solid var(--divider);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      margin-bottom: 20px;
-      background: var(--footer-bg);
-      font-style: italic;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      line-height: 1.7;
-    }
-    .footer-details {
-      border-top: 1px solid var(--divider);
-      padding-top: 16px;
-    }
-    .footer-details p { 
-      margin: 4px 0; 
-      color: var(--text-secondary); 
-      font-size: 0.875rem;
-      display: block;
-    }
-    .footer-details a { 
-      color: var(--brand-orange); 
-      text-decoration: none; 
-    }
-    .footer-details a:hover { 
-      text-decoration: underline; 
-    }
+.submit-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--brand-orange);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+}
+.submit-btn:hover {
+  background: #a3380b;
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+}
+.submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
-    @media (max-width: 720px) {
-      .submit-row { flex-wrap: wrap; }
-      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
-      .btn-secondary, .submit-btn { flex: 1; }
-      .week-selector { 
-        flex-direction: column; 
-        align-items: stretch;
-      }
-      .week-selector .field-group {
-        width: 100%;
-      }
-      .week-nav { 
-        width: 100%;
-        justify-content: center;
-      }
-      .week-nav button { flex: 1; max-width: 120px; }
-    }
+/* Success banner */
+.success-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  animation: slideIn 0.3s ease;
+}
+.success-banner.show { display: flex; }
+
+/* Info banner for auto-save */
+.info-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  animation: slideIn 0.3s ease;
+}
+.info-banner.show { display: flex; }
+@media (prefers-color-scheme: dark) {
+  .info-banner {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+  }
+}
+html.light-mode .info-banner {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Footer note */
+.form-footer {
+  margin-top: 32px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.footer-disclaimer {
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  background: var(--footer-bg);
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+.footer-details {
+  border-top: 1px solid var(--divider);
+  padding-top: 16px;
+}
+.footer-details p { 
+  margin: 4px 0; 
+  color: var(--text-secondary); 
+  font-size: 0.875rem;
+  display: block;
+}
+.footer-details a { 
+  color: var(--brand-orange); 
+  text-decoration: none; 
+}
+.footer-details a:hover { 
+  text-decoration: underline; 
+}
+
+@media (max-width: 720px) {
+  .submit-row { flex-wrap: wrap; }
+  .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+  .btn-secondary, .submit-btn { flex: 1; }
+  .week-selector { 
+    flex-direction: column; 
+    align-items: stretch;
+  }
+  .week-selector .field-group {
+    width: 100%;
+  }
+  .week-nav { 
+    width: 100%;
+    justify-content: center;
+  }
+  .week-nav button { flex: 1; max-width: 120px; }
+}
+```
+
   </style>
 </head>
 <body>
 <div class="page-wrapper">
 
   <!-- HEADER -->
+
   <div class="header-card">
     <a href="../index.html" class="home-icon" aria-label="Home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -846,99 +850,138 @@
   </div>
 
   <!-- FORM CARD -->
+
   <div class="form-card">
-    <form id="timesheetForm" novalidate autocomplete="off">
+    <form id="timesheetForm" name="timesheet-submission" method="POST" data-netlify="true" netlify-honeypot="bot-field" novalidate autocomplete="off">
 
-      <div class="success-banner" id="successBanner">
-        <span>✅</span>
-        <span>Timesheet submitted successfully — a confirmation has been sent to your email and the admin team.</span>
-      </div>
+```
+  <!-- Hidden field for spam protection -->
+  <p style="display: none;">
+    <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+  </p>
 
-      <div class="info-banner" id="autoSaveBanner">
-        <span>💾</span>
-        <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
-      </div>
+  <div class="success-banner" id="successBanner">
+    <span>✅</span>
+    <span>Timesheet submitted successfully — a confirmation has been sent to your email and the admin team.</span>
+  </div>
 
-      <!-- EMPLOYEE DETAILS -->
-      <div class="section-label">Employee Details</div>
+  <div class="info-banner" id="autoSaveBanner">
+    <span>💾</span>
+    <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
+  </div>
 
-      <div class="field-row">
-        <div class="field-group" id="group-name">
-          <label for="employee_name">Full Name <span class="required">*</span></label>
-          <input type="text" id="employee_name" name="employee_name" placeholder="Old Mate" autocomplete="name"/>
-          <span class="error-msg">Please enter your full name</span>
-        </div>
-        <div class="field-group" id="group-email">
-          <label for="employee_email">Email Address <span class="required">*</span></label>
-          <input type="email" id="employee_email" name="employee_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
-          <span class="error-msg">Please enter a valid email</span>
-        </div>
-      </div>
+  <!-- EMPLOYEE DETAILS -->
+  <div class="section-label">Employee Details</div>
 
-      <!-- WEEK SELECTOR -->
-      <div class="section-label">Week Period</div>
+  <div class="field-row">
+    <div class="field-group" id="group-name">
+      <label for="employee_name">Full Name <span class="required">*</span></label>
+      <input type="text" id="employee_name" name="employee_name" placeholder="Old Mate" autocomplete="name"/>
+      <span class="error-msg">Please enter your full name</span>
+    </div>
+    <div class="field-group" id="group-email">
+      <label for="employee_email">Email Address <span class="required">*</span></label>
+      <input type="email" id="employee_email" name="employee_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
+      <span class="error-msg">Please enter a valid email</span>
+    </div>
+  </div>
 
-      <div class="week-selector">
-        <div class="field-group" id="group-week">
-          <label for="week_starting">Week Starting (Monday) <span class="required">*</span></label>
-          <input type="date" id="week_starting" name="week_starting" autocomplete="off"/>
-          <span class="error-msg">Please select week starting date</span>
-        </div>
-        <div class="week-nav">
-          <button type="button" id="prevWeek" title="Previous Week">←</button>
-          <button type="button" id="nextWeek" title="Next Week">→</button>
-          <button type="button" id="topClearBtn" class="clear-week-btn" title="Clear Form">Clear</button>
-        </div>
-      </div>
-
-      <!-- TIMESHEET DAYS -->
-      <div class="section-label">Daily Timesheet</div>
-
-      <div class="timesheet-days" id="timesheetDays">
-        <!-- Days will be generated here by JavaScript -->
-      </div>
-
-      <!-- GENERAL COMMENTS -->
-      <div class="section-label">Additional Comments</div>
-
-      <div class="field-group full">
-        <label for="general_comments">General Comments / Notes</label>
-        <textarea id="general_comments" name="general_comments" rows="3" placeholder="Add any general notes about this week's timesheet..." autocomplete="off"></textarea>
-        <span class="field-hint">Optional - Add any additional information, clarifications, or notes about your timesheet for this week.</span>
-      </div>
-
-      <!-- ON-CALL STANDBY -->
-      <div class="standby-section">
-        <label class="standby-label">
-          <input type="checkbox" id="standby" name="standby" value="Yes"/>
-          <span>📞 I was on call/afterhours standby this week</span>
+  <div class="field-row">
+    <div class="field-group" id="group-employee-type">
+      <label for="employee_type">Employee Type <span class="required">*</span></label>
+      <select id="employee_type" name="employee_type" autocomplete="off">
+        <option value="" disabled selected>Select type</option>
+        <option value="Electrician">Electrician</option>
+        <option value="Engineer">Engineer</option>
+        <option value="Apprentice">Apprentice</option>
+        <option value="Other">Other</option>
+      </select>
+      <span class="error-msg">Please select employee type</span>
+    </div>
+    <div class="field-group">
+      <label>Weekly Allowances</label>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 8px;">
+        <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+          <input type="checkbox" id="allowance_first_aid" name="allowance_first_aid"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">First Aid</span>
         </label>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0 32px; line-height: 1.5;">
-          <em>Only tick this box if you have been on standby from Monday to Thursday and the previous weekend</em>
-        </p>
-      </div>
-
-      <!-- SUBMIT -->
-      <div class="form-divider"></div>
-      <div class="submit-row">
-        <span class="submit-note">* Required fields</span>
-        <button type="reset" class="btn-secondary">Clear</button>
-        <button type="submit" class="submit-btn" id="submitBtn">Submit Timesheet</button>
-      </div>
-
-    </form>
-
-    <div class="form-footer">
-      <div class="footer-disclaimer">
-        <p><em>Please ensure all timesheet entries are accurate and complete. Timesheets should be submitted by the designated deadline each week.</em></p>
-      </div>
-      <div class="footer-details" style="text-align: center; margin-top: 20px;">
-        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
-        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
-        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">EMAIL: <a href="mailto:admin@bromar.com.au" style="color: var(--brand-orange); text-decoration: none;">admin@bromar.com.au</a>  |  REC: 30340</p>
-        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
+        <label class="checkbox-label" style="padding: 8px 12px; margin: 0; display: none;">
+          <input type="checkbox" id="allowance_construction_wiring" name="allowance_construction_wiring"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">Construction Wiring</span>
+        </label>
       </div>
     </div>
+  </div>
+
+  <!-- WEEK SELECTOR -->
+  <div class="section-label">Week Period</div>
+
+  <div class="week-selector">
+    <div class="field-group" id="group-week">
+      <label for="week_starting">Week Starting (Monday) <span class="required">*</span></label>
+      <input type="date" id="week_starting" name="week_starting" autocomplete="off"/>
+      <span class="error-msg">Please select week starting date</span>
+    </div>
+    <div class="week-nav">
+      <button type="button" id="prevWeek" title="Previous Week">←</button>
+      <button type="button" id="nextWeek" title="Next Week">→</button>
+      <button type="button" id="topClearBtn" class="clear-week-btn" title="Clear Form">Clear</button>
+    </div>
+  </div>
+
+  <!-- TIMESHEET DAYS -->
+  <div class="section-label">Daily Timesheet</div>
+
+  <div class="timesheet-days" id="timesheetDays">
+    <!-- Days will be generated here by JavaScript -->
+  </div>
+
+  <!-- GENERAL COMMENTS -->
+  <div class="section-label">Additional Comments</div>
+
+  <div class="field-group full">
+    <label for="general_comments">General Comments / Notes</label>
+    <textarea id="general_comments" name="general_comments" rows="3" placeholder="Add any general notes about this week's timesheet..." autocomplete="off"></textarea>
+    <span class="field-hint">Optional - Add any additional information, clarifications, or notes about your timesheet for this week.</span>
+  </div>
+
+  <!-- ON-CALL STANDBY -->
+  <div class="standby-section">
+    <label class="standby-label">
+      <input type="checkbox" id="standby" name="standby" value="Yes"/>
+      <span>📞 I was on call/afterhours standby this week</span>
+    </label>
+    <p style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0 32px; line-height: 1.5;">
+      <em>Only tick this box if you have been on standby from Monday to Thursday and the previous weekend</em>
+    </p>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="form-divider"></div>
+  <div class="submit-row">
+    <span class="submit-note">* Required fields</span>
+    <button type="button" class="btn-secondary" id="printBtn">🖨️ Print</button>
+    <button type="reset" class="btn-secondary">Clear</button>
+    <button type="submit" class="submit-btn" id="submitBtn">Submit Timesheet</button>
+  </div>
+
+</form>
+
+<div class="form-footer">
+  <div class="footer-disclaimer">
+    <p><em>Please ensure all timesheet entries are accurate and complete. Timesheets should be submitted by the designated deadline each week.</em></p>
+  </div>
+  <div class="footer-details" style="text-align: center; margin-top: 20px;">
+    <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
+    <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
+    <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">EMAIL: <a href="mailto:admin@bromar.com.au" style="color: var(--brand-orange); text-decoration: none;">admin@bromar.com.au</a>  |  REC: 30340</p>
+    <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
@@ -947,19 +990,8 @@
   // CONFIGURATION
   // ============================================================
   const CONFIG = {
-    emailjs: {
-      publicKey:   "4JW7VbCEAqZt9p4Jj",
-      serviceId:   "BromarEmail",
-      templateId:  "timesheet_submit", // You'll need to create this template
-    },
-    adminEmails: [
-      "ashleys@bromar.com.au",
-    ],
     maxJobsPerDay: 5
   };
-
-  // Initialize EmailJS
-  emailjs.init(CONFIG.emailjs.publicKey);
 
   // ============================================================
   // WEEK MANAGEMENT
@@ -1254,6 +1286,7 @@
     // Then restore saved data if it exists
     setTimeout(() => {
       restoreFormData();
+      checkAllCallOutBreaks(); // Check for call-out breaks after restore
     }, 200);
   });
 
@@ -1372,7 +1405,7 @@
                 <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
                   <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
                   <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Office/Workshop</span>
+                  <span class="checkbox-text">Start/Finish at Office</span>
                 </label>
                 <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
                   <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
@@ -1384,6 +1417,23 @@
             <div class="owncar-km-field" style="display: none; margin-top: 8px;">
               <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
               <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
+            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
+              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
+                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
+              </label>
+              <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
+                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
+                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+              </div>
             </div>
           </div>
         ` : `
@@ -1406,7 +1456,7 @@
                 <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
                   <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
                   <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Office/Workshop</span>
+                  <span class="checkbox-text">Start/Finish at Office</span>
                 </label>
                 <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
                   <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
@@ -1418,6 +1468,23 @@
             <div class="owncar-km-field" style="display: none; margin-top: 8px;">
               <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
               <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
+            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
+              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
+                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
+              </label>
+              <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
+                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
+                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+              </div>
             </div>
           </div>
         `}
@@ -1519,10 +1586,14 @@
           <select name="${jobId}_type" data-day="${dayIndex}" class="job-type">
             <option value="">Select type...</option>
             <option value="Job Number">Job Number</option>
+            <option value="Call Out">Call Out</option>
+            <option value="Stand Down Time (Callout)">Stand Down Time (Callout)</option>
             <option value="RDO">RDO</option>
             <option value="Annual Leave">Annual Leave</option>
             <option value="Carer's Leave">Carer's Leave</option>
             <option value="Sick Leave">Sick Leave</option>
+            <option value="Trade School" style="display: none;">Trade School</option>
+            <option value="TIL (Taken)" style="display: none;">TIL (Taken)</option>
             <option value="Travel">Travel</option>
             <option value="Long Service Leave">Long Service Leave</option>
             <option value="Other">Other</option>
@@ -1539,7 +1610,7 @@
           </div>
         ` : ''}
         <div class="job-field ${!isWeekend ? '' : 'full'}">
-          <label>Overtime Hours</label>
+          <label class="overtime-label">Overtime Hours</label>
           <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field job-number-field" style="display: none;">
@@ -1550,473 +1621,590 @@
           <label>Client</label>
           <input type="text" name="${jobId}_client" placeholder="Client name" autocomplete="off"/>
         </div>
+        <div class="job-field callout-received-field" style="display: none;">
+          <label>Call-Out Received Time</label>
+          <input type="time" name="${jobId}_callout_received" autocomplete="off"/>
+        </div>
+        <div class="job-field callout-complete-field" style="display: none;">
+          <label>Call-Out Complete Time</label>
+          <input type="time" name="${jobId}_callout_complete" autocomplete="off"/>
+        </div>
         <div class="job-field full">
           <label>Comment</label>
           <textarea name="${jobId}_comment" rows="2" placeholder="Add notes about this job..." autocomplete="off"></textarea>
-        </div>
-      </div>
-      <div class="job-checkboxes allowance-checkboxes" style="display: none;">
-        <label class="checkbox-label">
-          <input type="checkbox" name="${jobId}_site_allowance" value="Yes"/>
-          Site Allowance
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" name="${jobId}_owncar" value="Yes" class="job-owncar-checkbox"/>
-          Own Car - Additional KM
-        </label>
-      </div>
-      <div class="job-owncar-km" style="display: none; margin-top: 8px; padding: 8px 12px; background: var(--brand-light); border-radius: 6px;">
-        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Additional KM in own car for this job</label>
-        <input type="number" name="${jobId}_owncar_km" class="job-owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
-      </div>
-    `;
 
-    // Insert before the "Add Job" button
-    const addBtn = dayBody.querySelector('.add-job-btn');
-    dayBody.insertBefore(jobRow, addBtn);
+```
+    </div>
+  </div>
+  <div class="job-checkboxes allowance-checkboxes" style="display: none;">
+    <label class="checkbox-label">
+      <input type="checkbox" name="${jobId}_site_allowance" value="Yes"/>
+      Site Allowance
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="${jobId}_owncar" value="Yes" class="job-owncar-checkbox"/>
+      Own Car - Additional KM
+    </label>
+  </div>
+  <div class="job-owncar-km" style="display: none; margin-top: 8px; padding: 8px 12px; background: var(--brand-light); border-radius: 6px;">
+    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Additional KM in own car for this job</label>
+    <input type="number" name="${jobId}_owncar_km" class="job-owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+  </div>
+`;
 
-    // Setup event listeners
-    const typeSelect = jobRow.querySelector('.job-type');
-    const jobNumberField = jobRow.querySelector('.job-number-field');
-    const clientField = jobRow.querySelector('.client-field');
-    const otherTypeField = jobRow.querySelector('.other-type-field');
-    const allowanceCheckboxes = jobRow.querySelector('.allowance-checkboxes');
-    const normalHoursInput = jobRow.querySelector('.normal-hours');
+// Insert before the "Add Job" button
+const addBtn = dayBody.querySelector('.add-job-btn');
+dayBody.insertBefore(jobRow, addBtn);
+
+// Apply employee type visibility rules to new job row
+if (typeof updateEmployeeTypeOptions === 'function') {
+  updateEmployeeTypeOptions();
+}
+
+// Setup event listeners
+const typeSelect = jobRow.querySelector('.job-type');
+const jobNumberField = jobRow.querySelector('.job-number-field');
+const clientField = jobRow.querySelector('.client-field');
+const otherTypeField = jobRow.querySelector('.other-type-field');
+const calloutReceivedField = jobRow.querySelector('.callout-received-field');
+const calloutCompleteField = jobRow.querySelector('.callout-complete-field');
+const allowanceCheckboxes = jobRow.querySelector('.allowance-checkboxes');
+const normalHoursInput = jobRow.querySelector('.normal-hours');
+
+typeSelect.addEventListener('change', (e) => {
+  if (e.target.value === 'Job Number') {
+    jobNumberField.style.display = 'block';
+    clientField.style.display = 'block';
+    allowanceCheckboxes.style.display = 'flex';
+    otherTypeField.style.display = 'none';
+    calloutReceivedField.style.display = 'none';
+    calloutCompleteField.style.display = 'none';
+  } else if (e.target.value === 'Call Out') {
+    jobNumberField.style.display = 'block';
+    clientField.style.display = 'block';
+    calloutReceivedField.style.display = 'block';
+    calloutCompleteField.style.display = 'block';
+    allowanceCheckboxes.style.display = 'flex';
+    otherTypeField.style.display = 'none';
     
-    typeSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'Job Number') {
-        jobNumberField.style.display = 'block';
-        clientField.style.display = 'block';
-        allowanceCheckboxes.style.display = 'flex';
-        otherTypeField.style.display = 'none';
-      } else if (e.target.value === 'Other') {
-        jobNumberField.style.display = 'none';
-        clientField.style.display = 'none';
-        allowanceCheckboxes.style.display = 'none';
-        otherTypeField.style.display = 'block';
-      } else {
-        jobNumberField.style.display = 'none';
-        clientField.style.display = 'none';
-        allowanceCheckboxes.style.display = 'none';
-        otherTypeField.style.display = 'none';
-      }
-      
-      // Auto-fill hours for leave types - fill remaining hours up to 8
-      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave'];
-      if (normalHoursInput && leaveTypes.includes(e.target.value)) {
-        if (!normalHoursInput.value || normalHoursInput.value === '0') {
-          // Calculate how many hours are already used on this day
-          const dayBody = normalHoursInput.closest('.day-body');
-          const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
-          let totalNormal = 0;
-          allNormalInputs.forEach(input => {
-            if (input !== normalHoursInput) { // Don't count the current input
-              totalNormal += parseFloat(input.value) || 0;
-            }
-          });
-          
-          // Fill the remaining hours up to 8
-          const remainingHours = 8 - totalNormal;
-          if (remainingHours > 0) {
-            normalHoursInput.value = remainingHours.toFixed(1);
-            updateDayTotal(dayIndex); // Update the day total
-          }
-        }
-      }
-    });
-
-    // Hours change - update total (both normal and overtime)
-    const overtimeHoursInput = jobRow.querySelector('.overtime-hours');
-    
+    // Call Out is overtime-only: disable normal hours, default overtime to 4
     if (normalHoursInput) {
-      normalHoursInput.addEventListener('input', () => {
-        // Check if total normal hours for the day exceed 8
-        const dayBody = normalHoursInput.closest('.day-body');
-        const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
-        let totalNormal = 0;
-        allNormalInputs.forEach(input => {
-          totalNormal += parseFloat(input.value) || 0;
-        });
-        
-        if (totalNormal > 8) {
-          normalHoursInput.setCustomValidity('Total normal hours for this day cannot exceed 8 hours');
-          normalHoursInput.reportValidity();
-          // Reset to max allowed
-          const currentVal = parseFloat(normalHoursInput.value) || 0;
-          const excess = totalNormal - 8;
-          normalHoursInput.value = (currentVal - excess).toFixed(1);
-        } else {
-          normalHoursInput.setCustomValidity('');
-        }
-        
-        updateDayTotal(dayIndex);
-      });
+      normalHoursInput.disabled = true;
+      normalHoursInput.value = '0';
+      normalHoursInput.style.opacity = '0.5';
+      normalHoursInput.style.cursor = 'not-allowed';
     }
-    
     if (overtimeHoursInput) {
-      overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
-    }
-
-    // Remove button
-    const removeBtn = jobRow.querySelector('.remove-job');
-    if (removeBtn) {
-      removeBtn.addEventListener('click', () => {
-        jobRow.remove();
+      overtimeHoursInput.disabled = false;
+      overtimeHoursInput.style.opacity = '1';
+      overtimeHoursInput.style.cursor = 'text';
+      if (!overtimeHoursInput.value || overtimeHoursInput.value === '0') {
+        overtimeHoursInput.value = '4.0';
         updateDayTotal(dayIndex);
-        renumberJobs(dayBody);
-        
-        // Re-enable add button if we're under the limit
-        const currentCount = dayBody.querySelectorAll('.job-row').length;
-        const addButton = dayBody.querySelector('.add-job-btn');
-        if (currentCount < CONFIG.maxJobsPerDay) {
-          addButton.disabled = false;
-          addButton.textContent = '+ Add Job';
-        }
-      });
-    }
-
-    // Auto-uppercase job number field
-    const jobNumberInput = jobRow.querySelector('[name$="_number"]');
-    if (jobNumberInput) {
-      jobNumberInput.addEventListener('input', function(e) {
-        this.value = this.value.toUpperCase();
-      });
-    }
-
-    // Own Car checkbox toggle for additional KM field (job level)
-    const jobOwnCarCheckbox = jobRow.querySelector('.job-owncar-checkbox');
-    const jobOwnCarKmField = jobRow.querySelector('.job-owncar-km');
-    if (jobOwnCarCheckbox && jobOwnCarKmField) {
-      jobOwnCarCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-          jobOwnCarKmField.style.display = 'block';
-        } else {
-          jobOwnCarKmField.style.display = 'none';
-          const kmInput = jobOwnCarKmField.querySelector('.job-owncar-km-input');
-          if (kmInput) kmInput.value = '';
-        }
-      });
-    }
-  }
-
-  function renumberJobs(dayBody) {
-    const jobs = dayBody.querySelectorAll('.job-row');
-    jobs.forEach((job, index) => {
-      const badge = job.querySelector('.job-number-badge');
-      badge.textContent = `JOB ${index + 1}`;
-    });
-  }
-
-  function updateDayTotal(dayIndex) {
-    const dayBody = document.querySelector(`.day-body[data-day="${dayIndex}"]`);
-    const normalInputs = dayBody.querySelectorAll('.normal-hours');
-    const overtimeInputs = dayBody.querySelectorAll('.overtime-hours');
-    let total = 0;
-    normalInputs.forEach(input => {
-      const val = parseFloat(input.value) || 0;
-      total += val;
-    });
-    overtimeInputs.forEach(input => {
-      const val = parseFloat(input.value) || 0;
-      total += val;
-    });
-    const totalDisplay = document.querySelector(`.total-hours[data-day="${dayIndex}"]`);
-    if (totalDisplay) {
-      totalDisplay.textContent = total.toFixed(1);
-    }
-  }
-
-  // ============================================================
-  // VALIDATION
-  // ============================================================
-  function validateForm() {
-    let valid = true;
-
-    function check(groupId, condition) {
-      const grp = document.getElementById(groupId);
-      const inp = grp.querySelector('input, select, textarea');
-      if (!condition) {
-        grp.classList.add('has-error');
-        if (inp) inp.classList.add('error');
-        valid = false;
-      } else {
-        grp.classList.remove('has-error');
-        if (inp) inp.classList.remove('error');
       }
     }
-
-    const name = document.getElementById('employee_name').value.trim();
-    const email = document.getElementById('employee_email').value.trim();
-    const weekStarting = weekStartingInput.value;
-
-    check('group-name', name.length > 1);
-    check('group-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-    check('group-week', !!weekStarting);
-
-    // Check that each day has at least valid data
-    const allJobRows = document.querySelectorAll('.job-row');
-    allJobRows.forEach(row => {
-      const typeSelect = row.querySelector('.job-type');
-      const normalHoursInput = row.querySelector('.normal-hours');
-      const overtimeHoursInput = row.querySelector('.overtime-hours');
-      
-      // Only validate if type is selected or any hours entered
-      const normalValue = normalHoursInput ? normalHoursInput.value : '';
-      const overtimeValue = overtimeHoursInput ? overtimeHoursInput.value : '';
-      const hasData = typeSelect.value || normalValue || overtimeValue;
-      
-      if (hasData) {
-        if (!typeSelect.value) {
-          typeSelect.classList.add('error');
-          valid = false;
-        }
-        const normalHours = parseFloat(normalValue) || 0;
-        const overtimeHours = parseFloat(overtimeValue) || 0;
-        if (normalHours <= 0 && overtimeHours <= 0) {
-          if (normalHoursInput) normalHoursInput.classList.add('error');
-          if (overtimeHoursInput) overtimeHoursInput.classList.add('error');
-          valid = false;
-        }
-      }
-    });
-
-    return valid;
-  }
-
-  // ============================================================
-  // FORM SUBMISSION
-  // ============================================================
-  const timesheetForm = document.getElementById('timesheetForm');
-  const submitBtn = document.getElementById('submitBtn');
-
-  timesheetForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    if (submitBtn.disabled) return;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending…';
-
-    document.getElementById('successBanner').classList.remove('show');
-
-    if (!validateForm()) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Timesheet';
-      return;
-    }
-
-    // Collect timesheet data
-    const employeeName  = document.getElementById('employee_name').value.trim();
-    const employeeEmail = document.getElementById('employee_email').value.trim();
-    const weekStarting = new Date(weekStartingInput.value).toLocaleDateString('en-AU', { 
-      day: 'numeric', month: 'long', year: 'numeric' 
-    });
-    const standby = document.getElementById('standby').checked ? 'Yes' : 'No';
-    const generalComments = document.getElementById('general_comments').value.trim() || 'No additional comments provided.';
-
-    // Build timesheet entries - only the <tr> rows, not the full table
-    let timesheetHTML = '';
-
-    let totalHours = 0;
-    let totalNormalHours = 0;
-    let totalOvertimeHours = 0;
-
-    document.querySelectorAll('.day-card').forEach((dayCard, dayIdx) => {
-      // Skip disabled weekend days
-      if (dayCard.classList.contains('disabled')) {
-        return;
-      }
-
-      const dayName = dayCard.querySelector('.day-name').textContent;
-      const dayDate = dayCard.querySelector('.day-date').textContent;
-      const jobRows = dayCard.querySelectorAll('.job-row');
-      
-      // Check shift selection
-      const shiftSelect = dayCard.querySelector('.shift-select');
-      const shift = shiftSelect ? shiftSelect.value : 'Day';
-      
-      // Check if LAHA applies to this day
-      const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
-      const dayHasLaha = lahaCheckbox ? lahaCheckbox.checked : false;
-      
-      // Check if work from office/workshop
-      const officeCheckbox = dayCard.querySelector('.office-checkbox');
-      const dayHasOffice = officeCheckbox ? officeCheckbox.checked : false;
-
-      // Check if own car used (day level)
-      const owncarCheckbox = dayCard.querySelector('.owncar-checkbox');
-      const dayHasOwnCar = owncarCheckbox ? owncarCheckbox.checked : false;
-      const dayOwnCarKm = dayCard.querySelector('.owncar-km-input')?.value || '0';
-
-      jobRows.forEach((jobRow, jobIdx) => {
-        const typeSelect = jobRow.querySelector('.job-type');
-        let type = typeSelect.value;
-        const normalHoursInput = jobRow.querySelector('[name$="_hours"]');
-        const overtimeHoursInput = jobRow.querySelector('[name$="_overtime"]');
-        const normalHours = normalHoursInput ? normalHoursInput.value : '';
-        const overtimeHours = overtimeHoursInput ? overtimeHoursInput.value : '';
-        
-        // If type is "Other", get the custom type
-        if (type === 'Other') {
-          const otherType = jobRow.querySelector('[name$="_other_type"]')?.value || 'Other';
-          type = otherType;
-        }
-        
-        if (type && (normalHours || overtimeHours)) {
-          const jobNumber = jobRow.querySelector('[name$="_number"]')?.value || '-';
-          const client = jobRow.querySelector('[name$="_client"]')?.value || '-';
-          const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]')?.checked;
-          const jobOwnCar = jobRow.querySelector('[name$="_owncar"]')?.checked;
-          const jobOwnCarKm = jobRow.querySelector('[name$="_owncar_km"]')?.value || '0';
-          const comment = jobRow.querySelector('[name$="_comment"]')?.value || '-';
-
-          const allowances = [];
-          if (siteAllowance) allowances.push('Site');
-          if (dayHasLaha) allowances.push('LAHA');
-          if (dayHasOffice) allowances.push('Office/Workshop');
-          if (dayHasOwnCar) allowances.push(`Own Car (${dayOwnCarKm}km)`);
-          if (jobOwnCar) allowances.push(`+${jobOwnCarKm}km`);
-          const allowanceText = allowances.length > 0 ? allowances.join(', ') : '-';
-
-          const normalHoursVal = parseFloat(normalHours) || 0;
-          const overtimeHoursVal = parseFloat(overtimeHours) || 0;
-
-          // Determine row background color (alternating)
-          const rowCount = timesheetHTML.split('<tr').length - 1;
-          const bgColor = rowCount % 2 === 0 ? '#ffffff' : '#f9fafb';
-
-          timesheetHTML += `<tr style="background:${bgColor};">`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${dayName} ${dayDate}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${shift}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${type}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${normalHoursVal.toFixed(1)}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${overtimeHoursVal.toFixed(1)}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${jobNumber}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${client}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${allowanceText}</td>`;
-          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${comment}</td>`;
-          timesheetHTML += '</tr>';
-
-          totalNormalHours += normalHoursVal;
-          totalOvertimeHours += overtimeHoursVal;
-          totalHours += normalHoursVal + overtimeHoursVal;
-        }
-      });
-    });
-
-    const templateParams = {
-      employee_name: employeeName,
-      employee_email: employeeEmail,
-      week_starting: weekStarting,
-      total_hours: totalHours.toFixed(1),
-      total_normal_hours: totalNormalHours.toFixed(1),
-      total_overtime_hours: totalOvertimeHours.toFixed(1),
-      standby: standby,
-      standby_yes: standby === 'Yes', // Boolean for conditional display
-      general_comments: generalComments,
-      timesheet_entries: timesheetHTML,
-      submitted_date: new Date().toLocaleDateString('en-AU', { 
-        day: 'numeric', month: 'long', year: 'numeric' 
-      }),
-      admin_emails: CONFIG.adminEmails.join(', '),
-      to_email: employeeEmail,
-    };
-
-    try {
-      await emailjs.send(
-        CONFIG.emailjs.serviceId,
-        CONFIG.emailjs.templateId,
-        templateParams
-      );
-
-      const banner = document.getElementById('successBanner');
-      banner.classList.add('show');
-      timesheetForm.reset();
-      
-      // Clear saved form data after successful submission
-      clearFormData();
-      
-      setWeekStarting(new Date()); // Reset to current week
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => banner.classList.remove('show'), 8000);
-
-    } catch (err) {
-      console.error('EmailJS error:', err);
-      console.error('Error details:', err.text || err.message);
-      alert('Something went wrong sending the email. Error: ' + (err.text || err.message || 'Unknown error') + '. Please contact admin@bromar.com.au directly.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Timesheet';
-    }
-  });
-
-  // Clear error state on input change
-  document.addEventListener('input', (e) => {
-    if (e.target.matches('input, select, textarea')) {
-      e.target.classList.remove('error');
-    }
-  });
-
-  // Clear form reset
-  timesheetForm.addEventListener('reset', () => {
-    setTimeout(() => {
-      clearFormData(); // Clear auto-saved data
-      setWeekStarting(new Date());
-      generateWeek(); // Regenerate week to reset all defaults
-    }, 10);
-  });
-
-  // Top Clear button
-  document.getElementById('topClearBtn').addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear the entire timesheet? This will delete all entered data.')) {
-      timesheetForm.reset();
-      clearFormData(); // Clear auto-saved data
-      setWeekStarting(new Date());
-      // Regenerate week to reset all checkboxes and defaults
-      generateWeek();
-    }
-  });
-
-  // ============================================================
-  // THEME TOGGLE
-  // ============================================================
-  const themeToggle = document.getElementById('themeToggle');
-  const html = document.documentElement;
-  const logoImg = document.getElementById('bromarLogo');
-
-  // Function to update logo based on theme
-  function updateLogo() {
-    // If light-mode class is set OR system preference is light, use colored logo
-    const isLightMode = html.classList.contains('light-mode') || 
-                        (!html.classList.contains('light-mode') && 
-                         window.matchMedia && 
-                         !window.matchMedia('(prefers-color-scheme: dark)').matches);
     
-    if (isLightMode) {
-      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-    } else {
-      logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
+    // Check if we need to show 10-hour break checkbox on next day
+    checkCallOutBreak(dayIndex);
+  } else if (e.target.value === 'Other') {
+    jobNumberField.style.display = 'none';
+    clientField.style.display = 'none';
+    allowanceCheckboxes.style.display = 'none';
+    otherTypeField.style.display = 'block';
+    calloutReceivedField.style.display = 'none';
+    calloutCompleteField.style.display = 'none';
+  } else {
+    jobNumberField.style.display = 'none';
+    clientField.style.display = 'none';
+    allowanceCheckboxes.style.display = 'none';
+    otherTypeField.style.display = 'none';
+    calloutReceivedField.style.display = 'none';
+    calloutCompleteField.style.display = 'none';
+    
+    // Re-enable normal hours when not Call Out
+    if (normalHoursInput) {
+      normalHoursInput.disabled = false;
+      normalHoursInput.style.opacity = '1';
+      normalHoursInput.style.cursor = 'text';
     }
   }
-
-  // Check for saved theme preference or default to system preference
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    html.classList.add('light-mode');
+  
+  // Auto-fill hours for leave types - fill remaining hours up to 8
+  const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)'];
+  if (normalHoursInput && leaveTypes.includes(e.target.value)) {
+    if (!normalHoursInput.value || normalHoursInput.value === '0') {
+      // Calculate how many hours are already used on this day
+      const dayBody = normalHoursInput.closest('.day-body');
+      const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+      let totalNormal = 0;
+      allNormalInputs.forEach(input => {
+        if (input !== normalHoursInput) { // Don't count the current input
+          totalNormal += parseFloat(input.value) || 0;
+        }
+      });
+      
+      // Fill the remaining hours up to 8
+      const remainingHours = 8 - totalNormal;
+      if (remainingHours > 0) {
+        normalHoursInput.value = remainingHours.toFixed(1);
+        updateDayTotal(dayIndex); // Update the day total
+      }
+    }
   }
-  updateLogo(); // Set initial logo
-
-  themeToggle.addEventListener('click', () => {
-    html.classList.toggle('light-mode');
-    updateLogo(); // Update logo when toggled
-    
-    // Save preference
-    if (html.classList.contains('light-mode')) {
-      localStorage.setItem('theme', 'light');
+  
+  // If TIL (Taken) is selected, disable the TIL (Accrued) field
+  if (overtimeHoursInput) {
+    if (e.target.value === 'TIL (Taken)') {
+      overtimeHoursInput.disabled = true;
+      overtimeHoursInput.value = '0';
+      overtimeHoursInput.style.opacity = '0.5';
+      overtimeHoursInput.style.cursor = 'not-allowed';
     } else {
-      localStorage.removeItem('theme');
+      overtimeHoursInput.disabled = false;
+      overtimeHoursInput.style.opacity = '1';
+      overtimeHoursInput.style.cursor = 'text';
+    }
+  }
+});
+
+// Hours change - update total (both normal and overtime)
+const overtimeHoursInput = jobRow.querySelector('.overtime-hours');
+
+if (normalHoursInput) {
+  normalHoursInput.addEventListener('input', () => {
+    // Check if total normal hours for the day exceed 8
+    const dayBody = normalHoursInput.closest('.day-body');
+    const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+    let totalNormal = 0;
+    allNormalInputs.forEach(input => {
+      totalNormal += parseFloat(input.value) || 0;
+    });
+    
+    if (totalNormal > 8) {
+      normalHoursInput.setCustomValidity('Total normal hours for this day cannot exceed 8 hours');
+      normalHoursInput.reportValidity();
+      // Reset to max allowed
+      const currentVal = parseFloat(normalHoursInput.value) || 0;
+      const excess = totalNormal - 8;
+      normalHoursInput.value = (currentVal - excess).toFixed(1);
+    } else {
+      normalHoursInput.setCustomValidity('');
+    }
+    
+    updateDayTotal(dayIndex);
+  });
+}
+
+if (overtimeHoursInput) {
+  overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
+}
+
+// Remove button
+const removeBtn = jobRow.querySelector('.remove-job');
+if (removeBtn) {
+  removeBtn.addEventListener('click', () => {
+    jobRow.remove();
+    updateDayTotal(dayIndex);
+    renumberJobs(dayBody);
+    
+    // Re-enable add button if we're under the limit
+    const currentCount = dayBody.querySelectorAll('.job-row').length;
+    const addButton = dayBody.querySelector('.add-job-btn');
+    if (currentCount < CONFIG.maxJobsPerDay) {
+      addButton.disabled = false;
+      addButton.textContent = '+ Add Job';
     }
   });
+}
+
+// Auto-uppercase job number field
+const jobNumberInput = jobRow.querySelector('[name$="_number"]');
+if (jobNumberInput) {
+  jobNumberInput.addEventListener('input', function(e) {
+    this.value = this.value.toUpperCase();
+  });
+}
+
+// Call-Out time auto-fill: set complete time to 2 hours after received time
+const calloutReceivedInput = jobRow.querySelector('[name$="_callout_received"]');
+const calloutCompleteInput = jobRow.querySelector('[name$="_callout_complete"]');
+
+if (calloutReceivedInput && calloutCompleteInput) {
+  calloutReceivedInput.addEventListener('change', function() {
+    if (this.value && !calloutCompleteInput.value) {
+      // Parse the received time
+      const [hours, minutes] = this.value.split(':').map(Number);
+      
+      // Add 2 hours
+      let newHours = hours + 2;
+      let newMinutes = minutes;
+      
+      // Handle day rollover (e.g., 23:00 + 2 hours = 01:00)
+      if (newHours >= 24) {
+        newHours = newHours - 24;
+      }
+      
+      // Format to HH:MM
+      const formattedHours = String(newHours).padStart(2, '0');
+      const formattedMinutes = String(newMinutes).padStart(2, '0');
+      
+      calloutCompleteInput.value = `${formattedHours}:${formattedMinutes}`;
+    }
+  });
+}
+
+// Own Car checkbox toggle for additional KM field (job level)
+const jobOwnCarCheckbox = jobRow.querySelector('.job-owncar-checkbox');
+const jobOwnCarKmField = jobRow.querySelector('.job-owncar-km');
+if (jobOwnCarCheckbox && jobOwnCarKmField) {
+  jobOwnCarCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+      jobOwnCarKmField.style.display = 'block';
+    } else {
+      jobOwnCarKmField.style.display = 'none';
+      const kmInput = jobOwnCarKmField.querySelector('.job-owncar-km-input');
+      if (kmInput) kmInput.value = '';
+    }
+  });
+}
+```
+
+}
+
+function renumberJobs(dayBody) {
+const jobs = dayBody.querySelectorAll(’.job-row’);
+jobs.forEach((job, index) => {
+const badge = job.querySelector(’.job-number-badge’);
+badge.textContent = `JOB ${index + 1}`;
+});
+}
+
+function updateDayTotal(dayIndex) {
+const dayBody = document.querySelector(`.day-body[data-day="${dayIndex}"]`);
+const normalInputs = dayBody.querySelectorAll(’.normal-hours’);
+const overtimeInputs = dayBody.querySelectorAll(’.overtime-hours’);
+let total = 0;
+normalInputs.forEach(input => {
+const val = parseFloat(input.value) || 0;
+total += val;
+});
+overtimeInputs.forEach(input => {
+const val = parseFloat(input.value) || 0;
+total += val;
+});
+const totalDisplay = document.querySelector(`.total-hours[data-day="${dayIndex}"]`);
+if (totalDisplay) {
+totalDisplay.textContent = total.toFixed(1);
+}
+}
+
+// ============================================================
+// VALIDATION
+// ============================================================
+function validateForm() {
+let valid = true;
+
+```
+function check(groupId, condition) {
+  const grp = document.getElementById(groupId);
+  const inp = grp.querySelector('input, select, textarea');
+  if (!condition) {
+    grp.classList.add('has-error');
+    if (inp) inp.classList.add('error');
+    valid = false;
+  } else {
+    grp.classList.remove('has-error');
+    if (inp) inp.classList.remove('error');
+  }
+}
+
+const name = document.getElementById('employee_name').value.trim();
+const email = document.getElementById('employee_email').value.trim();
+const employeeType = document.getElementById('employee_type').value;
+const weekStarting = weekStartingInput.value;
+
+check('group-name', name.length > 1);
+check('group-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+check('group-employee-type', !!employeeType);
+check('group-week', !!weekStarting);
+
+// Check that each day has at least valid data
+const allJobRows = document.querySelectorAll('.job-row');
+allJobRows.forEach(row => {
+  const typeSelect = row.querySelector('.job-type');
+  const normalHoursInput = row.querySelector('.normal-hours');
+  const overtimeHoursInput = row.querySelector('.overtime-hours');
+  
+  // Only validate if type is selected or any hours entered
+  const normalValue = normalHoursInput ? normalHoursInput.value : '';
+  const overtimeValue = overtimeHoursInput ? overtimeHoursInput.value : '';
+  const hasData = typeSelect.value || normalValue || overtimeValue;
+  
+  if (hasData) {
+    if (!typeSelect.value) {
+      typeSelect.classList.add('error');
+      valid = false;
+    }
+    const normalHours = parseFloat(normalValue) || 0;
+    const overtimeHours = parseFloat(overtimeValue) || 0;
+    if (normalHours <= 0 && overtimeHours <= 0) {
+      if (normalHoursInput) normalHoursInput.classList.add('error');
+      if (overtimeHoursInput) overtimeHoursInput.classList.add('error');
+      valid = false;
+    }
+  }
+});
+
+return valid;
+```
+
+}
+
+// ============================================================
+// FORM SUBMISSION
+// ============================================================
+const timesheetForm = document.getElementById(‘timesheetForm’);
+const submitBtn = document.getElementById(‘submitBtn’);
+
+timesheetForm.addEventListener(‘submit’, async function(e) {
+e.preventDefault();
+e.stopImmediatePropagation();
+
+```
+if (submitBtn.disabled) return;
+submitBtn.disabled = true;
+submitBtn.textContent = 'Sending…';
+
+document.getElementById('successBanner').classList.remove('show');
+
+if (!validateForm()) {
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Submit Timesheet';
+  return;
+}
+
+// Collect timesheet data for Netlify
+const formData = new FormData(timesheetForm);
+
+// Add computed summary data
+let totalHours = 0;
+let totalNormalHours = 0;
+let totalOvertimeHours = 0;
+
+document.querySelectorAll('.day-card').forEach((dayCard) => {
+  if (dayCard.classList.contains('disabled')) return;
+  
+  const jobRows = dayCard.querySelectorAll('.job-row');
+  jobRows.forEach((jobRow) => {
+    const normalHours = parseFloat(jobRow.querySelector('[name$="_hours"]')?.value) || 0;
+    const overtimeHours = parseFloat(jobRow.querySelector('[name$="_overtime"]')?.value) || 0;
+    
+    totalNormalHours += normalHours;
+    totalOvertimeHours += overtimeHours;
+    totalHours += normalHours + overtimeHours;
+  });
+});
+
+formData.append('total_normal_hours', totalNormalHours.toFixed(1));
+formData.append('total_overtime_hours', totalOvertimeHours.toFixed(1));
+formData.append('total_hours', totalHours.toFixed(1));
+formData.append('submitted_date', new Date().toLocaleString('en-AU'));
+
+try {
+  const response = await fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  });
+
+  if (response.ok) {
+    const banner = document.getElementById('successBanner');
+    banner.classList.add('show');
+    timesheetForm.reset();
+    
+    // Clear saved form data after successful submission
+    clearFormData();
+    
+    setWeekStarting(new Date()); // Reset to current week
+    generateWeek(); // Regenerate to reset defaults
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => banner.classList.remove('show'), 8000);
+  } else {
+    throw new Error('Form submission failed');
+  }
+
+} catch (err) {
+  console.error('Netlify form error:', err);
+  alert('Something went wrong submitting the form. Please try again or contact admin@bromar.com.au directly.');
+} finally {
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Submit Timesheet';
+}
+```
+
+});
+
+// Clear error state on input change
+document.addEventListener(‘input’, (e) => {
+if (e.target.matches(‘input, select, textarea’)) {
+e.target.classList.remove(‘error’);
+}
+});
+
+// Clear form reset
+timesheetForm.addEventListener(‘reset’, () => {
+setTimeout(() => {
+clearFormData(); // Clear auto-saved data
+setWeekStarting(new Date());
+generateWeek(); // Regenerate week to reset all defaults
+}, 10);
+});
+
+// Top Clear button
+document.getElementById(‘topClearBtn’).addEventListener(‘click’, () => {
+if (confirm(‘Are you sure you want to clear the entire timesheet? This will delete all entered data.’)) {
+timesheetForm.reset();
+clearFormData(); // Clear auto-saved data
+setWeekStarting(new Date());
+// Regenerate week to reset all checkboxes and defaults
+generateWeek();
+}
+});
+
+// ============================================================
+// EMPLOYEE TYPE HANDLER - Show/Hide options based on type
+// ============================================================
+const employeeTypeSelect = document.getElementById(‘employee_type’);
+const constructionWiringCheckbox = document.getElementById(‘allowance_construction_wiring’).closest(‘label’);
+
+function updateEmployeeTypeOptions() {
+const employeeType = employeeTypeSelect.value;
+const isEngineer = employeeType === ‘Engineer’;
+
+```
+// Update Overtime labels to TIL for Engineers
+const allOvertimeLabels = document.querySelectorAll('.overtime-label');
+allOvertimeLabels.forEach(label => {
+  label.textContent = isEngineer ? 'Time in Lieu (Accrued)' : 'Overtime Hours';
+});
+
+// Show/hide Construction Wiring based on employee type
+if (employeeType === 'Electrician') {
+  constructionWiringCheckbox.style.display = 'inline-flex';
+} else {
+  constructionWiringCheckbox.style.display = 'none';
+  document.getElementById('allowance_construction_wiring').checked = false;
+}
+
+// Update job type dropdowns to show/hide Trade School and TIL
+document.querySelectorAll('.job-type').forEach(select => {
+  const tradeSchoolOption = select.querySelector('option[value="Trade School"]');
+  const tilOption = select.querySelector('option[value="TIL (Taken)"]');
+  
+  if (tradeSchoolOption) {
+    tradeSchoolOption.style.display = employeeType === 'Apprentice' ? 'block' : 'none';
+  }
+  if (tilOption) {
+    tilOption.style.display = isEngineer ? 'block' : 'none';
+  }
+});
+```
+
+}
+
+employeeTypeSelect.addEventListener(‘change’, updateEmployeeTypeOptions);
+
+// Apply initial visibility on page load
+updateEmployeeTypeOptions();
+
+// ============================================================
+// CALL-OUT BREAK CHECKER
+// ============================================================
+function checkCallOutBreak(currentDayIndex) {
+// Check if previous day had a call-out
+if (currentDayIndex === 0) return; // Can’t check before Monday
+
+```
+const allDayCards = document.querySelectorAll('.day-card');
+const previousDayCard = allDayCards[currentDayIndex - 1];
+const currentDayCard = allDayCards[currentDayIndex];
+
+if (!previousDayCard || !currentDayCard) return;
+
+// Check if previous day has any Call Out job type
+const previousDayJobs = previousDayCard.querySelectorAll('.job-type');
+let hasCallOut = false;
+
+previousDayJobs.forEach(select => {
+  if (select.value === 'Call Out') {
+    hasCallOut = true;
+  }
+});
+
+// Show/hide the 10-hour break warning on current day
+const breakWarning = currentDayCard.querySelector('.callout-break-warning');
+if (breakWarning) {
+  breakWarning.style.display = hasCallOut ? 'block' : 'none';
+}
+```
+
+}
+
+// Check all days for call-out breaks when form loads or changes
+function checkAllCallOutBreaks() {
+const allDayCards = document.querySelectorAll(’.day-card’);
+allDayCards.forEach((card, index) => {
+checkCallOutBreak(index);
+});
+}
+
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+const themeToggle = document.getElementById(‘themeToggle’);
+const html = document.documentElement;
+const logoImg = document.getElementById(‘bromarLogo’);
+
+// Function to update logo based on theme
+function updateLogo() {
+// If light-mode class is set OR system preference is light, use colored logo
+const isLightMode = html.classList.contains(‘light-mode’) ||
+(!html.classList.contains(‘light-mode’) &&
+window.matchMedia &&
+!window.matchMedia(’(prefers-color-scheme: dark)’).matches);
+
+```
+if (isLightMode) {
+  logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
+} else {
+  logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
+}
+```
+
+}
+
+// Check for saved theme preference or default to system preference
+const savedTheme = localStorage.getItem(‘theme’);
+if (savedTheme === ‘light’) {
+html.classList.add(‘light-mode’);
+}
+updateLogo(); // Set initial logo
+
+themeToggle.addEventListener(‘click’, () => {
+html.classList.toggle(‘light-mode’);
+updateLogo(); // Update logo when toggled
+
+```
+// Save preference
+if (html.classList.contains('light-mode')) {
+  localStorage.setItem('theme', 'light');
+} else {
+  localStorage.removeItem('theme');
+}
+```
+
+});
 </script>
+
 </body>
 </html>
