@@ -141,11 +141,37 @@
       z-index: 1;
     }
 
-    /* Theme toggle button — top left */
-    .theme-toggle {
+    /* Home icon button — top left */
+    .home-icon {
       position: absolute;
       top: 18px;
       left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Theme toggle button — top right */
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      right: 18px;
       width: 38px;
       height: 38px;
       display: inline-flex;
@@ -173,32 +199,6 @@
     
     html.light-mode .sun-icon { display: block; }
     html.light-mode .moon-icon { display: none; }
-
-    /* Home icon button — top left next to theme toggle */
-    .home-icon {
-      position: absolute;
-      top: 18px;
-      left: 64px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .home-icon:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .home-icon svg { width: 18px; height: 18px; }
 
     /* Header card with logo */
     .header-card {
@@ -776,17 +776,22 @@
       line-height: 1.7;
     }
     .footer-details {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
       border-top: 1px solid var(--divider);
       padding-top: 16px;
     }
-    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
-    .footer-left a { color: var(--brand-primary); text-decoration: none; }
-    .footer-left a:hover { text-decoration: underline; }
-    .footer-right { flex-shrink: 0; }
+    .footer-details p { 
+      margin: 4px 0; 
+      color: var(--text-secondary); 
+      font-size: 0.875rem;
+      display: block;
+    }
+    .footer-details a { 
+      color: var(--brand-orange); 
+      text-decoration: none; 
+    }
+    .footer-details a:hover { 
+      text-decoration: underline; 
+    }
 
     @media (max-width: 720px) {
       .submit-row { flex-wrap: wrap; }
@@ -812,6 +817,16 @@
 
   <!-- HEADER -->
   <div class="header-card">
+    <a href="../index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <div class="logo-container">
+      <img id="bromarLogo" src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+    </div>
+    <h1 class="header-title">Employee Timesheet</h1>
+    <p class="header-subtitle">Submit your weekly timesheet by Tuesday at the latest for pay processing on Wednesday. Consider long weekends, annual leave, and public holidays — a confirmation will be sent to your email</p>
     <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
       <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="5"/>
@@ -828,16 +843,6 @@
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     </button>
-    <a href="../index.html" class="home-icon" aria-label="Home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
-      </svg>
-    </a>
-    <div class="logo-container">
-      <img id="bromarLogo" src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
-    </div>
-    <h1 class="header-title">Employee Timesheet</h1>
-    <p class="header-subtitle">Submit your weekly timesheet by Tuesday at the latest for pay processing on Wednesday. Consider long weekends, annual leave, and public holidays — a confirmation will be sent to your email</p>
   </div>
 
   <!-- FORM CARD -->
@@ -931,7 +936,7 @@
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">EMAIL: <a href="mailto:admin@bromar.com.au" style="color: var(--brand-orange); text-decoration: none;">admin@bromar.com.au</a>  |  REC: 30340</p>
-        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939    ACN: 634 835 939</p>
+        <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
       </div>
     </div>
   </div>
