@@ -382,6 +382,17 @@
       background: var(--brand-white);
       color: var(--brand-primary);
     }
+    .week-nav .clear-week-btn {
+      width: auto;
+      padding: 0 16px;
+      font-size: 0.875rem;
+      margin-left: 6px;
+    }
+    .week-nav .clear-week-btn:hover {
+      border-color: #dc2626;
+      color: #dc2626;
+      background: #fef2f2;
+    }
 
     /* Timesheet days container */
     .timesheet-days {
@@ -586,6 +597,12 @@
       cursor: pointer;
       accent-color: var(--brand-orange);
     }
+    .checkbox-label input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--brand-orange);
+    }
 
     /* Add job button */
     .add-job-btn {
@@ -775,9 +792,18 @@
       .submit-row { flex-wrap: wrap; }
       .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
       .btn-secondary, .submit-btn { flex: 1; }
-      .week-selector { flex-direction: column; }
-      .week-nav { width: 100%; }
-      .week-nav button { flex: 1; }
+      .week-selector { 
+        flex-direction: column; 
+        align-items: stretch;
+      }
+      .week-selector .field-group {
+        width: 100%;
+      }
+      .week-nav { 
+        width: 100%;
+        justify-content: center;
+      }
+      .week-nav button { flex: 1; max-width: 120px; }
     }
   </style>
 </head>
@@ -859,6 +885,7 @@
         <div class="week-nav">
           <button type="button" id="prevWeek" title="Previous Week">←</button>
           <button type="button" id="nextWeek" title="Next Week">→</button>
+          <button type="button" id="topClearBtn" class="clear-week-btn" title="Clear Form">Clear</button>
         </div>
       </div>
 
@@ -975,10 +1002,14 @@
 
     // Save data for each day
     document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
+      const shiftSelect = dayCard.querySelector('.shift-select');
       const dayData = {
         disabled: dayCard.classList.contains('disabled'),
+        shift: shiftSelect ? shiftSelect.value : 'Day',
         laha: dayCard.querySelector('.laha-checkbox')?.checked || false,
         office: dayCard.querySelector('.office-checkbox')?.checked || false,
+        owncar: dayCard.querySelector('.owncar-checkbox')?.checked || false,
+        owncar_km: dayCard.querySelector('.owncar-km-input')?.value || '',
         jobs: []
       };
 
@@ -995,6 +1026,8 @@
           job_number: jobRow.querySelector('[name$="_number"]')?.value || '',
           client: jobRow.querySelector('[name$="_client"]')?.value || '',
           site_allowance: jobRow.querySelector('[name$="_site_allowance"]')?.checked || false,
+          owncar: jobRow.querySelector('[name$="_owncar"]')?.checked || false,
+          owncar_km: jobRow.querySelector('[name$="_owncar_km"]')?.value || '',
           comment: jobRow.querySelector('[name$="_comment"]')?.value || ''
         };
 
@@ -1082,6 +1115,14 @@
       // Skip if disabled
       if (dayData.disabled) return;
 
+      // Restore shift selection
+      if (dayData.shift) {
+        const shiftSelect = dayCard.querySelector('.shift-select');
+        if (shiftSelect) {
+          shiftSelect.value = dayData.shift;
+        }
+      }
+
       // Restore day-level checkboxes
       const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
       if (lahaCheckbox && dayData.laha !== undefined) {
@@ -1091,6 +1132,20 @@
       const officeCheckbox = dayCard.querySelector('.office-checkbox');
       if (officeCheckbox && dayData.office !== undefined) {
         officeCheckbox.checked = dayData.office;
+      }
+
+      const owncarCheckbox = dayCard.querySelector('.owncar-checkbox');
+      if (owncarCheckbox && dayData.owncar !== undefined) {
+        owncarCheckbox.checked = dayData.owncar;
+        // Trigger change event to show/hide KM field
+        if (dayData.owncar) {
+          const owncarKmField = dayCard.querySelector('.owncar-km-field');
+          if (owncarKmField) owncarKmField.style.display = 'block';
+          const owncarKmInput = dayCard.querySelector('.owncar-km-input');
+          if (owncarKmInput && dayData.owncar_km) {
+            owncarKmInput.value = dayData.owncar_km;
+          }
+        }
       }
 
       // Restore jobs for this day
@@ -1144,6 +1199,20 @@
 
           const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]');
           if (siteAllowance) siteAllowance.checked = jobData.site_allowance;
+
+          const owncar = jobRow.querySelector('[name$="_owncar"]');
+          if (owncar && jobData.owncar !== undefined) {
+            owncar.checked = jobData.owncar;
+            // Show KM field if Own Car was checked
+            if (jobData.owncar) {
+              const owncarKmField = jobRow.querySelector('.job-owncar-km');
+              if (owncarKmField) owncarKmField.style.display = 'block';
+              const owncarKmInput = jobRow.querySelector('[name$="_owncar_km"]');
+              if (owncarKmInput && jobData.owncar_km) {
+                owncarKmInput.value = jobData.owncar_km;
+              }
+            }
+          }
 
           const laha = jobRow.querySelector('[name$="_laha"]');
           if (laha) laha.checked = jobData.laha;
@@ -1286,20 +1355,75 @@
         `}
       </div>
       <div class="day-body" data-day="${index}">
-        ${!isWeekend ? `
-          <div class="day-allowances" style="margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
-            <label class="checkbox-label" style="padding: 8px 12px; margin: 0; flex: 1; min-width: 150px;">
-              <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-text">LAHA</span>
-            </label>
-            <label class="checkbox-label" style="padding: 8px 12px; margin: 0; flex: 1; min-width: 150px;">
-              <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-text">Work from office/workshop</span>
-            </label>
+        ${isWeekend ? `
+          <div class="day-options" style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+              <div style="flex: 0 0 auto; min-width: 120px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
+                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
+                  <option value="Day" selected>Day</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Night">Night</option>
+                </select>
+              </div>
+              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">LAHA</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Office/Workshop</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Own Car</span>
+                </label>
+              </div>
+            </div>
+            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
+              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
+              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
           </div>
-        ` : ''}
+        ` : `
+          <div class="day-options" style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px;">
+              <div style="flex: 0 0 auto; min-width: 120px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
+                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
+                  <option value="Day" selected>Day</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Night">Night</option>
+                </select>
+              </div>
+              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">LAHA</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Office/Workshop</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Own Car</span>
+                </label>
+              </div>
+            </div>
+            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
+              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
+              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
+          </div>
+        `}
         <!-- Jobs will be added here -->
       </div>
     `;
@@ -1332,13 +1456,6 @@
       toggle.addEventListener('change', function() {
         if (this.checked) {
           card.classList.remove('disabled');
-          // Replace toggle with hours display
-          const toggleContainer = card.querySelector('.weekend-toggle');
-          toggleContainer.innerHTML = `
-            <div class="day-total">
-              <span class="total-hours" data-day="${index}">0.0</span> hrs
-            </div>
-          `;
         } else {
           card.classList.add('disabled');
           // Clear all job entries for this day
@@ -1361,6 +1478,21 @@
           const addButton = dayBody.querySelector('.add-job-btn');
           addButton.disabled = false;
           addButton.textContent = '+ Add Job';
+        }
+      });
+    }
+
+    // Own Car checkbox toggle for KM field
+    const ownCarCheckbox = card.querySelector('.owncar-checkbox');
+    const ownCarKmField = card.querySelector('.owncar-km-field');
+    if (ownCarCheckbox && ownCarKmField) {
+      ownCarCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          ownCarKmField.style.display = 'block';
+        } else {
+          ownCarKmField.style.display = 'none';
+          const kmInput = ownCarKmField.querySelector('.owncar-km-input');
+          if (kmInput) kmInput.value = '';
         }
       });
     }
@@ -1431,6 +1563,14 @@
           <input type="checkbox" name="${jobId}_site_allowance" value="Yes"/>
           Site Allowance
         </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="${jobId}_owncar" value="Yes" class="job-owncar-checkbox"/>
+          Own Car - Additional KM
+        </label>
+      </div>
+      <div class="job-owncar-km" style="display: none; margin-top: 8px; padding: 8px 12px; background: var(--brand-light); border-radius: 6px;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Additional KM in own car for this job</label>
+        <input type="number" name="${jobId}_owncar_km" class="job-owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
       </div>
     `;
 
@@ -1543,6 +1683,21 @@
     if (jobNumberInput) {
       jobNumberInput.addEventListener('input', function(e) {
         this.value = this.value.toUpperCase();
+      });
+    }
+
+    // Own Car checkbox toggle for additional KM field (job level)
+    const jobOwnCarCheckbox = jobRow.querySelector('.job-owncar-checkbox');
+    const jobOwnCarKmField = jobRow.querySelector('.job-owncar-km');
+    if (jobOwnCarCheckbox && jobOwnCarKmField) {
+      jobOwnCarCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          jobOwnCarKmField.style.display = 'block';
+        } else {
+          jobOwnCarKmField.style.display = 'none';
+          const kmInput = jobOwnCarKmField.querySelector('.job-owncar-km-input');
+          if (kmInput) kmInput.value = '';
+        }
       });
     }
   }
@@ -1679,6 +1834,10 @@
       const dayDate = dayCard.querySelector('.day-date').textContent;
       const jobRows = dayCard.querySelectorAll('.job-row');
       
+      // Check shift selection
+      const shiftSelect = dayCard.querySelector('.shift-select');
+      const shift = shiftSelect ? shiftSelect.value : 'Day';
+      
       // Check if LAHA applies to this day
       const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
       const dayHasLaha = lahaCheckbox ? lahaCheckbox.checked : false;
@@ -1686,6 +1845,11 @@
       // Check if work from office/workshop
       const officeCheckbox = dayCard.querySelector('.office-checkbox');
       const dayHasOffice = officeCheckbox ? officeCheckbox.checked : false;
+
+      // Check if own car used (day level)
+      const owncarCheckbox = dayCard.querySelector('.owncar-checkbox');
+      const dayHasOwnCar = owncarCheckbox ? owncarCheckbox.checked : false;
+      const dayOwnCarKm = dayCard.querySelector('.owncar-km-input')?.value || '0';
 
       jobRows.forEach((jobRow, jobIdx) => {
         const typeSelect = jobRow.querySelector('.job-type');
@@ -1705,12 +1869,16 @@
           const jobNumber = jobRow.querySelector('[name$="_number"]')?.value || '-';
           const client = jobRow.querySelector('[name$="_client"]')?.value || '-';
           const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]')?.checked;
+          const jobOwnCar = jobRow.querySelector('[name$="_owncar"]')?.checked;
+          const jobOwnCarKm = jobRow.querySelector('[name$="_owncar_km"]')?.value || '0';
           const comment = jobRow.querySelector('[name$="_comment"]')?.value || '-';
 
           const allowances = [];
           if (siteAllowance) allowances.push('Site');
           if (dayHasLaha) allowances.push('LAHA');
           if (dayHasOffice) allowances.push('Office/Workshop');
+          if (dayHasOwnCar) allowances.push(`Own Car (${dayOwnCarKm}km)`);
+          if (jobOwnCar) allowances.push(`+${jobOwnCarKm}km`);
           const allowanceText = allowances.length > 0 ? allowances.join(', ') : '-';
 
           const normalHoursVal = parseFloat(normalHours) || 0;
@@ -1722,6 +1890,7 @@
 
           timesheetHTML += `<tr style="background:${bgColor};">`;
           timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${dayName} ${dayDate}</td>`;
+          timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${shift}</td>`;
           timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${type}</td>`;
           timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${normalHoursVal.toFixed(1)}</td>`;
           timesheetHTML += `<td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${overtimeHoursVal.toFixed(1)}</td>`;
@@ -1794,8 +1963,21 @@
   // Clear form reset
   timesheetForm.addEventListener('reset', () => {
     setTimeout(() => {
+      clearFormData(); // Clear auto-saved data
       setWeekStarting(new Date());
+      generateWeek(); // Regenerate week to reset all defaults
     }, 10);
+  });
+
+  // Top Clear button
+  document.getElementById('topClearBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear the entire timesheet? This will delete all entered data.')) {
+      timesheetForm.reset();
+      clearFormData(); // Clear auto-saved data
+      setWeekStarting(new Date());
+      // Regenerate week to reset all checkboxes and defaults
+      generateWeek();
+    }
   });
 
   // ============================================================
