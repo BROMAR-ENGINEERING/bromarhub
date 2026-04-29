@@ -1989,15 +1989,16 @@
 
   // Function to update logo based on theme
   function updateLogo() {
-    if (html.classList.contains('light-mode')) {
+    // If light-mode class is set OR system preference is light, use colored logo
+    const isLightMode = html.classList.contains('light-mode') || 
+                        (!html.classList.contains('light-mode') && 
+                         window.matchMedia && 
+                         !window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isLightMode) {
       logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
     } else {
-      // Check system preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
-      } else {
-        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-      }
+      logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
     }
   }
 
