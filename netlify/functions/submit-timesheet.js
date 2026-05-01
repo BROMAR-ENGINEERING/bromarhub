@@ -280,7 +280,7 @@ const emailHTML = `
 // Send email via SendGrid
 const msg = {
   to: 'ashleys@bromar.com.au',
-  from: 'timesheets@bromar.com.au', // Must be verified in SendGrid
+  from: 'servicet@bromar.com.au', // Must be verified in SendGrid
   subject: `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`,
   html: emailHTML,
 };
