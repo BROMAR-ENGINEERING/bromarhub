@@ -104,6 +104,21 @@ body::after  { width:400px;height:400px;background:radial-gradient(circle,#b2f0d
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .logo-nav { height:44px; object-fit:contain; }
+
+.home-btn {
+  width:38px; height:38px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px; border:1px solid var(--input-border);
+  background:var(--brand-white); color:var(--text-secondary);
+  text-decoration:none; transition:all 0.2s; flex-shrink:0;
+}
+.home-btn:hover { color:var(--brand-orange); border-color:var(--brand-orange); background:var(--brand-orange-soft); transform:translateY(-1px); }
+.home-btn svg { width:18px; height:18px; }
+
+.nav-logo-link {
+  display:flex; align-items:center; justify-content:center;
+  text-decoration:none; position:absolute; left:50%; transform:translateX(-50%);
+}
 .nav-btn {
   width:38px;height:38px;border:1px solid var(--input-border);
   border-radius:8px;background:var(--brand-white);color:var(--text-secondary);
@@ -340,6 +355,7 @@ select:focus, input:focus {
   background:rgba(0,0,0,0.55);z-index:2000;overflow-y:auto;padding:20px;
 }
 .modal-overlay.show { display:flex;align-items:flex-start;justify-content:center; }
+#installModal { align-items:flex-start;justify-content:center; }
 .modal-box {
   background:var(--brand-white);border-radius:var(--radius);
   width:100%;max-width:560px;margin:auto;overflow:hidden;
@@ -522,7 +538,16 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
   <!-- NAV -->
 
   <div class="nav-bar">
-    <a href="#"><img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-nav" id="navLogo"/></a>
+    <a href="/" class="home-btn" title="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <a href="/" class="nav-logo-link">
+      <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-nav" id="navLogo"
+        onerror="this.style.display='none';document.getElementById('navLogoText').style.display='block';"/>
+      <span id="navLogoText" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(--brand-orange);">BROMAR</span>
+    </a>
     <button id="themeToggle" class="nav-btn" aria-label="Toggle theme">
       <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -815,7 +840,7 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
       <div class="section-title">Installation <span class="info-icon" data-info="installation">i</span></div>
       <div class="row">
         <div class="row-input" style="width:100%;">
-          <button type="button" class="install-display" id="installBtn">
+          <button type="button" class="install-display" onclick="openInstallModal()">
             <div id="installSvgContainer" style="width:56px;height:56px;border-radius:4px;overflow:hidden;flex-shrink:0;"></div>
             <span id="installText">Select installation method...</span>
             <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
@@ -875,11 +900,11 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
     <div class="modal-box">
       <div class="modal-header">
         <h2>Select Installation Method</h2>
-        <button class="modal-close" id="modalClose">&times;</button>
+        <button class="modal-close" onclick="document.getElementById('installModal').style.display='none';">&times;</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer">
-        <button type="button" class="btn-reset" style="width:100%;text-align:center;" id="modalCancel">Cancel</button>
+        <button type="button" class="btn-reset" style="width:100%;text-align:center;" onclick="document.getElementById('installModal').style.display='none';">Cancel</button>
       </div>
     </div>
   </div>
@@ -1204,9 +1229,11 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
   });
 
   // ── INSTALLATION MODAL ─────────────────────────────────────
-  function renderInstallModal() {
+  function openInstallModal() {
+    const modal = document.getElementById('installModal');
+    const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = INSTALL_METHODS.map(m => `
-      <div class="install-option ${m.id === selectedInstall.id ? 'selected' : ''}" data-id="${m.id}">
+      <div class="install-option ${m.id === selectedInstall.id ? 'selected' : ''}" data-id="${m.id}" onclick="selectInstall('${m.id}')">
         <div style="flex-shrink:0;width:72px;height:72px;border-radius:6px;overflow:hidden;">${m.svg}</div>
         <div class="install-option-text">
           <h3>${m.title}</h3>
@@ -1214,24 +1241,21 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
         </div>
       </div>
     `).join('');
-
-    modalBody.querySelectorAll('.install-option').forEach(el => {
-      el.addEventListener('click', () => {
-        selectedInstall = INSTALL_METHODS.find(m => m.id === el.dataset.id);
-        installSvgContainer.innerHTML = selectedInstall.svg;
-        installText.textContent = selectedInstall.title;
-        installModal.classList.remove('show');
-      });
-    });
+    modal.style.display = 'flex';
   }
 
-  installBtn.addEventListener('click', () => {
-    renderInstallModal();
-    installModal.classList.add('show');
+  function selectInstall(id) {
+    selectedInstall = INSTALL_METHODS.find(m => m.id === id);
+    document.getElementById('installSvgContainer').innerHTML = selectedInstall.svg;
+    document.getElementById('installText').textContent = selectedInstall.title;
+    document.getElementById('installModal').style.display = 'none';
+  }
+
+  document.getElementById('installModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('installModal')) {
+      document.getElementById('installModal').style.display = 'none';
+    }
   });
-  document.getElementById('modalClose').addEventListener('click', () => installModal.classList.remove('show'));
-  document.getElementById('modalCancel').addEventListener('click', () => installModal.classList.remove('show'));
-  installModal.addEventListener('click', e => { if (e.target === installModal) installModal.classList.remove('show'); });
 
   // ── CALCULATION ────────────────────────────────────────────
   function getVoltage() {
@@ -1464,8 +1488,8 @@ html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4
   // ── INIT ───────────────────────────────────────────────────
   updateVoltage();
   updateCableTypes();
-  installSvgContainer.innerHTML = selectedInstall.svg;
-  installText.textContent = selectedInstall.title;
+  document.getElementById('installSvgContainer').innerHTML = selectedInstall.svg;
+  document.getElementById('installText').textContent = selectedInstall.title;
   </script>
 
   <!-- INFO MODAL -->
