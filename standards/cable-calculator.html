@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bromar - Cable Size Calculator AS/NZS 3008</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --divider: #e5e7eb;
+    }
+
+```
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-orange: #f0723f;
+    --brand-orange-soft: rgba(240,114,63,0.12);
+    --brand-light: rgba(240,114,63,0.08);
+    --brand-white: #1a1d21;
+    --bg-gradient: linear-gradient(135deg,#0f1113 0%,#15171a 50%,#1a1418 100%);
+    --card-shadow: 0 20px 60px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);
+    --input-bg: #13161a;
+    --input-bg-focus: #1a1d21;
+    --input-border: #2a2d32;
+    --input-focus: #f0723f;
+    --text-primary: #f4f4f5;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --divider: #2a2d32;
+  }
+}
+
+html.light-mode {
+  --brand-orange: #c2440e;
+  --brand-orange-soft: #fff3ee;
+  --brand-light: #f3f6ff;
+  --brand-white: #ffffff;
+  --bg-gradient: linear-gradient(135deg,#e8eeff 0%,#f0faf5 50%,#fff4ef 100%);
+  --card-shadow: 0 20px 60px rgba(26,86,219,0.12),0 4px 16px rgba(0,0,0,0.06);
+  --input-bg: #fafbff;
+  --input-bg-focus: #ffffff;
+  --input-border: #d1d9f0;
+  --input-focus: #1a56db;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --divider: #e5e7eb;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  padding: 90px 16px 60px;
+  color: var(--text-primary);
+}
+
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+body::before { width:500px;height:500px;background:radial-gradient(circle,#bfcfff,#e0e8ff);top:-100px;left:-100px;animation:blob1 12s ease-in-out infinite; }
+body::after  { width:400px;height:400px;background:radial-gradient(circle,#b2f0d8,#d4f7eb);bottom:-80px;right:-80px;animation:blob2 15s ease-in-out infinite; }
+@keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+@keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+@media (prefers-color-scheme: dark) {
+  body::before { background:radial-gradient(circle,#2a3a5e,#1a2540);opacity:0.4; }
+  body::after  { background:radial-gradient(circle,#3d2415,#2a1a0e);opacity:0.35; }
+}
+
+/* NAV */
+.nav-bar {
+  position: fixed; top:0; left:0; right:0; height:64px;
+  background: var(--brand-white);
+  border-bottom: 1px solid var(--divider);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; z-index: 1000;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.logo-nav { height:44px; object-fit:contain; }
+.nav-btn {
+  width:38px;height:38px;border:1px solid var(--input-border);
+  border-radius:8px;background:var(--brand-white);color:var(--text-secondary);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.nav-btn:hover { color:var(--brand-orange);border-color:var(--brand-orange);background:var(--brand-orange-soft);transform:translateY(-1px); }
+.nav-btn svg { width:18px;height:18px; }
+.sun-icon { display:none; }
+.moon-icon { display:block; }
+html.light-mode .sun-icon { display:block; }
+html.light-mode .moon-icon { display:none; }
+
+/* LAYOUT */
+.page-wrapper { max-width:860px;margin:0 auto;position:relative;z-index:1; }
+
+/* HEADER CARD */
+.header-card {
+  background:var(--brand-white);
+  border-radius:var(--radius) var(--radius) 0 0;
+  padding:32px 40px 24px;
+  text-align:center;
+  border-bottom:3px solid var(--brand-light);
+  position:relative;
+  overflow:hidden;
+}
+.header-card::before {
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--brand-primary),var(--brand-secondary),var(--brand-accent));
+}
+.header-title { font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:2px;color:var(--text-primary);margin-bottom:6px; }
+.header-subtitle { font-size:0.88rem;color:var(--text-muted);line-height:1.6;max-width:600px;margin:0 auto; }
+
+/* FORM CARD */
+.form-card {
+  background:var(--brand-white);
+  border-radius:0 0 var(--radius) var(--radius);
+  padding:0 0 32px;
+  box-shadow:var(--card-shadow);
+}
+
+/* SECTIONS */
+.section {
+  padding:24px 40px 0;
+}
+
+.section-title {
+  font-size:1rem;
+  font-weight:700;
+  color:var(--text-primary);
+  margin-bottom:16px;
+  padding-bottom:10px;
+  border-bottom:2px solid var(--divider);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.section-title .info-icon { flex-shrink:0; }
+
+/* ROW */
+.row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 0;
+  border-bottom:1px solid var(--divider);
+  gap:16px;
+}
+.row:last-child { border-bottom:none; }
+
+.row-label {
+  font-size:0.95rem;
+  font-weight:500;
+  color:var(--text-primary);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+}
+
+.row-input {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+
+.info-icon {
+  width:18px;height:18px;border:1.5px solid var(--text-muted);border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:0.68rem;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;
+  transition:all 0.2s;user-select:none;
+}
+.info-icon:hover { border-color:var(--brand-primary);color:var(--brand-primary);background:var(--brand-light); }
+
+.info-modal-overlay {
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.45);z-index:3000;
+  align-items:center;justify-content:center;padding:24px;
+}
+.info-modal-overlay.show { display:flex; }
+.info-modal-box {
+  background:var(--brand-white);border-radius:var(--radius);
+  width:100%;max-width:480px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.25);
+  overflow:hidden;
+  animation:infoFadeIn 0.2s ease;
+}
+@keyframes infoFadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.info-modal-header {
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--divider);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--brand-light);
+}
+.info-modal-header h3 { font-size:1rem;font-weight:700;color:var(--text-primary); }
+.info-modal-close {
+  background:none;border:none;font-size:1.3rem;cursor:pointer;
+  color:var(--text-muted);padding:0 4px;line-height:1;
+}
+.info-modal-close:hover { color:var(--text-primary); }
+.info-modal-body { padding:20px;max-height:70vh;overflow-y:auto; }
+.info-modal-body p { font-size:0.9rem;color:var(--text-secondary);line-height:1.65;margin-bottom:10px; }
+.info-modal-body p:last-child { margin-bottom:0; }
+.info-modal-body strong { color:var(--text-primary);font-weight:700; }
+.info-modal-body ul { margin:6px 0 10px 18px; }
+.info-modal-body ul li { font-size:0.88rem;color:var(--text-secondary);line-height:1.6;margin-bottom:4px; }
+.info-modal-body table { width:100%;border-collapse:collapse;margin:10px 0; }
+.info-modal-body table th { background:var(--input-bg);padding:7px 10px;font-size:0.8rem;font-weight:700;text-align:left;border:1px solid var(--divider); }
+.info-modal-body table td { padding:7px 10px;font-size:0.82rem;border:1px solid var(--divider);color:var(--text-secondary);vertical-align:top; }
+
+select, input[type="number"], input[type="text"] {
+  padding:9px 12px;
+  border:1.5px solid var(--input-border);
+  border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;
+  font-size:0.93rem;
+  color:var(--text-primary);
+  background:var(--input-bg);
+  transition:all 0.2s;
+  outline:none;
+  min-width:0;
+}
+select:focus, input:focus {
+  border-color:var(--input-focus);
+  box-shadow:0 0 0 3px rgba(26,86,219,0.1);
+  background:var(--input-bg-focus);
+}
+
+.input-with-unit {
+  display:flex;
+  align-items:center;
+  gap:0;
+}
+.input-with-unit input {
+  border-radius:var(--radius-sm) 0 0 var(--radius-sm);
+  border-right:none;
+  width:80px;
+  text-align:right;
+}
+.input-unit {
+  padding:9px 12px;
+  border:1.5px solid var(--input-border);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  background:var(--input-bg);
+  font-size:0.88rem;
+  color:var(--text-muted);
+  white-space:nowrap;
+}
+
+.rating-group {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.rating-group input { width:90px;text-align:right; }
+.rating-group select { min-width:70px; }
+
+/* TOGGLE SWITCH */
+.toggle-wrap {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.toggle-switch { position:relative;width:44px;height:24px;flex-shrink:0; }
+.toggle-switch input { opacity:0;width:0;height:0; }
+.slider {
+  position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+  background:var(--input-border);transition:0.3s;border-radius:24px;
+}
+.slider:before {
+  position:absolute;content:"";height:18px;width:18px;
+  left:3px;bottom:3px;background:white;transition:0.3s;border-radius:50%;
+}
+.toggle-switch input:checked + .slider { background:var(--brand-secondary); }
+.toggle-switch input:checked + .slider:before { transform:translateX(20px); }
+
+/* ADVANCED PANEL */
+.advanced-panel {
+  display:none;
+  background:var(--brand-light);
+  border-radius:var(--radius-sm);
+  padding:16px 20px;
+  margin:12px 0 0;
+}
+.advanced-panel.show { display:block; }
+.advanced-panel .row { padding:8px 0; }
+.advanced-panel .row:last-child { border-bottom:none; }
+
+/* INSTALLATION PICKER */
+.install-display {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  border:1.5px solid var(--input-border);
+  border-radius:var(--radius-sm);
+  background:var(--input-bg);
+  cursor:pointer;
+  transition:all 0.2s;
+  width:100%;
+  text-align:left;
+  font-family:'DM Sans',sans-serif;
+  font-size:0.93rem;
+  color:var(--text-primary);
+}
+.install-display:hover { border-color:var(--input-focus); }
+.install-display img { width:56px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0; }
+.install-display .chevron { margin-left:auto;color:var(--text-muted); }
+
+/* MODAL */
+.modal-overlay {
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.55);z-index:2000;overflow-y:auto;padding:20px;
+}
+.modal-overlay.show { display:flex;align-items:flex-start;justify-content:center; }
+.modal-box {
+  background:var(--brand-white);border-radius:var(--radius);
+  width:100%;max-width:560px;margin:auto;overflow:hidden;
+}
+.modal-header {
+  padding:20px 24px;border-bottom:1px solid var(--divider);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h2 { font-size:1.2rem;font-weight:700; }
+.modal-close { background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted);padding:0 4px; }
+.modal-body { max-height:70vh;overflow-y:auto; }
+.modal-footer { padding:14px 24px;border-top:1px solid var(--divider);background:var(--input-bg); }
+
+.install-option {
+  display:flex;align-items:center;gap:16px;
+  padding:14px 24px;
+  border-bottom:1px solid var(--divider);
+  cursor:pointer;transition:background 0.15s;
+}
+.install-option:last-child { border-bottom:none; }
+.install-option:hover { background:var(--brand-light); }
+.install-option.selected { background:var(--brand-orange-soft); }
+.install-option img { width:72px;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0; }
+.install-option-text h3 { font-size:0.95rem;font-weight:600;margin-bottom:3px; }
+.install-option-text p { font-size:0.8rem;color:var(--text-muted);line-height:1.4; }
+
+/* RESULTS TABLE */
+.results-section {
+  display:none;
+  padding:24px 40px;
+  border-top:2px solid var(--divider);
+  margin-top:24px;
+}
+.results-section.show { display:block; }
+
+.load-summary {
+  background: var(--brand-light);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.load-summary strong { font-weight: 700; }
+.load-summary-row { display:flex; justify-content:space-between; align-items:center; padding: 4px 0; }
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.results-table thead tr {
+  background: var(--input-bg);
+  border-bottom: 2px solid var(--input-border);
+}
+
+.results-table th {
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.results-table td {
+  padding: 11px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--divider);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.results-table tbody tr:last-child td { border-bottom: none; }
+
+.results-table tbody tr { cursor: pointer; transition: background 0.15s; }
+.results-table tbody tr:hover { background: var(--brand-light); }
+.results-table tbody tr.selected-row { background: #eaf4e8; }
+.results-table tbody tr.selected-row td { font-weight: 600; }
+
+html:not(.light-mode) .results-table tbody tr.selected-row { background: rgba(14,159,110,0.15); }
+
+.td-select { width: 36px; }
+.radio-dot {
+  width: 18px; height: 18px;
+  border: 2px solid var(--input-border);
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  cursor: pointer;
+}
+.radio-dot.checked {
+  border-color: var(--brand-primary);
+  background: var(--brand-white);
+}
+.radio-dot.checked::after {
+  content: '';
+  width: 8px; height: 8px;
+  background: var(--brand-primary);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+.cell-red { background: #fde8e8; color: #c0392b; }
+.cell-green { background: #eaf4e8; color: #1e6b3b; }
+html:not(.light-mode) .cell-red { background: rgba(192,57,43,0.18); color: #f87171; }
+html:not(.light-mode) .cell-green { background: rgba(14,159,110,0.18); color: #4ade80; }
+
+.btn-show-more {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.btn-show-more:hover { background: var(--brand-light); }
+
+.cable-summary {
+  background: var(--brand-white);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+}
+.cable-summary-title { font-weight: 700; font-size: 1rem; margin-bottom: 12px; }
+.cable-summary-row { display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px solid var(--divider); font-size: 0.92rem; }
+.cable-summary-row:last-child { border-bottom: none; }
+.cable-summary-val { font-weight: 600; }
+
+/* BUTTONS */
+.btn-row { display:flex;gap:12px;justify-content:flex-end;padding:24px 40px 0; }
+.btn-reset {
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;
+  padding:11px 24px;border-radius:8px;border:1.5px solid var(--input-border);
+  background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.2s;
+}
+.btn-reset:hover { background:var(--input-bg);color:var(--text-primary); }
+.btn-calc {
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:700;
+  padding:11px 32px;border-radius:8px;border:none;
+  background:var(--brand-orange);color:white;cursor:pointer;transition:all 0.2s;
+  box-shadow:0 2px 8px rgba(194,68,14,0.25);
+}
+.btn-calc:hover { background:#a3380b;transform:translateY(-1px);box-shadow:0 6px 18px rgba(194,68,14,0.32); }
+
+/* FOOTER */
+.form-footer { margin-top:32px;text-align:center;font-size:0.75rem;color:var(--text-muted);padding-bottom:8px; }
+.version { opacity:0.6;margin-top:8px; }
+
+@media (max-width:640px) {
+  .section { padding:20px 20px 0; }
+  .header-card { padding:24px 20px 20px; }
+  .btn-row { padding:20px 20px 0; }
+  .results-section { padding:20px; }
+  .row { flex-wrap:wrap; }
+  .row-input { flex-wrap:wrap; }
+}
+```
+
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+
+  <div class="nav-bar">
+    <a href="#"><img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-nav" id="navLogo"/></a>
+    <button id="themeToggle" class="nav-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+
+  <div class="page-wrapper">
+
+```
+<!-- HEADER -->
+<div class="header-card">
+  <h1 class="header-title">Cable Size Calculator</h1>
+  <p class="header-subtitle">AS/NZS 3008 — Cable sizing for current rating, voltage drop, loop impedance, earth cable and short circuit based on Australian and New Zealand standard AS/NZS 3008</p>
+</div>
+
+<div class="form-card">
+  <form id="cableForm">
+
+    <!-- STANDARD -->
+    <div class="section">
+      <div class="section-title">Standard <span class="info-icon" data-info="standard">i</span></div>
+      <div class="row">
+        <div class="row-input" style="width:100%;">
+          <select id="standard" style="width:100%;">
+            <option value="au">Australian conditions</option>
+            <option value="nz">New Zealand conditions</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOAD -->
+    <div class="section">
+      <div class="section-title">Load</div>
+      <div class="row">
+        <div class="row-label">Phase <span class="info-icon" data-info="phase">i</span></div>
+        <div class="row-input">
+          <select id="phase">
+            <option value="3">3 Phase AC</option>
+            <option value="1">1 Phase AC</option>
+            <option value="DC">DC</option>
+            <option value="2-120">2 Phase 120°</option>
+            <option value="2-180">2 Phase 180°</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Voltage <span class="info-icon" data-info="voltage">i</span></div>
+        <div class="row-input">
+          <select id="voltage" onchange="document.getElementById('voltage-custom-row').style.display = this.value==='other' ? 'flex' : 'none';"></select>
+        </div>
+      </div>
+      <div class="row" id="voltage-custom-row" style="display:none;">
+        <div class="row-label">Specify voltage <span class="info-icon" data-info="voltage-custom">i</span></div>
+        <div class="row-input">
+          <div class="input-with-unit">
+            <input type="number" id="voltage-custom" placeholder="0" min="1" max="1000"/>
+            <div class="input-unit">V</div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Rating <span class="info-icon" data-info="rating">i</span></div>
+        <div class="row-input rating-group">
+          <input type="number" id="rating" placeholder="0" min="0" step="0.01"/>
+          <select id="rating-unit" onchange="document.getElementById('pf-row').style.display = (this.value==='kW'||this.value==='hp') ? 'flex' : 'none';">
+            <option value="kW">kW</option>
+            <option value="kVA">kVA</option>
+            <option value="A" selected>A</option>
+            <option value="hp">hp</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" id="pf-row" style="display:none;">
+        <div class="row-label">Power factor <span class="info-icon" data-info="pf">i</span></div>
+        <div class="row-input">
+          <input type="number" id="pf-value" placeholder="0.85" min="0" max="1" step="0.01" style="width:90px;"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- VOLTAGE DROP -->
+    <div class="section">
+      <div class="section-title">Voltage drop</div>
+      <div class="row">
+        <div class="row-label">Max. voltage drop <span class="info-icon" data-info="max-vd">i</span></div>
+        <div class="row-input">
+          <select id="vd-select" onchange="document.getElementById('vd-custom-row').style.display = this.value==='other' ? 'flex' : 'none';">
+            <option value="1.0">1.0 %</option>
+            <option value="1.5">1.5 %</option>
+            <option value="2.0">2.0 %</option>
+            <option value="2.5">2.5 %</option>
+            <option value="3.0" selected>3.0 %</option>
+            <option value="3.5">3.5 %</option>
+            <option value="4.0">4.0 %</option>
+            <option value="4.5">4.5 %</option>
+            <option value="5.0">5.0 %</option>
+            <option value="other">Other</option>
+          </select>
+            <option value="1.0">1.0 %</option>
+            <option value="1.5">1.5 %</option>
+            <option value="2.0">2.0 %</option>
+            <option value="2.5">2.5 %</option>
+            <option value="3.0" selected>3.0 %</option>
+            <option value="3.5">3.5 %</option>
+            <option value="4.0">4.0 %</option>
+            <option value="4.5">4.5 %</option>
+            <option value="5.0">5.0 %</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" id="vd-custom-row" style="display:none;">
+        <div class="row-label">Specify max. voltage drop <span class="info-icon" data-info="max-vd">i</span></div>
+        <div class="row-input">
+          <div class="input-with-unit">
+            <input type="number" id="vd-custom" placeholder="0" min="0.01" max="100" step="0.1"/>
+            <div class="input-unit">%</div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Cable distance <span class="info-icon" data-info="distance">i</span></div>
+        <div class="row-input">
+          <div class="input-with-unit">
+            <input type="number" id="distance" placeholder="40" min="0" step="1"/>
+            <div class="input-unit">m</div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Advanced options <span class="info-icon" data-info="vd-advanced">i</span></div>
+        <div class="row-input">
+          <div class="toggle-wrap">
+            <label class="toggle-switch">
+              <input type="checkbox" id="vd-advanced" onchange="document.getElementById('vd-advanced-panel').classList.toggle('show', this.checked);"/>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="advanced-panel" id="vd-advanced-panel">
+        <div class="row">
+          <div class="row-label">Conductor temperature <span class="info-icon" data-info="conductor-temp">i</span></div>
+          <div class="row-input">
+            <select id="conductor-temp">
+              <option value="calculated">Calculated</option>
+              <option value="maximum">Maximum</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-label">Load power factor <span class="info-icon" data-info="load-pf">i</span></div>
+          <div class="row-input">
+            <select id="load-pf-type" onchange="document.getElementById('specified-pf-row').style.display = this.value === 'specified' ? 'flex' : 'none';">
+              <option value="worst">Worst case</option>
+              <option value="specified">Specified</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="specified-pf-row" style="display:none;">
+          <div class="row-label">Specified power factor</div>
+          <div class="row-input">
+            <input type="number" id="specified-pf" placeholder="0.85" min="0" max="1" step="0.01" style="width:90px;"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSULATION -->
+    <div class="section">
+      <div class="section-title">Insulation <span class="info-icon" data-info="insulation">i</span></div>
+      <div class="row">
+        <div class="row-input" style="width:100%;">
+          <select id="insulation" style="width:100%;">
+            <option value="pvc-75">V-90 Standard 75°C</option>
+            <option value="pvc-ht-75">V-90HT Heat resistant 75°C</option>
+            <option value="pvc-trad-75">V-75 Traditional 75°C</option>
+            <option value="xlpe-90">X-90 Standard 90°C</option>
+            <option value="xlpe-hf-90">X-HF-90 Fire 90°C</option>
+            <option value="xlpe-110">X-110 Standard 110°C</option>
+            <option value="xlpe-hf-110">X-HF-110 Fire 110°C</option>
+            <option value="epr-90">R-EP-90 Standard 90°C</option>
+            <option value="epr-hf-90">R-HF-90 Fire 90°C</option>
+            <option value="epr-110">R-E-110 Standard 110°C</option>
+            <option value="epr-hf-110">R-HF-110 Fire 110°C</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- CABLE TYPE -->
+    <div class="section">
+      <div class="section-title">Cable type <span class="info-icon" data-info="cable-type">i</span></div>
+      <div class="row">
+        <div class="row-input" style="width:100%;">
+          <select id="cable-type" style="width:100%;"></select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Flexible cable <span class="info-icon" data-info="flexible">i</span></div>
+        <div class="row-input">
+          <label class="toggle-switch">
+            <input type="checkbox" id="flexible"/>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Conductor <span class="info-icon" data-info="conductor">i</span></div>
+        <div class="row-input">
+          <select id="conductor">
+            <option value="copper">Copper</option>
+            <option value="aluminium">Aluminium</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Active size <span class="info-icon" data-info="active-size">i</span></div>
+        <div class="row-input">
+          <select id="active-size">
+            <option value="auto">Auto</option>
+            <option value="1">1 mm²</option>
+            <option value="1.5">1.5 mm²</option>
+            <option value="2.5">2.5 mm²</option>
+            <option value="4">4 mm²</option>
+            <option value="6">6 mm²</option>
+            <option value="10">10 mm²</option>
+            <option value="16">16 mm²</option>
+            <option value="25">25 mm²</option>
+            <option value="35">35 mm²</option>
+            <option value="50">50 mm²</option>
+            <option value="70">70 mm²</option>
+            <option value="95">95 mm²</option>
+            <option value="120">120 mm²</option>
+            <option value="150">150 mm²</option>
+            <option value="185">185 mm²</option>
+            <option value="240">240 mm²</option>
+            <option value="300">300 mm²</option>
+            <option value="400">400 mm²</option>
+            <option value="500">500 mm²</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-label">Use parallel cables <span class="info-icon" data-info="parallel">i</span></div>
+        <div class="row-input">
+          <label class="toggle-switch">
+            <input type="checkbox" id="parallel" onchange="document.getElementById('parallel-count-row').style.display = this.checked ? 'flex' : 'none';"/>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="row" id="parallel-count-row" style="display:none;">
+        <div class="row-label">Number of parallel cables <span class="info-icon" data-info="parallel">i</span></div>
+        <div class="row-input">
+          <select id="parallel-count">
+            <option>1</option><option>2</option><option>3</option>
+            <option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option><option>10</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- EARTH CORE -->
+    <div class="section">
+      <div class="section-title">Earth core</div>
+      <div class="row">
+        <div class="row-label">Earth size <span class="info-icon" data-info="earth-size">i</span></div>
+        <div class="row-input">
+          <select id="earth-size">
+            <option value="auto">Auto</option>
+            <option value="1">1 mm²</option>
+            <option value="1.5">1.5 mm²</option>
+            <option value="2.5">2.5 mm²</option>
+            <option value="4">4 mm²</option>
+            <option value="6">6 mm²</option>
+            <option value="10">10 mm²</option>
+            <option value="16">16 mm²</option>
+            <option value="25">25 mm²</option>
+            <option value="35">35 mm²</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSTALLATION -->
+    <div class="section">
+      <div class="section-title">Installation <span class="info-icon" data-info="installation">i</span></div>
+      <div class="row">
+        <div class="row-input" style="width:100%;">
+          <button type="button" class="install-display" id="installBtn">
+            <div id="installSvgContainer" style="width:56px;height:56px;border-radius:4px;overflow:hidden;flex-shrink:0;"></div>
+            <span id="installText">Select installation method...</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="btn-row">
+      <button type="reset" class="btn-reset">Reset</button>
+      <button type="button" class="btn-calc" id="calcBtn">Calculate</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-section" id="resultsSection">
+      <div class="section-title">Results</div>
+
+      <!-- Load summary -->
+      <div class="load-summary" id="loadSummary"></div>
+
+      <!-- Results table -->
+      <table class="results-table" id="resultsTable">
+        <thead>
+          <tr>
+            <th class="td-select"></th>
+            <th>Active Size<br><span style="font-weight:400;text-transform:none;font-size:0.72rem;">mm²</span></th>
+            <th>Earth Size<br><span style="font-weight:400;text-transform:none;font-size:0.72rem;">mm²</span></th>
+            <th>Current Rating<br><span style="font-weight:400;text-transform:none;font-size:0.72rem;">A</span></th>
+            <th>Volt Drop<br><span style="font-weight:400;text-transform:none;font-size:0.72rem;">%</span></th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+
+      <button type="button" class="btn-show-more" id="showMoreBtn" style="display:none;">Show more</button>
+
+      <!-- Cable summary -->
+      <div class="cable-summary" id="cableSummary"></div>
+    </div>
+
+  </form>
+</div>
+
+<!-- FOOTER -->
+<div class="form-footer">
+  <p>2/98-108 Western Ave, Westmeadows VIC 3049 | +61 3 9335 5344 | admin@bromar.com.au</p>
+  <div class="version">Version V1.00</div>
+</div>
+```
+
+  </div>
+
+  <!-- INSTALLATION MODAL -->
+
+  <div class="modal-overlay" id="installModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Select Installation Method</h2>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-reset" style="width:100%;text-align:center;" id="modalCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── THEME ──────────────────────────────────────────────────
+  const html = document.documentElement;
+  const navLogo = document.getElementById('navLogo');
+
+  function updateLogo() {
+    const light = html.classList.contains('light-mode') ||
+      (!html.classList.contains('light-mode') && window.matchMedia && !window.matchMedia('(prefers-color-scheme: dark)').matches);
+    navLogo.src = light ? '/Bromar-Primary-Logo-Full-Colour.png' : '/Bromar-Primary-Logo-Reverse-White.png';
+  }
+
+  if (localStorage.getItem('theme') === 'light') html.classList.add('light-mode');
+  updateLogo();
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    html.classList.toggle('light-mode');
+    updateLogo();
+    localStorage.setItem('theme', html.classList.contains('light-mode') ? 'light' : 'dark');
+  });
+
+  // ── INSTALLATION METHODS WITH SVG DIAGRAMS ─────────────────
+  const INSTALL_METHODS = [
+    {
+      id:'spaced', title:'Spaced from surface', desc:'Ladder, tray or catenary wire.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8e8e8"/>
+        <line x1="4" y1="58" x2="68" y2="58" stroke="#888" stroke-width="3"/>
+        <line x1="12" y1="48" x2="12" y2="58" stroke="#888" stroke-width="2"/>
+        <line x1="36" y1="48" x2="36" y2="58" stroke="#888" stroke-width="2"/>
+        <line x1="60" y1="48" x2="60" y2="58" stroke="#888" stroke-width="2"/>
+        <line x1="4" y1="48" x2="68" y2="48" stroke="#888" stroke-width="2"/>
+        <circle cx="20" cy="36" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="36" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="36" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="47" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'touching', title:'Touching surface', desc:'Wall, floor, ceiling, tray or ventilated trench.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8e8e8"/>
+        <rect x="4" y="54" width="64" height="8" fill="#bbb" rx="1"/>
+        <circle cx="20" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="53" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'sun', title:'Exposed to sun', desc:'Any surface.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8e8e8"/>
+        <circle cx="56" cy="16" r="8" fill="#FFD700"/>
+        <line x1="56" y1="4" x2="56" y2="8" stroke="#FFD700" stroke-width="2"/>
+        <line x1="56" y1="24" x2="56" y2="28" stroke="#FFD700" stroke-width="2"/>
+        <line x1="44" y1="16" x2="48" y2="16" stroke="#FFD700" stroke-width="2"/>
+        <line x1="64" y1="16" x2="68" y2="16" stroke="#FFD700" stroke-width="2"/>
+        <rect x="4" y="58" width="64" height="8" fill="#bbb" rx="1"/>
+        <circle cx="20" cy="48" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="48" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="48" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="52" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="52" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="52" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="57" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'enclosure', title:'Wiring enclosure in air', desc:'Conduit or trench with removable covers.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8e8e8"/>
+        <circle cx="36" cy="36" r="26" fill="none" stroke="#555" stroke-width="4"/>
+        <circle cx="24" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="28" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="48" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="24" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="32" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">2</text>
+        <text x="48" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="46" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'partial-enc', title:'Partially surrounded by thermal insulation, in wiring enclosure', desc:'In conduit with partial insulation.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#f0d0d0"/>
+        <circle cx="36" cy="36" r="26" fill="none" stroke="#555" stroke-width="4"/>
+        <circle cx="24" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="28" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="48" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="24" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="32" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">2</text>
+        <text x="48" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="46" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'partial-unenc', title:'Partially surrounded by thermal insulation, unenclosed', desc:'Open cables with partial insulation.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#f0d0d0"/>
+        <circle cx="20" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="53" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'full-enc', title:'Completely surrounded by thermal insulation, in wiring enclosure', desc:'Conduit fully embedded in insulation.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8c0c0"/>
+        <circle cx="36" cy="36" r="26" fill="none" stroke="#555" stroke-width="4"/>
+        <circle cx="24" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="28" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="48" cy="36" r="8" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="24" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="32" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">2</text>
+        <text x="48" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="46" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'full-unenc', title:'Completely surrounded by thermal insulation, unenclosed', desc:'Cables fully embedded in insulation.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#e8c0c0"/>
+        <circle cx="20" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="44" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="53" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'buried', title:'Buried direct', desc:'Underground buried directly in soil.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#c8a06a"/>
+        <rect x="0" y="0" width="72" height="24" fill="#5a9a3a"/>
+        <rect x="0" y="24" width="72" height="48" fill="#8B5E3C"/>
+        <circle cx="20" cy="46" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="46" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="52" cy="46" r="9" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="20" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">2</text>
+        <text x="52" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="58" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+    {
+      id:'ug-enc', title:'Underground wiring enclosure', desc:'In underground conduit or duct.',
+      svg:`<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#c8a06a"/>
+        <rect x="0" y="0" width="72" height="24" fill="#5a9a3a"/>
+        <rect x="0" y="24" width="72" height="48" fill="#8B5E3C"/>
+        <circle cx="36" cy="46" r="18" fill="none" stroke="#555" stroke-width="4"/>
+        <circle cx="28" cy="46" r="6" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="36" cy="40" r="6" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <circle cx="44" cy="46" r="6" fill="#f90" stroke="#333" stroke-width="1.5"/>
+        <text x="28" y="50" text-anchor="middle" font-size="7" font-weight="bold" fill="#333">1</text>
+        <text x="36" y="44" text-anchor="middle" font-size="7" font-weight="bold" fill="#333">2</text>
+        <text x="44" y="50" text-anchor="middle" font-size="7" font-weight="bold" fill="#333">3</text>
+        <circle cx="36" cy="54" r="2" fill="#4a4" stroke="#333" stroke-width="1"/>
+      </svg>`
+    },
+  ];
+  const CABLE_DATA = [
+    [1,    18.1,  null,  0.098, 0.116],
+    [1.5,  12.1,  null,  0.091, 0.110],
+    [2.5,   7.41, null,  0.085, 0.102],
+    [4,     4.61,  7.41, 0.085, 0.097],
+    [6,     3.08,  4.61, 0.082, 0.093],
+    [10,    1.83,  2.87, 0.079, 0.090],
+    [16,    1.15,  1.80, 0.077, 0.085],
+    [25,    0.727, 1.15, 0.0765,0.082],
+    [35,    0.524, 0.822,0.0754,0.080],
+    [50,    0.387, 0.610,0.0746,0.078],
+    [70,    0.268, 0.443,0.0742,0.077],
+    [95,    0.193, 0.320,0.0740,0.076],
+    [120,   0.153, 0.253,0.0740,0.075],
+    [150,   0.123, 0.206,0.0740,0.074],
+    [185,   0.0991,0.164,0.0740,0.073],
+    [240,   0.0754,0.125,0.0740,0.072],
+    [300,   0.0601,0.100,0.0740,0.072],
+    [400,   0.0470,0.0778,0.0740,0.071],
+    [500,   0.0366,0.0605,0.0740,0.071],
+  ];
+
+  // Current ratings (A) - approximate from AS/NZS 3008 Table 7 (multi-core, in air, 75°C PVC, Cu)
+  const CURRENT_RATING_CU = {
+    1:3, 1.5:13.5, 2.5:18.5, 4:25, 6:32, 10:43, 16:57, 25:75, 35:90,
+    50:110, 70:136, 95:164, 120:188, 150:215, 185:247, 240:291, 300:334, 400:394, 500:456
+  };
+  const CURRENT_RATING_AL = {
+    4:19, 6:25, 10:33, 16:44, 25:57, 35:70, 50:85, 70:106, 95:127,
+    120:147, 150:167, 185:192, 240:226, 300:261, 400:308, 500:356
+  };
+
+  // ── VOLTAGE OPTIONS PER PHASE ──────────────────────────────
+  const VOLTAGE_OPTS = {
+    '3':    [{v:'400',l:'400 V'},{v:'415',l:'415 V'},{v:'380',l:'380 V'},{v:'690',l:'690 V'},{v:'1000',l:'1 kV'},{v:'other',l:'Other'}],
+    '1':    [{v:'230',l:'230 V'},{v:'240',l:'240 V'},{v:'220',l:'220 V'},{v:'110',l:'110 V'},{v:'other',l:'Other'}],
+    'DC':   [{v:'12',l:'12 V'},{v:'24',l:'24 V'},{v:'48',l:'48 V'},{v:'110',l:'110 V'},{v:'220',l:'220 V'},{v:'other',l:'Other'}],
+    '2-120':[{v:'400',l:'400 V'},{v:'415',l:'415 V'},{v:'380',l:'380 V'},{v:'other',l:'Other'}],
+    '2-180':[{v:'480',l:'480 V'},{v:'460',l:'460 V'},{v:'other',l:'Other'}],
+  };
+
+  // ── CABLE TYPE OPTIONS PER PHASE ──────────────────────────
+  const CABLE_TYPE_OPTS = {
+    '1':    ['Multi-core 2C+E','Multi-core 2C (mains)','Single-cores 2x1C+E','Single-cores 2x1C (mains)'],
+    '3':    ['Multi-core 3C+E','Multi-core 4C+E','Multi-core 4C (mains)','Single-cores 3x1C+E','Single-cores 4x1C+E','Single-cores 4x1C (mains)'],
+    'DC':   ['Multi-core 2C+E','Multi-core 2C (mains)','Single-cores 2x1C+E','Single-cores 2x1C (mains)'],
+    '2-120':['Multi-core 3C+E','Multi-core 4C+E','Multi-core 4C (mains)','Single-cores 3x1C+E','Single-cores 4x1C+E','Single-cores 4x1C (mains)'],
+    '2-180':['Multi-core 3C+E','Multi-core 4C+E','Multi-core 4C (mains)','Single-cores 3x1C+E','Single-cores 4x1C+E','Single-cores 4x1C (mains)'],
+  };
+
+  // ── DATA ───────────────────────────────────────────────────
+  // AS/NZS 3008 Table 34/35: Resistance (mΩ/m) at 75°C copper, aluminium | Table 30/31: Reactance (mΩ/m)
+  // [csa, Cu_R, Al_R, multi_X, single_X]
+    { id:'spaced',    title:'Spaced from surface',    desc:'Ladder, tray or catenary wire.',                              img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_spaced_surface.png' },
+    { id:'touching',  title:'Touching surface',        desc:'Wall, floor, ceiling, tray or ventilated trench.',           img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_touching_surface.png' },
+    { id:'sun',       title:'Exposed to sun',          desc:'Any surface.',                                               img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_exposed_sun.png' },
+    { id:'enclosure', title:'Wiring enclosure in air', desc:'Conduit or trench with removable covers.',                  img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_wiring_enclosure.png' },
+    { id:'partial-enc',   title:'Partially surrounded by thermal insulation, in wiring enclosure', desc:'In wiring enclosure with some insulation.', img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_partial_insulation_enclosure.png' },
+    { id:'partial-unenc', title:'Partially surrounded by thermal insulation, unenclosed',          desc:'Open to air with some surrounding insulation.', img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_partial_insulation.png' },
+    { id:'full-enc',      title:'Completely surrounded by thermal insulation, in wiring enclosure',desc:'Fully enclosed in insulation within conduit.', img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_full_insulation_enclosure.png' },
+    { id:'full-unenc',    title:'Completely surrounded by thermal insulation, unenclosed',         desc:'Fully surrounded by insulation material.',      img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_full_insulation.png' },
+    { id:'buried',    title:'Buried direct',           desc:'Underground buried directly in soil.',                       img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_buried.png' },
+    { id:'ug-enc',    title:'Underground wiring enclosure', desc:'In underground conduit or duct.',                       img:'https://www.jcalc.net/image/installation/phase_three/cable_four_core/trefoil/installation_underground_enclosure.png' },
+  ];
+
+  let selectedInstall = INSTALL_METHODS[9]; // default: underground enclosure
+
+  // ── DOM REFS ───────────────────────────────────────────────
+  const phaseEl      = document.getElementById('phase');
+  const voltageEl    = document.getElementById('voltage');
+  const voltCustomRow= document.getElementById('voltage-custom-row');
+  const voltCustomEl = document.getElementById('voltage-custom');
+  const ratingEl     = document.getElementById('rating');
+  const ratingUnitEl = document.getElementById('rating-unit');
+  const pfRow        = document.getElementById('pf-row');
+  const pfEl         = document.getElementById('pf-value');
+  const vdSelectEl   = document.getElementById('vd-select');
+  const vdCustomRow  = document.getElementById('vd-custom-row');
+  const vdCustomEl   = document.getElementById('vd-custom');
+  const distanceEl   = document.getElementById('distance');
+  const vdAdvToggle  = document.getElementById('vd-advanced');
+  const vdAdvPanel   = document.getElementById('vd-advanced-panel');
+  const loadPfType   = document.getElementById('load-pf-type');
+  const specPfRow    = document.getElementById('specified-pf-row');
+  const specPfEl     = document.getElementById('specified-pf');
+  const cableTypeEl  = document.getElementById('cable-type');
+  const conductorEl  = document.getElementById('conductor');
+  const activeSizeEl = document.getElementById('active-size');
+  const parallelEl   = document.getElementById('parallel');
+  const parallelRow  = document.getElementById('parallel-count-row');
+  const parallelCnt  = document.getElementById('parallel-count');
+  const installSvgContainer = document.getElementById('installSvgContainer');
+  const installBtn   = document.getElementById('installBtn');
+  const installText  = document.getElementById('installText');
+  const installModal = document.getElementById('installModal');
+  const modalBody    = document.getElementById('modalBody');
+  const resultsSection = document.getElementById('resultsSection');
+
+  // ── VOLTAGE OPTIONS ────────────────────────────────────────
+  function updateVoltage() {
+    const opts = VOLTAGE_OPTS[phaseEl.value] || [];
+    voltageEl.innerHTML = opts.map(o => `<option value="${o.v}">${o.l}</option>`).join('');
+    voltageEl.dispatchEvent(new Event('change'));
+  }
+
+  voltageEl.addEventListener('change', () => {
+    const isOther = voltageEl.value === 'other';
+    voltCustomRow.style.display = isOther ? 'flex' : 'none';
+  });
+
+  // ── CABLE TYPE OPTIONS ─────────────────────────────────────
+  function updateCableTypes() {
+    const opts = CABLE_TYPE_OPTS[phaseEl.value] || [];
+    cableTypeEl.innerHTML = opts.map(o => `<option>${o}</option>`).join('');
+  }
+
+  // ── PHASE CHANGE ───────────────────────────────────────────
+  phaseEl.addEventListener('change', () => {
+    updateVoltage();
+    updateCableTypes();
+  });
+
+  // ── RATING UNIT - show PF if kW or hp ─────────────────────
+  ratingUnitEl.addEventListener('change', () => {
+    pfRow.style.display = (ratingUnitEl.value === 'kW' || ratingUnitEl.value === 'hp') ? 'flex' : 'none';
+  });
+
+  // ── VD SELECT ─────────────────────────────────────────────
+  vdSelectEl.addEventListener('change', () => {
+    vdCustomRow.style.display = vdSelectEl.value === 'other' ? 'flex' : 'none';
+  });
+
+  // ── ADVANCED VD TOGGLE ─────────────────────────────────────
+  vdAdvToggle.addEventListener('change', () => {
+    vdAdvPanel.classList.toggle('show', vdAdvToggle.checked);
+  });
+
+  // ── LOAD PF TYPE ───────────────────────────────────────────
+  loadPfType.addEventListener('change', () => {
+    specPfRow.style.display = loadPfType.value === 'specified' ? 'flex' : 'none';
+  });
+
+  // ── PARALLEL CABLES ────────────────────────────────────────
+  parallelEl.addEventListener('change', () => {
+    parallelRow.style.display = parallelEl.checked ? 'flex' : 'none';
+  });
+
+  // ── INSTALLATION MODAL ─────────────────────────────────────
+  function renderInstallModal() {
+    modalBody.innerHTML = INSTALL_METHODS.map(m => `
+      <div class="install-option ${m.id === selectedInstall.id ? 'selected' : ''}" data-id="${m.id}">
+        <div style="flex-shrink:0;width:72px;height:72px;border-radius:6px;overflow:hidden;">${m.svg}</div>
+        <div class="install-option-text">
+          <h3>${m.title}</h3>
+          <p>${m.desc}</p>
+        </div>
+      </div>
+    `).join('');
+
+    modalBody.querySelectorAll('.install-option').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedInstall = INSTALL_METHODS.find(m => m.id === el.dataset.id);
+        installSvgContainer.innerHTML = selectedInstall.svg;
+        installText.textContent = selectedInstall.title;
+        installModal.classList.remove('show');
+      });
+    });
+  }
+
+  installBtn.addEventListener('click', () => {
+    renderInstallModal();
+    installModal.classList.add('show');
+  });
+  document.getElementById('modalClose').addEventListener('click', () => installModal.classList.remove('show'));
+  document.getElementById('modalCancel').addEventListener('click', () => installModal.classList.remove('show'));
+  installModal.addEventListener('click', e => { if (e.target === installModal) installModal.classList.remove('show'); });
+
+  // ── CALCULATION ────────────────────────────────────────────
+  function getVoltage() {
+    if (voltageEl.value === 'other') return parseFloat(voltCustomEl.value) || 0;
+    return parseFloat(voltageEl.value) || 0;
+  }
+
+  function getVdPercent() {
+    if (vdSelectEl.value === 'other') return parseFloat(vdCustomEl.value) || 0;
+    return parseFloat(vdSelectEl.value) || 0;
+  }
+
+  function getCableRow(csa) {
+    return CABLE_DATA.find(d => d[0] === csa);
+  }
+
+  function getResistance(csa, isCu) {
+    const row = getCableRow(csa);
+    if (!row) return null;
+    return isCu ? row[1] : row[2];
+  }
+
+  function getReactance(csa, isSingleCore) {
+    const row = getCableRow(csa);
+    if (!row) return 0;
+    return isSingleCore ? row[4] : row[3];
+  }
+
+  function toAmps(rating, unit, voltage, phase) {
+    const pf = parseFloat(pfEl.value) || 0.85;
+    if (unit === 'A') return rating;
+    if (unit === 'kW') {
+      if (phase === '3') return (rating * 1000) / (Math.sqrt(3) * voltage * pf);
+      if (phase === 'DC') return (rating * 1000) / voltage;
+      return (rating * 1000) / (voltage * pf);
+    }
+    if (unit === 'kVA') {
+      if (phase === '3') return (rating * 1000) / (Math.sqrt(3) * voltage);
+      return (rating * 1000) / voltage;
+    }
+    if (unit === 'hp') {
+      if (phase === '3') return (rating * 746) / (Math.sqrt(3) * voltage * pf);
+      if (phase === 'DC') return (rating * 746) / voltage;
+      return (rating * 746) / (voltage * pf);
+    }
+    return 0;
+  }
+
+  function calcVD(I, L, R, X, phase, pfType, specPf) {
+    // Worst case: Zc = sqrt(R² + X²)
+    if (phase === 'DC') {
+      return (I * L * 2 * R) / 1000;
+    }
+    if (pfType === 'worst') {
+      const Zc = Math.sqrt(R * R + X * X);
+      if (phase === '1' || phase === '2-120' || phase === '2-180') return (I * L * 2 * Zc) / 1000;
+      if (phase === '3') return (I * L * Math.sqrt(3) * Zc) / 1000;
+    } else {
+      // Specified PF
+      const pf  = specPf;
+      const sin = Math.sqrt(Math.max(0, 1 - pf * pf));
+      const component = R * pf + X * sin;
+      if (phase === '1' || phase === '2-120' || phase === '2-180') return (I * L * 2 * component) / 1000;
+      if (phase === '3') return (I * L * Math.sqrt(3) * component) / 1000;
+    }
+    return 0;
+  }
+
+  // ── EARTH SIZE TABLE (simplified AS/NZS 3000 Table 5.1) ────
+  const EARTH_SIZE = {
+    1:1, 1.5:1.5, 2.5:2.5, 4:2.5, 6:2.5, 10:4, 16:6,
+    25:6, 35:10, 50:16, 70:25, 95:35, 120:50, 150:70,
+    185:95, 240:120, 300:150, 400:185, 500:240
+  };
+
+  let allRows = [];
+  let showingAll = false;
+  let selectedRowCSA = null;
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    const voltage  = getVoltage();
+    const rating   = parseFloat(ratingEl.value) || 0;
+    const rUnit    = ratingUnitEl.value;
+    const distance = parseFloat(distanceEl.value) || 0;
+    const phase    = phaseEl.value;
+    const isCu     = conductorEl.value === 'copper';
+    const vdPct    = getVdPercent();
+    const pfType   = loadPfType.value;
+    const specPf   = parseFloat(specPfEl.value) || 0.85;
+    const isSingle = cableTypeEl.value.toLowerCase().includes('single');
+    const nParallel = parallelEl.checked ? parseInt(parallelCnt.value) : 1;
+
+    if (!voltage || !rating || !distance) {
+      alert('Please fill in Voltage, Rating, and Cable Distance.');
+      return;
+    }
+
+    const I = toAmps(rating, rUnit, voltage, phase);
+    const allowedVD = voltage * vdPct / 100;
+    const ratings = isCu ? CURRENT_RATING_CU : CURRENT_RATING_AL;
+
+    // Build all rows
+    allRows = [];
+    let recommendedCSA = null;
+
+    for (const [csa, CuR, AlR, multiX, singleX] of CABLE_DATA) {
+      const R = isCu ? CuR : AlR;
+      if (R === null) continue;
+      const X = phase === 'DC' ? 0 : (isSingle ? singleX : multiX);
+      const vd = calcVD(I / nParallel, distance, R, X, phase, pfType, specPf);
+      const vdPctActual = (vd / voltage) * 100;
+      const Imax = (ratings[csa] || 0) * nParallel;
+      const earthSize = EARTH_SIZE[csa] || csa;
+      const currentOk = I <= Imax;
+      const vdOk = vd <= allowedVD;
+
+      allRows.push({ csa, vd, vdPctActual, Imax, earthSize, currentOk, vdOk });
+
+      // First row where both pass = recommended
+      if (recommendedCSA === null && currentOk && vdOk) {
+        recommendedCSA = csa;
+      }
+    }
+
+    selectedRowCSA = recommendedCSA;
+    showingAll = false;
+    renderTable();
+
+    // Load summary
+    const loadAmps = I.toFixed(1);
+    document.getElementById('loadSummary').innerHTML = `
+      <div class="load-summary-row"><span>Load current</span><strong>${loadAmps} A</strong></div>
+    `;
+
+    resultsSection.classList.add('show');
+    resultsSection.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+
+  function renderTable() {
+    const tbody = document.getElementById('resultsBody');
+    const showMoreBtn = document.getElementById('showMoreBtn');
+    const displayRows = showingAll ? allRows : allRows.slice(0, 9);
+
+    tbody.innerHTML = displayRows.map(row => {
+      const isSelected = row.csa === selectedRowCSA;
+      const currentClass = row.currentOk ? 'cell-green' : 'cell-red';
+      const vdClass = row.vdOk ? 'cell-green' : 'cell-red';
+      const rowClass = isSelected ? 'selected-row' : '';
+
+      return `<tr class="${rowClass}" data-csa="${row.csa}">
+        <td class="td-select"><span class="radio-dot ${isSelected ? 'checked' : ''}"></span></td>
+        <td>${row.csa}</td>
+        <td class="cell-green">${row.earthSize}</td>
+        <td class="${currentClass}">${row.Imax || '-'}</td>
+        <td class="${vdClass}">${row.vdPctActual.toFixed(1)}</td>
+      </tr>`;
+    }).join('');
+
+    // Row click to select
+    tbody.querySelectorAll('tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        selectedRowCSA = parseFloat(tr.dataset.csa);
+        renderTable();
+        renderCableSummary();
+      });
+    });
+
+    showMoreBtn.style.display = (!showingAll && allRows.length > 9) ? 'block' : 'none';
+    renderCableSummary();
+  }
+
+  function renderCableSummary() {
+    const row = allRows.find(r => r.csa === selectedRowCSA);
+    if (!row) return;
+    const phase = phaseEl.value;
+    const isCu = conductorEl.value === 'copper';
+    const cableType = cableTypeEl.value;
+    const nParallel = parallelEl.checked ? parseInt(parallelCnt.value) : 1;
+    const conductorLabel = isCu ? 'Copper' : 'Aluminium';
+
+    let coreRows = '';
+    if (phase === '3') {
+      coreRows = `
+        <div class="cable-summary-row"><span>Phase 1 core</span><span class="cable-summary-val">${row.csa} mm²</span></div>
+        <div class="cable-summary-row"><span>Phase 2 core</span><span class="cable-summary-val">${row.csa} mm²</span></div>
+        <div class="cable-summary-row"><span>Phase 3 core</span><span class="cable-summary-val">${row.csa} mm²</span></div>
+      `;
+      if (!cableType.includes('mains')) {
+        coreRows += `<div class="cable-summary-row"><span>Neutral core</span><span class="cable-summary-val">${row.csa} mm²</span></div>`;
+      }
+    } else {
+      coreRows = `
+        <div class="cable-summary-row"><span>Phase core</span><span class="cable-summary-val">${row.csa} mm²</span></div>
+        <div class="cable-summary-row"><span>Neutral core</span><span class="cable-summary-val">${row.csa} mm²</span></div>
+      `;
+    }
+
+    document.getElementById('cableSummary').innerHTML = `
+      <div class="cable-summary-title">Cable</div>
+      ${coreRows}
+      <div class="cable-summary-row"><span>Earth core</span><span class="cable-summary-val">${row.earthSize} mm²</span></div>
+      <div class="cable-summary-row"><span>Conductor</span><span class="cable-summary-val">${conductorLabel}</span></div>
+      <div class="cable-summary-row"><span>Current rating</span><span class="cable-summary-val">${row.Imax} A</span></div>
+      <div class="cable-summary-row"><span>Voltage drop</span><span class="cable-summary-val">${row.vd.toFixed(2)} V (${row.vdPctActual.toFixed(2)} %)</span></div>
+      ${nParallel > 1 ? `<div class="cable-summary-row"><span>Parallel cables</span><span class="cable-summary-val">${nParallel}</span></div>` : ''}
+    `;
+  }
+
+  document.getElementById('showMoreBtn').addEventListener('click', () => {
+    showingAll = true;
+    renderTable();
+    document.getElementById('showMoreBtn').style.display = 'none';
+  });
+
+  // ── RESET ──────────────────────────────────────────────────
+  document.getElementById('cableForm').addEventListener('reset', () => {
+    setTimeout(() => {
+      updateVoltage();
+      updateCableTypes();
+      voltCustomRow.style.display = 'none';
+      vdCustomRow.style.display = 'none';
+      pfRow.style.display = 'none';
+      parallelRow.style.display = 'none';
+      vdAdvPanel.classList.remove('show');
+      specPfRow.style.display = 'none';
+      resultsSection.classList.remove('show');
+    }, 10);
+  });
+
+  // ── INIT ───────────────────────────────────────────────────
+  updateVoltage();
+  updateCableTypes();
+  installSvgContainer.innerHTML = selectedInstall.svg;
+  installText.textContent = selectedInstall.title;
+  </script>
+
+  <!-- INFO MODAL -->
+
+  <div class="info-modal-overlay" id="infoModal">
+    <div class="info-modal-box">
+      <div class="info-modal-header">
+        <h3 id="infoModalTitle">Information</h3>
+        <button class="info-modal-close" id="infoModalClose">&times;</button>
+      </div>
+      <div class="info-modal-body" id="infoModalBody"></div>
+    </div>
+  </div>
+
+  <script>
+  // ── INFO CONTENT ───────────────────────────────────────────
+  const INFO_CONTENT = {
+    'standard': {
+      title: 'Standard',
+      html: `<p>Select the relevant part in <strong>AS/NZS 3008: 2017</strong>.</p>
+        <table>
+          <tr><th>Part</th><th>Conditions</th></tr>
+          <tr><td><strong>Part 1</strong> — Australian</td><td>Air 40°C. Soil 25°C.</td></tr>
+          <tr><td><strong>Part 2</strong> — New Zealand</td><td>Air 30°C. Soil 15°C.</td></tr>
+        </table>
+        <p>The differences between the parts are:</p>
+        <ul>
+          <li>Rating tables, Table 4 to 15.</li>
+          <li>Air temperature derating, Table 27(1).</li>
+          <li>Soil temperature derating, Table 27(2).</li>
+        </ul>`
+    },
+    'phase': {
+      title: 'Phase',
+      html: `<p>Select the phase arrangement of the supply.</p>
+        <table>
+          <tr><th>Phase</th><th>Typical Use</th></tr>
+          <tr><td><strong>3 Phase AC</strong> — 400V, 415V</td><td>Large loads and consumer mains.</td></tr>
+          <tr><td><strong>1 Phase AC</strong> — 230V, 240V</td><td>Smaller loads and consumer mains.</td></tr>
+          <tr><td><strong>DC</strong> — 12V, 24V, 110V</td><td>Battery and DC systems.</td></tr>
+          <tr><td><strong>2 Phase 120°</strong> — 400V, 415V</td><td>Industrial and commercial lighting. Occasionally used as residential mains.</td></tr>
+          <tr><td><strong>2 Phase 180°</strong> — 480V, 460V</td><td>Rural mains and large rural loads on SWER systems.</td></tr>
+        </table>`
+    },
+    'voltage': {
+      title: 'Voltage',
+      html: `<p>Select the supply voltage. If the required voltage is not listed, choose <strong>Other</strong> and enter a custom value.</p>
+        <table>
+          <tr><th>Phase</th><th>Voltage Range</th></tr>
+          <tr><td>3 Phase AC / 2 Phase</td><td>1 V to 1,000 V phase-to-phase</td></tr>
+          <tr><td>1 Phase AC / DC</td><td>1 V to 1,000 V phase-to-neutral</td></tr>
+        </table>`
+    },
+    'voltage-custom': {
+      title: 'Specify Voltage',
+      html: `<p>Enter a custom voltage value in volts (V).</p>
+        <ul>
+          <li>For 3 Phase AC and 2 Phase: enter the <strong>phase-to-phase</strong> voltage.</li>
+          <li>For 1 Phase AC and DC: enter the <strong>phase-to-neutral</strong> voltage.</li>
+          <li>Valid range: 1 V to 1,000 V.</li>
+        </ul>`
+    },
+    'rating': {
+      title: 'Rating',
+      html: `<p>Specify the load rating. Select the unit from the dropdown: <strong>kW, kVA, A,</strong> or <strong>hp</strong>.</p>
+        <p>When entering in <strong>Amperes (A)</strong>, enter the per-phase line current. For example, for a 3-phase system drawing 100 A per phase, enter <strong>100 A</strong> — not 300 A.</p>
+        <p>For kW and hp ratings, a <strong>power factor</strong> input will appear. This is used to convert the power rating to current.</p>`
+    },
+    'pf': {
+      title: 'Power Factor',
+      html: `<p>The load power factor, used to convert kW or hp ratings to current.</p>
+        <p>Enter a value between <strong>0</strong> and <strong>1</strong>. Typical values:</p>
+        <ul>
+          <li>Resistive loads (heaters): 1.0</li>
+          <li>Motors at full load: 0.85 – 0.95</li>
+          <li>Lighting: 0.85 – 0.9</li>
+          <li>Mixed loads: 0.8 – 0.9</li>
+        </ul>`
+    },
+    'max-vd': {
+      title: 'Max. Voltage Drop',
+      html: `<p>The maximum allowable voltage drop from the source to the load, expressed as a percentage of the supply voltage.</p>
+        <p>AS/NZS 3000 recommends:</p>
+        <ul>
+          <li><strong>3%</strong> — for sub-mains and final sub-circuits (most common).</li>
+          <li><strong>5%</strong> — maximum allowable for any circuit.</li>
+        </ul>
+        <p>A lower percentage means a larger (more expensive) cable is required, but better voltage regulation at the load.</p>`
+    },
+    'distance': {
+      title: 'Cable Distance',
+      html: `<p>The cable length in metres from the <strong>source to the load</strong>. Enter one-way distance only.</p>
+        <p>The calculator automatically includes the return conductor length in its calculations:</p>
+        <ul>
+          <li><strong>Single phase & DC:</strong> total length = 2 × distance</li>
+          <li><strong>3 Phase:</strong> uses √3 factor — one-way distance only</li>
+        </ul>`
+    },
+    'vd-advanced': {
+      title: 'Advanced Options',
+      html: `<p>Enable to access additional voltage drop calculation options:</p>
+        <ul>
+          <li><strong>Conductor temperature</strong> — choose how resistance is calculated based on operating temperature.</li>
+          <li><strong>Load power factor</strong> — choose between worst-case (conservative) or a specified power factor for voltage drop calculation.</li>
+        </ul>`
+    },
+    'conductor-temp': {
+      title: 'Conductor Temperature',
+      html: `<p>Determines which resistance value is used for voltage drop calculations.</p>
+        <table>
+          <tr><th>Option</th><th>Description</th></tr>
+          <tr><td><strong>Calculated</strong> (default)</td><td>The actual operating temperature is calculated. Resistance is selected from the next higher temperature column in AS/NZS 3008 Table 34/35. Less conservative — typically gives a smaller cable.</td></tr>
+          <tr><td><strong>Maximum</strong></td><td>Uses the maximum rated insulation temperature. Most conservative option — may result in a larger cable size.</td></tr>
+        </table>`
+    },
+    'load-pf': {
+      title: 'Load Power Factor',
+      html: `<p>Determines how the power factor is used in the voltage drop calculation.</p>
+        <table>
+          <tr><th>Option</th><th>Description</th></tr>
+          <tr><td><strong>Worst case</strong> (default)</td><td>Uses the worst-case power factor: Zc = √(Rc² + Xc²). Most conservative. No power factor input required.</td></tr>
+          <tr><td><strong>Specified</strong></td><td>Uses your specified load power factor: VD = I × L × (R·cosφ + X·sinφ). More accurate when the load power factor is known and stable.</td></tr>
+        </table>`
+    },
+    'insulation': {
+      title: 'Insulation',
+      html: `<p>Select the cable insulation type. This determines the maximum operating temperature and current rating.</p>
+        <table>
+          <tr><th>Type</th><th>Description</th><th>Max Temp</th></tr>
+          <tr><td><strong>V-90</strong></td><td>Standard PVC. Most common.</td><td>75°C</td></tr>
+          <tr><td><strong>V-90HT</strong></td><td>High temperature PVC. Up to 105°C temporarily.</td><td>75°C</td></tr>
+          <tr><td><strong>V-75</strong></td><td>Traditional (older) PVC type.</td><td>75°C</td></tr>
+          <tr><td><strong>X-90</strong></td><td>Standard XLPE. Most popular XLPE.</td><td>90°C</td></tr>
+          <tr><td><strong>X-HF-90</strong></td><td>XLPE fire rated.</td><td>90°C</td></tr>
+          <tr><td><strong>X-110</strong></td><td>High temperature XLPE.</td><td>110°C</td></tr>
+          <tr><td><strong>X-HF-110</strong></td><td>High temperature, fire rated XLPE.</td><td>110°C</td></tr>
+          <tr><td><strong>R-EP-90</strong></td><td>Standard elastomer (rubber).</td><td>90°C</td></tr>
+        </table>`
+    },
+    'cable-type': {
+      title: 'Cable Type',
+      html: `<p>Select the cable configuration based on your phase selection.</p>
+        <table>
+          <tr><th>Type</th><th>Description</th></tr>
+          <tr><td><strong>Multi-core 2C+E</strong></td><td>1 live + 1 neutral + 1 earth core. Standard single-phase cable.</td></tr>
+          <tr><td><strong>Multi-core 2C (mains)</strong></td><td>1 live + 1 combined earth/neutral core.</td></tr>
+          <tr><td><strong>Multi-core 3C+E</strong></td><td>3 phase cores + 1 earth core.</td></tr>
+          <tr><td><strong>Multi-core 4C+E</strong></td><td>3 phase + 1 neutral + 1 earth core. Most common 3-phase cable.</td></tr>
+          <tr><td><strong>Multi-core 4C (mains)</strong></td><td>3 phase + 1 combined earth/neutral core.</td></tr>
+          <tr><td><strong>Single-cores</strong></td><td>Separate individual cables run together for each conductor.</td></tr>
+        </table>`
+    },
+    'flexible': {
+      title: 'Flexible Cable',
+      html: `<p>Select if the cable is a flexible type (e.g. for appliances, portable equipment or where frequent movement occurs).</p>
+        <p>Flexible cables use finely stranded conductors and are rated differently from fixed-wiring cables under AS/NZS 3008.</p>
+        <p>Typical flexible applications:</p>
+        <ul>
+          <li>Extension leads and power boards</li>
+          <li>Appliance power cords</li>
+          <li>Pendant luminaires</li>
+          <li>Portable tools and equipment</li>
+        </ul>`
+    },
+    'conductor': {
+      title: 'Conductor',
+      html: `<p>Select the conductor material.</p>
+        <table>
+          <tr><th>Material</th><th>Notes</th></tr>
+          <tr><td><strong>Copper</strong></td><td>Higher conductivity. Smaller cable size for same current. Most common for fixed wiring.</td></tr>
+          <tr><td><strong>Aluminium</strong></td><td>Lower conductivity — requires a larger cross-section. Lighter and cheaper per metre for large cables. Common for mains and sub-mains above 16 mm².</td></tr>
+        </table>
+        <p>Aluminium is not available for cable sizes below 4 mm².</p>`
+    },
+    'active-size': {
+      title: 'Active Size',
+      html: `<p>Select a specific cable size (mm²) or choose <strong>Auto</strong>.</p>
+        <p>In <strong>Auto</strong> mode, the calculator selects the smallest cable that meets all of the following criteria:</p>
+        <ul>
+          <li>Current rating (from AS/NZS 3008 Tables 4–21)</li>
+          <li>Voltage drop limit</li>
+        </ul>
+        <p>If you select a specific size, the calculator will check it against the criteria and highlight any failures in the results table.</p>`
+    },
+    'parallel': {
+      title: 'Parallel Cables',
+      html: `<p>Enable to use multiple cables per phase in parallel — used for high-current installations where a single cable would be too large or impractical.</p>
+        <p>The minimum allowable size for parallel cables is <strong>4 mm²</strong> as specified in AS/NZS 3000.</p>
+        <p>The number of parallel cables refers to the number of multi-core cables, or the number of single-core cable groups, in the circuit.</p>
+        <p>Note: Parallel cables are not supported for <strong>Exposed to Sun</strong> installations per AS/NZS 3008.</p>`
+    },
+    'earth-size': {
+      title: 'Earth Size',
+      html: `<p>Select an earth conductor size or choose <strong>Auto</strong>.</p>
+        <p>In <strong>Auto</strong> mode, the minimum earth size is selected from <strong>Table 5.1 in AS/NZS 3000</strong>.</p>
+        <table>
+          <tr><th>Active Size (mm²)</th><th>Min Earth (mm²)</th></tr>
+          <tr><td>1 – 4</td><td>Same as active</td></tr>
+          <tr><td>6 – 16</td><td>2.5 – 6</td></tr>
+          <tr><td>25 – 35</td><td>6 – 10</td></tr>
+          <tr><td>50 – 95</td><td>16 – 35</td></tr>
+          <tr><td>120 – 300</td><td>50 – 150</td></tr>
+        </table>`
+    },
+    'installation': {
+      title: 'Installation Method',
+      html: `<p>Select the installation method that represents the <strong>worst-case section</strong> of the cable run — the section with the lowest current rating.</p>
+        <table>
+          <tr><th>Method</th><th>Description</th></tr>
+          <tr><td><strong>Spaced from surface</strong></td><td>Ladder, tray or catenary wire.</td></tr>
+          <tr><td><strong>Touching surface</strong></td><td>Wall, floor, ceiling, tray or ventilated trench.</td></tr>
+          <tr><td><strong>Exposed to sun</strong></td><td>Any surface, direct solar exposure.</td></tr>
+          <tr><td><strong>Wiring enclosure in air</strong></td><td>Conduit or trench with removable covers.</td></tr>
+          <tr><td><strong>Partial thermal insulation</strong></td><td>Partially surrounded by insulation material.</td></tr>
+          <tr><td><strong>Full thermal insulation</strong></td><td>Completely surrounded by insulation material.</td></tr>
+          <tr><td><strong>Buried direct</strong></td><td>Underground, buried directly in soil.</td></tr>
+          <tr><td><strong>Underground enclosure</strong></td><td>In underground conduit or duct.</td></tr>
+        </table>`
+    },
+  };
+
+  const infoModal = document.getElementById('infoModal');
+  const infoModalTitle = document.getElementById('infoModalTitle');
+  const infoModalBody  = document.getElementById('infoModalBody');
+  const infoModalClose = document.getElementById('infoModalClose');
+
+  function openInfoModal(key) {
+    const content = INFO_CONTENT[key];
+    if (!content) return;
+    infoModalTitle.textContent = content.title;
+    infoModalBody.innerHTML = content.html;
+    infoModal.classList.add('show');
+  }
+
+  document.addEventListener('click', e => {
+    const icon = e.target.closest('.info-icon[data-info]');
+    if (icon) {
+      e.stopPropagation();
+      openInfoModal(icon.dataset.info);
+    }
+  });
+
+  infoModalClose.addEventListener('click', () => infoModal.classList.remove('show'));
+  infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal.classList.remove('show'); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') infoModal.classList.remove('show'); });
+  </script>
+
+</body>
+</html>
