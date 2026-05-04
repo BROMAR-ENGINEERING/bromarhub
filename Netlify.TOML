@@ -1,0 +1,11 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[[redirects]]
+  from = "/api/submit-timesheet"
+  to = "/.netlify/functions/submit-timesheet"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
