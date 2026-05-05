@@ -581,6 +581,24 @@
 <body>
     <!-- Login Container (shown when NOT logged in) -->
     <div id="loginContainer" style="display: none;">
+        <!-- Dark mode toggle on login page -->
+        <button id="loginDarkModeToggle" class="control-btn" aria-label="Toggle dark mode" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+            <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+        
         <div class="login-box">
             <div class="login-logo">
                 <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical" class="logo-image light-logo">
@@ -600,7 +618,7 @@
                         type="email" 
                         id="loginEmail" 
                         class="form-input" 
-                        placeholder="your.name@bromarelectrical.com.au"
+                        placeholder="yourname@bromar.com.au"
                         required
                         autocomplete="email"
                     />
@@ -628,8 +646,8 @@
             </div>
             
             <div class="login-footer">
-                © 2026 Bromar Electrical Services<br>
-                For support, contact administration
+                For Bromar Electrical Services Employees only.<br>
+                For any support or further information please contact admin@bromar.com.au
             </div>
         </div>
     </div>
@@ -943,7 +961,7 @@
     </footer>
     </div><!-- End hubContent -->
 
-    <div class="revision-number">V1.02</div>
+    <div class="revision-number">V1.03</div>
 
     <script>
         // ==========================================
@@ -1111,6 +1129,7 @@
         // DARK MODE TOGGLE
         // ==========================================
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const loginDarkModeToggle = document.getElementById('loginDarkModeToggle');
         const htmlElement = document.documentElement;
 
         // Check for system preference first, then saved preference
@@ -1127,7 +1146,7 @@
         }
 
         // Set initial theme
-        const currentTheme = 'dark'; // Force dark mode for preview
+        const currentTheme = getInitialTheme();
         htmlElement.setAttribute('data-theme', currentTheme);
 
         // Listen for system preference changes
@@ -1141,11 +1160,16 @@
             });
         }
 
-        darkModeToggle.addEventListener('click', function() {
+        // Toggle function
+        function toggleDarkMode() {
             const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             htmlElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-        });
+        }
+
+        // Attach to both buttons
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+        loginDarkModeToggle.addEventListener('click', toggleDarkMode);
 
         // ==========================================
         // SEARCH FUNCTIONALITY
