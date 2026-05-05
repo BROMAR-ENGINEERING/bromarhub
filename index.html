@@ -955,7 +955,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
@@ -968,7 +968,7 @@
         // CHECK AUTHENTICATION STATUS
         // ==========================================
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (session) {
                 // User is logged in
@@ -1012,7 +1012,7 @@
             loginButton.textContent = 'Logging in...';
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -1053,7 +1053,7 @@
         // LOGOUT HANDLER
         // ==========================================
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-            const { error } = await supabase.auth.signOut();
+            const { error } = await supabaseClient.auth.signOut();
             
             if (!error) {
                 showLogin();
@@ -1077,7 +1077,7 @@
                 errorDiv.style.display = 'none';
                 successDiv.style.display = 'none';
                 
-                const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email.trim(), {
                     redirectTo: window.location.origin + '/index.html'
                 });
                 
@@ -1096,7 +1096,7 @@
         // ==========================================
         // LISTEN FOR AUTH STATE CHANGES
         // ==========================================
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') {
                 showHub();
             } else if (event === 'SIGNED_OUT') {
