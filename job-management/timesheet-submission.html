@@ -1582,12 +1582,14 @@
             <option value="Job Number">Job Number</option>
             <option value="Call Out">Call Out</option>
             <option value="Stand Down Time (Callout)">Stand Down Time (Callout)</option>
+            <option value="Stand Down Time (Shift Change)">Stand Down Time (Shift Change)</option>
             <option value="RDO">RDO</option>
             <option value="Annual Leave">Annual Leave</option>
             <option value="Carer's Leave">Carer's Leave</option>
             <option value="Sick Leave">Sick Leave</option>
-            <option value="Trade School" style="display: none;">Trade School</option>
-            <option value="TIL (Taken)" style="display: none;">TIL (Taken)</option>
+            <option value="Unpaid Leave">Unpaid Leave</option>
+            <option value="Trade School">Trade School</option>
+            <option value="TIL (Taken)">TIL (Taken)</option>
             <option value="Travel">Travel</option>
             <option value="Long Service Leave">Long Service Leave</option>
             <option value="Other">Other</option>
@@ -1600,12 +1602,12 @@
         ${!isWeekend ? `
           <div class="job-field">
             <label>Normal Hours</label>
-            <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="8" step="0.5" placeholder="0.0" autocomplete="off"/>
+            <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="8" step="0.25" placeholder="0.0" autocomplete="off"/>
           </div>
         ` : ''}
         <div class="job-field ${!isWeekend ? '' : 'full'}">
           <label class="overtime-label">Overtime Hours</label>
-          <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.5" placeholder="0.0" autocomplete="off"/>
+          <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.25" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field job-number-field" style="display: none;">
           <label>Job Number</label>
@@ -1722,7 +1724,7 @@
       }
       
       // Auto-fill hours for leave types - fill remaining hours up to 8
-      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)'];
+      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
       if (normalHoursInput && leaveTypes.includes(e.target.value)) {
         if (!normalHoursInput.value || normalHoursInput.value === '0') {
           // Calculate how many hours are already used on this day
@@ -1931,6 +1933,7 @@
 
     // Track which weekdays (0-4 = Mon-Fri) have hours
     const weekdaysWithHours = new Set();
+    let totalWeeklyNormalHours = 0;
     const allJobRows = document.querySelectorAll('.job-row');
     
     allJobRows.forEach(row => {
@@ -1959,6 +1962,12 @@
         }
         const normalHours = parseFloat(normalValue) || 0;
         const overtimeHours = parseFloat(overtimeValue) || 0;
+        
+        // Count normal hours for weekly total (excluding Travel)
+        if (typeSelect.value !== 'Travel') {
+          totalWeeklyNormalHours += normalHours;
+        }
+        
         if (normalHours <= 0 && overtimeHours <= 0) {
           if (normalHoursInput) {
             normalHoursInput.classList.add('error');
@@ -1996,6 +2005,15 @@
       const firstMissingCard = document.querySelector(`.day-card:nth-child(${firstMissingIndex + 1})`);
       if (firstMissingCard && !firstErrorElement) {
         firstErrorElement = firstMissingCard;
+      }
+    }
+    
+    // Check that weekly normal hours equals 40 (excluding Travel)
+    if (totalWeeklyNormalHours !== 40) {
+      alert(`Total normal hours must equal 40 hours per week.\n\nCurrent total: ${totalWeeklyNormalHours.toFixed(2)} hours\n\n(Note: Travel hours are excluded from this count)`);
+      valid = false;
+      if (!firstErrorElement) {
+        firstErrorElement = document.querySelector('.day-card');
       }
     }
 
@@ -2113,6 +2131,9 @@
   function updateEmployeeTypeOptions() {
     const employeeType = employeeTypeSelect.value;
     const isEngineer = employeeType === 'Engineer';
+    const isElectrician = employeeType === 'Electrician';
+    const isApprentice = employeeType === 'Apprentice';
+    const isOther = employeeType === 'Other';
     
     // Update Overtime labels to TIL for Engineers
     const allOvertimeLabels = document.querySelectorAll('.overtime-label');
@@ -2121,28 +2142,54 @@
     });
     
     // Show/hide Construction Wiring based on employee type
-    if (employeeType === 'Electrician') {
+    if (isElectrician) {
       constructionWiringCheckbox.style.display = 'inline-flex';
     } else {
       constructionWiringCheckbox.style.display = 'none';
       document.getElementById('allowance_construction_wiring').checked = false;
     }
     
-    // Update job type dropdowns to show/hide Trade School, TIL, and RDO
+    // Update job type dropdowns based on employee type
     document.querySelectorAll('.job-type').forEach(select => {
       const tradeSchoolOption = select.querySelector('option[value="Trade School"]');
       const tilOption = select.querySelector('option[value="TIL (Taken)"]');
       const rdoOption = select.querySelector('option[value="RDO"]');
+      const longServiceOption = select.querySelector('option[value="Long Service Leave"]');
       
-      if (tradeSchoolOption) {
-        tradeSchoolOption.style.display = employeeType === 'Apprentice' ? 'block' : 'none';
+      // Electrician: Remove TIL and Trade School
+      if (isElectrician) {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'block';
       }
-      if (tilOption) {
-        tilOption.style.display = isEngineer ? 'block' : 'none';
+      // Apprentice: Remove TIL and Long Service Leave
+      else if (isApprentice) {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'block';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'none';
       }
-      if (rdoOption) {
-        // Hide RDO for Engineers
-        rdoOption.style.display = isEngineer ? 'none' : 'block';
+      // Engineer: Remove RDO
+      else if (isEngineer) {
+        if (tilOption) tilOption.style.display = 'block';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'none';
+        if (longServiceOption) longServiceOption.style.display = 'block';
+      }
+      // Other: All options available
+      else if (isOther) {
+        if (tilOption) tilOption.style.display = 'block';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'block';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'block';
+      }
+      // Default: Hide all special options
+      else {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'none';
+        if (longServiceOption) longServiceOption.style.display = 'none';
       }
     });
   }
