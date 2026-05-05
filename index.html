@@ -100,9 +100,10 @@
         .header-controls {
             position: absolute;
             top: 1rem;
+            left: 2rem;
             right: 2rem;
             display: flex;
-            gap: 0.75rem;
+            justify-content: space-between;
             z-index: 10;
         }
 
@@ -631,7 +632,7 @@
     <div id="hubContent" style="display: none;">
     <div class="header">
         <div class="header-controls">
-            <button id="logoutBtn" class="control-btn" style="display: none; margin-right: auto;" aria-label="Logout">
+            <button id="logoutBtn" class="control-btn" style="display: none;" aria-label="Logout">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
