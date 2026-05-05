@@ -43,6 +43,7 @@ exports.handler = async (event) => {
     const timesheetEntries = [];
     let totalNormalHours = 0;
     let totalOvertimeHours = 0;
+    let totalTravelHours = 0;
 
     console.log('=== FUNCTION DEBUG: Parsing timesheet data ===');
     console.log('Total form fields received:', Object.keys(formData).length);
@@ -69,10 +70,11 @@ exports.handler = async (event) => {
         const type = formData[`${jobPrefix}_type`];
         const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
         const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
+        const travelHours = parseFloat(formData[`${jobPrefix}_travel_time`]) || 0;
         
-        console.log(`  Job ${jobIndex}: type="${type}", normal=${normalHours}, OT=${overtimeHours}`);
+        console.log(`  Job ${jobIndex}: type="${type}", normal=${normalHours}, OT=${overtimeHours}, travel=${travelHours}`);
         
-        if (type && (normalHours > 0 || overtimeHours > 0)) {
+        if (type && (normalHours > 0 || overtimeHours > 0 || travelHours > 0)) {
           foundJobsForDay++;
           const jobNumber = formData[`${jobPrefix}_number`] || '-';
           const client = formData[`${jobPrefix}_client`] || '-';
@@ -97,6 +99,7 @@ exports.handler = async (event) => {
             type,
             normal_hours: normalHours,
             overtime_hours: overtimeHours,
+            travel_hours: travelHours,
             job_number: jobNumber,
             client,
             allowances: allowances.join(', ') || '-',
@@ -110,6 +113,7 @@ exports.handler = async (event) => {
 
           totalNormalHours += normalHours;
           totalOvertimeHours += overtimeHours;
+          totalTravelHours += travelHours;
           console.log(`    ✓ Added to timesheet`);
         } else {
           console.log(`    ✗ Skipped (no type or no hours)`);
@@ -124,6 +128,7 @@ exports.handler = async (event) => {
     console.log(`Total entries: ${timesheetEntries.length}`);
     console.log(`Total normal hours: ${totalNormalHours}`);
     console.log(`Total OT hours: ${totalOvertimeHours}`);
+    console.log(`Total travel hours: ${totalTravelHours}`);
     console.log(`Standby checkbox: ${standby}`);
 
     const totalHours = totalNormalHours + totalOvertimeHours;
@@ -131,7 +136,7 @@ exports.handler = async (event) => {
     // ============================================
     // SAVE TO SUPABASE
     // ============================================
-    const { data: timesheetRecord, error: dbError } = await supabase
+    const { data: timesheetRecord, error: dbError} = await supabase
       .from('timesheets')
       .insert({
         employee_name: employeeName,
@@ -140,6 +145,7 @@ exports.handler = async (event) => {
         week_starting: weekStarting,
         total_normal_hours: totalNormalHours,
         total_overtime_hours: totalOvertimeHours,
+        total_travel_hours: totalTravelHours,
         total_hours: totalHours,
         on_call_standby: standby,
         allowance_first_aid: allowanceFirstAid,
@@ -171,6 +177,7 @@ exports.handler = async (event) => {
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.type}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.normal_hours.toFixed(1)}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.overtime_hours.toFixed(1)}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.travel_hours.toFixed(1)}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.job_number}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.client}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.allowances}</td>
@@ -226,16 +233,20 @@ exports.handler = async (event) => {
 
                     <!-- Hours Summary -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Hours Summary</p>
-                    <div style="display:flex;gap:12px;margin-bottom:24px;">
-                      <div style="flex:1;background:#eff6ff;border-left:4px solid #1a56db;border-radius:6px;padding:16px;">
+                    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+                      <div style="flex:1;min-width:150px;background:#eff6ff;border-left:4px solid #1a56db;border-radius:6px;padding:16px;">
                         <div style="font-size:11px;color:#1e40af;font-weight:600;text-transform:uppercase;">Normal Hours</div>
                         <div style="font-size:28px;color:#1a56db;font-weight:700;">${totalNormalHours.toFixed(1)}</div>
                       </div>
-                      <div style="flex:1;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
+                      <div style="flex:1;min-width:150px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
                         <div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;">Overtime</div>
                         <div style="font-size:28px;color:#f59e0b;font-weight:700;">${totalOvertimeHours.toFixed(1)}</div>
                       </div>
-                      <div style="flex:1;background:#f0fdf4;border-left:4px solid #0e9f6e;border-radius:6px;padding:16px;">
+                      <div style="flex:1;min-width:150px;background:#f3e8ff;border-left:4px solid #9333ea;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#581c87;font-weight:600;text-transform:uppercase;">Travel</div>
+                        <div style="font-size:28px;color:#9333ea;font-weight:700;">${totalTravelHours.toFixed(1)}</div>
+                      </div>
+                      <div style="flex:1;min-width:150px;background:#f0fdf4;border-left:4px solid #0e9f6e;border-radius:6px;padding:16px;">
                         <div style="font-size:11px;color:#065f46;font-weight:600;text-transform:uppercase;">Total Hours</div>
                         <div style="font-size:28px;color:#0e9f6e;font-weight:700;">${totalHours.toFixed(1)}</div>
                       </div>
@@ -264,6 +275,7 @@ exports.handler = async (event) => {
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Type</th>
                           <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Normal</th>
                           <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">OT</th>
+                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Travel</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Job #</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Client</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Allowances</th>
