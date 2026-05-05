@@ -278,7 +278,7 @@ exports.handler = async (event) => {
 
     // Send email via SendGrid
     const msg = {
-      to: 'ashleys@bromar.com.au',
+      to: 'servicet@bromar.com.au',
       from: 'servicet@bromar.com.au', // Must be verified in SendGrid
       replyTo: 'admin@bromar.com.au',
       subject: `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`,
