@@ -131,6 +131,28 @@
             transform: translateY(-2px);
         }
 
+        .control-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.95);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+        }
+
+        .control-btn:hover::after {
+            opacity: 1;
+        }
+
         .control-btn svg {
             width: 18px;
             height: 18px;
@@ -562,7 +584,7 @@
     <!-- Login Container (shown when NOT logged in) -->
     <div id="loginContainer" style="display: none;">
         <!-- Dark mode toggle on login page -->
-        <button id="loginDarkModeToggle" class="control-btn" aria-label="Toggle dark mode" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button id="loginDarkModeToggle" class="control-btn" aria-label="Toggle dark mode" data-tooltip="Toggle theme" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
             <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -636,14 +658,14 @@
     <div id="hubContent" style="display: none;">
     <div class="header">
         <div class="header-controls">
-            <button id="logoutBtn" class="control-btn" style="display: none;" aria-label="Logout">
+            <button id="logoutBtn" class="control-btn" style="display: none;" aria-label="Logout" data-tooltip="Logout">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
                     <line x1="21" y1="12" x2="9" y2="12"></line>
                 </svg>
             </button>
-            <button id="darkModeToggle" class="control-btn" aria-label="Toggle dark mode">
+            <button id="darkModeToggle" class="control-btn" aria-label="Toggle dark mode" data-tooltip="Toggle theme">
                 <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"></circle>
                     <line x1="12" y1="1" x2="12" y2="3"></line>
