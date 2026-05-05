@@ -262,6 +262,7 @@
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3rem;
+            grid-auto-rows: 1fr;
         }
 
         .card {
@@ -273,9 +274,9 @@
             border: 1px solid var(--border);
             cursor: pointer;
             position: relative;
-            min-height: 200px;
             display: flex;
             flex-direction: column;
+            height: 100%;
         }
 
         .card:hover {
