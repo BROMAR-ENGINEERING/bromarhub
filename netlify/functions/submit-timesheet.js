@@ -44,6 +44,9 @@ exports.handler = async (event) => {
     let totalNormalHours = 0;
     let totalOvertimeHours = 0;
 
+    console.log('=== FUNCTION DEBUG: Parsing timesheet data ===');
+    console.log('Total form fields received:', Object.keys(formData).length);
+
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const dayPrefix = `day_${dayIndex}`;
       const shift = formData[`${dayPrefix}_shift`] || 'Day';
@@ -55,15 +58,22 @@ exports.handler = async (event) => {
       const calloutStart = formData[`${dayPrefix}_callout_start`] || null;
       const calloutFinish = formData[`${dayPrefix}_callout_finish`] || null;
 
+      console.log(`\n--- Day ${dayIndex} (${days[dayIndex]}) ---`);
+      
       // Find all jobs for this day - using the correct field naming: job-{dayIndex}-{jobIndex}
       let jobIndex = 0;
+      let foundJobsForDay = 0;
+      
       while (formData[`job-${dayIndex}-${jobIndex}_type`]) {
         const jobPrefix = `job-${dayIndex}-${jobIndex}`;
         const type = formData[`${jobPrefix}_type`];
         const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
         const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
         
+        console.log(`  Job ${jobIndex}: type="${type}", normal=${normalHours}, OT=${overtimeHours}`);
+        
         if (type && (normalHours > 0 || overtimeHours > 0)) {
+          foundJobsForDay++;
           const jobNumber = formData[`${jobPrefix}_number`] || '-';
           const client = formData[`${jobPrefix}_client`] || '-';
           const siteAllowance = formData[`${jobPrefix}_site_allowance`] === 'on';
@@ -100,11 +110,21 @@ exports.handler = async (event) => {
 
           totalNormalHours += normalHours;
           totalOvertimeHours += overtimeHours;
+          console.log(`    ✓ Added to timesheet`);
+        } else {
+          console.log(`    ✗ Skipped (no type or no hours)`);
         }
         
         jobIndex++;
       }
+      console.log(`  Total jobs found for ${days[dayIndex]}: ${foundJobsForDay}`);
     }
+
+    console.log(`\n=== SUMMARY ===`);
+    console.log(`Total entries: ${timesheetEntries.length}`);
+    console.log(`Total normal hours: ${totalNormalHours}`);
+    console.log(`Total OT hours: ${totalOvertimeHours}`);
+    console.log(`Standby checkbox: ${standby}`);
 
     const totalHours = totalNormalHours + totalOvertimeHours;
 
