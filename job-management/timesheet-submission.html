@@ -1590,7 +1590,7 @@
             <option value="Unpaid Leave">Unpaid Leave</option>
             <option value="Trade School">Trade School</option>
             <option value="TIL (Taken)">TIL (Taken)</option>
-            <option value="Travel">Travel</option>
+            <option value="Travel (outside 50km radius)">Travel (outside 50km radius)</option>
             <option value="Long Service Leave">Long Service Leave</option>
             <option value="Other">Other</option>
           </select>
@@ -1600,14 +1600,18 @@
           <input type="text" name="${jobId}_other_type" placeholder="Enter type..." autocomplete="off"/>
         </div>
         ${!isWeekend ? `
-          <div class="job-field">
+          <div class="job-field normal-hours-field">
             <label>Normal Hours</label>
             <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="8" step="0.25" placeholder="0.0" autocomplete="off"/>
           </div>
         ` : ''}
-        <div class="job-field ${!isWeekend ? '' : 'full'}">
+        <div class="job-field overtime-hours-field ${!isWeekend ? '' : 'full'}">
           <label class="overtime-label">Overtime Hours</label>
           <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.25" placeholder="0.0" autocomplete="off"/>
+        </div>
+        <div class="job-field travel-time-field" style="display: none;">
+          <label>Travel Time</label>
+          <input type="number" name="${jobId}_travel_time" data-day="${dayIndex}" class="job-hours travel-hours" min="0" max="24" step="0.25" placeholder="0.0" autocomplete="off"/>
         </div>
         <div class="job-field job-number-field" style="display: none;">
           <label>Job Number</label>
@@ -1666,6 +1670,10 @@
     const normalHoursInput = jobRow.querySelector('.normal-hours');
     
     typeSelect.addEventListener('change', (e) => {
+      const travelTimeField = jobRow.querySelector('.travel-time-field');
+      const normalHoursField = jobRow.querySelector('.normal-hours-field');
+      const overtimeHoursField = jobRow.querySelector('.overtime-hours-field');
+      
       if (e.target.value === 'Job Number') {
         jobNumberField.style.display = 'block';
         clientField.style.display = 'block';
@@ -1673,6 +1681,9 @@
         otherTypeField.style.display = 'none';
         calloutReceivedField.style.display = 'none';
         calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
       } else if (e.target.value === 'Call Out') {
         jobNumberField.style.display = 'block';
         clientField.style.display = 'block';
@@ -1680,6 +1691,9 @@
         calloutCompleteField.style.display = 'block';
         allowanceCheckboxes.style.display = 'flex';
         otherTypeField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
         
         // Call Out is overtime-only: disable normal hours, default overtime to 4
         if (normalHoursInput) {
@@ -1700,6 +1714,21 @@
         
         // Check if we need to show 10-hour break checkbox on next day
         checkCallOutBreak(dayIndex);
+      } else if (e.target.value === 'Travel (outside 50km radius)') {
+        // Travel: Hide normal/overtime, show travel time only
+        jobNumberField.style.display = 'none';
+        clientField.style.display = 'none';
+        allowanceCheckboxes.style.display = 'none';
+        otherTypeField.style.display = 'none';
+        calloutReceivedField.style.display = 'none';
+        calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'block';
+        if (normalHoursField) normalHoursField.style.display = 'none';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'none';
+        
+        // Clear normal and overtime when switching to travel
+        if (normalHoursInput) normalHoursInput.value = '0';
+        if (overtimeHoursInput) overtimeHoursInput.value = '0';
       } else if (e.target.value === 'Other') {
         jobNumberField.style.display = 'none';
         clientField.style.display = 'none';
@@ -1707,6 +1736,9 @@
         otherTypeField.style.display = 'block';
         calloutReceivedField.style.display = 'none';
         calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
       } else {
         jobNumberField.style.display = 'none';
         clientField.style.display = 'none';
@@ -1714,6 +1746,9 @@
         otherTypeField.style.display = 'none';
         calloutReceivedField.style.display = 'none';
         calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
         
         // Re-enable normal hours when not Call Out
         if (normalHoursInput) {
@@ -1940,6 +1975,7 @@
       const typeSelect = row.querySelector('.job-type');
       const normalHoursInput = row.querySelector('.normal-hours');
       const overtimeHoursInput = row.querySelector('.overtime-hours');
+      const travelHoursInput = row.querySelector('.travel-hours');
       
       // Get the day index from the job row's ID or parent
       const jobId = row.dataset.jobId || '';
@@ -1951,7 +1987,8 @@
       // Only validate if type is selected or any hours entered
       const normalValue = normalHoursInput ? normalHoursInput.value : '';
       const overtimeValue = overtimeHoursInput ? overtimeHoursInput.value : '';
-      const hasData = typeSelect.value || normalValue || overtimeValue;
+      const travelValue = travelHoursInput ? travelHoursInput.value : '';
+      const hasData = typeSelect.value || normalValue || overtimeValue || travelValue;
       
       if (hasData) {
         // If type is selected, require hours
@@ -1962,26 +1999,43 @@
         }
         const normalHours = parseFloat(normalValue) || 0;
         const overtimeHours = parseFloat(overtimeValue) || 0;
+        const travelHours = parseFloat(travelValue) || 0;
         
         // Count normal hours for weekly total (excluding Travel)
-        if (typeSelect.value !== 'Travel') {
+        if (typeSelect.value !== 'Travel (outside 50km radius)') {
           totalWeeklyNormalHours += normalHours;
         }
         
-        if (normalHours <= 0 && overtimeHours <= 0) {
-          if (normalHoursInput) {
-            normalHoursInput.classList.add('error');
-            if (!firstErrorElement) firstErrorElement = normalHoursInput;
+        // For Travel, check travel hours; for others, check normal/overtime
+        if (typeSelect.value === 'Travel (outside 50km radius)') {
+          if (travelHours <= 0) {
+            if (travelHoursInput) {
+              travelHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = travelHoursInput;
+            }
+            valid = false;
+          } else {
+            // Has valid travel hours - mark this day as complete
+            if (dayIndex >= 0 && dayIndex <= 4) {
+              weekdaysWithHours.add(dayIndex);
+            }
           }
-          if (overtimeHoursInput) {
-            overtimeHoursInput.classList.add('error');
-            if (!firstErrorElement) firstErrorElement = overtimeHoursInput;
-          }
-          valid = false;
         } else {
-          // Has valid hours - mark this day as complete
-          if (dayIndex >= 0 && dayIndex <= 4) { // Only weekdays
-            weekdaysWithHours.add(dayIndex);
+          if (normalHours <= 0 && overtimeHours <= 0) {
+            if (normalHoursInput) {
+              normalHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = normalHoursInput;
+            }
+            if (overtimeHoursInput) {
+              overtimeHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = overtimeHoursInput;
+            }
+            valid = false;
+          } else {
+            // Has valid hours - mark this day as complete
+            if (dayIndex >= 0 && dayIndex <= 4) { // Only weekdays
+              weekdaysWithHours.add(dayIndex);
+            }
           }
         }
       }
