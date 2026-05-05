@@ -55,10 +55,10 @@ exports.handler = async (event) => {
       const calloutStart = formData[`${dayPrefix}_callout_start`] || null;
       const calloutFinish = formData[`${dayPrefix}_callout_finish`] || null;
 
-      // Find all jobs for this day
+      // Find all jobs for this day - using the correct field naming: job-{dayIndex}-{jobIndex}
       let jobIndex = 0;
-      while (formData[`${dayPrefix}_${jobIndex}_type`]) {
-        const jobPrefix = `${dayPrefix}_${jobIndex}`;
+      while (formData[`job-${dayIndex}-${jobIndex}_type`]) {
+        const jobPrefix = `job-${dayIndex}-${jobIndex}`;
         const type = formData[`${jobPrefix}_type`];
         const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
         const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
