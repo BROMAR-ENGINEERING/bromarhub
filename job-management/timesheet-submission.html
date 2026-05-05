@@ -1921,14 +1921,21 @@
     check('group-employee-type', !!employeeType);
     check('group-week', !!weekStarting);
 
-    // Check that at least ONE day has hours entered
-    let hasAnyHours = false;
+    // Track which weekdays (0-4 = Mon-Fri) have hours
+    const weekdaysWithHours = new Set();
     const allJobRows = document.querySelectorAll('.job-row');
     
     allJobRows.forEach(row => {
       const typeSelect = row.querySelector('.job-type');
       const normalHoursInput = row.querySelector('.normal-hours');
       const overtimeHoursInput = row.querySelector('.overtime-hours');
+      
+      // Get the day index from the job row's ID or parent
+      const jobId = row.dataset.jobId || '';
+      const dayMatch = jobId.match(/job-(\d+)-/);
+      if (!dayMatch) return;
+      
+      const dayIndex = parseInt(dayMatch[1]);
       
       // Only validate if type is selected or any hours entered
       const normalValue = normalHoursInput ? normalHoursInput.value : '';
@@ -1955,20 +1962,32 @@
           }
           valid = false;
         } else {
-          // Has valid hours
-          hasAnyHours = true;
+          // Has valid hours - mark this day as complete
+          if (dayIndex >= 0 && dayIndex <= 4) { // Only weekdays
+            weekdaysWithHours.add(dayIndex);
+          }
         }
       }
     });
 
-    // Must have at least one day with hours
-    if (!hasAnyHours) {
-      alert('Please enter hours for at least one day before submitting.');
+    // Check that ALL 5 weekdays (Mon-Fri, indices 0-4) have hours
+    const missingDays = [];
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    for (let i = 0; i < 5; i++) {
+      if (!weekdaysWithHours.has(i)) {
+        missingDays.push(dayNames[i]);
+      }
+    }
+
+    if (missingDays.length > 0) {
+      alert(`Please enter hours for all weekdays before submitting.\n\nMissing: ${missingDays.join(', ')}`);
       valid = false;
-      // Scroll to first day card
-      const firstDayCard = document.querySelector('.day-card');
-      if (firstDayCard && !firstErrorElement) {
-        firstErrorElement = firstDayCard;
+      
+      // Scroll to first missing day
+      const firstMissingIndex = dayNames.indexOf(missingDays[0]);
+      const firstMissingCard = document.querySelector(`.day-card:nth-child(${firstMissingIndex + 1})`);
+      if (firstMissingCard && !firstErrorElement) {
+        firstErrorElement = firstMissingCard;
       }
     }
 
