@@ -23,12 +23,16 @@
             --bg-card: #2d2d2d;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --border: #404040;
+            --border: #333333;
             --shadow: rgba(0, 0, 0, 0.5);
         }
 
         [data-theme="dark"] .header {
             background: linear-gradient(135deg, #2d2d2d 0%, #2d2d2d 100%);
+        }
+
+        [data-theme="dark"] body {
+            background: #000000 !important;
         }
 
         [data-theme="dark"] h1 {
@@ -189,7 +193,7 @@
         }
 
         .search-bar {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 1rem 1.5rem;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -197,148 +201,58 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
         }
 
-        .search-bar input {
+        [data-theme="dark"] .search-bar {
+            box-shadow: 0 10px 40px var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 10px 40px rgba(249, 115, 22, 0.2);
+        }
+
+        .search-icon {
+            color: #94a3b8;
+            font-size: 1.25rem;
+        }
+
+        .search-input {
             flex: 1;
             border: none;
             outline: none;
             font-size: 1rem;
             font-family: 'DM Sans', sans-serif;
-            color: var(--text-primary);
             background: transparent;
-        }
-
-        .search-bar input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .search-results {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            margin-bottom: 3rem;
-            display: none;
-        }
-
-        .search-results.active {
-            display: block;
-        }
-
-        .search-results-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
             color: var(--text-primary);
         }
 
-        .search-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        [data-theme="dark"] .search-results {
-            background: var(--bg-card);
-        }
-
-        [data-theme="dark"] .search-bar {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-        }
-
-        [data-theme="dark"] .search-bar input {
-            color: var(--text-primary);
-        }
-
-        [data-theme="dark"] .search-bar input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        /* Announcement Banner */
-        .announcement-banner {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            border-left: 4px solid #3b82f6;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
-        }
-
-        .announcement-banner.hidden {
-            display: none;
-        }
-
-        .announcement-icon {
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .announcement-content {
-            flex: 1;
-        }
-
-        .announcement-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1e40af;
-            margin-bottom: 0.25rem;
-        }
-
-        .announcement-text {
-            font-size: 0.875rem;
-            color: #1e3a8a;
-            line-height: 1.5;
-        }
-
-        [data-theme="dark"] .announcement-banner {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-color: #3b82f6;
-        }
-
-        [data-theme="dark"] .announcement-title {
-            color: #93c5fd;
-        }
-
-        [data-theme="dark"] .announcement-text {
-            color: #bfdbfe;
-        }
-
-        [data-theme="dark"] .search-icon {
-            color: var(--text-secondary);
-        }
-
-        .search-icon {
-            color: var(--text-secondary);
-            font-size: 1.25rem;
+        .search-input::placeholder {
+            color: #94a3b8;
         }
 
         .section-title {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-left: 1rem;
         }
 
         .section-title::before {
             content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
             width: 4px;
-            height: 28px;
+            height: 24px;
             background: var(--accent);
-            border-radius: 4px;
+            border-radius: 2px;
         }
 
         .grid {
@@ -348,72 +262,38 @@
             margin-bottom: 3rem;
         }
 
-        .grid > a {
-            display: flex;
-            height: 100%;
-        }
-
         .card {
             background: var(--bg-card);
             border-radius: 12px;
             padding: 1.75rem;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.3s ease;
             border: 1px solid var(--border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            width: 100%;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-            border-color: var(--primary);
-        }
-
-        .card:hover::before {
-            transform: scaleX(1);
+            box-shadow: 0 8px 24px var(--shadow);
+            border-color: var(--accent);
         }
 
         .card-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #374151, #1f2937);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 2.5rem;
             margin-bottom: 1rem;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.4);
-            filter: contrast(1.2) brightness(1.1);
+            display: block;
         }
 
         .card-title {
             font-size: 1.125rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
             color: var(--text-primary);
+            margin-bottom: 0.5rem;
         }
 
         .card-description {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
             line-height: 1.5;
         }
@@ -421,176 +301,130 @@
         .badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
-            background: #fef3c7;
-            color: #92400e;
-            border-radius: 6px;
+            border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
-            margin-top: auto;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-top: 0.75rem;
         }
 
-        .badge.new {
-            background: #dbeafe;
-            color: #1e40af;
+        .coming-soon {
+            background: #fef3c7;
+            color: #92400e;
         }
 
-        .badge.coming-soon {
-            background: #e5e7eb;
-            color: #6b7280;
+        [data-theme="dark"] .coming-soon {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .announcement-banner {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            text-align: center;
+        }
+
+        [data-theme="dark"] .announcement-banner {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        .announcement-banner h3 {
+            font-size: 1.125rem;
             font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .announcement-banner p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .search-results {
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.125rem;
         }
 
         .footer {
-            background: #ea580c;
+            background: var(--accent);
             color: white;
-            padding: 2rem;
             text-align: center;
+            padding: 2rem;
             margin-top: 4rem;
         }
 
         .footer p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.875rem;
+            margin: 0;
+            font-size: 0.9rem;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card {
-            animation: fadeIn 0.5s ease-out backwards;
-        }
-
-        .grid .card:nth-child(1) { animation-delay: 0.05s; }
-        .grid .card:nth-child(2) { animation-delay: 0.1s; }
-        .grid .card:nth-child(3) { animation-delay: 0.15s; }
-        .grid .card:nth-child(4) { animation-delay: 0.2s; }
-        .grid .card:nth-child(5) { animation-delay: 0.25s; }
-        .grid .card:nth-child(6) { animation-delay: 0.3s; }
-        .grid .card:nth-child(7) { animation-delay: 0.35s; }
-        .grid .card:nth-child(8) { animation-delay: 0.4s; }
-        .grid .card:nth-child(9) { animation-delay: 0.45s; }
-        .grid .card:nth-child(10) { animation-delay: 0.5s; }
-        .grid .card:nth-child(11) { animation-delay: 0.55s; }
-        .grid .card:nth-child(12) { animation-delay: 0.6s; }
-        .grid .card:nth-child(13) { animation-delay: 0.65s; }
-        .grid .card:nth-child(14) { animation-delay: 0.7s; }
-        .grid .card:nth-child(15) { animation-delay: 0.75s; }
-        .grid .card:nth-child(16) { animation-delay: 0.8s; }
-        .grid .card:nth-child(17) { animation-delay: 0.85s; }
-        .grid .card:nth-child(18) { animation-delay: 0.9s; }
-        .grid .card:nth-child(19) { animation-delay: 0.95s; }
-        .grid .card:nth-child(20) { animation-delay: 1s; }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .subtitle {
-                font-size: 1rem;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                margin-top: -2rem;
-            }
-
-            .header-controls {
-                position: static;
-                margin-top: 1rem;
-                justify-content: center;
-            }
-        }
-
-        @media print {
-            .header-controls,
-            .search-bar,
-            .footer {
-                display: none;
-            }
-
-            .card {
-                break-inside: avoid;
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-
-            .card:hover {
-                transform: none;
-            }
-
-            body {
-                background: white;
-            }
-
-            .header {
-                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+        .revision-number {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.5;
+            font-family: 'Space Mono', monospace;
         }
     </style>
 </head>
 <body>
-    <header class="header">
+    <div class="header">
+        <div class="header-controls">
+            <button id="darkModeToggle" class="control-btn" aria-label="Toggle dark mode">
+                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
         <div class="header-content">
-            <div class="header-controls">
-                <button class="control-btn" id="darkModeToggle" aria-label="Toggle dark mode">
-                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"/>
-                        <line x1="12" y1="1" x2="12" y2="3"/>
-                        <line x1="12" y1="21" x2="12" y2="23"/>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                        <line x1="1" y1="12" x2="3" y2="12"/>
-                        <line x1="21" y1="12" x2="23" y2="12"/>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                    </svg>
-                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                </button>
-            </div>
             <div class="logo-container">
-                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical Services Logo" class="logo-image light-logo">
-                <img src="Bromar-Primary-Logo-Reverse-White.png" alt="Bromar Electrical Services Logo" class="logo-image dark-logo">
+                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" class="logo-image light-logo">
+                <img src="Bromar-Primary-Logo-Reverse-White.png" alt="Bromar Logo" class="logo-image dark-logo">
             </div>
             <h1>Bromar Hub</h1>
-            <p class="subtitle">Welcome to Bromar Hub — all employee resources and tools in one convenient place</p>
+            <p class="subtitle">Employee Portal & Resources</p>
         </div>
-    </header>
+    </div>
 
     <div class="container">
         <div class="search-bar">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search for forms, policies, or resources...">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search for forms, resources, schedules...">
         </div>
 
-        <div class="search-results" id="searchResults">
-            <h3 class="search-results-title">Search Results</h3>
-            <div class="search-results-grid" id="searchResultsGrid"></div>
+        <div class="announcement-banner">
+            <h3>📢 Announcement Banner</h3>
+            <p>Coming Soon</p>
         </div>
 
-        <!-- Announcement Banner (Coming Soon) -->
-        <div class="announcement-banner" id="announcementBanner">
-            <span class="announcement-icon">📢</span>
-            <div class="announcement-content">
-                <div class="announcement-text">Announcement Banner - Coming Soon</div>
-            </div>
+        <div id="searchResults" class="search-results">
+            <h2 class="section-title">Search Results</h2>
+            <div id="searchResultsGrid" class="grid"></div>
         </div>
 
         <div id="allSections">
@@ -598,28 +432,42 @@
             <h2 class="section-title">Job Management</h2>
             <div class="grid">
                 <a href="job-management/timesheet-submission.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="job-management" data-keywords="time sheet hours weekly">
+                    <div class="card" data-category="job-management" data-keywords="timesheet time sheet hours worked weekly pay payroll submit">
                         <div class="card-icon">⏰</div>
                         <h3 class="card-title">Timesheet Submission</h3>
-                        <p class="card-description">Submit your weekly timesheet</p>
+                        <p class="card-description">Submit your weekly timesheet for payroll processing</p>
                     </div>
                 </a>
 
                 <a href="job-management/jobsheet-submission.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="job-management" data-keywords="job sheet work order site report">
+                    <div class="card" data-category="job-management" data-keywords="jobsheet job sheet work order task client submit">
                         <div class="card-icon">📋</div>
                         <h3 class="card-title">Jobsheet Submission</h3>
-                        <p class="card-description">Submit completed job sheets and site reports</p>
+                        <p class="card-description">Submit completed job details and work documentation</p>
                     </div>
                 </a>
 
                 <a href="job-management/daily-service-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="job-management" data-keywords="daily service report dsr daily log work summary">
-                        <div class="card-icon">📊</div>
+                    <div class="card" data-category="job-management" data-keywords="daily service report dsr site work daily log">
+                        <div class="card-icon">📝</div>
                         <h3 class="card-title">Daily Service Report</h3>
-                        <p class="card-description">Submit your daily service report and work summary</p>
+                        <p class="card-description">Daily work summary and site activity report</p>
                     </div>
                 </a>
+
+                <div class="card" data-category="job-management" data-keywords="purchase order po procurement buying materials supplies vendor">
+                    <div class="card-icon">🛒</div>
+                    <h3 class="card-title">Purchase Order</h3>
+                    <p class="card-description">Create and submit purchase orders for materials</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
+
+                <div class="card" data-category="job-management" data-keywords="job number register tracker list jobs project numbers">
+                    <div class="card-icon">📊</div>
+                    <h3 class="card-title">Job Number Register</h3>
+                    <p class="card-description">View and search all active job numbers</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
@@ -627,118 +475,116 @@
             <h2 class="section-title">Safety</h2>
             <div class="grid">
                 <a href="safety/incident-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="safety" data-keywords="accident injury emergency incident safety report">
+                    <div class="card" data-category="safety" data-keywords="incident report accident injury hazard safety near miss emergency">
                         <div class="card-icon">⚠️</div>
                         <h3 class="card-title">Incident Report</h3>
-                        <p class="card-description">Report workplace incidents and accidents immediately</p>
+                        <p class="card-description">Report workplace incidents, injuries, or near misses</p>
                     </div>
                 </a>
 
                 <a href="safety/hazard-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="safety" data-keywords="danger risk unsafe hazard safety concern">
-                        <div class="card-icon">🛡️</div>
+                    <div class="card" data-category="safety" data-keywords="hazard report danger risk unsafe safety warning observation">
+                        <div class="card-icon">🚨</div>
                         <h3 class="card-title">Hazard Report</h3>
-                        <p class="card-description">Identify and report workplace hazards and safety concerns</p>
+                        <p class="card-description">Report potential hazards and unsafe conditions</p>
                     </div>
                 </a>
 
-                <!-- <a href="safety/uniform-request.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="safety" data-keywords="clothes clothing shirt pants workwear uniform">
-                        <div class="card-icon">👕</div>
-                        <h3 class="card-title">Uniform Request</h3>
-                        <p class="card-description">Request new uniforms or replacement items</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="safety" data-keywords="ppe personal protective equipment uniform request safety gear gloves boots helmet hard hat glasses vest hi-vis shirt pants work wear clothing apparel">
+                    <div class="card-icon">🦺</div>
+                    <h3 class="card-title">PPE/Uniform Request</h3>
+                    <p class="card-description">Request personal protective equipment and work uniforms</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
-                <!-- <a href="safety/ppe-request.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="safety" data-keywords="ppe personal protective equipment safety gear gloves boots helmet hard hat glasses vest hi-vis">
-                        <div class="card-icon">🦺</div>
-                        <h3 class="card-title">PPE Request</h3>
-                        <p class="card-description">Request personal protective equipment and safety gear</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact certified">
+                    <div class="card-icon">🏥</div>
+                    <h3 class="card-title">First Aiders</h3>
+                    <p class="card-description">Contact list of certified first aiders</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
-                <!-- <a href="safety/first-aiders.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact">
-                        <div class="card-icon">🏥</div>
-                        <h3 class="card-title">First Aiders</h3>
-                        <p class="card-description">List of qualified first aiders and their contact information</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="safety" data-keywords="toolbox talk discussion safety meeting training topic swms">
+                    <div class="card-icon">🧰</div>
+                    <h3 class="card-title">Toolbox Discussion Submission</h3>
+                    <p class="card-description">Submit toolbox talk attendance and topics discussed</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
+
+                <div class="card" data-category="safety" data-keywords="toolbox talk resources safety topics presentations swms">
+                    <div class="card-icon">📑</div>
+                    <h3 class="card-title">Toolbox Talk Resources</h3>
+                    <p class="card-description">Access safety presentations and discussion materials</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
         <section>
-            <h2 class="section-title">Schedules & Rosters</h2>
+            <h2 class="section-title">Schedules</h2>
             <div class="grid">
-                <!-- <a href="schedules/callout-roster.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules" data-keywords="call out callout on-call oncall emergency phone roster schedule contact">
-                        <div class="card-icon">📞</div>
-                        <h3 class="card-title">Call Out Roster</h3>
-                        <p class="card-description">View current on-call schedule and contact information</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="schedules" data-keywords="call out callout on-call oncall emergency phone roster schedule contact after hours">
+                    <div class="card-icon">📞</div>
+                    <h3 class="card-title">Call Out Roster</h3>
+                    <p class="card-description">Current on-call schedule and emergency contacts</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
-                <!-- <a href="schedules/rdo-roster.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules" data-keywords="rdo rostered days off roster schedule day off">
-                        <div class="card-icon">📅</div>
-                        <h3 class="card-title">RDO Roster</h3>
-                        <p class="card-description">Check rostered days off schedule</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="schedules" data-keywords="rdo roster days off leave schedule etu roster">
+                    <div class="card-icon">📅</div>
+                    <h3 class="card-title">RDO Roster</h3>
+                    <p class="card-description">Rostered days off schedule</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
                 <a href="schedules/etu-rdo-calendar.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="schedules" data-keywords="etu rostered days off rdo calendar schedule union">
-                        <div class="card-icon">🗓️</div>
+                    <div class="card" data-category="schedules" data-keywords="etu rdo calendar days off leave schedule rostered union">
+                        <div class="card-icon">📆</div>
                         <h3 class="card-title">ETU RDO Calendar</h3>
-                        <p class="card-description">View ETU rostered days off calendar</p>
+                        <p class="card-description">ETU rostered days off calendar</p>
                     </div>
                 </a>
 
-                <!-- <a href="schedules/callout-roster-change.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="schedules" data-keywords="call out callout swap change roster schedule trade switch">
-                        <div class="card-icon">🔄</div>
-                        <h3 class="card-title">Call Out Roster Change Request</h3>
-                        <p class="card-description">Only submit this request if you and another employee have already agreed to swap weeks</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="schedules" data-keywords="call out callout roster change swap emergency phone on-call">
+                    <div class="card-icon">🔄</div>
+                    <h3 class="card-title">Call Out Roster Change</h3>
+                    <p class="card-description">Request changes to on-call roster assignments</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
         <section>
             <h2 class="section-title">Standards & Knowledge</h2>
             <div class="grid">
-                <!-- <a href="standards/standards.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="standards" data-keywords="standards regulations codes australian international electrical as nzs">
-                        <div class="card-icon">⚡</div>
-                        <h3 class="card-title">Standards</h3>
-                        <p class="card-description">A collection of Australian and international standards, regulations, and code references</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="standards" data-keywords="standards as3000 wiring rules regulations compliance electrical standards code">
+                    <div class="card-icon">📘</div>
+                    <h3 class="card-title">AS3000 Wiring Rules</h3>
+                    <p class="card-description">Australian electrical standards and regulations</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
                 <a href="https://discovery-chatbot.vercel.app/tools/code-assistant" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="standards" data-keywords="as3000 ai assistant chatbot electrical wiring rules code help">
+                    <div class="card" data-category="standards" data-keywords="ai assistant as3000 chatbot electrical assistant wiring rules help code help standards help">
                         <div class="card-icon">🤖</div>
                         <h3 class="card-title">AS3000 AI Assistant</h3>
-                        <p class="card-description">AI-powered assistant for AS3000 electrical wiring rules and code questions</p>
+                        <p class="card-description">AI-powered assistant for AS3000 wiring rules queries</p>
                     </div>
                 </a>
 
-                <!-- <a href="standards/technical-resources.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="standards" data-keywords="technical resources guides diagrams reference materials manuals">
-                        <div class="card-icon">📚</div>
-                        <h3 class="card-title">Technical Resources</h3>
-                        <p class="card-description">Technical guides, diagrams, and reference materials</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="standards" data-keywords="technical resources documents manuals guides specifications datasheets">
+                    <div class="card-icon">📚</div>
+                    <h3 class="card-title">Technical Resources</h3>
+                    <p class="card-description">Manuals, guides, and technical documentation</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
+
+                <div class="card" data-category="standards" data-keywords="cable calculator voltage drop cable sizing wire size electrical calculations conductor ampacity">
+                    <div class="card-icon">🔢</div>
+                    <h3 class="card-title">Cable Calculator</h3>
+                    <p class="card-description">Calculate cable sizes and voltage drop</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
@@ -746,81 +592,58 @@
             <h2 class="section-title">Employee Resources</h2>
             <div class="grid">
                 <a href="employee-resources/leave-request.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee" data-keywords="leave vacation holiday sick time off annual personal carer carers compassionate long service lsl bereavement parental maternity paternity">
-                        <div class="card-icon">📝</div>
-                        <h3 class="card-title">Leave Request Form</h3>
-                        <p class="card-description">Submit your leave request</p>
+                    <div class="card" data-category="employee-resources" data-keywords="leave vacation holiday sick time off annual personal carer carers compassionate long service lsl bereavement parental maternity paternity request">
+                        <div class="card-icon">🏖️</div>
+                        <h3 class="card-title">Leave Request</h3>
+                        <p class="card-description">Apply for annual, sick, or other types of leave</p>
                     </div>
                 </a>
 
                 <a href="employee-resources/eba.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee" data-keywords="eba enterprise bargaining agreement union pay wages conditions contract">
+                    <div class="card" data-category="employee-resources" data-keywords="eba enterprise bargaining agreement contract union pay rates conditions">
                         <div class="card-icon">📜</div>
                         <h3 class="card-title">Enterprise Bargaining Agreement</h3>
-                        <p class="card-description">View the current EBA terms and conditions</p>
+                        <p class="card-description">View the current EBA and employment conditions</p>
                     </div>
                 </a>
 
-                <!-- <a href="employee-resources/company-policies.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="policy policies procedures rules handbook manual">
-                        <div class="card-icon">📋</div>
-                        <h3 class="card-title">Company Policies</h3>
-                        <p class="card-description">Browse all company policies and procedures</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="employee-resources/toolbox-discussion-submission.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="toolbox talk discussion safety meeting topic suggestion">
-                        <div class="card-icon">💬</div>
-                        <h3 class="card-title">Toolbox Discussion Submission</h3>
-                        <p class="card-description">Submit topics for upcoming toolbox talk discussions</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="employee-resources/toolbox-talk-resources.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="toolbox talk safety training materials resources meeting">
-                        <div class="card-icon">🔨</div>
-                        <h3 class="card-title">Toolbox Talk Resources</h3>
-                        <p class="card-description">Access safety talks and training materials</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="employee-resources" data-keywords="company policies procedures handbook rules guidelines">
+                    <div class="card-icon">📖</div>
+                    <h3 class="card-title">Company Policies</h3>
+                    <p class="card-description">Access employee handbook and company policies</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
 
                 <a href="employee-resources/expense-claim.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee" data-keywords="expense claim reimbursement receipt money refund petty cash">
+                    <div class="card" data-category="employee-resources" data-keywords="expense claim reimbursement receipt money cost out of pocket materials tools">
                         <div class="card-icon">💰</div>
-                        <h3 class="card-title">Expense Claim Form</h3>
-                        <p class="card-description">Submit expenses for reimbursement</p>
+                        <h3 class="card-title">Expense Claim</h3>
+                        <p class="card-description">Submit expense claims for reimbursement</p>
                     </div>
                 </a>
 
                 <a href="employee-resources/employee-change-details.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee" data-keywords="change details update address phone contact information personal">
-                        <div class="card-icon">👤</div>
+                    <div class="card" data-category="employee-resources" data-keywords="employee change details update address phone email contact information personal">
+                        <div class="card-icon">✏️</div>
                         <h3 class="card-title">Employee Change of Details</h3>
-                        <p class="card-description">Update your personal information and contact details</p>
+                        <p class="card-description">Update your personal contact information</p>
                     </div>
                 </a>
 
-                <!-- <a href="employee-resources/suggestions-feedback.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="suggestion feedback idea complaint anonymous improve">
+                <a href="employee-resources/suggestions-feedback.html" style="text-decoration: none; color: inherit;">
+                    <div class="card" data-category="employee-resources" data-keywords="suggestions feedback ideas improvements complaints concerns">
                         <div class="card-icon">💡</div>
                         <h3 class="card-title">Suggestions & Feedback</h3>
-                        <p class="card-description">Share your ideas and feedback anonymously or with your name</p>
-                        <span class="badge coming-soon">Coming Soon</span>
+                        <p class="card-description">Share your ideas and feedback with management</p>
                     </div>
-                <!-- </a> -->
+                </a>
 
-                <!-- <a href="employee-resources/faq.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="employee" data-keywords="faq frequently asked questions help answers common">
-                        <div class="card-icon">❓</div>
-                        <h3 class="card-title">FAQ Section</h3>
-                        <p class="card-description">Find answers to commonly asked questions</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="employee-resources" data-keywords="faq frequently asked questions help support answers common">
+                    <div class="card-icon">❓</div>
+                    <h3 class="card-title">FAQ</h3>
+                    <p class="card-description">Frequently asked questions and answers</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
@@ -835,14 +658,12 @@
                     </div>
                 </a>
 
-                <!-- <a href="fleet-management/vehicle-maintenance-audit.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="fleet" data-keywords="car truck van vehicle maintenance history log audit fleet">
-                        <div class="card-icon">🔍</div>
-                        <h3 class="card-title">Vehicle Maintenance Audit</h3>
-                        <p class="card-description">View vehicle maintenance history and audit logs</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
+                <div class="card" data-category="fleet" data-keywords="car truck van vehicle maintenance history log audit fleet">
+                    <div class="card-icon">🔍</div>
+                    <h3 class="card-title">Vehicle Maintenance Audit</h3>
+                    <p class="card-description">View vehicle maintenance history and audit logs</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
             </div>
         </section>
 
@@ -850,48 +671,12 @@
             <h2 class="section-title">Client Sites</h2>
             <div class="grid">
                 <a href="client-sites/tyrecycle/tyrecyclehome.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="sites" data-keywords="tyrecycle somerton client site">
+                    <div class="card" data-category="sites" data-keywords="client sites tyrecycle somerton grain bake steelmains elastomers abey locations">
                         <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Tyrecycle</h3>
-                        <p class="card-description">Somerton</p>
+                        <h3 class="card-title">Client Sites</h3>
+                        <p class="card-description">Access client site information and resources</p>
                     </div>
                 </a>
-
-                <!-- <a href="client-sites/grain-and-bake-moorabbin.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="sites" data-keywords="grain bake moorabbin airport client site">
-                        <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Grain & Bake</h3>
-                        <p class="card-description">Moorabbin Airport</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="client-sites/steelmains-somerton.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="sites" data-keywords="steelmains somerton client site">
-                        <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Steelmains</h3>
-                        <p class="card-description">Somerton</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="client-sites/elastomers-dandenong-south.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="sites" data-keywords="elastomers dandenong south client site">
-                        <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Elastomers</h3>
-                        <p class="card-description">Dandenong South</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
-
-                <!-- <a href="client-sites/abey-melton.html" style="text-decoration: none; color: inherit;"> -->
-                    <div class="card" data-category="sites" data-keywords="abey melton client site">
-                        <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Abey</h3>
-                        <p class="card-description">Melton</p>
-                        <span class="badge coming-soon">Coming Soon</span>
-                    </div>
-                <!-- </a> -->
             </div>
         </section>
         </div>
@@ -901,6 +686,8 @@
         <p>&copy; 2026 Bromar Electrical Services. This page is intended for Bromar employees only. For support, contact administration or management.</p>
         <p style="margin-top: 0.5rem;"><a href="employee-resources/suggestions-feedback.html" style="color: #ffffff; text-decoration: underline; font-weight: 600;">Report a Bug or Issue with the Hub →</a></p>
     </footer>
+
+    <div class="revision-number">V1.01</div>
 
     <script>
         // Dark mode toggle with system preference detection
@@ -921,7 +708,7 @@
         }
 
         // Set initial theme
-        const currentTheme = getInitialTheme();
+        const currentTheme = 'dark'; // Force dark mode for preview
         htmlElement.setAttribute('data-theme', currentTheme);
 
         // Listen for system preference changes
