@@ -943,7 +943,7 @@
       <!-- ON-CALL STANDBY -->
       <div class="standby-section">
         <label class="standby-label">
-          <input type="checkbox" id="standby" name="standby" value="Yes"/>
+          <input type="checkbox" id="standby" name="standby"/>
           <span>📞 I was on call/afterhours standby this week</span>
         </label>
         <p style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0 32px; line-height: 1.5;">
@@ -1556,12 +1556,14 @@
     return card;
   }
 
-  let jobCounter = 0;
-
   function addJobRow(dayBody, dayIndex) {
     const isWeekend = dayIndex >= 5; // Saturday (5) and Sunday (6)
-    const jobCount = dayBody.querySelectorAll('.job-row').length;
-    const jobId = `job-${dayIndex}-${jobCounter++}`;
+    // Count existing job rows WITHIN THIS DAY ONLY
+    const existingJobs = dayBody.querySelectorAll('.job-row');
+    const jobCount = existingJobs.length;
+    const jobId = `job-${dayIndex}-${jobCount}`;
+    
+    console.log(`Creating job: ${jobId} (day ${dayIndex}, ${jobCount} existing jobs in this day)`);
     
     const jobRow = document.createElement('div');
     jobRow.className = 'job-row';
@@ -1857,6 +1859,12 @@
         }
       });
     }
+    
+    // Apply employee type restrictions to this newly added job row
+    const employeeType = document.getElementById('employee_type').value;
+    if (employeeType) {
+      updateEmployeeTypeOptions();
+    }
   }
 
   function renumberJobs(dayBody) {
@@ -2120,16 +2128,21 @@
       document.getElementById('allowance_construction_wiring').checked = false;
     }
     
-    // Update job type dropdowns to show/hide Trade School and TIL
+    // Update job type dropdowns to show/hide Trade School, TIL, and RDO
     document.querySelectorAll('.job-type').forEach(select => {
       const tradeSchoolOption = select.querySelector('option[value="Trade School"]');
       const tilOption = select.querySelector('option[value="TIL (Taken)"]');
+      const rdoOption = select.querySelector('option[value="RDO"]');
       
       if (tradeSchoolOption) {
         tradeSchoolOption.style.display = employeeType === 'Apprentice' ? 'block' : 'none';
       }
       if (tilOption) {
         tilOption.style.display = isEngineer ? 'block' : 'none';
+      }
+      if (rdoOption) {
+        // Hide RDO for Engineers
+        rdoOption.style.display = isEngineer ? 'none' : 'block';
       }
     });
   }
