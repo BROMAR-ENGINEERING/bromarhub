@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bromar Hub - Employee Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -379,11 +380,265 @@
             opacity: 0.5;
             font-family: 'Space Mono', monospace;
         }
+
+        /* Login Form Styles */
+        #loginContainer {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-main);
+            padding: 2rem;
+        }
+
+        .login-box {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 10px 40px var(--shadow);
+            max-width: 440px;
+            width: 100%;
+            border: 1px solid var(--border);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+        }
+
+        .login-button {
+            background: var(--accent);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .login-button:hover {
+            background: #ea580c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
+
+        [data-theme="dark"] .error-message {
+            background: #7f1d1d;
+            color: #fecaca;
+            border-color: #991b1b;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            border: 1px solid #a7f3d0;
+        }
+
+        [data-theme="dark"] .success-message {
+            background: #064e3b;
+            color: #a7f3d0;
+            border-color: #065f46;
+        }
+
+        /* Logout button in header */
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #dc2626;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.15);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="dark"] .logout-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
     </style>
 </head>
 <body>
+    <!-- Login Container (shown when NOT logged in) -->
+    <div id="loginContainer" style="display: none;">
+        <div class="login-box">
+            <div class="login-logo">
+                <img src="Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Electrical" class="logo-image light-logo">
+                <img src="Bromar-Primary-Logo-Reverse-White.png" alt="Bromar Electrical" class="logo-image dark-logo">
+            </div>
+            
+            <h1 class="login-title">Bromar Hub</h1>
+            <p class="login-subtitle">Employee Portal Login</p>
+            
+            <div id="loginError" style="display: none;"></div>
+            <div id="loginSuccess" style="display: none;"></div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="loginEmail" 
+                        class="form-input" 
+                        placeholder="your.name@bromarelectrical.com.au"
+                        required
+                        autocomplete="email"
+                    />
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input 
+                        type="password" 
+                        id="loginPassword" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    />
+                </div>
+                
+                <button type="submit" id="loginButton" class="login-button">
+                    Login to Bromar Hub
+                </button>
+            </form>
+            
+            <div class="forgot-password">
+                <a href="#" id="forgotPasswordLink">Forgot password?</a>
+            </div>
+            
+            <div class="login-footer">
+                © 2026 Bromar Electrical Services<br>
+                For support, contact administration
+            </div>
+        </div>
+    </div>
+
+    <!-- Hub Content (shown when logged in) -->
+    <div id="hubContent" style="display: none;">
     <div class="header">
         <div class="header-controls">
+            <button id="logoutBtn" class="logout-btn" style="display: none;">Logout</button>
             <button id="darkModeToggle" class="control-btn" aria-label="Toggle dark mode">
                 <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"></circle>
@@ -686,11 +941,175 @@
         <p>&copy; 2026 Bromar Electrical Services. This page is intended for Bromar employees only. For support, contact administration or management.</p>
         <p style="margin-top: 0.5rem;"><a href="employee-resources/suggestions-feedback.html" style="color: #ffffff; text-decoration: underline; font-weight: 600;">Report a Bug or Issue with the Hub →</a></p>
     </footer>
+    </div><!-- End hubContent -->
 
-    <div class="revision-number">V1.01</div>
+    <div class="revision-number">V1.02</div>
 
     <script>
-        // Dark mode toggle with system preference detection
+        // ==========================================
+        // SUPABASE AUTHENTICATION
+        // ==========================================
+        
+        // Supabase credentials
+        const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storage: window.localStorage,
+            }
+        });
+        
+        // ==========================================
+        // CHECK AUTHENTICATION STATUS
+        // ==========================================
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+                // User is logged in
+                showHub();
+            } else {
+                // User is not logged in
+                showLogin();
+            }
+        }
+        
+        function showHub() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('hubContent').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'inline-flex';
+        }
+        
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('hubContent').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+        }
+        
+        // ==========================================
+        // LOGIN FORM HANDLER
+        // ==========================================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginButton = document.getElementById('loginButton');
+            const errorDiv = document.getElementById('loginError');
+            const successDiv = document.getElementById('loginSuccess');
+            
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Disable button during login
+            loginButton.disabled = true;
+            loginButton.textContent = 'Logging in...';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    // Login failed
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = error.message || 'Login failed. Please check your email and password.';
+                    errorDiv.style.display = 'block';
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Login to Bromar Hub';
+                } else {
+                    // Login successful
+                    successDiv.className = 'success-message';
+                    successDiv.textContent = 'Login successful! Loading Bromar Hub...';
+                    successDiv.style.display = 'block';
+                    
+                    // Wait a moment then show hub
+                    setTimeout(() => {
+                        showHub();
+                        // Reset form
+                        document.getElementById('loginForm').reset();
+                        loginButton.disabled = false;
+                        loginButton.textContent = 'Login to Bromar Hub';
+                        successDiv.style.display = 'none';
+                    }, 500);
+                }
+            } catch (err) {
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = 'An unexpected error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login to Bromar Hub';
+            }
+        });
+        
+        // ==========================================
+        // LOGOUT HANDLER
+        // ==========================================
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const { error } = await supabase.auth.signOut();
+            
+            if (!error) {
+                showLogin();
+            } else {
+                alert('Error logging out. Please try again.');
+            }
+        });
+        
+        // ==========================================
+        // FORGOT PASSWORD HANDLER
+        // ==========================================
+        document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const email = prompt('Enter your email address to reset your password:');
+            
+            if (email && email.trim()) {
+                const errorDiv = document.getElementById('loginError');
+                const successDiv = document.getElementById('loginSuccess');
+                
+                errorDiv.style.display = 'none';
+                successDiv.style.display = 'none';
+                
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                    redirectTo: window.location.origin + '/index.html'
+                });
+                
+                if (error) {
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = 'Error sending reset email. Please check the email address.';
+                    errorDiv.style.display = 'block';
+                } else {
+                    successDiv.className = 'success-message';
+                    successDiv.textContent = 'Password reset email sent! Check your inbox.';
+                    successDiv.style.display = 'block';
+                }
+            }
+        });
+        
+        // ==========================================
+        // LISTEN FOR AUTH STATE CHANGES
+        // ==========================================
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                showHub();
+            } else if (event === 'SIGNED_OUT') {
+                showLogin();
+            }
+        });
+        
+        // Check auth status on page load
+        checkAuth();
+        
+        // ==========================================
+        // DARK MODE TOGGLE
+        // ==========================================
         const darkModeToggle = document.getElementById('darkModeToggle');
         const htmlElement = document.documentElement;
 
@@ -728,7 +1147,9 @@
             localStorage.setItem('theme', theme);
         });
 
-        // Search functionality
+        // ==========================================
+        // SEARCH FUNCTIONALITY
+        // ==========================================
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
         const searchResultsGrid = document.getElementById('searchResultsGrid');
