@@ -1891,6 +1891,11 @@
   // ============================================================
   function validateForm() {
     let valid = true;
+    let firstErrorElement = null;
+
+    // Clear all previous errors
+    document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
 
     function check(groupId, condition) {
       const grp = document.getElementById(groupId);
@@ -1898,6 +1903,7 @@
       if (!condition) {
         grp.classList.add('has-error');
         if (inp) inp.classList.add('error');
+        if (!firstErrorElement) firstErrorElement = grp;
         valid = false;
       } else {
         grp.classList.remove('has-error');
@@ -1915,8 +1921,10 @@
     check('group-employee-type', !!employeeType);
     check('group-week', !!weekStarting);
 
-    // Check that each day has at least valid data
+    // Check that at least ONE day has hours entered
+    let hasAnyHours = false;
     const allJobRows = document.querySelectorAll('.job-row');
+    
     allJobRows.forEach(row => {
       const typeSelect = row.querySelector('.job-type');
       const normalHoursInput = row.querySelector('.normal-hours');
@@ -1928,19 +1936,46 @@
       const hasData = typeSelect.value || normalValue || overtimeValue;
       
       if (hasData) {
+        // If type is selected, require hours
         if (!typeSelect.value) {
           typeSelect.classList.add('error');
+          if (!firstErrorElement) firstErrorElement = typeSelect;
           valid = false;
         }
         const normalHours = parseFloat(normalValue) || 0;
         const overtimeHours = parseFloat(overtimeValue) || 0;
         if (normalHours <= 0 && overtimeHours <= 0) {
-          if (normalHoursInput) normalHoursInput.classList.add('error');
-          if (overtimeHoursInput) overtimeHoursInput.classList.add('error');
+          if (normalHoursInput) {
+            normalHoursInput.classList.add('error');
+            if (!firstErrorElement) firstErrorElement = normalHoursInput;
+          }
+          if (overtimeHoursInput) {
+            overtimeHoursInput.classList.add('error');
+            if (!firstErrorElement) firstErrorElement = overtimeHoursInput;
+          }
           valid = false;
+        } else {
+          // Has valid hours
+          hasAnyHours = true;
         }
       }
     });
+
+    // Must have at least one day with hours
+    if (!hasAnyHours) {
+      alert('Please enter hours for at least one day before submitting.');
+      valid = false;
+      // Scroll to first day card
+      const firstDayCard = document.querySelector('.day-card');
+      if (firstDayCard && !firstErrorElement) {
+        firstErrorElement = firstDayCard;
+      }
+    }
+
+    // Scroll to first error
+    if (!valid && firstErrorElement) {
+      firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 
     return valid;
   }
@@ -1970,6 +2005,17 @@
     try {
       // Collect all form data
       const formData = new FormData(timesheetForm);
+      
+      // Debug: Log what we're sending
+      console.log('=== FORM SUBMISSION DEBUG ===');
+      const debugData = {};
+      for (const [key, value] of formData) {
+        debugData[key] = value;
+        if (key.includes('job-') || key.includes('day_')) {
+          console.log(`${key}: ${value}`);
+        }
+      }
+      console.log('Total fields:', Object.keys(debugData).length);
       
       const response = await fetch('/api/submit-timesheet', {
         method: 'POST',
