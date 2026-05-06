@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Employee Leave Request</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --brand-primary: #1a56db;
@@ -805,24 +804,15 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ============================================================
-  // CONFIGURATION — UPDATE THESE VALUES
+  // SUPABASE CONFIGURATION
   // ============================================================
-  const CONFIG = {
-    emailjs: {
-      publicKey:   "4JW7VbCEAqZt9p4Jj",
-      serviceId:   "BromarEmail",
-      templateId:  "leavesubmit_admin",
-    },
-    adminEmails: [
-      "ashleys@bromar.com.au",
-    ]
-  };
+  const SUPABASE_URL  = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   // ============================================================
-
-  // Initialise EmailJS
-  emailjs.init(CONFIG.emailjs.publicKey);
 
   // ---- Auto-calculate calendar days when dates change ----
   const startInput = document.getElementById('start_date');
@@ -1091,49 +1081,50 @@
     const reason        = document.getElementById('reason').value.trim() || 'No additional notes provided.';
     const submitted     = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
 
-    const templateParams = {
-      employee_name:  employeeName,
-      employee_email: employeeEmail,
-      employee_phone: employeePhone,
-      public_holidays: (function(){
-        const items = document.querySelectorAll('#holidaysList li');
-        if (items.length === 0) return 'No Victorian public holidays fall within this leave period.';
-        return Array.from(items).map(li => {
-          const name = li.querySelector('.holiday-name')?.textContent || '';
-          const date = li.querySelector('.holiday-date')?.textContent || '';
-          return `${name} — ${date}`;
-        }).join('\n');
-      })(),
-      leave_type:     leaveType,
-      start_date:     startDate,
-      end_date:       endDate,
-      num_days:       numDays,
-      reason:         reason,
-      submitted_date: submitted,
-      admin_emails:   CONFIG.adminEmails.join(', '), // pass to template for CC/BCC or display
-      to_email:       employeeEmail,                 // employee confirmation
-    };
+    // Collect public holidays list
+    const publicHolidays = (function(){
+      const items = document.querySelectorAll('#holidaysList li');
+      if (items.length === 0) return 'No Victorian public holidays fall within this leave period.';
+      return Array.from(items).map(li => {
+        const name = li.querySelector('.holiday-name')?.textContent || '';
+        const date = li.querySelector('.holiday-date')?.textContent || '';
+        return `${name} — ${date}`;
+      }).join('\n');
+    })();
 
     try {
-      // Single send — EmailJS template handles To (Ashley) and CC (employee)
-      await emailjs.send(
-        CONFIG.emailjs.serviceId,
-        CONFIG.emailjs.templateId,
-        templateParams
-      );
+      // Insert into Supabase leave_requests table
+      const { error } = await supabase
+        .from('leave_requests')
+        .insert({
+          employee_name:    employeeName,
+          employee_email:   employeeEmail,
+          employee_phone:   employeePhone,
+          leave_type:       leaveType,
+          last_day_of_work: startInput.value,       // raw YYYY-MM-DD for DB
+          return_to_work:   endInput.value,          // raw YYYY-MM-DD for DB
+          working_days:     parseFloat(numDays) || 0,
+          public_holidays:  publicHolidays,
+          notes:            reason,
+          submitted_at:     new Date().toISOString(),
+          status:           'pending',
+        });
+
+      if (error) throw error;
 
       const banner = document.getElementById('successBanner');
       banner.classList.add('show');
       document.getElementById('leaveForm').reset();
       daysDisp.classList.remove('visible');
+      document.getElementById('holidays-card-wrapper').style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => banner.classList.remove('show'), 8000);
 
     } catch (err) {
-      console.error('EmailJS error:', err);
+      console.error('Supabase error:', err);
       alert('Something went wrong — please contact management or admin directly.');
     } finally {
-      btn.classList.remove('loading');
+      btn.textContent = 'Submit Request';
       btn.disabled = false;
       isSubmitting = false;
     }
