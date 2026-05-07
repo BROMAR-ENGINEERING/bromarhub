@@ -804,14 +804,11 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ============================================================
-  // SUPABASE CONFIGURATION
+  // NETLIFY FUNCTION ENDPOINT
   // ============================================================
-  const SUPABASE_URL  = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  const API_ENDPOINT = '/.netlify/functions/submit-leave-request';
   // ============================================================
 
   // ---- Auto-calculate calendar days when dates change ----
@@ -1093,24 +1090,24 @@
     })();
 
     try {
-      // Insert into Supabase leave_requests table
-      const { error } = await supabase
-        .from('leave_requests')
-        .insert({
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           employee_name:    employeeName,
           employee_email:   employeeEmail,
           employee_phone:   employeePhone,
           leave_type:       leaveType,
-          last_day_of_work: startInput.value,       // raw YYYY-MM-DD for DB
-          return_to_work:   endInput.value,          // raw YYYY-MM-DD for DB
+          last_day_of_work: startInput.value,
+          return_to_work:   endInput.value,
           working_days:     parseFloat(numDays) || 0,
           public_holidays:  publicHolidays,
           notes:            reason,
-          submitted_at:     new Date().toISOString(),
-          status:           'pending',
-        });
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Submission failed');
 
       const banner = document.getElementById('successBanner');
       banner.classList.add('show');
@@ -1121,7 +1118,7 @@
       setTimeout(() => banner.classList.remove('show'), 8000);
 
     } catch (err) {
-      console.error('Supabase error:', err);
+      console.error('Submit error:', err);
       alert('Something went wrong — please contact management or admin directly.');
     } finally {
       btn.textContent = 'Submit Request';
