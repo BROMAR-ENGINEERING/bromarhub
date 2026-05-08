@@ -1,0 +1,458 @@
+# Bromar Hub
+
+**Employee Timesheet & Forms Management System**
+
+Version: V1.01 | Production
+
+-----
+
+## 🚀 Quick Links
+
+|Resource              |URL                                                        |
+|----------------------|-----------------------------------------------------------|
+|**Production Site**   |https://bromarhub.netlify.app                              |
+|**Netlify Dashboard** |https://app.netlify.com/sites/bromarhub                    |
+|**Supabase Dashboard**|https://supabase.com/dashboard/project/iwtvlpfprxqwveqadlwl|
+|**SendGrid Dashboard**|https://app.sendgrid.com                                   |
+
+-----
+
+## 📋 Overview
+
+Bromar Hub is a full-stack web application that enables employees to submit weekly timesheets electronically. The system automatically validates submissions, stores data in a cloud database, and sends email notifications to management and employees.
+
+### Key Features
+
+- ✅ 7-day timesheet entry with validation
+- ✅ Employee type-specific restrictions
+- ✅ Call-out handling with 10-hour break warnings
+- ✅ Travel time tracking (separate from normal/overtime)
+- ✅ Auto-save functionality
+- ✅ Dark/Light mode
+- ✅ Automated email notifications
+- ✅ Cloud database storage
+
+-----
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐
+│   Web Browser   │
+│  (Employee)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│  HTML Form                  │
+│  /job-management/           │
+│  timesheet-submission.html  │
+└────────┬────────────────────┘
+         │ POST /api/submit-timesheet
+         ▼
+┌─────────────────────────────┐
+│  Netlify Function           │
+│  submit-timesheet.js        │
+└─────┬──────────────────┬────┘
+      │                  │
+      ▼                  ▼
+┌──────────────┐   ┌─────────────┐
+│  Supabase    │   │  SendGrid   │
+│  (Database)  │   │  (Email)    │
+└──────────────┘   └─────────────┘
+```
+
+-----
+
+## 🛠️ Tech Stack
+
+|Component         |Technology                 |
+|------------------|---------------------------|
+|**Frontend**      |HTML, CSS, JavaScript      |
+|**Hosting**       |Netlify                    |
+|**Backend**       |Node.js (Netlify Functions)|
+|**Database**      |Supabase (PostgreSQL)      |
+|**Email**         |SendGrid                   |
+|**Authentication**|Supabase Auth              |
+
+-----
+
+## 📁 Project Structure
+
+```
+bromarhub/
+├── index.html                          # Login page (with Supabase auth)
+├── package.json                        # Dependencies
+├── netlify.toml                        # Netlify configuration
+├── README.md                           # This file
+├── FORM-INTEGRATION-GUIDE.md          # Guide for creating new forms
+│
+├── js/
+│   └── auth.js                        # Shared authentication script
+│
+├── job-management/
+│   └── timesheet-submission.html      # Timesheet form (V1.01)
+│
+├── netlify/
+│   └── functions/
+│       └── submit-timesheet.js        # Timesheet backend function
+│
+├── Bromar-Primary-Logo-Full-Colour.png
+└── Bromar-Primary-Logo-Reverse-White.png
+```
+
+-----
+
+## ⚙️ Setup & Installation
+
+### Prerequisites
+
+- Git
+- Node.js 18+ (for local testing)
+- Netlify account
+- Supabase account
+- SendGrid account
+
+### Local Development
+
+1. **Clone the repository:**
+   
+   ```bash
+   git clone https://github.com/YOUR-ORG/bromarhub.git
+   cd bromarhub
+   ```
+1. **Install dependencies:**
+   
+   ```bash
+   npm install
+   ```
+1. **Set up environment variables:**
+   Create `.env` file (DO NOT commit this):
+   
+   ```
+   SENDGRID_API_KEY=SG.xxxxxxxxx
+   SUPABASE_URL=https://iwtvlpfprxqwveqadlwl.supabase.co
+   SUPABASE_KEY=eyJhbGc...
+   ```
+1. **Run locally (optional):**
+   
+   ```bash
+   netlify dev
+   ```
+
+### Deployment
+
+**Automatic Deployment:**
+
+1. Push to `main` branch
+1. Netlify auto-deploys (1-2 minutes)
+
+**Manual Deployment:**
+
+1. Go to Netlify Dashboard
+1. Click **Deploys** → **Trigger deploy**
+
+-----
+
+## 🔑 Environment Variables
+
+Configure these in **Netlify Dashboard** → **Site configuration** → **Environment variables**
+
+|Variable          |Value Format                              |Source                                          |
+|------------------|------------------------------------------|------------------------------------------------|
+|`SENDGRID_API_KEY`|`SG.xxxxxxxxx`                            |SendGrid → Settings → API Keys                  |
+|`SUPABASE_URL`    |`https://iwtvlpfprxqwveqadlwl.supabase.co`|Supabase → Settings → API → Project URL         |
+|`SUPABASE_KEY`    |`eyJhbGc...`                              |Supabase → Settings → API → **service_role** key|
+
+
+> ⚠️ **SECURITY:** Never commit environment variables to Git. Use `.env` locally and configure in Netlify dashboard for production.
+
+-----
+
+## 📊 Database Schema
+
+### Supabase Table: `timesheets`
+
+|Column                         |Type        |Description                             |
+|-------------------------------|------------|----------------------------------------|
+|`id`                           |UUID        |Primary key (auto-generated)            |
+|`employee_name`                |TEXT        |Employee’s full name                    |
+|`employee_email`               |TEXT        |Employee’s email address                |
+|`employee_type`                |TEXT        |Electrician, Engineer, Apprentice, Other|
+|`week_starting`                |DATE        |Monday of the week                      |
+|`total_normal_hours`           |DECIMAL(5,2)|Sum of normal hours (excludes Travel)   |
+|`total_overtime_hours`         |DECIMAL(5,2)|Sum of overtime hours                   |
+|`total_travel_hours`           |DECIMAL(5,2)|Sum of travel hours                     |
+|`total_hours`                  |DECIMAL(5,2)|Sum of all hours                        |
+|`on_call_standby`              |BOOLEAN     |Employee was on call                    |
+|`allowance_first_aid`          |BOOLEAN     |First Aid Officer allowance             |
+|`allowance_construction_wiring`|BOOLEAN     |Construction Wiring allowance           |
+|`general_comments`             |TEXT        |Additional comments                     |
+|`timesheet_entries`            |JSONB       |Array of daily job entries              |
+|`submitted_at`                 |TIMESTAMP   |Submission timestamp                    |
+
+**Full schema:** See `FORM-INTEGRATION-GUIDE.md`
+
+-----
+
+## 📧 Email Configuration
+
+### SendGrid Setup
+
+**Recipients:** `servicet@bromar.com.au` + employee’s email  
+**From:** `servicet@bromar.com.au`  
+**Reply-To:** `admin@bromar.com.au`  
+**Method:** Inline HTML (no template ID)
+
+### Email Verification
+
+**Option 1: Single Sender Verification** (Quick - 5 minutes)
+
+1. SendGrid → Settings → Sender Authentication
+1. Verify Single Sender → `servicet@bromar.com.au`
+1. Check email and click verification link
+
+**Option 2: Domain Authentication** (Recommended - 1-2 days)
+
+1. SendGrid → Settings → Sender Authentication
+1. Authenticate Your Domain → `bromar.com.au`
+1. Add 3 CNAME DNS records provided by SendGrid
+1. Wait 24-48 hours for DNS propagation
+1. Click Verify
+
+-----
+
+## 🔐 Authentication
+
+Bromar Hub uses **Supabase Authentication** to protect pages.
+
+### How It Works
+
+1. User visits any protected page
+1. `auth.js` checks for active session
+1. If no session → Redirect to `/index.html` (login)
+1. If session exists → Allow access
+
+### Protected Pages
+
+All pages in `/job-management/` require authentication.
+
+### Adding Auth to New Pages
+
+```html
+<!-- Add before closing </body> -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/auth.js"></script>
+```
+
+**See:** `js/auth.js` for implementation details
+
+-----
+
+## ✅ Business Rules
+
+### Validation
+
+- All 5 weekdays (Mon-Fri) must have hours entered
+- Total normal hours must equal 40 per week (Travel excluded)
+- Time increments: 0.25 hours (15 minutes)
+
+### Employee Type Restrictions
+
+|Employee Type  |Hidden Options                 |Special Features                                      |
+|---------------|-------------------------------|------------------------------------------------------|
+|**Electrician**|TIL (Taken), Trade School      |Construction Wiring allowance                         |
+|**Engineer**   |RDO                            |TIL (Taken) available, Overtime labeled “Time in Lieu”|
+|**Apprentice** |TIL (Taken), Long Service Leave|Trade School available                                |
+|**Other**      |None                           |All options available                                 |
+
+### Special Job Types
+
+- **Call Out:** Overtime only, auto-fills 4 hours, triggers 10-hour break warning
+- **Travel (outside 50km):** Separate field, excluded from 40-hour count
+- **Leave Types:** Auto-fill 8 hours (RDO, Annual Leave, Sick Leave, etc.)
+
+-----
+
+## 🧪 Testing
+
+### Test Checklist
+
+- [ ] Submit with all 5 weekdays filled
+- [ ] Verify 40-hour validation works
+- [ ] Check travel hours excluded from 40-hour count
+- [ ] Test employee type restrictions
+- [ ] Verify both emails received (servicet + employee)
+- [ ] Check Supabase for new row
+- [ ] Review Netlify function logs for errors
+
+### Debugging
+
+**Check Function Logs:**
+
+```
+Netlify Dashboard → Functions → submit-timesheet → Function log
+```
+
+**Check Browser Console:**
+
+```
+Press F12 → Console → Look for debug output
+```
+
+**Check Supabase Logs:**
+
+```
+Supabase Dashboard → Logs → Filter for errors
+```
+
+-----
+
+## 🐛 Troubleshooting
+
+|Issue                       |Solution                                                                   |
+|----------------------------|---------------------------------------------------------------------------|
+|“Failed to submit timesheet”|Check Netlify function logs, verify environment variables                  |
+|Email not received          |Verify `SENDGRID_API_KEY` starts with “SG.”, check sender verification     |
+|Data not in Supabase        |Verify using **service_role** key (NOT anon key)                           |
+|Dependencies error          |Ensure `package.json` in root, `netlify.toml` has `command = "npm install"`|
+|Only Monday data in email   |Verify function parses `job-{dayIndex}-{jobIndex}_type` pattern            |
+
+-----
+
+## 🆕 Creating Additional Forms
+
+See **`FORM-INTEGRATION-GUIDE.md`** for complete step-by-step instructions.
+
+### Quick Summary
+
+1. Create Supabase table (use template from guide)
+1. Create Netlify function (copy template)
+1. Add redirect in `netlify.toml`
+1. Build email HTML (use standard template)
+1. Test end-to-end
+
+**Same environment variables for all forms** - no additional setup needed.
+
+-----
+
+## 📝 Version History
+
+|Version  |Date    |Changes                                                                                                                       |
+|---------|--------|------------------------------------------------------------------------------------------------------------------------------|
+|**V1.01**|May 2026|Added: Unpaid Leave, Stand Down Time, Travel (outside 50km), 0.25hr increments, 40-hour validation, employee type restrictions|
+|**V1.00**|May 2026|Initial production release                                                                                                    |
+
+-----
+
+## 🔒 Security Notes
+
+### Sensitive Information
+
+- ✅ Environment variables stored in Netlify (encrypted)
+- ✅ Service role key used only in backend functions
+- ✅ Never expose API keys in frontend code
+- ✅ `.env` file in `.gitignore`
+
+### Best Practices
+
+- Use `service_role` key only in Netlify Functions (server-side)
+- Use `anon` key only in frontend (client-side)
+- Enable Row Level Security (RLS) on Supabase tables
+- Regularly rotate API keys
+- Monitor function logs for suspicious activity
+
+-----
+
+## 📚 Documentation
+
+|Document                     |Purpose                                  |
+|-----------------------------|-----------------------------------------|
+|**README.md**                |Project overview (this file)             |
+|**FORM-INTEGRATION-GUIDE.md**|Step-by-step guide for creating new forms|
+|**SharePoint Wiki**          |Comprehensive technical documentation    |
+
+-----
+
+## 🤝 Contributing
+
+### Workflow
+
+1. Create feature branch: `git checkout -b feature/new-form`
+1. Make changes
+1. Test locally
+1. Commit: `git commit -m "Add new leave request form"`
+1. Push: `git push origin feature/new-form`
+1. Create Pull Request
+1. Merge to `main` after review
+1. Netlify auto-deploys
+
+### Coding Standards
+
+- Use consistent naming: `job-{dayIndex}-{jobIndex}_{fieldName}`
+- Add comments to complex logic
+- Test all employee type restrictions
+- Verify email formatting on mobile and desktop
+- Update version number in HTML footer
+
+-----
+
+## 📞 Support
+
+|Issue Type       |Contact                               |
+|-----------------|--------------------------------------|
+|Email delivery   |Check SendGrid dashboard or contact IT|
+|Database issues  |Check Supabase logs or contact IT     |
+|Function errors  |Check Netlify logs or contact IT      |
+|General questions|admin@bromar.com.au                   |
+
+-----
+
+## 📄 License
+
+Internal use only - Bromar Engineering Services  
+ABN: 45 634 835 939 | ACN: 634 835 939
+
+-----
+
+## 🔗 Useful Commands
+
+### Git Commands
+
+```bash
+# Check status
+git status
+
+# Add all changes
+git add .
+
+# Commit with message
+git commit -m "Your message"
+
+# Push to GitHub (triggers deploy)
+git push
+
+# Pull latest changes
+git pull
+```
+
+### Supabase SQL
+
+```sql
+-- View recent submissions
+SELECT * FROM timesheets ORDER BY submitted_at DESC LIMIT 10;
+
+-- Count total submissions
+SELECT COUNT(*) FROM timesheets;
+
+-- View submissions by employee
+SELECT * FROM timesheets WHERE employee_email = 'user@example.com';
+```
+
+-----
+
+**Built with ❤️ by Bromar Engineering Services**
+
+**2/98-108 Western Ave, Westmeadows, VIC 3049**  
+**PH:** +61 3 9335 5344 | **FAX:** +61 3 9335 5322  
+**EMAIL:** admin@bromar.com.au | **REC:** 30340
