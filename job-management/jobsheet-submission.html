@@ -1422,7 +1422,75 @@
 
   // FILE 1 CONTINUES IN NEXT RESPONSE...
   // This is where we'll load the service report module and core functionality
+// Get report sections if service report
+let reportSections = null;
+if (document.getElementById('isServiceReport').checked) {
+  reportSections = {
+    labour: document.getElementById('include_labour').checked,
+    tasks: document.getElementById('include_tasks').checked,
+    materials: document.getElementById('include_materials').checked,
+    photos: document.getElementById('include_photos').checked,
+    notes: document.getElementById('include_notes').checked
+  };
+}
 
+// Create job sheet in Supabase
+const { data: jobSheetNumber, error: sheetError } = await supabase.rpc('create_job_sheet', {
+  p_job_number: jobNumber,
+  p_sheet_date: date,
+  p_tasks: tasks,
+  p_labour: labour,
+  p_notes: notes,
+  p_created_by: 'Web Form' // TODO: Get actual user
+});
+
+if (sheetError) throw sheetError;
+
+// Show uploading overlay
+const uploadingOverlay = document.createElement('div');
+uploadingOverlay.className = 'uploading-overlay show';
+uploadingOverlay.innerHTML = `
+  <div class="uploading-content">
+    <div class="uploading-spinner"></div>
+    <div class="uploading-text">Uploading files...</div>
+    <div class="uploading-subtext">Please wait</div>
+  </div>
+`;
+document.body.appendChild(uploadingOverlay);
+
+// Upload files if any
+let fileData = [];
+if (uploadedFiles.length > 0) {
+  fileData = await uploadFilesToSupabase(jobSheetNumber, jobNumber);
+}
+
+// If service report, update with report sections and signature
+if (reportSections) {
+  const updates = {
+    is_service_report: true,
+    report_sections: reportSections
+  };
+  
+  // Add signature if provided
+  const signatureName = document.getElementById('clientSignatureName').value.trim();
+  if (signatureName) {
+    updates.client_signature_data = getSignatureData();
+    updates.client_signature_name = signatureName;
+    updates.client_signature_date = new Date().toISOString();
+  }
+  
+  const { error: updateError } = await supabase
+    .from('job_sheets')
+    .update(updates)
+    .eq('job_sheet_number', jobSheetNumber);
+  
+  if (updateError) throw updateError;
+}
+
+// Remove uploading overlay
+uploadingOverlay.remove();
+
+showInfoBanner(`Job sheet created: ${jobSheetNumber}${fileData.length > 0 ? ` (${fileData.length} files uploaded)` : ''}`);
 </script>
 
 <!-- Load Service Report Module (File 3) -->
