@@ -1,631 +1,624 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bromar Hub - Employee Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-   <style>
-:root {
-    /* Light mode */
-    --bg-main: #fafafa;
-    --bg-secondary: #ffffff;
-    --bg-glass: rgba(255, 255, 255, 0.7);
-    --text-primary: #0a0a0a;
-    --text-secondary: #666666;
-    --accent: #ea580c;
-    --border: rgba(0, 0, 0, 0.08);
-    --shadow: rgba(0, 0, 0, 0.04);
-    --card-hover: rgba(234, 88, 12, 0.03);
-}
-
-[data-theme="dark"] {
-    --bg-main: #0a0a0a;
-    --bg-secondary: #141414;
-    --bg-glass: rgba(20, 20, 20, 0.7);
-    --text-primary: #fafafa;
-    --text-secondary: #999999;
-    --accent: #fb923c;
-    --border: rgba(255, 255, 255, 0.08);
-    --shadow: rgba(0, 0, 0, 0.3);
-    --card-hover: rgba(251, 146, 60, 0.05);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Outfit', sans-serif;
-    background: var(--bg-main);
-    color: var(--text-primary);
-    line-height: 1.6;
-    min-height: 100vh;
-    transition: background 0.4s ease, color 0.4s ease;
-}
-
-/* Glassmorphic Navigation */
-.header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
-    background: var(--bg-glass);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 2rem;
-}
-
-.header-controls {
-    position: absolute;
-    top: 1rem;
-    left: 2rem;
-    right: 2rem;
-    display: flex;
-    justify-content: space-between;
-    z-index: 10;
-}
-
-.control-btn {
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--border);
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.control-btn:hover {
-    background: var(--card-hover);
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-
-.control-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: var(--text-primary);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    fill: none;
-}
-
-.control-btn .sun-icon,
-[data-theme="dark"] .control-btn .moon-icon {
-    display: block;
-}
-
-.control-btn .moon-icon,
-[data-theme="dark"] .control-btn .sun-icon {
-    display: none;
-}
-
-.control-btn::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(31, 41, 55, 0.95);
-    color: white;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 1000;
-}
-
-.control-btn:hover::after {
-    opacity: 1;
-}
-
-.header-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    width: 100%;
-}
-
-.logo-container {
-    display: inline-block;
-    margin-bottom: 0.5rem;
-}
-
-.logo-image {
-    max-width: 180px;
-    height: auto;
-}
-
-.light-logo {
-    display: block;
-}
-
-.dark-logo {
-    display: none;
-}
-
-[data-theme="dark"] .light-logo {
-    display: none;
-}
-
-[data-theme="dark"] .dark-logo {
-    display: block;
-}
-
-h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
-    margin-bottom: 0.25rem;
-}
-
-.subtitle {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    font-weight: 300;
-}
-
-/* Main Content */
-.container {
-    max-width: 1400px;
-    margin: 90px auto 3rem;
-    padding: 0 2rem;
-    position: relative;
-    z-index: 2;
-}
-
-/* Search Bar */
-.search-bar {
-    background: var(--bg-secondary);
-    border-radius: 16px;
-    padding: 1rem 1.5rem;
-    box-shadow: 0 4px 12px var(--shadow);
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
-}
-
-.search-bar:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
-}
-
-.search-icon {
-    color: var(--text-secondary);
-    font-size: 1.25rem;
-}
-
-.search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 1rem;
-    font-family: 'Outfit', sans-serif;
-    background: transparent;
-    color: var(--text-primary);
-}
-
-.search-input::placeholder {
-    color: var(--text-secondary);
-}
-
-/* Announcement Banner */
-.announcement-banner {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    margin-bottom: 3rem;
-    text-align: center;
-}
-
-.announcement-banner h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.announcement-banner p {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-/* Search Results */
-.search-results {
-    display: none;
-}
-
-.search-results.active {
-    display: block;
-}
-
-.no-results {
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-secondary);
-    font-size: 1.125rem;
-}
-
-/* Sections */
-section {
-    margin-bottom: 3rem;
-}
-
-.section-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    letter-spacing: -0.02em;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.section-title::before {
-    content: '';
-    width: 4px;
-    height: 24px;
-    background: linear-gradient(180deg, var(--accent) 0%, #fb923c 100%);
-    border-radius: 4px;
-}
-
-/* Card Grid */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.25rem;
-    grid-auto-rows: 1fr;
-}
-
-.card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--card-hover);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.card:hover::before {
-    opacity: 1;
-}
-
-.card:hover {
-    border-color: var(--accent);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px var(--shadow);
-}
-
-.card > * {
-    position: relative;
-    z-index: 1;
-}
-
-.card-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    display: block;
-}
-
-.card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-}
-
-.card-description {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-    font-weight: 300;
-}
-
-.badge {
-    display: inline-block;
-    padding: 0.375rem 0.875rem;
-    background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 20px;
-    margin-top: 1rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-.coming-soon {
-    background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
-}
-
-/* Footer */
-.footer {
-    background: var(--accent);
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    margin-top: 4rem;
-}
-
-.footer p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-/* Revision Number */
-.revision-number {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    opacity: 0.5;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-/* Login Form Styles */
-#loginContainer {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-main);
-    padding: 2rem;
-}
-
-.login-box {
-    background: var(--bg-secondary);
-    border-radius: 20px;
-    padding: 3rem 2.5rem;
-    box-shadow: 0 12px 32px var(--shadow);
-    max-width: 440px;
-    width: 100%;
-    border: 1px solid var(--border);
-}
-
-.login-logo {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.login-logo img {
-    max-width: 200px;
-    height: auto;
-}
-
-.login-title {
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.02em;
-}
-
-.login-subtitle {
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 1rem;
-    margin-bottom: 2rem;
-    font-weight: 300;
-}
-
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.form-input {
-    padding: 0.875rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 1rem;
-    font-family: 'Outfit', sans-serif;
-    background: var(--bg-main);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
-}
-
-.login-button {
-    background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
-    color: white;
-    padding: 1rem;
-    border: none;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
-    font-family: 'Outfit', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
-}
-
-.login-button:active {
-    transform: translateY(0);
-}
-
-.login-button:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.forgot-password {
-    text-align: center;
-    margin-top: 1rem;
-}
-
-.forgot-password a {
-    color: var(--accent);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.forgot-password a:hover {
-    text-decoration: underline;
-}
-
-.login-footer {
-    text-align: center;
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    line-height: 1.6;
-}
-
-.error-message {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-    border: 1px solid #fecaca;
-}
-
-[data-theme="dark"] .error-message {
-    background: #7f1d1d;
-    color: #fecaca;
-    border-color: #991b1b;
-}
-
-.success-message {
-    background: #d1fae5;
-    color: #065f46;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-    border: 1px solid #a7f3d0;
-}
-
-[data-theme="dark"] .success-message {
-    background: #064e3b;
-    color: #a7f3d0;
-    border-color: #065f46;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .header {
-        padding: 0 1rem;
-    }
-    
-    .header-controls {
-        left: 1rem;
-        right: 1rem;
-    }
-    
-    h1 {
-        font-size: 2rem;
-    }
-    
-    .container {
-        padding: 0 1rem;
-    }
-    
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-section {
-    animation: fadeIn 0.8s ease backwards;
-}
-
-section:nth-child(1) { animation-delay: 0.1s; }
-section:nth-child(2) { animation-delay: 0.2s; }
-section:nth-child(3) { animation-delay: 0.3s; }
-section:nth-child(4) { animation-delay: 0.4s; }
-section:nth-child(5) { animation-delay: 0.5s; }
-</style>
+    <style>
+        :root {
+            --bg-main: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --text-primary: #0a0a0a;
+            --text-secondary: #666666;
+            --accent: #ea580c;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: rgba(0, 0, 0, 0.04);
+            --card-hover: rgba(234, 88, 12, 0.03);
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-glass: rgba(20, 20, 20, 0.7);
+            --text-primary: #fafafa;
+            --text-secondary: #999999;
+            --accent: #fb923c;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: rgba(0, 0, 0, 0.3);
+            --card-hover: rgba(251, 146, 60, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background 0.4s ease, color 0.4s ease;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 1rem;
+            left: 2rem;
+            right: 2rem;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .control-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-primary);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .control-btn .sun-icon,
+        [data-theme="dark"] .control-btn .moon-icon {
+            display: block;
+        }
+
+        .control-btn .moon-icon,
+        [data-theme="dark"] .control-btn .sun-icon {
+            display: none;
+        }
+
+        .control-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.95);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+        }
+
+        .control-btn:hover::after {
+            opacity: 1;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding-top: 0.5rem;
+        }
+
+        .logo-container {
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .logo-image {
+            max-width: 180px;
+            height: auto;
+        }
+
+        .light-logo {
+            display: block;
+        }
+
+        .dark-logo {
+            display: none;
+        }
+
+        [data-theme="dark"] .light-logo {
+            display: none;
+        }
+
+        [data-theme="dark"] .dark-logo {
+            display: block;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 90px auto 3rem;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-bar {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 12px var(--shadow);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+        }
+
+        .search-icon {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'Outfit', sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .announcement-banner {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .announcement-banner {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        .announcement-banner h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .announcement-banner p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .search-results {
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent) 0%, #fb923c 100%);
+            border-radius: 4px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+            grid-auto-rows: 1fr;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--card-hover);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px var(--shadow);
+        }
+
+        .card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1.25rem;
+            stroke: var(--accent);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+        }
+
+        .card-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.375rem 0.875rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 20px;
+            margin-top: 1rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .coming-soon {
+            background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
+        }
+
+        .footer {
+            background: var(--accent);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .revision-number {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.5;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #loginContainer {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-main);
+            padding: 2rem;
+        }
+
+        .login-box {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 12px 32px var(--shadow);
+            max-width: 440px;
+            width: 100%;
+            border: 1px solid var(--border);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
+
+        [data-theme="dark"] .error-message {
+            background: #7f1d1d;
+            color: #fecaca;
+            border-color: #991b1b;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            border: 1px solid #a7f3d0;
+        }
+
+        [data-theme="dark"] .success-message {
+            background: #064e3b;
+            color: #a7f3d0;
+            border-color: #065f46;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 1rem;
+            }
+            
+            .header-controls {
+                left: 1rem;
+                right: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        section {
+            animation: fadeIn 0.8s ease backwards;
+        }
+
+        section:nth-child(1) { animation-delay: 0.1s; }
+        section:nth-child(2) { animation-delay: 0.2s; }
+        section:nth-child(3) { animation-delay: 0.3s; }
+        section:nth-child(4) { animation-delay: 0.4s; }
+        section:nth-child(5) { animation-delay: 0.5s; }
+    </style>
 </head>
 <body>
-    <!-- Login Container (shown when NOT logged in) -->
     <div id="loginContainer" style="display: none;">
-        <!-- Dark mode toggle on login page -->
         <button id="loginDarkModeToggle" class="control-btn" aria-label="Toggle dark mode" data-tooltip="Toggle theme" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
             <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"></circle>
@@ -696,12 +689,11 @@ section:nth-child(5) { animation-delay: 0.5s; }
         </div>
     </div>
 
-    <!-- Hub Content (shown when logged in) -->
     <div id="hubContent" style="display: none;">
     <div class="header">
         <div class="header-controls">
             <button id="logoutBtn" class="control-btn" style="display: none;" aria-label="Logout" data-tooltip="Logout">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
                     <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -736,7 +728,10 @@ section:nth-child(5) { animation-delay: 0.5s; }
 
     <div class="container">
         <div class="search-bar">
-            <span class="search-icon">🔍</span>
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
             <input type="text" id="searchInput" class="search-input" placeholder="Search for forms, resources, schedules...">
         </div>
 
@@ -756,7 +751,12 @@ section:nth-child(5) { animation-delay: 0.5s; }
             <div class="grid">
                 <a href="job-management/timesheet-submission.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="job-management" data-keywords="timesheet time sheet hours worked weekly pay payroll submit">
-                        <div class="card-icon">⏰</div>
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
                         <h3 class="card-title">Timesheet Submission</h3>
                         <p class="card-description">Submit your weekly timesheet for payroll processing</p>
                     </div>
@@ -764,7 +764,13 @@ section:nth-child(5) { animation-delay: 0.5s; }
 
                 <a href="job-management/jobsheet-submission.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="job-management" data-keywords="jobsheet job sheet work order task client submit">
-                        <div class="card-icon">📋</div>
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
                         <h3 class="card-title">Jobsheet Submission</h3>
                         <p class="card-description">Submit completed job details and work documentation</p>
                     </div>
@@ -772,21 +778,35 @@ section:nth-child(5) { animation-delay: 0.5s; }
 
                 <a href="job-management/daily-service-report.html" style="text-decoration: none; color: inherit;">
                     <div class="card" data-category="job-management" data-keywords="daily service report dsr site work daily log">
-                        <div class="card-icon">📝</div>
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
                         <h3 class="card-title">Daily Service Report</h3>
                         <p class="card-description">Daily work summary and site activity report</p>
                     </div>
                 </a>
 
                 <div class="card" data-category="job-management" data-keywords="purchase order po procurement buying materials supplies vendor">
-                    <div class="card-icon">🛒</div>
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
                     <h3 class="card-title">Purchase Order</h3>
                     <p class="card-description">Create and submit purchase orders for materials</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
                 <div class="card" data-category="job-management" data-keywords="job number register tracker list jobs project numbers">
-                    <div class="card-icon">📊</div>
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
                     <h3 class="card-title">Job Number Register</h3>
                     <p class="card-description">View and search all active job numbers</p>
                     <span class="badge coming-soon">Coming Soon</span>
@@ -795,83 +815,118 @@ section:nth-child(5) { animation-delay: 0.5s; }
         </section>
 
         <section>
-            <h2 class="section-title">Safety</h2>
+            <h2 class="section-title">Safety & Compliance</h2>
             <div class="grid">
                 <a href="safety/incident-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="safety" data-keywords="incident report accident injury hazard safety near miss emergency">
-                        <div class="card-icon">⚠️</div>
+                    <div class="card" data-category="safety" data-keywords="incident report accident injury near miss safety hazard emergency">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
                         <h3 class="card-title">Incident Report</h3>
-                        <p class="card-description">Report workplace incidents, injuries, or near misses</p>
+                        <p class="card-description">Report workplace incidents and near-misses</p>
                     </div>
                 </a>
 
                 <a href="safety/hazard-report.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="safety" data-keywords="hazard report danger risk unsafe safety warning observation">
-                        <div class="card-icon">🚨</div>
+                    <div class="card" data-category="safety" data-keywords="hazard risk danger unsafe condition safety issue warning">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
                         <h3 class="card-title">Hazard Report</h3>
-                        <p class="card-description">Report potential hazards and unsafe conditions</p>
+                        <p class="card-description">Identify and report potential workplace hazards</p>
                     </div>
                 </a>
 
                 <div class="card" data-category="safety" data-keywords="ppe personal protective equipment uniform request safety gear gloves boots helmet hard hat glasses vest hi-vis shirt pants work wear clothing apparel">
-                    <div class="card-icon">🦺</div>
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
                     <h3 class="card-title">PPE/Uniform Request</h3>
                     <p class="card-description">Request personal protective equipment and work uniforms</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
                 <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact certified">
-                    <div class="card-icon">🏥</div>
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    </svg>
                     <h3 class="card-title">First Aiders</h3>
                     <p class="card-description">Contact list of certified first aiders</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
-                <div class="card" data-category="safety" data-keywords="toolbox talk discussion safety meeting training topic swms">
-                    <div class="card-icon">🧰</div>
+                <div class="card" data-category="safety" data-keywords="toolbox talk discussion safety meeting topic training ohs whs">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                    </svg>
                     <h3 class="card-title">Toolbox Discussion Submission</h3>
-                    <p class="card-description">Submit toolbox talk attendance and topics discussed</p>
+                    <p class="card-description">Submit completed toolbox talk records</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
-                <div class="card" data-category="safety" data-keywords="toolbox talk resources safety topics presentations swms">
-                    <div class="card-icon">📑</div>
+                <div class="card" data-category="safety" data-keywords="toolbox talk resources templates safety topics training materials">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
                     <h3 class="card-title">Toolbox Talk Resources</h3>
-                    <p class="card-description">Access safety presentations and discussion materials</p>
+                    <p class="card-description">Access safety training materials and templates</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2 class="section-title">Schedules</h2>
+            <h2 class="section-title">Schedules & Rosters</h2>
             <div class="grid">
-                <div class="card" data-category="schedules" data-keywords="call out callout on-call oncall emergency phone roster schedule contact after hours">
-                    <div class="card-icon">📞</div>
-                    <h3 class="card-title">Call Out Roster</h3>
-                    <p class="card-description">Current on-call schedule and emergency contacts</p>
-                    <span class="badge coming-soon">Coming Soon</span>
-                </div>
-
-                <div class="card" data-category="schedules" data-keywords="rdo roster days off leave schedule etu roster">
-                    <div class="card-icon">📅</div>
-                    <h3 class="card-title">RDO Roster</h3>
-                    <p class="card-description">Rostered days off schedule</p>
-                    <span class="badge coming-soon">Coming Soon</span>
-                </div>
-
                 <a href="schedules/etu-rdo-calendar.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="schedules" data-keywords="etu rdo calendar days off leave schedule rostered union">
-                        <div class="card-icon">📆</div>
+                    <div class="card" data-category="schedules" data-keywords="etu rdo roster days off calendar schedule leave public holidays">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                            <path d="m9 16 2 2 4-4"></path>
+                        </svg>
                         <h3 class="card-title">ETU RDO Calendar</h3>
-                        <p class="card-description">ETU rostered days off calendar</p>
+                        <p class="card-description">View scheduled rostered days off and public holidays</p>
                     </div>
                 </a>
 
-                <div class="card" data-category="schedules" data-keywords="call out callout roster change swap emergency phone on-call">
-                    <div class="card-icon">🔄</div>
-                    <h3 class="card-title">Call Out Roster Change</h3>
-                    <p class="card-description">Request changes to on-call roster assignments</p>
+                <div class="card" data-category="schedules" data-keywords="callout roster on call emergency after hours weekend contact">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                    <h3 class="card-title">Callout Roster</h3>
+                    <p class="card-description">View current after-hours callout roster</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
+
+                <div class="card" data-category="schedules" data-keywords="rdo roster schedule days off planned leave weekly monthly">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <h3 class="card-title">RDO Roster</h3>
+                    <p class="card-description">Team rostered days off schedule</p>
+                    <span class="badge coming-soon">Coming Soon</span>
+                </div>
+
+                <div class="card" data-category="schedules" data-keywords="callout roster change swap request on call emergency">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    <h3 class="card-title">Callout Roster Change</h3>
+                    <p class="card-description">Request callout roster swap or change</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
             </div>
@@ -880,32 +935,36 @@ section:nth-child(5) { animation-delay: 0.5s; }
         <section>
             <h2 class="section-title">Standards & Knowledge</h2>
             <div class="grid">
-                <div class="card" data-category="standards" data-keywords="standards as3000 wiring rules regulations compliance electrical standards code">
-                    <div class="card-icon">📘</div>
-                    <h3 class="card-title">AS3000 Wiring Rules</h3>
-                    <p class="card-description">Australian electrical standards and regulations</p>
+                <div class="card" data-category="standards" data-keywords="as3000 wiring rules electrical standards regulations australian">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <h3 class="card-title">AS/NZS 3000 Wiring Rules</h3>
+                    <p class="card-description">Access Australian wiring standards and regulations</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
-                <a href="https://discovery-chatbot.vercel.app/tools/code-assistant" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="standards" data-keywords="ai assistant as3000 chatbot electrical assistant wiring rules help code help standards help">
-                        <div class="card-icon">🤖</div>
-                        <h3 class="card-title">AS3000 AI Assistant</h3>
-                        <p class="card-description">AI-powered assistant for AS3000 wiring rules queries</p>
-                    </div>
-                </a>
-
-                <div class="card" data-category="standards" data-keywords="technical resources documents manuals guides specifications datasheets">
-                    <div class="card-icon">📚</div>
+                <div class="card" data-category="standards" data-keywords="technical resources guides manuals documentation specifications">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
                     <h3 class="card-title">Technical Resources</h3>
-                    <p class="card-description">Manuals, guides, and technical documentation</p>
+                    <p class="card-description">Technical guides and reference materials</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
-                <div class="card" data-category="standards" data-keywords="cable calculator voltage drop cable sizing wire size electrical calculations conductor ampacity">
-                    <div class="card-icon">🔢</div>
+                <div class="card" data-category="standards" data-keywords="cable calculator size voltage drop current load capacity electrical">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                        <line x1="16" y1="6" x2="8" y2="6"></line>
+                        <line x1="16" y1="10" x2="8" y2="10"></line>
+                        <line x1="16" y1="14" x2="8" y2="14"></line>
+                        <line x1="12" y1="18" x2="8" y2="18"></line>
+                    </svg>
                     <h3 class="card-title">Cable Calculator</h3>
-                    <p class="card-description">Calculate cable sizes and voltage drop</p>
+                    <p class="card-description">Calculate cable sizing and voltage drop</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
             </div>
@@ -915,54 +974,82 @@ section:nth-child(5) { animation-delay: 0.5s; }
             <h2 class="section-title">Employee Resources</h2>
             <div class="grid">
                 <a href="employee-resources/leave-request.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee-resources" data-keywords="leave vacation holiday sick time off annual personal carer carers compassionate long service lsl bereavement parental maternity paternity request">
-                        <div class="card-icon">🏖️</div>
+                    <div class="card" data-category="employee-resources" data-keywords="leave request annual sick personal time off vacation holiday">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                            <path d="m9 16 2 2 4-4"></path>
+                        </svg>
                         <h3 class="card-title">Leave Request</h3>
-                        <p class="card-description">Apply for annual, sick, or other types of leave</p>
+                        <p class="card-description">Submit annual leave and time-off requests</p>
                     </div>
                 </a>
 
                 <a href="employee-resources/eba.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee-resources" data-keywords="eba enterprise bargaining agreement contract union pay rates conditions">
-                        <div class="card-icon">📜</div>
-                        <h3 class="card-title">Enterprise Bargaining Agreement</h3>
-                        <p class="card-description">View the current EBA and employment conditions</p>
+                    <div class="card" data-category="employee-resources" data-keywords="eba enterprise bargaining agreement contract award wages conditions">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <h3 class="card-title">EBA Document</h3>
+                        <p class="card-description">View and download the Enterprise Bargaining Agreement</p>
                     </div>
                 </a>
 
-                <div class="card" data-category="employee-resources" data-keywords="company policies procedures handbook rules guidelines">
-                    <div class="card-icon">📖</div>
+                <div class="card" data-category="employee-resources" data-keywords="company policies procedures rules guidelines handbook manual">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
                     <h3 class="card-title">Company Policies</h3>
-                    <p class="card-description">Access employee handbook and company policies</p>
+                    <p class="card-description">Access company policies and procedures</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
 
                 <a href="employee-resources/expense-claim.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee-resources" data-keywords="expense claim reimbursement receipt money cost out of pocket materials tools">
-                        <div class="card-icon">💰</div>
+                    <div class="card" data-category="employee-resources" data-keywords="expense claim reimbursement receipt costs travel fuel meals">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
                         <h3 class="card-title">Expense Claim</h3>
-                        <p class="card-description">Submit expense claims for reimbursement</p>
+                        <p class="card-description">Submit reimbursement claims for work expenses</p>
                     </div>
                 </a>
 
                 <a href="employee-resources/employee-change-details.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee-resources" data-keywords="employee change details update address phone email contact information personal">
-                        <div class="card-icon">✏️</div>
-                        <h3 class="card-title">Employee Change of Details</h3>
+                    <div class="card" data-category="employee-resources" data-keywords="change details update personal information address contact phone email">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <h3 class="card-title">Employee Change Details</h3>
                         <p class="card-description">Update your personal contact information</p>
                     </div>
                 </a>
 
                 <a href="employee-resources/suggestions-feedback.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="employee-resources" data-keywords="suggestions feedback ideas improvements complaints concerns">
-                        <div class="card-icon">💡</div>
+                    <div class="card" data-category="employee-resources" data-keywords="suggestions feedback ideas improvements complaints comments">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
                         <h3 class="card-title">Suggestions & Feedback</h3>
                         <p class="card-description">Share your ideas and feedback with management</p>
                     </div>
                 </a>
 
-                <div class="card" data-category="employee-resources" data-keywords="faq frequently asked questions help support answers common">
-                    <div class="card-icon">❓</div>
+                <div class="card" data-category="employee-resources" data-keywords="faq frequently asked questions help support answers">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
                     <h3 class="card-title">FAQ</h3>
                     <p class="card-description">Frequently asked questions and answers</p>
                     <span class="badge coming-soon">Coming Soon</span>
@@ -974,17 +1061,24 @@ section:nth-child(5) { animation-delay: 0.5s; }
             <h2 class="section-title">Fleet Management</h2>
             <div class="grid">
                 <a href="fleet-management/vehicle-maintenance-request.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="fleet" data-keywords="car truck van vehicle maintenance repair service broken fleet">
-                        <div class="card-icon">🚗</div>
+                    <div class="card" data-category="fleet-management" data-keywords="vehicle maintenance request service repair car van truck fleet">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <rect x="1" y="3" width="15" height="13"></rect>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                        </svg>
                         <h3 class="card-title">Vehicle Maintenance Request</h3>
-                        <p class="card-description">Report vehicle issues and request maintenance services</p>
+                        <p class="card-description">Report vehicle issues and request maintenance</p>
                     </div>
                 </a>
 
-                <div class="card" data-category="fleet" data-keywords="car truck van vehicle maintenance history log audit fleet">
-                    <div class="card-icon">🔍</div>
+                <div class="card" data-category="fleet-management" data-keywords="vehicle maintenance audit inspection checklist fleet service">
+                    <svg class="card-icon" viewBox="0 0 24 24">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                    </svg>
                     <h3 class="card-title">Vehicle Maintenance Audit</h3>
-                    <p class="card-description">View vehicle maintenance history and audit logs</p>
+                    <p class="card-description">Complete vehicle inspection checklist</p>
                     <span class="badge coming-soon">Coming Soon</span>
                 </div>
             </div>
@@ -994,10 +1088,13 @@ section:nth-child(5) { animation-delay: 0.5s; }
             <h2 class="section-title">Client Sites</h2>
             <div class="grid">
                 <a href="client-sites/tyrecycle/tyrecyclehome.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="sites" data-keywords="client sites tyrecycle somerton grain bake steelmains elastomers abey locations">
-                        <div class="card-icon">🏢</div>
-                        <h3 class="card-title">Client Sites</h3>
-                        <p class="card-description">Access client site information and resources</p>
+                    <div class="card" data-category="client-sites" data-keywords="tyrecycle client site location access details">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <h3 class="card-title">Tyrecycle</h3>
+                        <p class="card-description">Access Tyrecycle site information and resources</p>
                     </div>
                 </a>
             </div>
@@ -1006,23 +1103,17 @@ section:nth-child(5) { animation-delay: 0.5s; }
     </div>
 
     <footer class="footer">
-        <p>&copy; 2026 Bromar Electrical Services. This page is intended for Bromar employees only. For support, contact administration or management.</p>
-        <p style="margin-top: 0.5rem;"><a href="employee-resources/suggestions-feedback.html" style="color: #ffffff; text-decoration: underline; font-weight: 600;">Report a Bug or Issue with the Hub →</a></p>
+        <p>© 2026 Bromar Electrical Services | Industrial | Infrastructure | Automation</p>
     </footer>
-    </div><!-- End hubContent -->
+    </div>
 
-    <div class="revision-number">V1.03</div>
+    <div class="revision-number">V2.00</div>
 
     <script>
-        // ==========================================
-        // SUPABASE AUTHENTICATION
-        // ==========================================
-        
         // Supabase credentials
         const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
         
-        // Initialize Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 autoRefreshToken: true,
@@ -1032,17 +1123,12 @@ section:nth-child(5) { animation-delay: 0.5s; }
             }
         });
         
-        // ==========================================
-        // CHECK AUTHENTICATION STATUS
-        // ==========================================
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (session) {
-                // User is logged in
                 showHub();
             } else {
-                // User is not logged in
                 showLogin();
             }
         }
@@ -1059,9 +1145,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
             document.getElementById('logoutBtn').style.display = 'none';
         }
         
-        // ==========================================
-        // LOGIN FORM HANDLER
-        // ==========================================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -1071,11 +1154,9 @@ section:nth-child(5) { animation-delay: 0.5s; }
             const errorDiv = document.getElementById('loginError');
             const successDiv = document.getElementById('loginSuccess');
             
-            // Hide previous messages
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             
-            // Disable button during login
             loginButton.disabled = true;
             loginButton.textContent = 'Logging in...';
             
@@ -1086,22 +1167,18 @@ section:nth-child(5) { animation-delay: 0.5s; }
                 });
                 
                 if (error) {
-                    // Login failed
                     errorDiv.className = 'error-message';
                     errorDiv.textContent = error.message || 'Login failed. Please check your email and password.';
                     errorDiv.style.display = 'block';
                     loginButton.disabled = false;
                     loginButton.textContent = 'Login to Bromar Hub';
                 } else {
-                    // Login successful
                     successDiv.className = 'success-message';
                     successDiv.textContent = 'Login successful! Loading Bromar Hub...';
                     successDiv.style.display = 'block';
                     
-                    // Wait a moment then show hub
                     setTimeout(() => {
                         showHub();
-                        // Reset form
                         document.getElementById('loginForm').reset();
                         loginButton.disabled = false;
                         loginButton.textContent = 'Login to Bromar Hub';
@@ -1117,9 +1194,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
             }
         });
         
-        // ==========================================
-        // LOGOUT HANDLER
-        // ==========================================
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             const { error } = await supabaseClient.auth.signOut();
             
@@ -1130,9 +1204,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
             }
         });
         
-        // ==========================================
-        // FORGOT PASSWORD HANDLER
-        // ==========================================
         document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
             e.preventDefault();
             
@@ -1161,9 +1232,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
             }
         });
         
-        // ==========================================
-        // LISTEN FOR AUTH STATE CHANGES
-        // ==========================================
         supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') {
                 showHub();
@@ -1172,37 +1240,28 @@ section:nth-child(5) { animation-delay: 0.5s; }
             }
         });
         
-        // Check auth status on page load
         checkAuth();
         
-        // ==========================================
-        // DARK MODE TOGGLE
-        // ==========================================
         const darkModeToggle = document.getElementById('darkModeToggle');
         const loginDarkModeToggle = document.getElementById('loginDarkModeToggle');
         const htmlElement = document.documentElement;
 
-        // Check for system preference first, then saved preference
         function getInitialTheme() {
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 return savedTheme;
             }
-            // Detect system preference
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 return 'dark';
             }
             return 'light';
         }
 
-        // Set initial theme
         const currentTheme = getInitialTheme();
         htmlElement.setAttribute('data-theme', currentTheme);
 
-        // Listen for system preference changes
         if (window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-                // Only auto-switch if user hasn't manually set a preference
                 if (!localStorage.getItem('theme')) {
                     const newTheme = e.matches ? 'dark' : 'light';
                     htmlElement.setAttribute('data-theme', newTheme);
@@ -1210,20 +1269,15 @@ section:nth-child(5) { animation-delay: 0.5s; }
             });
         }
 
-        // Toggle function
         function toggleDarkMode() {
             const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             htmlElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
         }
 
-        // Attach to both buttons
         darkModeToggle.addEventListener('click', toggleDarkMode);
         loginDarkModeToggle.addEventListener('click', toggleDarkMode);
 
-        // ==========================================
-        // SEARCH FUNCTIONALITY
-        // ==========================================
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
         const searchResultsGrid = document.getElementById('searchResultsGrid');
@@ -1233,41 +1287,34 @@ section:nth-child(5) { animation-delay: 0.5s; }
             const searchTerm = e.target.value.toLowerCase().trim();
 
             if (searchTerm === '') {
-                // Show all sections, hide search results
                 allSections.style.display = 'block';
                 searchResults.classList.remove('active');
                 searchResultsGrid.innerHTML = '';
             } else {
-                // Hide all sections, show search results area
                 allSections.style.display = 'none';
                 searchResults.classList.add('active');
                 searchResultsGrid.innerHTML = '';
 
                 let hasResults = false;
                 const sections = document.querySelectorAll('#allSections > section');
-                const addedCards = new Set(); // Track cards we've already added
+                const addedCards = new Set();
 
                 sections.forEach(section => {
                     const sectionTitle = section.querySelector('.section-title')?.textContent.toLowerCase() || '';
                     
-                    // Get the grid
                     const grid = section.querySelector('.grid');
                     if (!grid) return;
                     
-                    // Get all direct children that are actual elements (not text nodes or comments)
                     const directChildren = Array.from(grid.children).filter(child => child.nodeType === 1);
 
                     directChildren.forEach(child => {
-                        // Check if this child has a card or IS a card wrapper
                         let card = child.classList.contains('card') ? child : child.querySelector('.card');
                         if (!card) return;
 
-                        // Create unique ID from title and description
                         const title = card.querySelector('.card-title')?.textContent || '';
                         const description = card.querySelector('.card-description')?.textContent || '';
                         const uniqueId = title + '|' + description;
                         
-                        // Skip if we've already added this exact card
                         if (addedCards.has(uniqueId)) return;
 
                         const titleLower = title.toLowerCase();
@@ -1275,7 +1322,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
                         const keywords = card.getAttribute('data-keywords')?.toLowerCase() || '';
                         const category = card.getAttribute('data-category')?.toLowerCase() || '';
 
-                        // Search in: section title, card title, description, keywords, and category
                         if (sectionTitle.includes(searchTerm) || 
                             titleLower.includes(searchTerm) || 
                             descriptionLower.includes(searchTerm) || 
@@ -1285,7 +1331,6 @@ section:nth-child(5) { animation-delay: 0.5s; }
                             hasResults = true;
                             addedCards.add(uniqueId);
 
-                            // Clone the parent element (the actual grid child)
                             const clonedElement = child.cloneNode(true);
                             searchResultsGrid.appendChild(clonedElement);
                         }
