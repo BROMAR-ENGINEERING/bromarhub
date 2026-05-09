@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Job Sheet - Bromar Engineering</title>
+  <title>Daily Job Sheet - Bromar</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
@@ -645,6 +645,123 @@
     }
     .footer-details p { margin-bottom: 3px; }
     .footer-details a { color: var(--brand-primary); text-decoration: none; }
+
+    /* Sign-Off Modal */
+    .signoff-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 9998;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .signoff-modal.show { display: flex; }
+    .signoff-modal-content {
+      background: var(--brand-white);
+      border-radius: var(--radius);
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .signoff-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--divider);
+      background: var(--brand-orange-soft);
+    }
+    .signoff-modal-header h2 {
+      font-size: 1.2rem;
+      color: var(--brand-orange);
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 1.5px;
+    }
+    .signoff-close {
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .signoff-close:hover { color: var(--error); }
+    .signoff-modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .signoff-modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid var(--divider);
+      background: var(--footer-bg);
+    }
+    .signoff-instruction {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 12px;
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      border-radius: 6px;
+      color: var(--info-text);
+    }
+    .signoff-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .summary-section {
+      margin-bottom: 18px;
+    }
+    .summary-section h3 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--brand-orange-soft);
+    }
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 4px;
+      font-size: 0.88rem;
+    }
+    .summary-label {
+      font-weight: 600;
+      color: var(--text-secondary);
+      min-width: 110px;
+    }
+    .summary-value { color: var(--text-primary); flex: 1; }
+    .summary-list { padding-left: 0; list-style: none; }
+    .summary-list li {
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--divider);
+      font-size: 0.88rem;
+    }
+    .summary-list li:last-child { border-bottom: none; }
+    .summary-table {
+      width: 100%;
+      font-size: 0.85rem;
+      border-collapse: collapse;
+    }
+    .summary-table th, .summary-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--divider);
+    }
+    .summary-table th {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -839,18 +956,29 @@
       <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
 
       <!-- CLIENT SIGNATURE -->
+      <!-- SIGN-OFF METHOD (only shown when service report enabled) -->
       <div class="signature-section" id="signatureSection">
         <div class="section-label">Client Sign-Off</div>
-        <div class="signature-canvas-wrapper">
-          <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display: block;">
-            Client Signature
-          </label>
-          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
-          <div class="signature-actions">
-            <div class="signature-name">
-              <input type="text" id="clientSignatureName" placeholder="Client Name"/>
-            </div>
-            <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
+        <div class="job-number-toggle" style="margin-bottom: 0;">
+          <div class="radio-option">
+            <input type="radio" id="signoff_none" name="signoff_method" value="none" checked/>
+            <label for="signoff_none">⏭️ Skip Sign-Off</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="signoff_inperson" name="signoff_method" value="in_person"/>
+            <label for="signoff_inperson">✍️ Sign Now (In Person)</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="signoff_remote" name="signoff_method" value="remote"/>
+            <label for="signoff_remote">📧 Email Link to Client</label>
+          </div>
+        </div>
+        
+        <div id="remoteEmailField" style="display: none; margin-top: 12px;">
+          <label for="signoff_email">Client Email Address <span class="required">*</span></label>
+          <input type="email" id="signoff_email" placeholder="client@example.com"/>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+            A signing link will be emailed to the client. Link expires in 30 days.
           </div>
         </div>
       </div>
@@ -884,6 +1012,42 @@
         <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
         <p>PH: +61 3 9335 5344 | EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
         <p>ABN: 45 634 835 939 | ACN: 634 835 939 | REC: 30340</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IN-PERSON SIGN-OFF MODAL -->
+<div class="signoff-modal" id="signoffModal">
+  <div class="signoff-modal-content">
+    <div class="signoff-modal-header">
+      <h2>Service Report Preview</h2>
+      <button type="button" class="signoff-close" id="signoffClose">&times;</button>
+    </div>
+    
+    <div class="signoff-modal-body" id="signoffSummary">
+      <!-- Filled by JS -->
+    </div>
+    
+    <div class="signoff-modal-footer">
+      <div class="signoff-instruction">
+        <strong>Please review the report above.</strong> By signing below you confirm the work described has been completed satisfactorily.
+      </div>
+      
+      <div class="signature-canvas-wrapper" style="margin: 16px 0;">
+        <label>Client Signature <span class="required">*</span></label>
+        <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        <div class="signature-actions">
+          <div class="signature-name">
+            <input type="text" id="clientSignatureName" placeholder="Client Full Name *"/>
+          </div>
+          <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
+        </div>
+      </div>
+      
+      <div class="signoff-modal-actions">
+        <button type="button" class="btn-secondary" id="signoffCancel">Back to Edit</button>
+        <button type="button" class="submit-btn" id="signoffConfirm">Confirm & Sign</button>
       </div>
     </div>
   </div>
@@ -974,8 +1138,48 @@
         select.innerHTML = '<option value="">Select your name...</option>' +
           EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
       }
+      
+      // Auto-select if user is logged in (Supabase Auth)
+      await autoSelectLoggedInUser();
     } catch (err) {
       console.error('Error loading employees:', err);
+    }
+  }
+
+  // ============================================================
+  // AUTO-SELECT LOGGED-IN USER (works once Supabase Auth is enabled)
+  // ============================================================
+  async function autoSelectLoggedInUser() {
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user || !user.email) return; // Not logged in - dropdown stays manual
+      
+      const match = EMPLOYEES.find(e => 
+        e.email && e.email.toLowerCase() === user.email.toLowerCase()
+      );
+      
+      if (!match) {
+        console.warn(`Logged-in user ${user.email} not found in employees table`);
+        return;
+      }
+      
+      const select = document.getElementById('filled_by');
+      select.value = match.full_name;
+      select.disabled = true; // Prevent changing - they're authenticated
+      
+      // Trigger change event to update currentUser
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      
+      // Visual indicator
+      const label = select.previousElementSibling;
+      if (label) {
+        label.innerHTML = 'Filled Out By <span style="color: var(--success); font-size: 0.75rem;">🔒 Logged in</span>';
+      }
+      
+      console.log(`Auto-selected: ${match.full_name}`);
+    } catch (err) {
+      // Auth not configured yet - silent
+      console.log('Auth not active - manual selection required');
     }
   }
 
@@ -1141,6 +1345,14 @@
     document.getElementById('signatureSection').classList.toggle('show', this.checked);
   });
 
+  // Show/hide email input based on sign-off method
+  document.querySelectorAll('input[name="signoff_method"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('remoteEmailField').style.display = 
+        document.querySelector('input[name="signoff_method"]:checked').value === 'remote' ? 'block' : 'none';
+    });
+  });
+
   // ============================================================
   // FILE UPLOADS
   // ============================================================
@@ -1294,6 +1506,138 @@
     }
     return true;
   }
+
+  // ============================================================
+  // IN-PERSON SIGN-OFF MODAL
+  // ============================================================
+  async function openSignoffModal(jobSheetNumber, jobNumber) {
+    const modal = document.getElementById('signoffModal');
+    const summary = document.getElementById('signoffSummary');
+    
+    summary.innerHTML = buildSummaryHTML(jobSheetNumber, jobNumber);
+    modal.classList.add('show');
+    
+    // Re-init canvas (size changes when shown)
+    setTimeout(() => {
+      const c = document.getElementById('signatureCanvas');
+      const rect = c.getBoundingClientRect();
+      c.width = rect.width;
+      c.height = rect.height;
+    }, 50);
+  }
+  
+  function buildSummaryHTML(jobSheetNumber, jobNumber) {
+    const sections = {
+      labour: document.getElementById('include_labour').checked,
+      tasks: document.getElementById('include_tasks').checked,
+      photos: document.getElementById('include_photos').checked,
+      notes: document.getElementById('include_notes').checked
+    };
+    
+    let html = `
+      <div class="summary-section">
+        <h3>Job Details</h3>
+        <div class="summary-row"><span class="summary-label">Report #:</span><span class="summary-value">${jobSheetNumber}</span></div>
+        <div class="summary-row"><span class="summary-label">Job Number:</span><span class="summary-value">${jobNumber}</span></div>
+        <div class="summary-row"><span class="summary-label">Date:</span><span class="summary-value">${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</span></div>
+        ${selectedJobData ? `
+          <div class="summary-row"><span class="summary-label">Client:</span><span class="summary-value">${selectedJobData.client_name}</span></div>
+          <div class="summary-row"><span class="summary-label">Site:</span><span class="summary-value">${selectedJobData.site_address || ''}</span></div>
+        ` : ''}
+        <div class="summary-row"><span class="summary-label">Prepared by:</span><span class="summary-value">${currentUser?.name || ''}</span></div>
+      </div>
+    `;
+    
+    if (sections.tasks) {
+      const tasks = Array.from(document.querySelectorAll('.task-description'))
+        .map(t => t.value.trim()).filter(t => t);
+      if (tasks.length) {
+        html += `<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol></div>`;
+      }
+    }
+    
+    if (sections.labour) {
+      const labour = Array.from(document.querySelectorAll('.labour-card')).map(c => ({
+        employee: c.querySelector('.labour-employee').value,
+        normal: parseFloat(c.querySelector('.labour-normal').value) || 0,
+        ot: parseFloat(c.querySelector('.labour-overtime').value) || 0
+      })).filter(l => l.employee);
+      
+      if (labour.length) {
+        const totalN = labour.reduce((s, l) => s + l.normal, 0);
+        const totalO = labour.reduce((s, l) => s + l.ot, 0);
+        html += `<div class="summary-section"><h3>Labour Hours</h3>
+          <table class="summary-table">
+            <thead><tr><th>Employee</th><th style="text-align:right;">Normal</th><th style="text-align:right;">OT</th></tr></thead>
+            <tbody>${labour.map(l => `<tr><td>${escapeHtml(l.employee)}</td><td style="text-align:right;">${l.normal}h</td><td style="text-align:right;">${l.ot}h</td></tr>`).join('')}</tbody>
+            <tfoot><tr style="font-weight:600;border-top:2px solid var(--divider);"><td>TOTAL</td><td style="text-align:right;">${totalN}h</td><td style="text-align:right;">${totalO}h</td></tr></tfoot>
+          </table></div>`;
+      }
+    }
+    
+    if (sections.photos && uploadedFiles.length) {
+      const photoCount = uploadedFiles.filter(f => f.type.startsWith('image/')).length;
+      html += `<div class="summary-section"><h3>Attachments</h3>
+        <div class="summary-row"><span class="summary-value">${photoCount} photo(s) and ${uploadedFiles.length - photoCount} document(s) attached</span></div></div>`;
+    }
+    
+    if (sections.notes) {
+      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => c.querySelector('.note-text').value.trim()).filter(n => n);
+      if (notes.length) {
+        html += `<div class="summary-section"><h3>Notes</h3><ul class="summary-list">${notes.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></div>`;
+      }
+    }
+    
+    return html;
+  }
+  
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  document.getElementById('signoffClose').addEventListener('click', closeSignoffModal);
+  document.getElementById('signoffCancel').addEventListener('click', closeSignoffModal);
+
+  function closeSignoffModal() {
+    document.getElementById('signoffModal').classList.remove('show');
+  }
+
+  document.getElementById('signoffConfirm').addEventListener('click', async () => {
+    const sigName = document.getElementById('clientSignatureName').value.trim();
+    if (!sigName) {
+      alert('Please enter the client name');
+      return;
+    }
+    if (isSignatureEmpty()) {
+      alert('Please capture the client signature');
+      return;
+    }
+    
+    showLoading('Saving signature...', 'Recording client sign-off');
+    try {
+      const { error } = await sb
+        .from('job_sheets')
+        .update({
+          client_signature_data: getSignatureData(),
+          client_signature_name: sigName,
+          client_signature_date: new Date().toISOString(),
+          signing_status: 'signed',
+          signing_method: 'in_person'
+        })
+        .eq('job_sheet_number', currentJobSheetNumber);
+      
+      if (error) throw error;
+      
+      closeSignoffModal();
+      hideLoading();
+      showSuccess('Service report signed and saved');
+      document.getElementById('pdfActions').classList.add('show');
+      document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      hideLoading();
+      alert('Error saving signature: ' + err.message);
+    }
+  });
 
   // ============================================================
   // TASKS, LABOUR, NOTES
@@ -1490,6 +1834,9 @@
 
       // Service report fields
       const isServiceReport = document.getElementById('isServiceReport').checked;
+      let signoffMethod = 'none';
+      let remoteEmail = '';
+      
       if (isServiceReport) {
         const reportSections = {
           labour: document.getElementById('include_labour').checked,
@@ -1499,16 +1846,19 @@
           notes: document.getElementById('include_notes').checked
         };
 
+        signoffMethod = document.querySelector('input[name="signoff_method"]:checked').value;
+        
         const updates = {
           is_service_report: true,
           report_sections: reportSections
         };
-
-        const sigName = document.getElementById('clientSignatureName').value.trim();
-        if (sigName && !isSignatureEmpty()) {
-          updates.client_signature_data = getSignatureData();
-          updates.client_signature_name = sigName;
-          updates.client_signature_date = new Date().toISOString();
+        
+        // Validate remote email if chosen
+        if (signoffMethod === 'remote') {
+          remoteEmail = document.getElementById('signoff_email').value.trim();
+          if (!remoteEmail || !remoteEmail.includes('@')) {
+            throw new Error('Please enter a valid client email for remote signing');
+          }
         }
 
         const { error: updErr } = await sb
@@ -1520,7 +1870,58 @@
       }
 
       hideLoading();
-      showSuccess(`Job sheet saved: ${jobSheetNumber}`);
+
+      // Branch on signoff method
+      if (isServiceReport && signoffMethod === 'in_person') {
+        // Show preview modal - signature happens there
+        await openSignoffModal(jobSheetNumber, jobNumber);
+        return; // Modal handles the rest
+      }
+      
+      if (isServiceReport && signoffMethod === 'remote') {
+        // Generate signing token and send email
+        showLoading('Sending to client...', remoteEmail);
+        try {
+          const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', {
+            p_job_sheet_number: jobSheetNumber,
+            p_recipient_email: remoteEmail,
+            p_expires_days: 30
+          });
+          if (tokenErr) throw tokenErr;
+          
+          // Build signing URL (same site)
+          const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
+          
+          // Send email via Edge Function
+          const { error: emailErr } = await sb.functions.invoke('send-signing-link', {
+            body: {
+              recipientEmail: remoteEmail,
+              jobSheetNumber: jobSheetNumber,
+              clientName: selectedJobData?.client_name || '',
+              signUrl: signUrl,
+              preparedBy: currentUser?.name || ''
+            }
+          });
+          
+          hideLoading();
+          
+          if (emailErr) {
+            console.error('Email send error:', emailErr);
+            // Email failed but token is saved - offer link to copy
+            const copy = confirm(
+              `Email sending failed. Token saved.\n\nCopy signing link to clipboard?\n\n${signUrl}`
+            );
+            if (copy) await navigator.clipboard.writeText(signUrl);
+          } else {
+            showSuccess(`Signing link sent to ${remoteEmail}`);
+          }
+        } catch (err) {
+          hideLoading();
+          throw err;
+        }
+      } else {
+        showSuccess(`Job sheet saved: ${jobSheetNumber}`);
+      }
       
       if (isServiceReport) {
         document.getElementById('pdfActions').classList.add('show');
@@ -1604,7 +2005,7 @@
       // Open default email client with pre-filled message
       const subject = encodeURIComponent(`Service Report - ${currentJobSheetNumber}`);
       const body = encodeURIComponent(
-        `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\nDate: ${new Date().toLocaleDateString()}\n\nIf you have any questions, please contact us.\n\nBest regards,\nBromar Engineering\nPh: 03 9335 5344\nadmin@bromar.com.au`
+        `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\nDate: ${new Date().toLocaleDateString()}\n\nIf you have any questions, please contact us.\n\nBest regards,\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`
       );
       window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
     } catch (err) {
@@ -1660,63 +2061,114 @@
     const margin = 20;
     let y = margin;
 
-    // Header
+    // ============================================================
+    // BRANDED HEADER
+    // ============================================================
+    // Top accent bar
     pdf.setFillColor(194, 68, 14);
-    pdf.rect(0, 0, pageWidth, 8, 'F');
+    pdf.rect(0, 0, pageWidth, 4, 'F');
     
-    y = 25;
-    pdf.setFontSize(24);
+    // Logo (top-left) - load from existing form image
+    let logoLoaded = false;
+    try {
+      const logoUrl = '../Bromar-Primary-Logo-Full-Colour.png';
+      const logoImg = await loadImage(logoUrl);
+      // Maintain aspect ratio, max height 18mm
+      const logoH = 18;
+      const logoW = (logoImg.width / logoImg.height) * logoH;
+      pdf.addImage(logoImg, 'PNG', margin, 10, logoW, logoH);
+      logoLoaded = true;
+    } catch (err) {
+      console.warn('Could not load logo for PDF:', err);
+    }
+    
+    // Company details (top-right)
+    pdf.setFontSize(8);
+    pdf.setTextColor(80, 80, 80);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('BROMAR ENGINEERING', pageWidth - margin, 12, { align: 'right' });
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049', pageWidth - margin, 16, { align: 'right' });
+    pdf.text('Ph: +61 3 9335 5344  |  Fax: +61 3 9335 5322', pageWidth - margin, 20, { align: 'right' });
+    pdf.text('admin@bromar.com.au  |  bromar.com.au', pageWidth - margin, 24, { align: 'right' });
+    pdf.text('ABN: 45 634 835 939  |  REC: 30340', pageWidth - margin, 28, { align: 'right' });
+    
+    // Divider under header
+    y = 36;
+    pdf.setDrawColor(194, 68, 14);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+    pdf.setLineWidth(0.2);
+    y += 10;
+    
+    // ============================================================
+    // REPORT TITLE
+    // ============================================================
+    pdf.setFontSize(22);
     pdf.setTextColor(194, 68, 14);
     pdf.setFont(undefined, 'bold');
     pdf.text('SERVICE REPORT', margin, y);
     
-    y += 10;
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
+    // Report meta box (right-aligned)
+    pdf.setFontSize(9);
     pdf.setFont(undefined, 'normal');
-    pdf.text(`Report #: ${currentJobSheetNumber}`, margin, y);
-    pdf.text(`Date: ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(`Report #:  ${currentJobSheetNumber}`, pageWidth - margin, y - 4, { align: 'right' });
+    pdf.text(`Date:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    if (jobSheet.created_by) {
+      pdf.text(`Prepared by:  ${jobSheet.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
+    }
     
-    y += 12;
-    pdf.setDrawColor(220, 220, 220);
-    pdf.line(margin, y, pageWidth - margin, y);
-    y += 10;
+    y += 14;
+
+    // Helper: branded section header
+    const sectionHeader = (title) => {
+      pdf.setFillColor(255, 243, 238); // brand-orange-soft
+      pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(10);
+      pdf.setTextColor(194, 68, 14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(title.toUpperCase(), margin + 2, y);
+      y += 8;
+      pdf.setTextColor(40, 40, 40);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+    };
 
     // Client Info
-    pdf.setFontSize(13);
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFont(undefined, 'bold');
-    pdf.text('Client Information', margin, y);
-    y += 7;
+    sectionHeader('Client Information');
     
-    pdf.setFontSize(10);
-    pdf.setFont(undefined, 'normal');
-    pdf.setTextColor(60, 60, 60);
-    
+    y += 2;
     const client = jobSheet.job_number_register;
-    pdf.text(`Client: ${client.client_name}`, margin, y); y += 5;
-    pdf.text(`Job Number: ${jobSheet.job_number}`, margin, y); y += 5;
-    if (client.site_address) {
-      const addrLines = pdf.splitTextToSize(`Site: ${client.site_address}`, pageWidth - 2 * margin);
-      addrLines.forEach(line => { pdf.text(line, margin, y); y += 5; });
-    }
-    if (client.contact_person) { pdf.text(`Contact: ${client.contact_person}`, margin, y); y += 5; }
-    if (client.contact_phone) { pdf.text(`Phone: ${client.contact_phone}`, margin, y); y += 5; }
-    y += 8;
+    const drawField = (label, value) => {
+      if (!value) return;
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(label, margin, y);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(40, 40, 40);
+      const lines = pdf.splitTextToSize(String(value), pageWidth - margin - 50);
+      lines.forEach((line, i) => {
+        pdf.text(line, margin + 32, y);
+        if (i < lines.length - 1) y += 5;
+      });
+      y += 6;
+    };
+    
+    drawField('Client:', client.client_name);
+    drawField('Job Number:', jobSheet.job_number);
+    drawField('Site:', client.site_address);
+    drawField('Contact:', client.contact_person);
+    drawField('Phone:', client.contact_phone);
+    y += 4;
 
     // Tasks
     if (jobSheet.report_sections?.tasks && jobSheet.tasks?.length > 0) {
       if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
-      
-      pdf.setFontSize(13);
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Work Performed', margin, y);
-      y += 7;
-      
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(60, 60, 60);
+      sectionHeader('Work Performed');
+      pdf.setTextColor(40, 40, 40);
       
       jobSheet.tasks.forEach((task, i) => {
         if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
@@ -1731,12 +2183,7 @@
     // Labour
     if (jobSheet.report_sections?.labour && jobSheet.labour?.length > 0) {
       if (y > pageHeight - 60) { pdf.addPage(); y = margin; }
-      
-      pdf.setFontSize(13);
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Labour Hours', margin, y);
-      y += 8;
+      sectionHeader('Labour Hours');
       
       // Table header
       pdf.setFillColor(243, 246, 255);
@@ -1776,16 +2223,8 @@
     // Notes
     if (jobSheet.report_sections?.notes && jobSheet.notes?.length > 0) {
       if (y > pageHeight - 40) { pdf.addPage(); y = margin; }
-      
-      pdf.setFontSize(13);
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Additional Notes', margin, y);
-      y += 7;
-      
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(60, 60, 60);
+      sectionHeader('Additional Notes');
+      pdf.setTextColor(40, 40, 40);
       
       jobSheet.notes.forEach(note => {
         if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
@@ -1801,12 +2240,8 @@
     if (jobSheet.report_sections?.photos && files.length > 0) {
       pdf.addPage();
       y = margin;
-      
-      pdf.setFontSize(13);
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Photos', margin, y);
-      y += 10;
+      sectionHeader('Photos');
+      y += 4;
       
       for (const file of files) {
         if (!file.signedUrl) continue;
@@ -1838,17 +2273,9 @@
     // Signature
     if (jobSheet.client_signature_name) {
       if (y > pageHeight - 70) { pdf.addPage(); y = margin; }
-      y += 10;
-      
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 10;
-      
-      pdf.setFontSize(13);
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Client Sign-Off', margin, y);
-      y += 10;
+      y += 6;
+      sectionHeader('Client Sign-Off');
+      y += 4;
       
       if (jobSheet.client_signature_data) {
         try {
@@ -1868,15 +2295,21 @@
     const pageCount = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
-      pdf.setFontSize(8);
+      
+      // Footer accent bar
+      pdf.setFillColor(194, 68, 14);
+      pdf.rect(0, pageHeight - 14, pageWidth, 0.5, 'F');
+      
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('Bromar', margin, pageHeight - 9);
+      pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
+      
+      pdf.setFontSize(6.5);
       pdf.setTextColor(150, 150, 150);
-      pdf.text(
-        'Bromar Engineering | 2/98-108 Western Ave, Westmeadows VIC 3049 | Ph: 03 9335 5344',
-        pageWidth / 2,
-        pageHeight - 8,
-        { align: 'center' }
-      );
-      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
     }
 
     return pdf;
