@@ -3,357 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Job Sheet</title>
+  <title>Daily Job Sheet - Bromar Engineering</title>
   
-  <!-- Supabase Client -->
-  <script src="https://iwtvlpfprxqwveqadlwl.supabase.co"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
   
-  <!-- Service Report Styles -->
-  <link rel="stylesheet" href="2-service-report-styles.css" />
-  
   <style>
-    /* ============================================================
-   SERVICE REPORT STYLES - FILE 2 of 3
-   ============================================================
-   Add this CSS file to enable Service Report mode features
-   Including: Toggle, File Upload, Signature Pad
-*/
-
-/* Service Report Toggle */
-.service-report-toggle {
-  background: var(--brand-light);
-  border: 2px solid var(--input-border);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  margin-bottom: 24px;
-}
-
-.toggle-switch {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.toggle-switch input[type="checkbox"] {
-  width: 50px;
-  height: 26px;
-  appearance: none;
-  background: #cbd5e1;
-  border-radius: 20px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.toggle-switch input[type="checkbox"]:checked {
-  background: var(--brand-orange);
-}
-
-.toggle-switch input[type="checkbox"]::before {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: white;
-  top: 3px;
-  left: 3px;
-  transition: all 0.3s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.toggle-switch input[type="checkbox"]:checked::before {
-  left: 27px;
-}
-
-.toggle-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.report-sections {
-  display: none;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--divider);
-}
-
-.report-sections.show {
-  display: block;
-}
-
-.section-checkboxes {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-@media (max-width: 620px) {
-  .section-checkboxes { grid-template-columns: 1fr; }
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 6px;
-  background: var(--brand-white);
-  border: 1px solid var(--input-border);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.checkbox-item:hover {
-  border-color: var(--brand-primary);
-  background: var(--brand-light);
-}
-
-.checkbox-item input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.checkbox-item label {
-  margin: 0;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-/* File Upload Area */
-.file-upload-area {
-  border: 2px dashed var(--input-border);
-  border-radius: var(--radius-sm);
-  padding: 30px;
-  text-align: center;
-  background: var(--brand-light);
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.file-upload-area:hover {
-  border-color: var(--brand-primary);
-  background: var(--input-bg);
-}
-
-.file-upload-area.dragover {
-  border-color: var(--brand-orange);
-  background: var(--brand-orange-soft);
-}
-
-.upload-icon {
-  font-size: 3rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-
-.upload-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.upload-hint {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.file-list {
-  margin-top: 16px;
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--brand-white);
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  margin-bottom: 8px;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.file-icon {
-  font-size: 1.5rem;
-}
-
-.file-details {
-  flex: 1;
-}
-
-.file-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.file-size {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.file-tags {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-
-.file-tag {
-  padding: 2px 8px;
-  background: var(--brand-light);
-  border: 1px solid var(--input-border);
-  border-radius: 4px;
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.file-tag:hover {
-  border-color: var(--brand-primary);
-}
-
-.file-tag.selected {
-  background: var(--brand-orange-soft);
-  border-color: var(--brand-orange);
-  color: var(--brand-orange);
-}
-
-.remove-file-btn {
-  padding: 6px 12px;
-  background: transparent;
-  border: none;
-  color: var(--error);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.remove-file-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* Signature Pad */
-.signature-section {
-  display: none;
-  margin-top: 24px;
-}
-
-.signature-section.show {
-  display: block;
-}
-
-.signature-canvas-wrapper {
-  border: 2px solid var(--input-border);
-  border-radius: var(--radius-sm);
-  background: white;
-  padding: 16px;
-}
-
-.signature-canvas {
-  width: 100%;
-  height: 200px;
-  border: 1px solid var(--divider);
-  border-radius: 6px;
-  cursor: crosshair;
-  touch-action: none;
-}
-
-.signature-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.signature-name {
-  flex: 1;
-}
-
-.clear-signature-btn {
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--input-border);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.clear-signature-btn:hover {
-  border-color: var(--error);
-  color: var(--error);
-  background: rgba(239, 68, 68, 0.05);
-}
-
-/* Uploading Overlay */
-.uploading-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
-}
-
-.uploading-overlay.show {
-  display: flex;
-}
-
-.uploading-content {
-  background: var(--brand-white);
-  padding: 40px;
-  border-radius: var(--radius);
-  text-align: center;
-  max-width: 400px;
-}
-
-.uploading-spinner {
-  width: 60px;
-  height: 60px;
-  border: 4px solid var(--input-border);
-  border-top-color: var(--brand-orange);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 20px;
-}
-      
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.uploading-text {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.uploading-subtext {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
     :root {
       --brand-primary: #1a56db;
       --brand-secondary: #0e9f6e;
@@ -436,12 +93,6 @@
       --text-faded: #9ca3af;
       --divider: #e5e7eb;
       --footer-bg: #fafafa;
-      --success-bg: #f0fdf4;
-      --success-border: #bbf7d0;
-      --success-text: #15803d;
-      --info-bg: #eff6ff;
-      --info-border: #bfdbfe;
-      --info-text: #1e40af;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -454,70 +105,11 @@
       color: var(--brand-dark);
     }
 
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.35;
-      z-index: 0;
-      pointer-events: none;
-    }
-    body::before {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #bfcfff, #e0e8ff);
-      top: -100px; left: -100px;
-      animation: blob1 12s ease-in-out infinite;
-    }
-    body::after {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
-      bottom: -80px; right: -80px;
-      animation: blob2 15s ease-in-out infinite;
-    }
-    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
-    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
-    @media (prefers-color-scheme: dark) {
-      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
-      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
-    }
+    .page-wrapper { max-width: 900px; margin: 0 auto; position: relative; }
 
-    .page-wrapper {
-      max-width: 900px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .home-icon {
+    .home-icon, .theme-toggle {
       position: absolute;
       top: 18px;
-      left: 18px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .home-icon:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .home-icon svg { width: 18px; height: 18px; }
-
-    .theme-toggle {
-      position: absolute;
-      top: 18px;
-      left: 64px;
       width: 38px;
       height: 38px;
       display: inline-flex;
@@ -529,31 +121,29 @@
       color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s;
-      z-index: 2;
+      z-index: 10;
+      text-decoration: none;
     }
-    .theme-toggle:hover {
+    .home-icon { left: 18px; }
+    .theme-toggle { right: 18px; border: none; }
+    .home-icon:hover, .theme-toggle:hover {
       color: var(--brand-orange);
       border-color: var(--brand-orange);
       background: var(--brand-orange-soft);
-      transform: translateY(-1px);
     }
-    .theme-toggle svg { width: 18px; height: 18px; }
-    
+    .home-icon svg, .theme-toggle svg { width: 18px; height: 18px; }
     .sun-icon { display: none; }
     .moon-icon { display: block; }
-    
     html.light-mode .sun-icon { display: block; }
     html.light-mode .moon-icon { display: none; }
 
     .header-card {
       background: var(--brand-white);
-      color: var(--text-primary);
       border-radius: var(--radius) var(--radius) 0 0;
       padding: 36px 40px 28px;
       text-align: center;
       border-bottom: 3px solid var(--brand-light);
       position: relative;
-      overflow: hidden;
     }
     .header-card::before {
       content: '';
@@ -562,16 +152,8 @@
       height: 5px;
       background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
     }
-
-    .logo-container {
-      margin-bottom: 20px;
-    }
-    .logo-container img {
-      max-height: 80px;
-      max-width: 260px;
-      object-fit: contain;
-    }
-
+    .logo-container { margin-bottom: 20px; }
+    .logo-container img { max-height: 80px; max-width: 260px; object-fit: contain; }
     .header-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 2.4rem;
@@ -579,16 +161,11 @@
       color: var(--text-primary);
       margin-bottom: 6px;
     }
-    .header-subtitle {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      font-weight: 400;
-    }
+    .header-subtitle { font-size: 0.9rem; color: var(--text-muted); }
 
     .form-card {
       background: var(--brand-white);
       border-radius: 0 0 var(--radius) var(--radius);
-      color: var(--text-primary);
       padding: 36px 40px 40px;
       box-shadow: var(--card-shadow);
     }
@@ -613,19 +190,13 @@
       opacity: 0.25;
     }
 
-    .field-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
+    .field-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     @media (max-width: 720px) {
       .field-row { grid-template-columns: 1fr; }
       .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
     }
 
-    .field-group {
-      margin-bottom: 18px;
-    }
+    .field-group { margin-bottom: 18px; }
     .field-group.full { grid-column: 1 / -1; }
 
     label {
@@ -634,19 +205,11 @@
       font-weight: 600;
       color: var(--text-secondary);
       margin-bottom: 7px;
-      letter-spacing: 0.2px;
     }
-    label .required {
-      color: var(--brand-accent);
-      margin-left: 3px;
-    }
+    label .required { color: var(--brand-accent); margin-left: 3px; }
 
-    input[type="text"],
-    input[type="email"],
-    input[type="date"],
-    input[type="number"],
-    select,
-    textarea {
+    input[type="text"], input[type="email"], input[type="date"],
+    input[type="number"], input[type="tel"], select, textarea {
       width: 100%;
       padding: 11px 14px;
       border: 1.5px solid var(--input-border);
@@ -655,38 +218,22 @@
       font-size: 0.93rem;
       color: var(--text-primary);
       background: var(--input-bg);
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      transition: all 0.2s;
       outline: none;
-      appearance: none;
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--input-focus);
       box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
       background: var(--input-bg-focus);
     }
-
-    input.error, select.error, textarea.error {
-      border-color: var(--error);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
-
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 14px center;
       padding-right: 36px;
-      cursor: pointer;
+      appearance: none;
     }
-
     textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
-
-    .error-msg {
-      font-size: 0.76rem;
-      color: var(--error);
-      margin-top: 5px;
-      display: none;
-    }
-    .field-group.has-error .error-msg { display: block; }
 
     .job-number-section {
       background: var(--brand-light);
@@ -695,25 +242,9 @@
       padding: 20px;
       margin-bottom: 24px;
     }
-
-    .job-number-toggle {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .radio-option {
-      flex: 1;
-      position: relative;
-    }
-
-    .radio-option input[type="radio"] {
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
+    .job-number-toggle { display: flex; gap: 16px; margin-bottom: 20px; }
+    .radio-option { flex: 1; position: relative; }
+    .radio-option input[type="radio"] { position: absolute; opacity: 0; }
     .radio-option label {
       display: flex;
       align-items: center;
@@ -727,36 +258,20 @@
       transition: all 0.2s;
       font-weight: 600;
       font-size: 0.85rem;
-      text-align: center;
     }
-
     .radio-option input:checked + label {
       border-color: var(--brand-orange);
       background: var(--brand-orange-soft);
       color: var(--brand-orange);
     }
+    .job-number-fields { display: none; }
+    .job-number-fields.active { display: block; }
 
-    .radio-option label:hover {
-      border-color: var(--brand-primary);
-    }
-
-    .job-number-fields {
-      display: none;
-    }
-
-    .job-number-fields.active {
-      display: block;
-    }
-
-    .autocomplete-wrapper {
-      position: relative;
-    }
-
+    .autocomplete-wrapper { position: relative; }
     .autocomplete-results {
       position: absolute;
       top: 100%;
-      left: 0;
-      right: 0;
+      left: 0; right: 0;
       background: var(--brand-white);
       border: 1.5px solid var(--input-border);
       border-top: none;
@@ -767,264 +282,15 @@
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-
-    .autocomplete-results.show {
-      display: block;
-    }
-
+    .autocomplete-results.show { display: block; }
     .autocomplete-item {
       padding: 10px 14px;
       cursor: pointer;
       border-bottom: 1px solid var(--divider);
-      transition: background 0.15s;
     }
-
-    .autocomplete-item:last-child {
-      border-bottom: none;
-    }
-
-    .autocomplete-item:hover {
-      background: var(--brand-light);
-    }
-
-    .autocomplete-item-number {
-      font-weight: 600;
-      color: var(--brand-primary);
-      font-size: 0.9rem;
-    }
-
-    .autocomplete-item-client {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .task-card {
-      background: var(--brand-white);
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      margin-bottom: 12px;
-      transition: all 0.2s;
-    }
-
-    .task-card:hover {
-      border-color: var(--brand-primary);
-      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
-    }
-
-    .task-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .task-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .remove-task, .remove-labour, .remove-note {
-      background: none;
-      border: none;
-      color: var(--error);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    .remove-task:hover, .remove-labour:hover, .remove-note:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
-
-    .add-task-btn, .add-labour-btn {
-      width: 100%;
-      padding: 12px;
-      border: 1.5px dashed var(--input-border);
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .add-task-btn:hover, .add-labour-btn:hover {
-      border-color: var(--brand-primary);
-      color: var(--brand-primary);
-      background: var(--brand-light);
-    }
-
-    .labour-card {
-      background: var(--brand-white);
-      border: 2px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: all 0.2s;
-    }
-
-    .labour-card:hover {
-      border-color: var(--brand-primary);
-      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.1);
-    }
-
-    .labour-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--divider);
-    }
-
-    .labour-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .hours-inputs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    @media (max-width: 620px) {
-      .hours-inputs { grid-template-columns: 1fr; }
-      .job-number-toggle { flex-direction: column; }
-    }
-
-    .success-banner, .info-banner {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 24px;
-      animation: slideIn 0.3s ease;
-    }
-    
-    .success-banner {
-      background: var(--success-bg);
-      border: 1px solid var(--success-border);
-      color: var(--success-text);
-    }
-    
-    .info-banner {
-      background: var(--info-bg);
-      border: 1px solid var(--info-border);
-      color: var(--info-text);
-    }
-    
-    .success-banner.show, .info-banner.show { display: flex; }
-    
-    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-
-    .form-divider {
-      height: 1px;
-      background: var(--divider);
-      margin: 28px 0 22px;
-    }
-
-    .submit-row {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      align-items: center;
-    }
-    .submit-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-right: auto;
-    }
-    .btn-secondary {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
-
-    .submit-btn {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 12px 28px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: var(--brand-orange);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
-    }
-    .submit-btn:hover {
-      background: #a3380b;
-      filter: brightness(1.05);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
-    }
-    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
-
-    .form-footer {
-      margin-top: 32px;
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-    .footer-disclaimer {
-      border: 1px solid var(--divider);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      margin-bottom: 20px;
-      background: var(--footer-bg);
-      font-style: italic;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      line-height: 1.7;
-    }
-    .footer-details {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      border-top: 1px solid var(--divider);
-      padding-top: 16px;
-    }
-    .footer-left p { margin-bottom: 3px; color: var(--text-secondary); font-size: 0.78rem; }
-    .footer-left a { color: var(--brand-primary); text-decoration: none; }
-    .footer-left a:hover { text-decoration: underline; }
-
-    @media (max-width: 720px) {
-      .submit-row { flex-wrap: wrap; }
-      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
-      .btn-secondary, .submit-btn { flex: 1; }
-    }
+    .autocomplete-item:hover { background: var(--brand-light); }
+    .autocomplete-item-number { font-weight: 600; color: var(--brand-primary); font-size: 0.9rem; }
+    .autocomplete-item-client { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
 
     .prefix-badge {
       display: inline-block;
@@ -1039,16 +305,343 @@
     .prefix-BA { background: #d1fae5; color: #065f46; }
     .prefix-BS { background: #fce7f3; color: #9f1239; }
     .prefix-BM { background: #e0e7ff; color: #3730a3; }
+
+    .task-card, .labour-card, .note-card {
+      background: var(--brand-white);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .task-header, .labour-header, .note-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .task-title, .labour-title, .note-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .remove-btn:hover { background: rgba(239, 68, 68, 0.1); }
+    .add-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .add-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .hours-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Service Report Toggle */
+    .service-report-toggle {
+      background: var(--brand-light);
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .toggle-switch { display: flex; gap: 12px; align-items: center; }
+    .toggle-switch input[type="checkbox"] {
+      width: 50px;
+      height: 26px;
+      appearance: none;
+      background: #cbd5e1;
+      border-radius: 20px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .toggle-switch input[type="checkbox"]:checked { background: var(--brand-orange); }
+    .toggle-switch input[type="checkbox"]::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      top: 3px;
+      left: 3px;
+      transition: all 0.3s;
+    }
+    .toggle-switch input[type="checkbox"]:checked::before { left: 27px; }
+    .toggle-label { font-size: 0.9rem; font-weight: 600; }
+
+    .report-sections {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--divider);
+    }
+    .report-sections.show { display: block; }
+    .section-checkboxes {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 620px) { .section-checkboxes { grid-template-columns: 1fr; } }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 6px;
+      background: var(--brand-white);
+      border: 1px solid var(--input-border);
+      cursor: pointer;
+    }
+    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; }
+    .checkbox-item label { margin: 0; cursor: pointer; font-size: 0.85rem; }
+
+    /* File Upload */
+    .file-upload-area {
+      border: 2px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 30px;
+      text-align: center;
+      background: var(--brand-light);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .file-upload-area:hover {
+      border-color: var(--brand-primary);
+      background: var(--input-bg);
+    }
+    .file-upload-area.dragover {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+    }
+    .upload-icon { font-size: 3rem; color: var(--text-muted); margin-bottom: 12px; }
+    .upload-text { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
+    .upload-hint { font-size: 0.75rem; color: var(--text-muted); }
+
+    .file-list { margin-top: 16px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: var(--brand-white);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .file-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .file-icon { font-size: 1.5rem; }
+    .file-details { flex: 1; }
+    .file-name { font-size: 0.85rem; font-weight: 600; }
+    .file-size { font-size: 0.75rem; color: var(--text-muted); }
+    .file-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .file-tag {
+      padding: 2px 8px;
+      background: var(--brand-light);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .file-tag.selected {
+      background: var(--brand-orange-soft);
+      border-color: var(--brand-orange);
+      color: var(--brand-orange);
+    }
+
+    /* Signature */
+    .signature-section { display: none; margin-top: 24px; }
+    .signature-section.show { display: block; }
+    .signature-canvas-wrapper {
+      border: 2px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: white;
+      padding: 16px;
+    }
+    .signature-canvas {
+      width: 100%;
+      height: 200px;
+      border: 1px solid var(--divider);
+      border-radius: 6px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .signature-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      align-items: center;
+    }
+    .signature-name { flex: 1; }
+    .clear-signature-btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--input-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+
+    /* Banners */
+    .success-banner, .info-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .success-banner {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+    .info-banner {
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      color: var(--info-text);
+    }
+    .success-banner.show, .info-banner.show { display: flex; }
+
+    /* Submit */
+    .form-divider { height: 1px; background: var(--divider); margin: 28px 0 22px; }
+    .submit-row { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
+    .submit-note { font-size: 12px; color: var(--text-muted); margin-right: auto; }
+    .btn-secondary {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .submit-btn {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: none;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+    }
+    .submit-btn:hover { background: #a3380b; }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    /* PDF Actions */
+    .pdf-actions {
+      display: none;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .pdf-actions.show { display: block; }
+    .pdf-actions h3 {
+      color: var(--success-text);
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+    .pdf-actions-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .pdf-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 1px solid var(--success-border);
+      background: white;
+      color: var(--success-text);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .pdf-btn:hover { background: var(--success-bg); }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-content {
+      background: var(--brand-white);
+      padding: 40px;
+      border-radius: var(--radius);
+      text-align: center;
+      max-width: 400px;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid var(--input-border);
+      border-top-color: var(--brand-orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .loading-subtext { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Footer */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-disclaimer {
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--footer-bg);
+      font-style: italic;
+      font-size: 0.75rem;
+    }
+    .footer-details {
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+    }
+    .footer-details p { margin-bottom: 3px; }
+    .footer-details a { color: var(--brand-primary); text-decoration: none; }
   </style>
 </head>
 <body>
-
-<!-- 
-  IMPORTANT: This is FILE 1 of 3
-  You also need:
-  - 2-service-report-styles.css (Service Report CSS)
-  - 3-service-report-script.js (Service Report JavaScript)
--->
 
 <div class="page-wrapper">
   <div class="header-card">
@@ -1058,7 +651,7 @@
       </svg>
     </a>
     <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
-      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="5"/>
         <line x1="12" y1="1" x2="12" y2="3"/>
         <line x1="12" y1="21" x2="12" y2="23"/>
@@ -1069,29 +662,29 @@
         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
       </svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     </button>
     <div class="logo-container">
       <picture>
         <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
-        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" id="logoImg"/>
       </picture>
     </div>
     <h1 class="header-title">Daily Job Sheet</h1>
-    <p class="header-subtitle">Quick daily documentation — data saved for weekly compilation</p>
+    <p class="header-subtitle">Quick daily documentation — saved to Supabase for compilation</p>
   </div>
 
   <div class="form-card">
-    <form id="serviceReportForm" novalidate autocomplete="off">
+    <form id="jobSheetForm" novalidate autocomplete="off">
 
       <div class="success-banner" id="successBanner">
         <span>✅</span>
-        <span>Daily job sheet saved successfully!</span>
+        <span id="successText">Job sheet saved successfully!</span>
       </div>
 
-      <div class="info-banner" id="infoBanner" style="display: none;">
+      <div class="info-banner" id="infoBanner">
         <span>ℹ️</span>
         <span id="infoBannerText"></span>
       </div>
@@ -1099,10 +692,9 @@
       <!-- DATE -->
       <div class="section-label">Basic Information</div>
       <div class="field-row">
-        <div class="field-group" id="group-date">
-          <label for="service_date">Date <span class="required">*</span></label>
-          <input type="date" id="service_date" name="service_date" autocomplete="off"/>
-          <span class="error-msg">Please select a date</span>
+        <div class="field-group">
+          <label for="sheet_date">Date <span class="required">*</span></label>
+          <input type="date" id="sheet_date" name="sheet_date" required/>
         </div>
       </div>
 
@@ -1111,24 +703,23 @@
       <div class="job-number-section">
         <div class="job-number-toggle">
           <div class="radio-option">
-            <input type="radio" id="existing_job" name="job_number_type" value="existing" checked/>
-            <label for="existing_job">📋 Use Existing Job Number</label>
+            <input type="radio" id="existing_job" name="job_type" value="existing" checked/>
+            <label for="existing_job">📋 Use Existing Job</label>
           </div>
           <div class="radio-option">
-            <input type="radio" id="new_job" name="job_number_type" value="new"/>
-            <label for="new_job">✨ Create New Job Number</label>
+            <input type="radio" id="new_job" name="job_type" value="new"/>
+            <label for="new_job">✨ Create New Job</label>
           </div>
         </div>
 
         <div id="existing-job-fields" class="job-number-fields active">
-          <div class="field-group autocomplete-wrapper" id="group-existing-number">
-            <label for="existing_job_number">Job Number <span class="required">*</span></label>
-            <input type="text" id="existing_job_number" name="existing_job_number" placeholder="Start typing to search..." autocomplete="off" style="text-transform: uppercase;"/>
+          <div class="field-group autocomplete-wrapper">
+            <label for="existing_job_number">Search by Job Number or Client <span class="required">*</span></label>
+            <input type="text" id="existing_job_number" placeholder="Start typing..." style="text-transform: uppercase;"/>
             <div class="autocomplete-results" id="autocompleteResults"></div>
-            <span class="error-msg">Please enter or select a job number</span>
           </div>
-          <div id="job-details-display" style="display: none; padding: 12px; background: var(--brand-light); border-radius: 6px; margin-top: 12px;">
-            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+          <div id="job-details-display" style="display: none; padding: 12px; background: var(--brand-light); border-radius: 6px;">
+            <div style="font-size: 0.85rem;">
               <strong id="detail-client"></strong><br>
               <span id="detail-address" style="color: var(--text-muted); font-size: 0.8rem;"></span>
             </div>
@@ -1137,9 +728,9 @@
 
         <div id="new-job-fields" class="job-number-fields">
           <div class="field-row">
-            <div class="field-group" id="group-new-prefix">
+            <div class="field-group">
               <label for="new_prefix">Project Type <span class="required">*</span></label>
-              <select id="new_prefix" name="new_prefix">
+              <select id="new_prefix">
                 <option value="">Select type...</option>
                 <option value="BE">BE – Legacy & Projects</option>
                 <option value="BC">BC – Construction</option>
@@ -1147,184 +738,253 @@
                 <option value="BS">BS – Service</option>
                 <option value="BM">BM – Maintenance</option>
               </select>
-              <span class="error-msg">Please select a project type</span>
             </div>
             <div class="field-group">
               <label>Next Job Number</label>
-              <input type="text" id="next_job_preview" disabled style="font-weight: 700; color: var(--brand-primary);" placeholder="Select type first..." />
+              <input type="text" id="next_job_preview" disabled style="font-weight: 700; color: var(--brand-primary);" placeholder="Select type first..."/>
             </div>
           </div>
-          <div class="field-row">
-            <div class="field-group full" id="group-new-client">
-              <label for="new_client_name">Client Name <span class="required">*</span></label>
-              <input type="text" id="new_client_name" name="new_client_name" placeholder="Client or company name" autocomplete="off"/>
-              <span class="error-msg">Please enter client name</span>
-            </div>
+          <div class="field-group full">
+            <label for="new_client_name">Client Name <span class="required">*</span></label>
+            <input type="text" id="new_client_name" placeholder="Client or company name"/>
           </div>
           <div class="field-row">
-            <div class="field-group" id="group-new-contact">
+            <div class="field-group">
               <label for="new_contact_person">Contact Person</label>
-              <input type="text" id="new_contact_person" name="new_contact_person" placeholder="Primary contact" autocomplete="off"/>
+              <input type="text" id="new_contact_person" placeholder="Primary contact"/>
             </div>
-            <div class="field-group" id="group-new-phone">
+            <div class="field-group">
               <label for="new_contact_phone">Contact Phone</label>
-              <input type="text" id="new_contact_phone" name="new_contact_phone" placeholder="Phone number" autocomplete="off"/>
+              <input type="tel" id="new_contact_phone" placeholder="Phone number"/>
             </div>
           </div>
-          <div class="field-group full" id="group-new-address">
+          <div class="field-group full">
             <label for="new_site_address">Site Address <span class="required">*</span></label>
-            <textarea id="new_site_address" name="new_site_address" rows="2" placeholder="Job site address" autocomplete="off"></textarea>
-            <span class="error-msg">Please enter site address</span>
+            <textarea id="new_site_address" rows="2" placeholder="Job site address"></textarea>
           </div>
         </div>
       </div>
 
-      <!-- SERVICE REPORT SECTION (loaded from external file) -->
-      <div id="serviceReportSection"></div>
+      <!-- SERVICE REPORT TOGGLE -->
+      <div class="section-label">Service Report Options</div>
+      <div class="service-report-toggle">
+        <div class="toggle-switch">
+          <input type="checkbox" id="isServiceReport"/>
+          <label for="isServiceReport" class="toggle-label">Generate Client Service Report</label>
+        </div>
+        <div class="report-sections" id="reportSections">
+          <label style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: block;">
+            Select what to include in client report:
+          </label>
+          <div class="section-checkboxes">
+            <div class="checkbox-item">
+              <input type="checkbox" id="include_labour" checked/>
+              <label for="include_labour">Labour Hours</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="include_tasks" checked/>
+              <label for="include_tasks">Tasks Completed</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="include_materials"/>
+              <label for="include_materials">Materials Used</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="include_photos" checked/>
+              <label for="include_photos">Photos</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="include_notes"/>
+              <label for="include_notes">Notes</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHOTOS & DOCUMENTS -->
+      <div class="section-label">Photos & Documents</div>
+      <div class="file-upload-area" id="fileUploadArea">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
+        <div class="upload-hint">Photos, PDFs, or documents (Max 10MB each)</div>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;"/>
+      </div>
+      <div class="file-list" id="fileList"></div>
 
       <!-- TASKS -->
       <div class="section-label">Work Performed</div>
       <div id="tasksContainer"></div>
-      <button type="button" class="add-task-btn" id="addTaskBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="8" y1="3" x2="8" y2="13"/>
-          <line x1="3" y1="8" x2="13" y2="8"/>
-        </svg>
-        Add Task
-      </button>
+      <button type="button" class="add-btn" id="addTaskBtn">+ Add Task</button>
 
       <!-- LABOUR -->
       <div class="section-label">Labour</div>
       <div id="labourContainer"></div>
-      <button type="button" class="add-labour-btn" id="addLabourBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="8" y1="3" x2="8" y2="13"/>
-          <line x1="3" y1="8" x2="13" y2="8"/>
-        </svg>
-        Add Labour Entry
-      </button>
+      <button type="button" class="add-btn" id="addLabourBtn">+ Add Labour Entry</button>
 
       <!-- NOTES -->
       <div class="section-label">Notes & Notifications</div>
       <div id="notesContainer"></div>
-      <button type="button" class="add-task-btn" id="addNoteBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="8" y1="3" x2="8" y2="13"/>
-          <line x1="3" y1="8" x2="13" y2="8"/>
-        </svg>
-        Add Note
-      </button>
+      <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
+
+      <!-- CLIENT SIGNATURE -->
+      <div class="signature-section" id="signatureSection">
+        <div class="section-label">Client Sign-Off</div>
+        <div class="signature-canvas-wrapper">
+          <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display: block;">
+            Client Signature
+          </label>
+          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+          <div class="signature-actions">
+            <div class="signature-name">
+              <input type="text" id="clientSignatureName" placeholder="Client Name"/>
+            </div>
+            <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
+          </div>
+        </div>
+      </div>
 
       <!-- SUBMIT -->
       <div class="form-divider"></div>
       <div class="submit-row">
         <span class="submit-note">* Required fields</span>
         <button type="reset" class="btn-secondary">Clear</button>
-        <button type="submit" class="submit-btn" id="submitBtn">Save Daily Job Sheet</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
       </div>
 
+      <!-- PDF ACTIONS (shown after save) -->
+      <div class="pdf-actions" id="pdfActions">
+        <h3>✅ Service Report Saved!</h3>
+        <p>Your service report is ready. What would you like to do?</p>
+        <div class="pdf-actions-buttons">
+          <button type="button" class="pdf-btn" id="downloadPdfBtn">📥 Download PDF</button>
+          <button type="button" class="pdf-btn" id="copyLinkBtn">🔗 Copy Share Link</button>
+          <button type="button" class="pdf-btn" id="emailPdfBtn">📧 Email Client</button>
+          <button type="button" class="pdf-btn" id="newSheetBtn">📝 New Job Sheet</button>
+        </div>
+      </div>
     </form>
 
     <div class="form-footer">
       <div class="footer-disclaimer">
-        <p><em>💡 This daily job sheet is saved to Supabase and can be loaded into weekly reports.</em></p>
-        <p><em>📊 Job numbers are managed in real-time across all users.</em></p>
+        <p><em>💡 Job sheets save to Supabase. Service reports include client sign-off and PDF export.</em></p>
       </div>
       <div class="footer-details">
-        <div class="footer-left">
-          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
-          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
-          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
-        </div>
+        <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+        <p>PH: +61 3 9335 5344 | EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
+        <p>ABN: 45 634 835 939 | ACN: 634 835 939 | REC: 30340</p>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Processing...</div>
+    <div class="loading-subtext" id="loadingSubtext">Please wait</div>
+  </div>
+</div>
+
 <script>
   // ============================================================
-  // SUPABASE CONFIGURATION
+  // SUPABASE CONFIGURATION - REPLACE WITH YOUR CREDENTIALS
   // ============================================================
-  // TODO: Replace with your actual Supabase URL and anon key
   const SUPABASE_URL = 'YOUR_SUPABASE_URL';
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  console.log('Supabase client initialized');
+  // Employee list
+  const EMPLOYEES = [
+    'Chris Leddin', 'Tim Brady', 'Jordan Smith', 'Mike Davis',
+    'Sam Wilson', 'Alex Johnson', 'Ben Taylor', 'David Brown',
+    'Ethan Miller', 'Frank White', 'George Harris', 'Henry Clark',
+    'Ian Lewis', 'Jack Walker', 'Kevin Hall', 'Liam Young'
+  ];
+
+  const NOTIFY_PEOPLE = [
+    'Manager', 'Project Manager', 'Safety Officer', 'Admin',
+    'Accounts', 'Procurement', 'Estimator'
+  ];
+
+  // State
+  let selectedJobData = null;
+  let uploadedFiles = [];
+  let currentJobSheetNumber = null;
+  let currentJobNumber = null;
+  let currentReportData = null;
+
+  // ============================================================
+  // INITIALIZATION
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set today's date
+    document.getElementById('sheet_date').valueAsDate = new Date();
+    
+    // Initialize sections
+    addTask();
+    addLabour();
+    
+    // Setup signature canvas
+    setupSignatureCanvas();
+    
+    // Setup theme
+    initTheme();
+  });
 
   // ============================================================
   // THEME TOGGLE
   // ============================================================
-  const themeToggle = document.getElementById('themeToggle');
-  const html = document.documentElement;
-  const logoImg = document.querySelector('.logo-container img');
-
-  function updateLogo() {
-    if (html.classList.contains('light-mode')) {
-      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-    } else {
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
-      } else {
-        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-      }
+  function initTheme() {
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    
+    if (localStorage.getItem('theme') === 'light') {
+      html.classList.add('light-mode');
     }
-  }
-
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    html.classList.add('light-mode');
-  }
-  updateLogo();
-
-  themeToggle.addEventListener('click', () => {
-    html.classList.toggle('light-mode');
     updateLogo();
     
-    if (html.classList.contains('light-mode')) {
-      localStorage.setItem('theme', 'light');
+    themeToggle.addEventListener('click', () => {
+      html.classList.toggle('light-mode');
+      updateLogo();
+      localStorage.setItem('theme', html.classList.contains('light-mode') ? 'light' : 'dark');
+    });
+  }
+
+  function updateLogo() {
+    const logo = document.getElementById('logoImg');
+    const isLight = document.documentElement.classList.contains('light-mode');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (isLight || !prefersDark) {
+      logo.src = '../Bromar-Primary-Logo-Full-Colour.png';
     } else {
-      localStorage.removeItem('theme');
+      logo.src = '../Bromar-Primary-Logo-Reverse-White.png';
     }
-  });
+  }
 
   // ============================================================
   // JOB NUMBER MANAGEMENT
   // ============================================================
-  const jobNumberTypeRadios = document.querySelectorAll('input[name="job_number_type"]');
-  const existingJobFields = document.getElementById('existing-job-fields');
-  const newJobFields = document.getElementById('new-job-fields');
-  const existingJobInput = document.getElementById('existing_job_number');
-  const autocompleteResults = document.getElementById('autocompleteResults');
-  const jobDetailsDisplay = document.getElementById('job-details-display');
-  const newPrefixSelect = document.getElementById('new_prefix');
-  const nextJobPreview = document.getElementById('next_job_preview');
-
-  let selectedJobData = null;
-  let searchTimeout = null;
-
-  jobNumberTypeRadios.forEach(radio => {
+  document.querySelectorAll('input[name="job_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
-      if (this.value === 'existing') {
-        existingJobFields.classList.add('active');
-        newJobFields.classList.remove('active');
-      } else {
-        existingJobFields.classList.remove('active');
-        newJobFields.classList.add('active');
-      }
+      document.getElementById('existing-job-fields').classList.toggle('active', this.value === 'existing');
+      document.getElementById('new-job-fields').classList.toggle('active', this.value === 'new');
     });
   });
 
-  existingJobInput.addEventListener('input', function() {
+  let searchTimeout;
+  document.getElementById('existing_job_number').addEventListener('input', function() {
     this.value = this.value.toUpperCase();
-    if (searchTimeout) clearTimeout(searchTimeout);
+    clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => searchJobs(this.value), 300);
   });
 
   async function searchJobs(query) {
+    const results = document.getElementById('autocompleteResults');
     if (query.length < 2) {
-      autocompleteResults.classList.remove('show');
+      results.classList.remove('show');
       return;
     }
 
@@ -1334,236 +994,890 @@
         .select('job_number, client_name, site_address, prefix')
         .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
         .limit(10);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        displayAutocompleteResults(data);
-      } else {
-        autocompleteResults.innerHTML = '<div class="autocomplete-item" style="color: var(--text-muted); cursor: default;">No jobs found</div>';
-        autocompleteResults.classList.add('show');
-      }
-    } catch (error) {
-      console.error('Error searching jobs:', error);
-      showInfoBanner('Error searching jobs. Please check your connection.');
-    }
-  }
-
-  function displayAutocompleteResults(jobs) {
-    autocompleteResults.innerHTML = '';
-    
-    jobs.forEach(job => {
-      const item = document.createElement('div');
-      item.className = 'autocomplete-item';
-      item.innerHTML = `
-        <div class="autocomplete-item-number">
-          ${job.job_number}
-          <span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span>
-        </div>
-        <div class="autocomplete-item-client">${job.client_name}</div>
-      `;
       
-      item.addEventListener('click', () => selectJob(job));
-      autocompleteResults.appendChild(item);
-    });
-    
-    autocompleteResults.classList.add('show');
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        results.innerHTML = data.map(job => `
+          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item-number">
+              ${job.job_number}
+              <span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span>
+            </div>
+            <div class="autocomplete-item-client">${job.client_name}</div>
+          </div>
+        `).join('');
+        
+        results.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const job = JSON.parse(item.dataset.job.replace(/&#39;/g, "'"));
+            selectJob(job);
+          });
+        });
+        
+        results.classList.add('show');
+      } else {
+        results.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+        results.classList.add('show');
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      showInfo('Error searching jobs');
+    }
   }
 
   function selectJob(job) {
-    existingJobInput.value = job.job_number;
     selectedJobData = job;
-    autocompleteResults.classList.remove('show');
+    document.getElementById('existing_job_number').value = job.job_number;
     document.getElementById('detail-client').textContent = job.client_name;
-    document.getElementById('detail-address').textContent = job.site_address;
-    jobDetailsDisplay.style.display = 'block';
+    document.getElementById('detail-address').textContent = job.site_address || '';
+    document.getElementById('job-details-display').style.display = 'block';
+    document.getElementById('autocompleteResults').classList.remove('show');
   }
 
   document.addEventListener('click', (e) => {
-    if (!existingJobInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
-      autocompleteResults.classList.remove('show');
+    if (!e.target.closest('.autocomplete-wrapper')) {
+      document.getElementById('autocompleteResults').classList.remove('show');
     }
   });
 
-  newPrefixSelect.addEventListener('change', async function() {
-    const prefix = this.value;
-    if (!prefix) {
-      nextJobPreview.value = 'Select type first...';
+  document.getElementById('new_prefix').addEventListener('change', async function() {
+    const preview = document.getElementById('next_job_preview');
+    if (!this.value) {
+      preview.value = 'Select type first...';
       return;
     }
-
-    nextJobPreview.value = 'Loading...';
-
+    preview.value = 'Loading...';
+    
     try {
-      // Get report sections if service report
-let reportSections = null;
-if (document.getElementById('isServiceReport').checked) {
-  reportSections = {
-    labour: document.getElementById('include_labour').checked,
-    tasks: document.getElementById('include_tasks').checked,
-    materials: document.getElementById('include_materials').checked,
-    photos: document.getElementById('include_photos').checked,
-    notes: document.getElementById('include_notes').checked
-  };
-}
-
-// Create job sheet in Supabase
-const { data: jobSheetNumber, error: sheetError } = await supabase.rpc('create_job_sheet', {
-  p_job_number: jobNumber,
-  p_sheet_date: date,
-  p_tasks: tasks,
-  p_labour: labour,
-  p_notes: notes,
-  p_created_by: 'Web Form' // TODO: Get actual user
-});
-
-if (sheetError) throw sheetError;
-
-// Show uploading overlay
-const uploadingOverlay = document.createElement('div');
-uploadingOverlay.className = 'uploading-overlay show';
-uploadingOverlay.innerHTML = `
-  <div class="uploading-content">
-    <div class="uploading-spinner"></div>
-    <div class="uploading-text">Uploading files...</div>
-    <div class="uploading-subtext">Please wait</div>
-  </div>
-`;
-document.body.appendChild(uploadingOverlay);
-
-// Upload files if any
-let fileData = [];
-if (uploadedFiles.length > 0) {
-  fileData = await uploadFilesToSupabase(jobSheetNumber, jobNumber);
-}
-
-// If service report, update with report sections and signature
-if (reportSections) {
-  const updates = {
-    is_service_report: true,
-    report_sections: reportSections
-  };
-  
-  // Add signature if provided
-  const signatureName = document.getElementById('clientSignatureName').value.trim();
-  if (signatureName) {
-    updates.client_signature_data = getSignatureData();
-    updates.client_signature_name = signatureName;
-    updates.client_signature_date = new Date().toISOString();
-  }
-  
-  const { error: updateError } = await supabase
-    .from('job_sheets')
-    .update(updates)
-    .eq('job_sheet_number', jobSheetNumber);
-  
-  if (updateError) throw updateError;
-}
-
-// Remove uploading overlay
-uploadingOverlay.remove();
-
-showInfoBanner(`Job sheet created: ${jobSheetNumber}${fileData.length > 0 ? ` (${fileData.length} files uploaded)` : ''}`);
       const { data, error } = await supabase
         .from('job_number_counters')
         .select('last_sequence')
-        .eq('prefix', prefix)
+        .eq('prefix', this.value)
         .single();
-
+      
       if (error) throw error;
-
-      const nextSeq = (data.last_sequence + 1).toString().padStart(4, '0');
-      nextJobPreview.value = `${prefix}${nextSeq}`;
-    } catch (error) {
-      console.error('Error getting next job number:', error);
-      nextJobPreview.value = 'Error loading';
-      showInfoBanner('Error loading next job number. Please try again.');
+      
+      const seq = (data.last_sequence + 1).toString().padStart(4, '0');
+      preview.value = `${this.value}${seq}`;
+    } catch (err) {
+      preview.value = 'Error';
+      console.error(err);
     }
   });
 
-  function showInfoBanner(message) {
+  // ============================================================
+  // SERVICE REPORT TOGGLE
+  // ============================================================
+  document.getElementById('isServiceReport').addEventListener('change', function() {
+    document.getElementById('reportSections').classList.toggle('show', this.checked);
+    document.getElementById('signatureSection').classList.toggle('show', this.checked);
+  });
+
+  // ============================================================
+  // FILE UPLOADS
+  // ============================================================
+  const fileUploadArea = document.getElementById('fileUploadArea');
+  const fileInput = document.getElementById('fileInput');
+
+  fileUploadArea.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+  fileUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.add('dragover');
+  });
+  fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+  fileUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  function handleFiles(files) {
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        showInfo(`${file.name} is too large (max 10MB)`);
+        return;
+      }
+      uploadedFiles.push({
+        id: Date.now() + Math.random(),
+        file: file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        tags: []
+      });
+    });
+    renderFileList();
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = uploadedFiles.map(f => {
+      const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
+      const sizeKB = (f.size / 1024).toFixed(1);
+      const tags = ['progress', 'before', 'after', 'electrical', 'safety'];
+      
+      return `
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-icon">${icon}</div>
+            <div class="file-details">
+              <div class="file-name">${f.name}</div>
+              <div class="file-size">${sizeKB} KB</div>
+              <div class="file-tags">
+                ${tags.map(t => `
+                  <span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" 
+                        onclick="toggleTag(${f.id}, '${t}')">
+                    ${t.charAt(0).toUpperCase() + t.slice(1)}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.toggleTag = function(fileId, tag) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const idx = file.tags.indexOf(tag);
+    if (idx > -1) file.tags.splice(idx, 1);
+    else file.tags.push(tag);
+    renderFileList();
+  };
+
+  window.removeFile = function(fileId) {
+    uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+    renderFileList();
+  };
+
+  // ============================================================
+  // SIGNATURE PAD
+  // ============================================================
+  function setupSignatureCanvas() {
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false, lastX = 0, lastY = 0;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: x - rect.left, y: y - rect.top };
+    }
+
+    function start(e) {
+      drawing = true;
+      const p = getPos(e);
+      [lastX, lastY] = [p.x, p.y];
+    }
+
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const p = getPos(e);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      [lastX, lastY] = [p.x, p.y];
+    }
+
+    function stop() { drawing = false; }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseout', stop);
+    canvas.addEventListener('touchstart', start);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stop);
+
+    document.getElementById('clearSignatureBtn').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+  }
+
+  function getSignatureData() {
+    return document.getElementById('signatureCanvas').toDataURL('image/png');
+  }
+
+  function isSignatureEmpty() {
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] !== 0) return false;
+    }
+    return true;
+  }
+
+  // ============================================================
+  // TASKS, LABOUR, NOTES
+  // ============================================================
+  let taskCount = 0, labourCount = 0, noteCount = 0;
+
+  document.getElementById('addTaskBtn').addEventListener('click', addTask);
+  document.getElementById('addLabourBtn').addEventListener('click', addLabour);
+  document.getElementById('addNoteBtn').addEventListener('click', addNote);
+
+  function addTask() {
+    taskCount++;
+    const id = taskCount;
+    const div = document.createElement('div');
+    div.className = 'task-card';
+    div.dataset.taskId = id;
+    div.innerHTML = `
+      <div class="task-header">
+        <span class="task-title">Task ${id}</span>
+        ${id > 1 ? `<button type="button" class="remove-btn" onclick="removeTask(${id})">Remove</button>` : ''}
+      </div>
+      <textarea class="task-description" placeholder="Describe the work performed..." required></textarea>
+    `;
+    document.getElementById('tasksContainer').appendChild(div);
+  }
+
+  window.removeTask = function(id) {
+    const card = document.querySelector(`[data-task-id="${id}"]`);
+    if (card) card.remove();
+  };
+
+  function addLabour() {
+    labourCount++;
+    const id = labourCount;
+    const div = document.createElement('div');
+    div.className = 'labour-card';
+    div.dataset.labourId = id;
+    
+    const employeeOptions = EMPLOYEES.map(e => `<option value="${e}">${e}</option>`).join('');
+    
+    div.innerHTML = `
+      <div class="labour-header">
+        <span class="labour-title">Labour Entry ${id}</span>
+        ${id > 1 ? `<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>` : ''}
+      </div>
+      <div class="field-group">
+        <label>Employee <span class="required">*</span></label>
+        <select class="labour-employee" required>
+          <option value="">Select employee...</option>
+          ${employeeOptions}
+        </select>
+      </div>
+      <div class="hours-inputs">
+        <div class="field-group" style="margin-bottom: 0;">
+          <label>Normal Hours</label>
+          <input type="number" class="labour-normal" min="0" max="8" step="0.25" placeholder="0" value="0"/>
+        </div>
+        <div class="field-group" style="margin-bottom: 0;">
+          <label>Overtime Hours</label>
+          <input type="number" class="labour-overtime" min="0" step="0.25" placeholder="0" value="0"/>
+        </div>
+      </div>
+    `;
+    document.getElementById('labourContainer').appendChild(div);
+  }
+
+  window.removeLabour = function(id) {
+    const card = document.querySelector(`[data-labour-id="${id}"]`);
+    if (card) card.remove();
+  };
+
+  function addNote() {
+    noteCount++;
+    const id = noteCount;
+    const div = document.createElement('div');
+    div.className = 'note-card';
+    div.dataset.noteId = id;
+    
+    const notifyOptions = NOTIFY_PEOPLE.map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    div.innerHTML = `
+      <div class="note-header">
+        <span class="note-title">Note ${id}</span>
+        <button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button>
+      </div>
+      <div class="field-group">
+        <label>Notify Person</label>
+        <select class="note-notify">
+          <option value="">No notification</option>
+          ${notifyOptions}
+        </select>
+      </div>
+      <div class="field-group" style="margin-bottom: 0;">
+        <label>Note</label>
+        <textarea class="note-text" placeholder="Note details..."></textarea>
+      </div>
+    `;
+    document.getElementById('notesContainer').appendChild(div);
+  }
+
+  window.removeNote = function(id) {
+    const card = document.querySelector(`[data-note-id="${id}"]`);
+    if (card) card.remove();
+  };
+
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
+  document.getElementById('jobSheetForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    showLoading('Saving job sheet...', 'Processing your data');
+
+    try {
+      // Determine job number
+      let jobNumber = '';
+      const jobType = document.querySelector('input[name="job_type"]:checked').value;
+      
+      if (jobType === 'existing') {
+        if (!selectedJobData) {
+          throw new Error('Please select a job number');
+        }
+        jobNumber = selectedJobData.job_number;
+      } else {
+        // Create new job
+        const prefix = document.getElementById('new_prefix').value;
+        const clientName = document.getElementById('new_client_name').value.trim();
+        const siteAddress = document.getElementById('new_site_address').value.trim();
+        
+        if (!prefix || !clientName || !siteAddress) {
+          throw new Error('Please fill in all required fields for new job');
+        }
+
+        const { data: newJobNum, error: jobErr } = await supabase.rpc('create_new_job', {
+          p_prefix: prefix,
+          p_client_name: clientName,
+          p_contact_person: document.getElementById('new_contact_person').value.trim(),
+          p_contact_phone: document.getElementById('new_contact_phone').value.trim(),
+          p_site_address: siteAddress
+        });
+        
+        if (jobErr) throw jobErr;
+        jobNumber = newJobNum;
+      }
+
+      // Collect tasks
+      const tasks = Array.from(document.querySelectorAll('.task-description'))
+        .map(t => t.value.trim())
+        .filter(t => t.length > 0);
+      
+      if (tasks.length === 0) throw new Error('Please add at least one task');
+
+      // Collect labour
+      const labour = Array.from(document.querySelectorAll('.labour-card')).map(card => ({
+        employee: card.querySelector('.labour-employee').value,
+        normalHours: parseFloat(card.querySelector('.labour-normal').value) || 0,
+        overtimeHours: parseFloat(card.querySelector('.labour-overtime').value) || 0
+      })).filter(l => l.employee);
+
+      // Collect notes
+      const notes = Array.from(document.querySelectorAll('.note-card')).map(card => ({
+        text: card.querySelector('.note-text').value.trim(),
+        notifyPerson: card.querySelector('.note-notify').value
+      })).filter(n => n.text);
+
+      // Create job sheet
+      const sheetDate = document.getElementById('sheet_date').value;
+      const { data: jobSheetNumber, error: sheetErr } = await supabase.rpc('create_job_sheet', {
+        p_job_number: jobNumber,
+        p_sheet_date: sheetDate,
+        p_tasks: tasks,
+        p_labour: labour,
+        p_notes: notes,
+        p_created_by: 'Web Form'
+      });
+
+      if (sheetErr) throw sheetErr;
+
+      currentJobSheetNumber = jobSheetNumber;
+      currentJobNumber = jobNumber;
+
+      // Upload files
+      if (uploadedFiles.length > 0) {
+        showLoading('Uploading files...', `${uploadedFiles.length} file(s)`);
+        await uploadFilesToSupabase(jobSheetNumber, jobNumber);
+      }
+
+      // Service report fields
+      const isServiceReport = document.getElementById('isServiceReport').checked;
+      if (isServiceReport) {
+        const reportSections = {
+          labour: document.getElementById('include_labour').checked,
+          tasks: document.getElementById('include_tasks').checked,
+          materials: document.getElementById('include_materials').checked,
+          photos: document.getElementById('include_photos').checked,
+          notes: document.getElementById('include_notes').checked
+        };
+
+        const updates = {
+          is_service_report: true,
+          report_sections: reportSections
+        };
+
+        const sigName = document.getElementById('clientSignatureName').value.trim();
+        if (sigName && !isSignatureEmpty()) {
+          updates.client_signature_data = getSignatureData();
+          updates.client_signature_name = sigName;
+          updates.client_signature_date = new Date().toISOString();
+        }
+
+        const { error: updErr } = await supabase
+          .from('job_sheets')
+          .update(updates)
+          .eq('job_sheet_number', jobSheetNumber);
+
+        if (updErr) throw updErr;
+      }
+
+      hideLoading();
+      showSuccess(`Job sheet saved: ${jobSheetNumber}`);
+      
+      if (isServiceReport) {
+        document.getElementById('pdfActions').classList.add('show');
+        document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
+      }
+
+    } catch (err) {
+      hideLoading();
+      console.error('Submission error:', err);
+      showInfo('Error: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  async function uploadFilesToSupabase(jobSheetNumber, jobNumber) {
+    for (const f of uploadedFiles) {
+      const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${f.name}`;
+      
+      const { error: uploadErr } = await supabase.storage
+        .from('job-sheet-files')
+        .upload(filePath, f.file, { cacheControl: '3600', upsert: false });
+      
+      if (uploadErr) throw uploadErr;
+
+      const { error: dbErr } = await supabase
+        .from('job_sheet_files')
+        .insert({
+          job_sheet_number: jobSheetNumber,
+          job_number: jobNumber,
+          file_name: f.name,
+          file_path: filePath,
+          file_type: f.type,
+          file_size: f.size,
+          file_category: f.type.startsWith('image/') ? 'photo' : 'document',
+          tags: f.tags,
+          uploaded_by: 'Web Form'
+        });
+      
+      if (dbErr) throw dbErr;
+    }
+  }
+
+  // ============================================================
+  // PDF GENERATION & EXPORT
+  // ============================================================
+  document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+    showLoading('Generating PDF...', 'Building service report');
+    try {
+      await generateAndDownloadPDF();
+      hideLoading();
+      showSuccess('PDF downloaded!');
+    } catch (err) {
+      hideLoading();
+      showInfo('Error: ' + err.message);
+    }
+  });
+
+  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+    showLoading('Generating shareable link...', 'Uploading PDF to cloud');
+    try {
+      const url = await generateAndUploadPDF();
+      await navigator.clipboard.writeText(url);
+      hideLoading();
+      showSuccess('Link copied to clipboard!');
+    } catch (err) {
+      hideLoading();
+      showInfo('Error: ' + err.message);
+    }
+  });
+
+  document.getElementById('emailPdfBtn').addEventListener('click', async () => {
+    const email = prompt('Enter client email address:');
+    if (!email) return;
+    
+    showLoading('Preparing email...', 'Generating PDF and link');
+    try {
+      const url = await generateAndUploadPDF();
+      hideLoading();
+      
+      // Open default email client with pre-filled message
+      const subject = encodeURIComponent(`Service Report - ${currentJobSheetNumber}`);
+      const body = encodeURIComponent(
+        `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\nDate: ${new Date().toLocaleDateString()}\n\nIf you have any questions, please contact us.\n\nBest regards,\nBromar Engineering\nPh: 03 9335 5344\nadmin@bromar.com.au`
+      );
+      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    } catch (err) {
+      hideLoading();
+      showInfo('Error: ' + err.message);
+    }
+  });
+
+  document.getElementById('newSheetBtn').addEventListener('click', () => {
+    if (confirm('Start a new job sheet? Current data will be cleared.')) {
+      location.reload();
+    }
+  });
+
+  async function fetchReportData() {
+    const { data: jobSheet, error } = await supabase
+      .from('job_sheets')
+      .select('*, job_number_register(*)')
+      .eq('job_sheet_number', currentJobSheetNumber)
+      .single();
+    
+    if (error) throw error;
+
+    let files = [];
+    if (jobSheet.report_sections?.photos) {
+      const { data: filesData } = await supabase
+        .from('job_sheet_files')
+        .select('*')
+        .eq('job_sheet_number', currentJobSheetNumber)
+        .eq('file_category', 'photo');
+      
+      // Get signed URLs
+      if (filesData) {
+        for (const f of filesData) {
+          const { data: urlData } = await supabase.storage
+            .from('job-sheet-files')
+            .createSignedUrl(f.file_path, 3600);
+          if (urlData) f.signedUrl = urlData.signedUrl;
+        }
+        files = filesData;
+      }
+    }
+    
+    return { jobSheet, files };
+  }
+
+  async function generatePDF() {
+    const { jobSheet, files } = await fetchReportData();
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let y = margin;
+
+    // Header
+    pdf.setFillColor(194, 68, 14);
+    pdf.rect(0, 0, pageWidth, 8, 'F');
+    
+    y = 25;
+    pdf.setFontSize(24);
+    pdf.setTextColor(194, 68, 14);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('SERVICE REPORT', margin, y);
+    
+    y += 10;
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`Report #: ${currentJobSheetNumber}`, margin, y);
+    pdf.text(`Date: ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    
+    y += 12;
+    pdf.setDrawColor(220, 220, 220);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    // Client Info
+    pdf.setFontSize(13);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Client Information', margin, y);
+    y += 7;
+    
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(60, 60, 60);
+    
+    const client = jobSheet.job_number_register;
+    pdf.text(`Client: ${client.client_name}`, margin, y); y += 5;
+    pdf.text(`Job Number: ${jobSheet.job_number}`, margin, y); y += 5;
+    if (client.site_address) {
+      const addrLines = pdf.splitTextToSize(`Site: ${client.site_address}`, pageWidth - 2 * margin);
+      addrLines.forEach(line => { pdf.text(line, margin, y); y += 5; });
+    }
+    if (client.contact_person) { pdf.text(`Contact: ${client.contact_person}`, margin, y); y += 5; }
+    if (client.contact_phone) { pdf.text(`Phone: ${client.contact_phone}`, margin, y); y += 5; }
+    y += 8;
+
+    // Tasks
+    if (jobSheet.report_sections?.tasks && jobSheet.tasks?.length > 0) {
+      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
+      
+      pdf.setFontSize(13);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Work Performed', margin, y);
+      y += 7;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(60, 60, 60);
+      
+      jobSheet.tasks.forEach((task, i) => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const text = `${i + 1}. ${task}`;
+        const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
+        y += 2;
+      });
+      y += 8;
+    }
+
+    // Labour
+    if (jobSheet.report_sections?.labour && jobSheet.labour?.length > 0) {
+      if (y > pageHeight - 60) { pdf.addPage(); y = margin; }
+      
+      pdf.setFontSize(13);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Labour Hours', margin, y);
+      y += 8;
+      
+      // Table header
+      pdf.setFillColor(243, 246, 255);
+      pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(9);
+      pdf.text('Employee', margin + 2, y);
+      pdf.text('Normal', pageWidth - margin - 50, y);
+      pdf.text('Overtime', pageWidth - margin - 25, y);
+      y += 6;
+      
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(60, 60, 60);
+      
+      let totalNormal = 0, totalOT = 0;
+      jobSheet.labour.forEach(l => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        pdf.text(l.employee, margin + 2, y);
+        pdf.text(`${l.normalHours || 0}h`, pageWidth - margin - 50, y);
+        pdf.text(`${l.overtimeHours || 0}h`, pageWidth - margin - 25, y);
+        totalNormal += parseFloat(l.normalHours || 0);
+        totalOT += parseFloat(l.overtimeHours || 0);
+        y += 6;
+      });
+      
+      y += 2;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('TOTAL', margin + 2, y);
+      pdf.text(`${totalNormal}h`, pageWidth - margin - 50, y);
+      pdf.text(`${totalOT}h`, pageWidth - margin - 25, y);
+      y += 10;
+    }
+
+    // Notes
+    if (jobSheet.report_sections?.notes && jobSheet.notes?.length > 0) {
+      if (y > pageHeight - 40) { pdf.addPage(); y = margin; }
+      
+      pdf.setFontSize(13);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Additional Notes', margin, y);
+      y += 7;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(60, 60, 60);
+      
+      jobSheet.notes.forEach(note => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const text = typeof note === 'string' ? note : note.text;
+        const lines = pdf.splitTextToSize(`• ${text}`, pageWidth - 2 * margin);
+        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
+        y += 3;
+      });
+      y += 5;
+    }
+
+    // Photos
+    if (jobSheet.report_sections?.photos && files.length > 0) {
+      pdf.addPage();
+      y = margin;
+      
+      pdf.setFontSize(13);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Photos', margin, y);
+      y += 10;
+      
+      for (const file of files) {
+        if (!file.signedUrl) continue;
+        try {
+          const img = await loadImage(file.signedUrl);
+          const maxW = pageWidth - 2 * margin;
+          const maxH = 110;
+          let w = maxW;
+          let h = (img.height / img.width) * w;
+          if (h > maxH) { h = maxH; w = (img.width / img.height) * h; }
+          
+          if (y + h > pageHeight - margin) { pdf.addPage(); y = margin; }
+          
+          pdf.addImage(img, 'JPEG', margin, y, w, h);
+          y += h + 5;
+          
+          if (file.tags?.length > 0) {
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y);
+            y += 8;
+          }
+        } catch (err) {
+          console.error('Error loading image:', err);
+        }
+      }
+    }
+
+    // Signature
+    if (jobSheet.client_signature_name) {
+      if (y > pageHeight - 70) { pdf.addPage(); y = margin; }
+      y += 10;
+      
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 10;
+      
+      pdf.setFontSize(13);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Client Sign-Off', margin, y);
+      y += 10;
+      
+      if (jobSheet.client_signature_data) {
+        try {
+          pdf.addImage(jobSheet.client_signature_data, 'PNG', margin, y, 80, 30);
+          y += 35;
+        } catch (e) { console.error(e); }
+      }
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`Signed by: ${jobSheet.client_signature_name}`, margin, y); y += 5;
+      pdf.text(`Date: ${new Date(jobSheet.client_signature_date).toLocaleDateString('en-AU')}`, margin, y);
+    }
+
+    // Footer on every page
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(
+        'Bromar Engineering | 2/98-108 Western Ave, Westmeadows VIC 3049 | Ph: 03 9335 5344',
+        pageWidth / 2,
+        pageHeight - 8,
+        { align: 'center' }
+      );
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+    }
+
+    return pdf;
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async function generateAndDownloadPDF() {
+    const pdf = await generatePDF();
+    pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`);
+  }
+
+  async function generateAndUploadPDF() {
+    const pdf = await generatePDF();
+    const pdfBlob = pdf.output('blob');
+    const fileName = `service-reports/${currentJobNumber}/${currentJobSheetNumber}.pdf`;
+    
+    // Upload PDF to Supabase
+    const { error } = await supabase.storage
+      .from('job-sheet-files')
+      .upload(fileName, pdfBlob, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+    
+    if (error) throw error;
+    
+    // Get signed URL (valid for 30 days)
+    const { data: urlData, error: urlErr } = await supabase.storage
+      .from('job-sheet-files')
+      .createSignedUrl(fileName, 60 * 60 * 24 * 30);
+    
+    if (urlErr) throw urlErr;
+    
+    return urlData.signedUrl;
+  }
+
+  // ============================================================
+  // UI HELPERS
+  // ============================================================
+  function showLoading(text, subtext) {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingSubtext').textContent = subtext || '';
+    document.getElementById('loadingOverlay').classList.add('show');
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+
+  function showSuccess(text) {
+    const banner = document.getElementById('successBanner');
+    document.getElementById('successText').textContent = text;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 5000);
+  }
+
+  function showInfo(text) {
     const banner = document.getElementById('infoBanner');
-    const text = document.getElementById('infoBannerText');
-    text.textContent = message;
-    banner.style.display = 'flex';
-    setTimeout(() => banner.style.display = 'none', 5000);
+    document.getElementById('infoBannerText').textContent = text;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 5000);
   }
 
-  // FILE 1 CONTINUES IN NEXT RESPONSE...
-  // This is where we'll load the service report module and core functionality
-// Get report sections if service report
-let reportSections = null;
-if (document.getElementById('isServiceReport').checked) {
-  reportSections = {
-    labour: document.getElementById('include_labour').checked,
-    tasks: document.getElementById('include_tasks').checked,
-    materials: document.getElementById('include_materials').checked,
-    photos: document.getElementById('include_photos').checked,
-    notes: document.getElementById('include_notes').checked
-  };
-}
-
-// Create job sheet in Supabase
-const { data: jobSheetNumber, error: sheetError } = await supabase.rpc('create_job_sheet', {
-  p_job_number: jobNumber,
-  p_sheet_date: date,
-  p_tasks: tasks,
-  p_labour: labour,
-  p_notes: notes,
-  p_created_by: 'Web Form' // TODO: Get actual user
-});
-
-if (sheetError) throw sheetError;
-
-// Show uploading overlay
-const uploadingOverlay = document.createElement('div');
-uploadingOverlay.className = 'uploading-overlay show';
-uploadingOverlay.innerHTML = `
-  <div class="uploading-content">
-    <div class="uploading-spinner"></div>
-    <div class="uploading-text">Uploading files...</div>
-    <div class="uploading-subtext">Please wait</div>
-  </div>
-`;
-document.body.appendChild(uploadingOverlay);
-
-// Upload files if any
-let fileData = [];
-if (uploadedFiles.length > 0) {
-  fileData = await uploadFilesToSupabase(jobSheetNumber, jobNumber);
-}
-
-// If service report, update with report sections and signature
-if (reportSections) {
-  const updates = {
-    is_service_report: true,
-    report_sections: reportSections
-  };
-  
-  // Add signature if provided
-  const signatureName = document.getElementById('clientSignatureName').value.trim();
-  if (signatureName) {
-    updates.client_signature_data = getSignatureData();
-    updates.client_signature_name = signatureName;
-    updates.client_signature_date = new Date().toISOString();
-  }
-  
-  const { error: updateError } = await supabase
-    .from('job_sheets')
-    .update(updates)
-    .eq('job_sheet_number', jobSheetNumber);
-  
-  if (updateError) throw updateError;
-}
-
-// Remove uploading overlay
-uploadingOverlay.remove();
-
-showInfoBanner(`Job sheet created: ${jobSheetNumber}${fileData.length > 0 ? ` (${fileData.length} files uploaded)` : ''}`);
 </script>
-
-<!-- Load Service Report Module (File 3) -->
-<script src="3-service-report-script.js"></script>
 
 </body>
 </html>
