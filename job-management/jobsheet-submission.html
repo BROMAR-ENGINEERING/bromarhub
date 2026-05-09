@@ -899,7 +899,8 @@
   const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
   
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Use 'sb' to avoid collision with window.supabase
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Employee list (loaded from Supabase on init)
   let EMPLOYEES = [];
@@ -1423,7 +1424,7 @@
           throw new Error('Please fill in all required fields for new job');
         }
 
-        const { data: newJobNum, error: jobErr } = await supabase.rpc('create_new_job', {
+        const { data: newJobNum, error: jobErr } = await sb.rpc('create_new_job', {
           p_prefix: prefix,
           p_client_name: clientName,
           p_contact_person: document.getElementById('new_contact_person').value.trim(),
@@ -1457,7 +1458,7 @@
 
       // Create job sheet
       const sheetDate = document.getElementById('sheet_date').value;
-      const { data: jobSheetNumber, error: sheetErr } = await supabase.rpc('create_job_sheet', {
+      const { data: jobSheetNumber, error: sheetErr } = await sb.rpc('create_job_sheet', {
         p_job_number: jobNumber,
         p_sheet_date: sheetDate,
         p_tasks: tasks,
@@ -1529,7 +1530,7 @@
     for (const f of uploadedFiles) {
       const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${f.name}`;
       
-      const { error: uploadErr } = await supabase.storage
+      const { error: uploadErr } = await sb.storage
         .from('job-sheet-files')
         .upload(filePath, f.file, { cacheControl: '3600', upsert: false });
       
@@ -1628,7 +1629,7 @@
       // Get signed URLs
       if (filesData) {
         for (const f of filesData) {
-          const { data: urlData } = await supabase.storage
+          const { data: urlData } = await sb.storage
             .from('job-sheet-files')
             .createSignedUrl(f.file_path, 3600);
           if (urlData) f.signedUrl = urlData.signedUrl;
@@ -1892,7 +1893,7 @@
     const fileName = `service-reports/${currentJobNumber}/${currentJobSheetNumber}.pdf`;
     
     // Upload PDF to Supabase
-    const { error } = await supabase.storage
+    const { error } = await sb.storage
       .from('job-sheet-files')
       .upload(fileName, pdfBlob, {
         contentType: 'application/pdf',
@@ -1902,7 +1903,7 @@
     if (error) throw error;
     
     // Get signed URL (valid for 30 days)
-    const { data: urlData, error: urlErr } = await supabase.storage
+    const { data: urlData, error: urlErr } = await sb.storage
       .from('job-sheet-files')
       .createSignedUrl(fileName, 60 * 60 * 24 * 30);
     
