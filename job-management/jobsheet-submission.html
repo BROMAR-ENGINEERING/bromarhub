@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Job Sheet - Bromar</title>
+  <title>Daily Job Sheet - Bromar Engineering</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -689,12 +689,18 @@
         <span id="infoBannerText"></span>
       </div>
 
-      <!-- DATE -->
+      <!-- DATE & FILLED BY -->
       <div class="section-label">Basic Information</div>
       <div class="field-row">
         <div class="field-group">
           <label for="sheet_date">Date <span class="required">*</span></label>
           <input type="date" id="sheet_date" name="sheet_date" required/>
+        </div>
+        <div class="field-group">
+          <label for="filled_by">Filled Out By <span class="required">*</span></label>
+          <select id="filled_by" required>
+            <option value="">Loading employees...</option>
+          </select>
         </div>
       </div>
 
@@ -895,13 +901,9 @@
   
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Employee list
-  const EMPLOYEES = [
-    'Chris Leddin', 'Tim Brady', 'Jordan Smith', 'Mike Davis',
-    'Sam Wilson', 'Alex Johnson', 'Ben Taylor', 'David Brown',
-    'Ethan Miller', 'Frank White', 'George Harris', 'Henry Clark',
-    'Ian Lewis', 'Jack Walker', 'Kevin Hall', 'Liam Young'
-  ];
+  // Employee list (loaded from Supabase on init)
+  let EMPLOYEES = [];
+  let currentUser = null; // The person filling out the form
 
   const NOTIFY_PEOPLE = [
     'Manager', 'Project Manager', 'Safety Officer', 'Admin',
@@ -918,9 +920,12 @@
   // ============================================================
   // INITIALIZATION
   // ============================================================
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     // Set today's date
     document.getElementById('sheet_date').valueAsDate = new Date();
+    
+    // Load employees first
+    await loadEmployees();
     
     // Initialize sections
     addTask();
@@ -931,6 +936,53 @@
     
     // Setup theme
     initTheme();
+  });
+
+  // ============================================================
+  // LOAD EMPLOYEES FROM SUPABASE
+  // ============================================================
+  async function loadEmployees() {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, name, email')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) {
+        console.error('Failed to load employees:', error);
+        showInfo('Could not load employees: ' + error.message);
+        return;
+      }
+      
+      EMPLOYEES = data || [];
+      console.log(`Loaded ${EMPLOYEES.length} employees`);
+      
+      // Populate "Filled out by" dropdown
+      const select = document.getElementById('filled_by');
+      if (select) {
+        select.innerHTML = '<option value="">Select your name...</option>' +
+          EMPLOYEES.map(e => `<option value="${e.id}" data-email="${e.email}" data-name="${e.name}">${e.name}</option>`).join('');
+      }
+    } catch (err) {
+      console.error('Error loading employees:', err);
+    }
+  }
+
+  // Track current user when selected
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'filled_by') {
+      const opt = e.target.selectedOptions[0];
+      if (opt && opt.value) {
+        currentUser = {
+          id: opt.value,
+          name: opt.dataset.name,
+          email: opt.dataset.email
+        };
+      } else {
+        currentUser = null;
+      }
+    }
   });
 
   // ============================================================
@@ -995,7 +1047,10 @@
         .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
         .limit(10);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase returned error:', error);
+        throw new Error(error.message || error.hint || 'Unknown Supabase error');
+      }
       
       if (data && data.length > 0) {
         results.innerHTML = data.map(job => `
@@ -1021,8 +1076,11 @@
         results.classList.add('show');
       }
     } catch (err) {
-      console.error('Search error:', err);
-      showInfo('Error searching jobs');
+      console.error('Search error (full):', err);
+      const msg = err?.message || err?.error_description || JSON.stringify(err);
+      showInfo('Search failed: ' + msg);
+      results.innerHTML = `<div class="autocomplete-item" style="color:var(--error);">Error: ${msg}</div>`;
+      results.classList.add('show');
     }
   }
 
@@ -1265,7 +1323,7 @@
     div.className = 'labour-card';
     div.dataset.labourId = id;
     
-    const employeeOptions = EMPLOYEES.map(e => `<option value="${e}">${e}</option>`).join('');
+    const employeeOptions = EMPLOYEES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
     
     div.innerHTML = `
       <div class="labour-header">
@@ -1343,6 +1401,11 @@
     showLoading('Saving job sheet...', 'Processing your data');
 
     try {
+      // Validate "Filled out by"
+      if (!currentUser) {
+        throw new Error('Please select who is filling out the form');
+      }
+
       // Determine job number
       let jobNumber = '';
       const jobType = document.querySelector('input[name="job_type"]:checked').value;
@@ -1402,7 +1465,7 @@
         p_tasks: tasks,
         p_labour: labour,
         p_notes: notes,
-        p_created_by: 'Web Form'
+        p_created_by: currentUser.name
       });
 
       if (sheetErr) throw sheetErr;
@@ -1485,7 +1548,7 @@
           file_size: f.size,
           file_category: f.type.startsWith('image/') ? 'photo' : 'document',
           tags: f.tags,
-          uploaded_by: 'Web Form'
+          uploaded_by: currentUser?.name || 'Unknown'
         });
       
       if (dbErr) throw dbErr;
