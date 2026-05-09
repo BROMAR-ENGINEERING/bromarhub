@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Service Report - Bromar</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  
+  <style>
+    :root {
+      --orange: #c2440e;
+      --orange-soft: #fff3ee;
+      --text: #111827;
+      --text-mid: #374151;
+      --text-muted: #6b7280;
+      --border: #d1d9f0;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --success: #15803d;
+      --error: #ef4444;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+      line-height: 1.5;
+    }
+    .wrapper { max-width: 800px; margin: 0 auto; }
+    .header {
+      background: var(--card);
+      border-radius: 12px 12px 0 0;
+      padding: 24px 32px;
+      border-bottom: 4px solid var(--orange);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header img { max-height: 50px; }
+    .company-info {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .company-info strong { color: var(--text); }
+    .card { background: var(--card); padding: 32px; }
+    .card.last { border-radius: 0 0 12px 12px; }
+    .report-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 2px;
+      color: var(--orange);
+      margin-bottom: 4px;
+    }
+    .report-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .report-meta span { margin-right: 16px; }
+    .section { margin-bottom: 24px; }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--orange-soft);
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 16px;
+      font-size: 0.9rem;
+    }
+    .field-grid dt { font-weight: 600; color: var(--text-mid); }
+    ul.task-list, ul.note-list { list-style: none; }
+    ul.task-list li, ul.note-list li {
+      padding: 10px 14px;
+      background: var(--bg);
+      border-left: 3px solid var(--orange);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    table.labour-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    table.labour-table th, table.labour-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    table.labour-table th {
+      background: var(--orange-soft);
+      color: var(--orange);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    table.labour-table td.num { text-align: right; }
+    table.labour-table tr.total td {
+      font-weight: 700;
+      background: var(--bg);
+      border-top: 2px solid var(--orange);
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .photo-grid img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sign-card {
+      background: var(--orange-soft);
+      border: 2px solid var(--orange);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+    .sign-title { font-size: 1.1rem; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
+    .sign-instructions { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 16px; }
+    label { display: block; font-size: 0.83rem; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
+    input[type="text"] {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: white;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--orange); }
+    .canvas-wrapper {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    canvas#signCanvas {
+      width: 100%;
+      height: 200px;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+    .canvas-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .clear-btn {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .state-msg { text-align: center; padding: 40px 20px; }
+    .state-msg.success { color: var(--success); }
+    .state-msg.error { color: var(--error); }
+    .state-msg .icon { font-size: 3rem; margin-bottom: 12px; }
+    .loading { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .spinner {
+      width: 40px; height: 40px;
+      margin: 0 auto 16px;
+      border: 3px solid var(--orange-soft);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    @media (max-width: 640px) {
+      .header { flex-direction: column; align-items: flex-start; }
+      .company-info { text-align: left; }
+      .card { padding: 20px; }
+      .field-grid { grid-template-columns: 1fr; gap: 2px 0; }
+      .field-grid dt { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div id="loadingState" class="card" style="border-radius: 12px;">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>Loading service report...</div>
+    </div>
+  </div>
+
+  <div id="errorState" class="card" style="border-radius: 12px; display: none;">
+    <div class="state-msg error">
+      <div class="icon">⚠️</div>
+      <h2 id="errorTitle">Unable to load report</h2>
+      <p id="errorMessage" style="color: var(--text-muted);">Please contact Bromar for assistance.</p>
+    </div>
+  </div>
+
+  <div id="signedState" class="card" style="border-radius: 12px; display: none;">
+    <div class="state-msg success">
+      <div class="icon">✅</div>
+      <h2>Report Already Signed</h2>
+      <p style="color: var(--text-muted);">This service report has been signed and submitted.</p>
+    </div>
+  </div>
+
+  <div id="successState" class="card" style="border-radius: 12px; display: none;">
+    <div class="state-msg success">
+      <div class="icon">✅</div>
+      <h2>Thank You!</h2>
+      <p style="color: var(--text-muted);">Your signature has been recorded. A copy of the signed report will be emailed to you shortly.</p>
+    </div>
+  </div>
+
+  <div id="reportContent" style="display: none;">
+    <div class="header">
+      <img id="logoImg" src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar"/>
+      <div class="company-info">
+        <strong>BROMAR ENGINEERING</strong><br>
+        2/98-108 Western Ave, Westmeadows VIC 3049<br>
+        Ph: 03 9335 5344 &nbsp;|&nbsp; admin@bromar.com.au<br>
+        ABN: 45 634 835 939 &nbsp;|&nbsp; REC: 30340
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="report-title">SERVICE REPORT</div>
+      <div class="report-meta">
+        <span><strong>Report #:</strong> <span id="reportNumber"></span></span>
+        <span><strong>Date:</strong> <span id="reportDate"></span></span>
+        <span><strong>Prepared by:</strong> <span id="preparedBy"></span></span>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Client Information</div>
+        <dl class="field-grid" id="clientInfo"></dl>
+      </div>
+
+      <div class="section" id="tasksSection" style="display: none;">
+        <div class="section-label">Work Performed</div>
+        <ul class="task-list" id="tasksList"></ul>
+      </div>
+
+      <div class="section" id="labourSection" style="display: none;">
+        <div class="section-label">Labour Hours</div>
+        <table class="labour-table" id="labourTable"></table>
+      </div>
+
+      <div class="section" id="notesSection" style="display: none;">
+        <div class="section-label">Notes</div>
+        <ul class="note-list" id="notesList"></ul>
+      </div>
+
+      <div class="section" id="photosSection" style="display: none;">
+        <div class="section-label">Photos</div>
+        <div class="photo-grid" id="photoGrid"></div>
+      </div>
+    </div>
+
+    <div class="card last">
+      <div class="sign-card">
+        <div class="sign-title">Client Sign-Off</div>
+        <div class="sign-instructions">
+          By signing below, you acknowledge that you have reviewed the work described above and accept it as complete.
+        </div>
+        <label for="signName">Your Full Name</label>
+        <input type="text" id="signName" placeholder="Enter your full name"/>
+        <div class="canvas-wrapper">
+          <label>Signature</label>
+          <canvas id="signCanvas"></canvas>
+          <div class="canvas-actions">
+            <button type="button" class="clear-btn" id="clearBtn">Clear signature</button>
+          </div>
+        </div>
+        <button type="button" class="submit-btn" id="submitBtn">Sign &amp; Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Bromar &nbsp;|&nbsp; bromar.com.au</div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+
+  if (typeof window.supabase === 'undefined') {
+    showError('Failed to load required libraries', 'Please refresh.');
+    throw new Error('Supabase not loaded');
+  }
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (!token) {
+    showError('Invalid signing link', 'No token provided. Please use the link from your email.');
+  } else {
+    loadReport(token);
+  }
+
+  async function loadReport(token) {
+    try {
+      const { data, error } = await sb.rpc('get_report_by_token', { p_token: token });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        showError('Invalid or expired link', 'This signing link is no longer valid.');
+        return;
+      }
+      const report = data[0];
+
+      if (report.signing_status === 'signed') {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('signedState').style.display = 'block';
+        return;
+      }
+      if (report.signing_status === 'expired' || new Date(report.signing_token_expires_at) < new Date()) {
+        showError('Link expired', 'This signing link has expired. Please contact Bromar for a new one.');
+        return;
+      }
+
+      renderReport(report);
+      await loadPhotos(token, report.report_sections);
+      setupSignaturePad();
+
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('reportContent').style.display = 'block';
+    } catch (err) {
+      console.error('Load error:', err);
+      showError('Could not load report', err.message || 'An unexpected error occurred.');
+    }
+  }
+
+  function renderReport(r) {
+    document.getElementById('reportNumber').textContent = r.job_sheet_number;
+    document.getElementById('reportDate').textContent = new Date(r.sheet_date).toLocaleDateString('en-AU');
+    document.getElementById('preparedBy').textContent = r.created_by || '—';
+
+    const fields = [
+      ['Client', r.client_name],
+      ['Job Number', r.job_number],
+      ['Site', r.site_address],
+      ['Contact', r.contact_person],
+      ['Phone', r.contact_phone]
+    ].filter(([, v]) => v);
+    document.getElementById('clientInfo').innerHTML =
+      fields.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+
+    const sections = r.report_sections || {};
+
+    if (sections.tasks && r.tasks?.length) {
+      document.getElementById('tasksSection').style.display = 'block';
+      document.getElementById('tasksList').innerHTML =
+        r.tasks.map(t => `<li>${escapeHtml(typeof t === 'string' ? t : t.description || '')}</li>`).join('');
+    }
+
+    if (sections.labour && r.labour?.length) {
+      document.getElementById('labourSection').style.display = 'block';
+      let totalNormal = 0, totalOT = 0;
+      const rows = r.labour.map(l => {
+        const n = parseFloat(l.normalHours || 0);
+        const o = parseFloat(l.overtimeHours || 0);
+        totalNormal += n; totalOT += o;
+        return `<tr><td>${escapeHtml(l.employee || '')}</td><td class="num">${n}h</td><td class="num">${o}h</td></tr>`;
+      }).join('');
+      document.getElementById('labourTable').innerHTML = `
+        <thead><tr><th>Employee</th><th class="num">Normal</th><th class="num">Overtime</th></tr></thead>
+        <tbody>${rows}
+          <tr class="total"><td>Total</td><td class="num">${totalNormal}h</td><td class="num">${totalOT}h</td></tr>
+        </tbody>
+      `;
+    }
+
+    if (sections.notes && r.notes?.length) {
+      document.getElementById('notesSection').style.display = 'block';
+      document.getElementById('notesList').innerHTML =
+        r.notes.map(n => `<li>${escapeHtml(typeof n === 'string' ? n : n.text || '')}</li>`).join('');
+    }
+  }
+
+  async function loadPhotos(token, sections) {
+    if (!sections?.photos) return;
+    try {
+      const { data: files, error } = await sb.rpc('get_report_files_by_token', { p_token: token });
+      if (error) throw error;
+      if (!files || files.length === 0) return;
+
+      const grid = document.getElementById('photoGrid');
+      for (const f of files) {
+        if (f.file_category !== 'photo') continue;
+        const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600);
+        if (urlData?.signedUrl) {
+          const img = document.createElement('img');
+          img.src = urlData.signedUrl;
+          img.alt = f.file_name;
+          img.onclick = () => window.open(urlData.signedUrl, '_blank');
+          grid.appendChild(img);
+        }
+      }
+      if (grid.children.length > 0) document.getElementById('photosSection').style.display = 'block';
+    } catch (err) { console.warn('Could not load photos:', err); }
+  }
+
+  function setupSignaturePad() {
+    const canvas = document.getElementById('signCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false, lastX = 0, lastY = 0;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: x - r.left, y: y - r.top };
+    }
+    function start(e) { drawing = true; const p = pos(e); [lastX, lastY] = [p.x, p.y]; }
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const p = pos(e);
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+      [lastX, lastY] = [p.x, p.y];
+    }
+    function stop() { drawing = false; }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseout', stop);
+    canvas.addEventListener('touchstart', start);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stop);
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+    document.getElementById('submitBtn').addEventListener('click', submitSignature);
+  }
+
+  function isSignatureEmpty() {
+    const canvas = document.getElementById('signCanvas');
+    const ctx = canvas.getContext('2d');
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 0) return false;
+    return true;
+  }
+
+  async function submitSignature() {
+    const name = document.getElementById('signName').value.trim();
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!name) { alert('Please enter your full name'); return; }
+    if (isSignatureEmpty()) { alert('Please provide your signature'); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+      const sigData = document.getElementById('signCanvas').toDataURL('image/png');
+      const { data, error } = await sb.rpc('submit_signature_by_token', {
+        p_token: token,
+        p_signature_data: sigData,
+        p_client_name: name
+      });
+      if (error) throw error;
+
+      const result = data?.[0];
+      if (!result?.success) {
+        alert(result?.message || 'Could not submit signature');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign & Submit';
+        return;
+      }
+
+      document.getElementById('reportContent').style.display = 'none';
+      document.getElementById('successState').style.display = 'block';
+      window.scrollTo(0, 0);
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('Could not submit: ' + err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign & Submit';
+    }
+  }
+
+  function showError(title, message) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'block';
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMessage').textContent = message;
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+</script>
+
+</body>
+</html>
