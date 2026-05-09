@@ -945,9 +945,8 @@
     try {
       const { data, error } = await supabase
         .from('employees')
-        .select('id, name, email')
-        .eq('is_active', true)
-        .order('name');
+        .select('full_name, email')
+        .order('full_name');
       
       if (error) {
         console.error('Failed to load employees:', error);
@@ -962,7 +961,7 @@
       const select = document.getElementById('filled_by');
       if (select) {
         select.innerHTML = '<option value="">Select your name...</option>' +
-          EMPLOYEES.map(e => `<option value="${e.id}" data-email="${e.email}" data-name="${e.name}">${e.name}</option>`).join('');
+          EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
       }
     } catch (err) {
       console.error('Error loading employees:', err);
@@ -975,8 +974,7 @@
       const opt = e.target.selectedOptions[0];
       if (opt && opt.value) {
         currentUser = {
-          id: opt.value,
-          name: opt.dataset.name,
+          name: opt.value,
           email: opt.dataset.email
         };
       } else {
@@ -1323,7 +1321,7 @@
     div.className = 'labour-card';
     div.dataset.labourId = id;
     
-    const employeeOptions = EMPLOYEES.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+    const employeeOptions = EMPLOYEES.map(e => `<option value="${e.full_name}">${e.full_name}</option>`).join('');
     
     div.innerHTML = `
       <div class="labour-header">
