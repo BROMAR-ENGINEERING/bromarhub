@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daily Job Sheet - Bromar Engineering</title>
   
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@sb/sb-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
@@ -944,7 +944,7 @@
   // ============================================================
   async function loadEmployees() {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('employees')
         .select('full_name, email')
         .order('full_name');
@@ -1040,7 +1040,7 @@
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('job_number_register')
         .select('job_number, client_name, site_address, prefix')
         .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
@@ -1107,7 +1107,7 @@
     preview.value = 'Loading...';
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('job_number_counters')
         .select('last_sequence')
         .eq('prefix', this.value)
@@ -1501,7 +1501,7 @@
           updates.client_signature_date = new Date().toISOString();
         }
 
-        const { error: updErr } = await supabase
+        const { error: updErr } = await sb
           .from('job_sheets')
           .update(updates)
           .eq('job_sheet_number', jobSheetNumber);
@@ -1536,7 +1536,7 @@
       
       if (uploadErr) throw uploadErr;
 
-      const { error: dbErr } = await supabase
+      const { error: dbErr } = await sb
         .from('job_sheet_files')
         .insert({
           job_sheet_number: jobSheetNumber,
@@ -1610,7 +1610,7 @@
   });
 
   async function fetchReportData() {
-    const { data: jobSheet, error } = await supabase
+    const { data: jobSheet, error } = await sb
       .from('job_sheets')
       .select('*, job_number_register(*)')
       .eq('job_sheet_number', currentJobSheetNumber)
@@ -1620,7 +1620,7 @@
 
     let files = [];
     if (jobSheet.report_sections?.photos) {
-      const { data: filesData } = await supabase
+      const { data: filesData } = await sb
         .from('job_sheet_files')
         .select('*')
         .eq('job_sheet_number', currentJobSheetNumber)
