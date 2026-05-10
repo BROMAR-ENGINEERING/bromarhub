@@ -1562,7 +1562,7 @@
     }
     
     if (sections.labour) {
-      const labour = Array.from(document.querySelectorAll('.labour-card')).map(c => ({
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({
         employee: c.querySelector('.labour-employee').value,
         normal: parseFloat(c.querySelector('.labour-normal').value) || 0,
         ot: parseFloat(c.querySelector('.labour-overtime').value) || 0
@@ -1576,6 +1576,22 @@
             <thead><tr><th>Employee</th><th style="text-align:right;">Normal</th><th style="text-align:right;">OT</th></tr></thead>
             <tbody>${labour.map(l => `<tr><td>${escapeHtml(l.employee)}</td><td style="text-align:right;">${l.normal}h</td><td style="text-align:right;">${l.ot}h</td></tr>`).join('')}</tbody>
             <tfoot><tr style="font-weight:600;border-top:2px solid var(--divider);"><td>TOTAL</td><td style="text-align:right;">${totalN}h</td><td style="text-align:right;">${totalO}h</td></tr></tfoot>
+          </table></div>`;
+      }
+    }
+
+    if (sections.materials) {
+      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({
+        name: c.querySelector('.material-name').value.trim(),
+        qty: parseFloat(c.querySelector('.material-qty').value) || 0,
+        unit: c.querySelector('.material-unit').value
+      })).filter(m => m.name);
+      
+      if (materials.length) {
+        html += `<div class="summary-section"><h3>Materials</h3>
+          <table class="summary-table">
+            <thead><tr><th>Description</th><th style="text-align:right;">Qty</th><th>Unit</th></tr></thead>
+            <tbody>${materials.map(m => `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right;">${m.qty}</td><td>${escapeHtml(m.unit)}</td></tr>`).join('')}</tbody>
           </table></div>`;
       }
     }
