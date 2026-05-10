@@ -12,6 +12,9 @@
     }
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Bromar Document Scanner (shared across all hub pages) -->
+  <script src="../document-scanner.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   
@@ -72,12 +75,9 @@
       padding-bottom: 80px;
     }
 
-    /* Fixed glass header */
     .header {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 60px;
       background: var(--bg-glass);
       backdrop-filter: blur(20px) saturate(180%);
@@ -88,90 +88,39 @@
 
     .header-controls {
       position: absolute;
-      top: 10px;
-      left: 2rem;
-      right: 2rem;
-      display: flex;
-      justify-content: space-between;
+      top: 10px; left: 2rem; right: 2rem;
+      display: flex; justify-content: space-between;
       z-index: 10;
     }
 
     .control-btn {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border: 1px solid var(--border);
       background: var(--bg-secondary);
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
       transition: all 0.3s ease;
-      color: var(--text-primary);
-      text-decoration: none;
+      color: var(--text-primary); text-decoration: none;
     }
-
-    .control-btn:hover {
-      background: var(--card-hover);
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-
-    .control-btn svg {
-      width: 20px;
-      height: 20px;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      fill: none;
-    }
-
+    .control-btn:hover { background: var(--card-hover); border-color: var(--accent); transform: translateY(-2px); }
+    .control-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     .control-btn .sun-icon { display: none; }
     .control-btn .moon-icon { display: block; }
     [data-theme="dark"] .control-btn .sun-icon { display: block; }
     [data-theme="dark"] .control-btn .moon-icon { display: none; }
 
-    .header-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      text-align: center;
-      padding-top: 0.5rem;
-    }
-
+    .header-content { max-width: 1400px; margin: 0 auto; text-align: center; padding-top: 0.5rem; }
     .logo-image { max-height: 40px; height: auto; }
     .light-logo { display: block; }
     .dark-logo { display: none; }
     [data-theme="dark"] .light-logo { display: none; }
     [data-theme="dark"] .dark-logo { display: block; }
 
-    /* Page title */
-    .page-title-wrapper {
-      max-width: 900px;
-      margin: 90px auto 1.5rem;
-      padding: 0 1.5rem;
-      text-align: center;
-    }
-    .page-title-wrapper h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--text-primary);
-      margin-bottom: 0.25rem;
-    }
-    .page-title-wrapper .subtitle {
-      color: var(--text-secondary);
-      font-size: 1rem;
-      font-weight: 300;
-    }
+    .page-title-wrapper { max-width: 900px; margin: 90px auto 1.5rem; padding: 0 1.5rem; text-align: center; }
+    .page-title-wrapper h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .page-title-wrapper .subtitle { color: var(--text-secondary); font-size: 1rem; font-weight: 300; }
 
-    /* Form card */
-    .page-wrapper {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-      position: relative;
-    }
+    .page-wrapper { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; }
 
     .form-card {
       background: var(--bg-secondary);
@@ -181,57 +130,32 @@
       box-shadow: 0 4px 12px var(--shadow);
     }
 
-    /* Section labels with gradient bar (matches hub section titles) */
     .section-label {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: var(--text-primary);
-      margin: 2rem 0 1.25rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em;
+      color: var(--text-primary); margin: 2rem 0 1.25rem;
     }
     .section-label:first-child { margin-top: 0; }
     .section-label::before {
-      content: '';
-      width: 4px;
-      height: 20px;
+      content: ''; width: 4px; height: 20px;
       background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
       border-radius: 4px;
     }
 
-    /* Field rows */
-    .field-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-    }
+    .field-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     .field-group { margin-bottom: 1rem; }
     .field-group.full { grid-column: 1 / -1; }
 
-    label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-    }
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
     label .required { color: var(--accent); margin-left: 3px; }
 
-    /* Inputs */
     input[type="text"], input[type="email"], input[type="date"],
     input[type="number"], input[type="tel"], select, textarea {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 1rem;
-      color: var(--text-primary);
-      background: var(--bg-main);
-      transition: all 0.3s ease;
-      outline: none;
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-family: 'Outfit', sans-serif; font-size: 1rem;
+      color: var(--text-primary); background: var(--bg-main);
+      transition: all 0.3s ease; outline: none;
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
@@ -239,510 +163,173 @@
     }
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      padding-right: 36px;
-      appearance: none;
-      cursor: pointer;
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px; appearance: none; cursor: pointer;
     }
     textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    input[type="date"] { max-width: 100%; min-width: 0; }
 
-    input[type="date"] {
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    /* Job number section */
-    .job-number-section {
-      background: var(--bg-main);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
+    .job-number-section { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
     .job-number-toggle { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
     .radio-option { flex: 1; position: relative; }
     .radio-option input[type="radio"] { position: absolute; opacity: 0; }
-    .radio-option label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 0.875rem 1rem;
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      background: var(--bg-secondary);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 600;
-      font-size: 0.875rem;
-    }
-    .radio-option input:checked + label {
-      border-color: var(--accent);
-      background: var(--card-hover);
-      color: var(--accent);
-    }
+    .radio-option label { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.875rem 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 0.875rem; }
+    .radio-option input:checked + label { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
     .job-number-fields { display: none; }
     .job-number-fields.active { display: block; }
 
     .autocomplete-wrapper { position: relative; }
-    .autocomplete-results {
-      position: absolute;
-      top: 100%;
-      left: 0; right: 0;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-top: none;
-      border-radius: 0 0 10px 10px;
-      max-height: 240px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 8px 24px var(--shadow);
-    }
+    .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 8px 24px var(--shadow); }
     .autocomplete-results.show { display: block; }
-    .autocomplete-item {
-      padding: 0.75rem 1rem;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-    }
+    .autocomplete-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); }
     .autocomplete-item:last-child { border-bottom: none; }
     .autocomplete-item:hover { background: var(--card-hover); }
     .autocomplete-item-number { font-weight: 600; color: var(--accent); font-size: 0.95rem; }
     .autocomplete-item-client { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
 
-    .prefix-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      margin-left: 6px;
-    }
+    .prefix-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-left: 6px; }
     .prefix-BE { background: #dbeafe; color: #1e40af; }
     .prefix-BC { background: #fef3c7; color: #92400e; }
     .prefix-BA { background: #d1fae5; color: #065f46; }
     .prefix-BS { background: #fce7f3; color: #9f1239; }
     .prefix-BM { background: #e0e7ff; color: #3730a3; }
 
-    /* Cards (tasks/labour/notes/materials) */
-    .task-card, .labour-card, .note-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem;
-      margin-bottom: 0.75rem;
-      transition: all 0.3s ease;
-    }
-    .task-card:hover, .labour-card:hover, .note-card:hover {
-      border-color: var(--accent);
-    }
-
-    .task-header, .labour-header, .note-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.875rem;
-    }
-    .task-title, .labour-title, .note-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .remove-btn {
-      background: none;
-      border: none;
-      color: var(--error);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 6px;
-      transition: all 0.2s;
-    }
-    .remove-btn:hover { background: var(--error-bg); }
-    [data-theme="dark"] .remove-btn:hover { background: rgba(239, 68, 68, 0.2); }
-
-    .add-btn {
-      width: 100%;
-      padding: 0.875rem;
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      background: transparent;
-      color: var(--text-secondary);
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 1.5rem;
-      transition: all 0.3s ease;
-    }
-    .add-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--card-hover);
-    }
-
-    .hours-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
-    /* Service Report Toggle (matches hub announcement banner aesthetic) */
-    .service-report-toggle {
-      background: var(--bg-main);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .toggle-switch { display: flex; gap: 0.875rem; align-items: center; }
-    .toggle-switch input[type="checkbox"] {
-      width: 50px; height: 26px;
-      appearance: none;
-      background: #cbd5e1;
-      border-radius: 20px;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    [data-theme="dark"] .toggle-switch input[type="checkbox"] { background: #475569; }
-    .toggle-switch input[type="checkbox"]:checked {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-    }
-    .toggle-switch input[type="checkbox"]::before {
-      content: '';
-      position: absolute;
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: white;
-      top: 3px; left: 3px;
-      transition: all 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .toggle-switch input[type="checkbox"]:checked::before { left: 27px; }
-    .toggle-label { font-size: 0.95rem; font-weight: 600; }
-
-    .report-sections {
-      display: none;
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border);
-    }
-    .report-sections.show { display: block; }
-    .section-checkboxes {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-    }
-    @media (max-width: 620px) { .section-checkboxes { grid-template-columns: 1fr; } }
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.625rem 0.75rem;
-      border-radius: 8px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .checkbox-item:hover { border-color: var(--accent); }
-    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
-    .checkbox-item label { margin: 0; cursor: pointer; font-size: 0.875rem; font-weight: 400; }
-
-    /* File Upload */
+    /* ── FILE UPLOAD AREA (scanner-integrated) ── */
     .file-upload-area {
       border: 2px dashed var(--border);
       border-radius: 12px;
-      padding: 2rem 1.5rem;
+      padding: 1.5rem 1rem 1rem;
       text-align: center;
       background: var(--bg-main);
-      cursor: pointer;
       transition: all 0.3s;
     }
-    .file-upload-area:hover {
-      border-color: var(--accent);
-      background: var(--card-hover);
+    .file-upload-area:hover { border-color: var(--accent); background: var(--card-hover); }
+    .file-upload-area.dragover { border-color: var(--accent); background: var(--card-hover); }
+    .upload-icon { font-size: 2rem; margin-bottom: 0.375rem; }
+    .upload-text { font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .upload-hint { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1rem; }
+
+    /* Scanner action buttons inside upload area */
+    .scanner-actions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; padding: 4px 0;
     }
-    .file-upload-area.dragover {
-      border-color: var(--accent);
-      background: var(--card-hover);
+    .scanner-action-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; color: var(--text-primary);
+      transition: all 0.2s;
     }
-    .upload-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .upload-text { font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.25rem; }
-    .upload-hint { font-size: 0.8rem; color: var(--text-secondary); }
+    .scanner-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .scanner-action-btn svg { width: 15px; height: 15px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     .file-list { margin-top: 1rem; }
-    .file-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.875rem;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-    }
+    .file-item { display: flex; align-items: center; justify-content: space-between; padding: 0.875rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.5rem; }
     .file-info { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
     .file-icon { font-size: 1.5rem; }
     .file-details { flex: 1; }
     .file-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
     .file-size { font-size: 0.75rem; color: var(--text-secondary); }
     .file-tags { display: flex; gap: 6px; margin-top: 0.5rem; flex-wrap: wrap; }
-    .file-tag {
-      padding: 3px 10px;
-      background: var(--bg-main);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 0.7rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+    .file-tag { padding: 3px 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; }
     .file-tag:hover { border-color: var(--accent); }
-    .file-tag.selected {
-      background: var(--card-hover);
-      border-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-    }
+    .file-tag.selected { background: var(--card-hover); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
-    /* Signature */
+    .task-card, .labour-card, .note-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.75rem; transition: all 0.3s ease; }
+    .task-card:hover, .labour-card:hover, .note-card:hover { border-color: var(--accent); }
+    .task-header, .labour-header, .note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.875rem; }
+    .task-title, .labour-title, .note-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .remove-btn { background: none; border: none; color: var(--error); font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: all 0.2s; }
+    .remove-btn:hover { background: var(--error-bg); }
+    [data-theme="dark"] .remove-btn:hover { background: rgba(239, 68, 68, 0.2); }
+
+    .add-btn { width: 100%; padding: 0.875rem; border: 2px dashed var(--border); border-radius: 12px; background: transparent; color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 1.5rem; transition: all 0.3s ease; }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card-hover); }
+
+    .hours-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .service-report-toggle { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .toggle-switch { display: flex; gap: 0.875rem; align-items: center; }
+    .toggle-switch input[type="checkbox"] { width: 50px; height: 26px; appearance: none; background: #cbd5e1; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s; }
+    [data-theme="dark"] .toggle-switch input[type="checkbox"] { background: #475569; }
+    .toggle-switch input[type="checkbox"]:checked { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); }
+    .toggle-switch input[type="checkbox"]::before { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .toggle-switch input[type="checkbox"]:checked::before { left: 27px; }
+    .toggle-label { font-size: 0.95rem; font-weight: 600; }
+    .report-sections { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .report-sections.show { display: block; }
+    .section-checkboxes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    @media (max-width: 620px) { .section-checkboxes { grid-template-columns: 1fr; } }
+    .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+    .checkbox-item:hover { border-color: var(--accent); }
+    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+    .checkbox-item label { margin: 0; cursor: pointer; font-size: 0.875rem; font-weight: 400; }
+
     .signature-section { display: none; margin-top: 1.5rem; }
     .signature-section.show { display: block; }
-    .signature-canvas-wrapper {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: white;
-      padding: 1rem;
-    }
-    .signature-canvas {
-      width: 100%;
-      height: 200px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: crosshair;
-      touch-action: none;
-    }
-    .signature-actions {
-      display: flex; gap: 0.75rem;
-      margin-top: 0.75rem;
-      align-items: center;
-    }
+    .signature-canvas-wrapper { border: 1px solid var(--border); border-radius: 12px; background: white; padding: 1rem; }
+    .signature-canvas { width: 100%; height: 200px; border: 1px solid var(--border); border-radius: 8px; cursor: crosshair; touch-action: none; }
+    .signature-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
     .signature-name { flex: 1; }
-    .clear-signature-btn {
-      padding: 0.5rem 1rem;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.85rem;
-      border-radius: 8px;
-    }
+    .clear-signature-btn { padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.85rem; border-radius: 8px; }
     .clear-signature-btn:hover { border-color: var(--error); color: var(--error); }
 
-    /* Banners */
-    .success-banner, .info-banner {
-      display: none;
-      align-items: center;
-      gap: 0.625rem;
-      padding: 0.875rem 1.125rem;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-    .success-banner {
-      background: var(--success-bg);
-      border: 1px solid var(--success-border);
-      color: var(--success);
-    }
-    .info-banner {
-      background: var(--info-bg);
-      border: 1px solid var(--info-border);
-      color: var(--info-text);
-    }
+    .success-banner, .info-banner { display: none; align-items: center; gap: 0.625rem; padding: 0.875rem 1.125rem; border-radius: 10px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .success-banner { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .info-banner { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); }
     .success-banner.show, .info-banner.show { display: flex; }
 
-    /* Submit row */
     .form-divider { height: 1px; background: var(--border); margin: 2rem 0 1.5rem; }
     .submit-row { display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
     .submit-note { font-size: 0.8rem; color: var(--text-secondary); margin-right: auto; }
-    .btn-secondary {
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 600;
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
+    .btn-secondary { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease; }
     .btn-secondary:hover { background: var(--card-hover); color: var(--text-primary); border-color: var(--accent); }
-
-    .submit-btn {
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      padding: 0.875rem 2rem;
-      border-radius: 10px;
-      border: none;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      letter-spacing: 0.02em;
-    }
+    .submit-btn { font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; padding: 0.875rem 2rem; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; cursor: pointer; transition: all 0.3s ease; letter-spacing: 0.02em; }
     .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* PDF Actions */
-    .pdf-actions {
-      display: none;
-      background: var(--success-bg);
-      border: 1px solid var(--success-border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-top: 1.5rem;
-      text-align: center;
-    }
+    .pdf-actions { display: none; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; text-align: center; }
     .pdf-actions.show { display: block; }
-    .pdf-actions h3 {
-      color: var(--success);
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-    .pdf-actions-buttons {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-    }
-    .pdf-btn {
-      padding: 0.625rem 1.25rem;
-      border-radius: 8px;
-      border: 1px solid var(--success-border);
-      background: var(--bg-secondary);
-      color: var(--success);
-      cursor: pointer;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
+    .pdf-actions h3 { color: var(--success); margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600; }
+    .pdf-actions-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+    .pdf-btn { padding: 0.625rem 1.25rem; border-radius: 8px; border: 1px solid var(--success-border); background: var(--bg-secondary); color: var(--success); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
     .pdf-btn:hover { background: var(--card-hover); transform: translateY(-1px); }
 
-    /* Loading overlay */
-    .loading-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
+    .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; }
     .loading-overlay.show { display: flex; }
-    .loading-content {
-      background: var(--bg-secondary);
-      padding: 2.5rem;
-      border-radius: 16px;
-      text-align: center;
-      max-width: 400px;
-    }
-    .loading-spinner {
-      width: 60px; height: 60px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 1.25rem;
-    }
+    .loading-content { background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; text-align: center; max-width: 400px; }
+    .loading-spinner { width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.25rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
     .loading-subtext { font-size: 0.85rem; color: var(--text-secondary); }
 
-    /* Footer */
-    .form-footer {
-      margin-top: 2rem;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-    .footer-disclaimer {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.875rem 1.125rem;
-      margin-bottom: 1.25rem;
-      background: var(--bg-main);
-      font-style: italic;
-      font-size: 0.8rem;
-    }
+    .form-footer { margin-top: 2rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
+    .footer-disclaimer { border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem 1.125rem; margin-bottom: 1.25rem; background: var(--bg-main); font-style: italic; font-size: 0.8rem; }
     .footer-details { border-top: 1px solid var(--border); padding-top: 1rem; }
     .footer-details p { margin-bottom: 3px; }
     .footer-details a { color: var(--accent); text-decoration: none; }
 
-    /* Footer bar (matches hub) */
-    .page-footer {
-      background: var(--accent);
-      color: white;
-      text-align: center;
-      padding: 1.5rem;
-      margin-top: 3rem;
-    }
+    .page-footer { background: var(--accent); color: white; text-align: center; padding: 1.5rem; margin-top: 3rem; }
     .page-footer p { margin: 0; font-size: 0.9rem; }
 
-    /* Revision number */
+    /* Revision number — bottom of every page */
     .revision-number {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      opacity: 0.5;
-      font-family: 'JetBrains Mono', monospace;
+      position: fixed; bottom: 10px; right: 10px;
+      font-size: 0.75rem; color: var(--text-secondary);
+      opacity: 0.5; font-family: 'JetBrains Mono', monospace;
+      pointer-events: none; z-index: 9998;
     }
 
-    /* Sign-off method buttons (preserved from existing) */
     .signoff-method-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
-    .signoff-method-btn {
-      padding: 1rem;
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      background: var(--bg-secondary);
-      cursor: pointer;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      font-size: 0.875rem;
-      color: var(--text-primary);
-      transition: all 0.2s;
-      text-align: center;
-    }
-    .signoff-method-btn:hover { border-color: var(--accent); }
-    .signoff-method-btn.active { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
 
-    /* Modal (preserved) */
-    .modal-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 9000;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
     .modal-overlay.show { display: flex; }
-    .modal-content {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      max-width: 700px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 2rem;
-    }
+    .modal-content { background: var(--bg-secondary); border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; }
     .modal-content h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; }
     .summary-section { margin-bottom: 1.5rem; }
     .summary-section h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem; font-weight: 600; }
@@ -752,69 +339,17 @@
     .summary-table th, .summary-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
     .summary-table th { font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
 
-    /* Sign-off modal */
-    .signoff-modal {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 9000;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
+    .signoff-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
     .signoff-modal.show { display: flex; }
-    .signoff-modal-content {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      max-width: 700px;
-      width: 100%;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .signoff-modal-header {
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .signoff-modal-content { background: var(--bg-secondary); border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .signoff-modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .signoff-modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--accent); }
-    .signoff-close {
-      background: none;
-      border: none;
-      font-size: 1.75rem;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-    }
-    .signoff-modal-body {
-      padding: 1.5rem 2rem;
-      overflow-y: auto;
-      flex: 1;
-    }
-    .signoff-modal-footer {
-      padding: 1.5rem 2rem;
-      border-top: 1px solid var(--border);
-      background: var(--bg-main);
-    }
-    .signoff-instruction {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-bottom: 1rem;
-      line-height: 1.6;
-    }
-    .signoff-modal-actions {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
-      margin-top: 1rem;
-    }
+    .signoff-close { background: none; border: none; font-size: 1.75rem; color: var(--text-secondary); cursor: pointer; padding: 0; width: 32px; height: 32px; }
+    .signoff-modal-body { padding: 1.5rem 2rem; overflow-y: auto; flex: 1; }
+    .signoff-modal-footer { padding: 1.5rem 2rem; border-top: 1px solid var(--border); background: var(--bg-main); }
+    .signoff-instruction { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6; }
+    .signoff-modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
 
-    /* Mobile */
     @media (max-width: 720px) {
       .field-row { grid-template-columns: 1fr; }
       .form-card { padding: 1.5rem; }
@@ -824,40 +359,24 @@
       .page-title-wrapper h1 { font-size: 1.5rem; }
       input[type="date"] { font-size: 16px; }
       .signoff-method-row { grid-template-columns: 1fr; }
+      .scanner-actions { gap: 6px; }
+      .scanner-action-btn { padding: 7px 10px; font-size: 0.75rem; }
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .form-card { animation: fadeIn 0.5s ease backwards; }
   </style>
 </head>
 <body>
 
-<!-- Fixed glass nav (matches hub) -->
 <div class="header">
   <div class="header-controls">
     <a href="../index.html" class="control-btn" aria-label="Home">
-      <svg viewBox="0 0 24 24">
-        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
-      </svg>
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
     </a>
     <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
-      <svg class="sun-icon" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="5"/>
-        <line x1="12" y1="1" x2="12" y2="3"/>
-        <line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/>
-        <line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg class="moon-icon" viewBox="0 0 24 24">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
   </div>
   <div class="header-content">
@@ -876,16 +395,13 @@
     <form id="jobSheetForm" novalidate autocomplete="off">
 
       <div class="success-banner" id="successBanner">
-        <span>✅</span>
-        <span id="successText">Job sheet saved successfully!</span>
+        <span>✅</span><span id="successText">Job sheet saved successfully!</span>
       </div>
-
       <div class="info-banner" id="infoBanner">
-        <span>ℹ️</span>
-        <span id="infoBannerText"></span>
+        <span>ℹ️</span><span id="infoBannerText"></span>
       </div>
 
-      <!-- DATE & FILLED BY -->
+      <!-- BASIC INFO -->
       <div class="section-label">Basic Information</div>
       <div class="field-row">
         <div class="field-group">
@@ -967,12 +483,31 @@
         </div>
       </div>
 
-      <!-- PHOTOS & DOCUMENTS -->
+      <!-- PHOTOS & DOCUMENTS — scanner integrated -->
       <div class="section-label">Photos & Documents</div>
       <div class="file-upload-area" id="fileUploadArea">
         <div class="upload-icon">📁</div>
-        <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
-        <div class="upload-hint">Photos, PDFs, or documents (Max 10MB each)</div>
+        <div class="upload-text"><strong>Add photos or documents</strong></div>
+        <div class="upload-hint">Max 50MB per file · Images, PDFs, Word docs</div>
+        <div class="scanner-actions" id="scannerActions">
+          <button type="button" class="scanner-action-btn" id="btnPhotoLibrary">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Photo Library
+          </button>
+          <button type="button" class="scanner-action-btn" id="btnTakePhoto">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Take Photo
+          </button>
+          <button type="button" class="scanner-action-btn" id="btnScanDoc">
+            <svg viewBox="0 0 24 24"><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="15" y="2" width="7" height="7" rx="1"/><rect x="2" y="15" width="7" height="7" rx="1"/><rect x="15" y="15" width="7" height="7" rx="1"/><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+            Scan Document
+          </button>
+          <button type="button" class="scanner-action-btn" id="btnBrowseFiles">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Browse Files
+          </button>
+        </div>
+        <!-- Drag-and-drop still works -->
         <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;"/>
       </div>
       <div class="file-list" id="fileList"></div>
@@ -997,7 +532,7 @@
       <div id="notesContainer"></div>
       <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
 
-      <!-- SERVICE REPORT TOGGLE -->
+      <!-- SERVICE REPORT -->
       <div class="section-label">Service Report Options</div>
       <div class="service-report-toggle">
         <div class="toggle-switch">
@@ -1005,36 +540,18 @@
           <label for="isServiceReport" class="toggle-label">Generate Client Service Report</label>
         </div>
         <div class="report-sections" id="reportSections">
-          <label style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: block;">
-            Select what to include in client report:
-          </label>
+          <label style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: block;">Select what to include in client report:</label>
           <div class="section-checkboxes">
-            <div class="checkbox-item">
-              <input type="checkbox" id="include_labour" checked/>
-              <label for="include_labour">Labour Hours</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="include_tasks" checked/>
-              <label for="include_tasks">Tasks Completed</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="include_materials"/>
-              <label for="include_materials">Materials Used</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="include_photos" checked/>
-              <label for="include_photos">Photos</label>
-            </div>
-            <div class="checkbox-item">
-              <input type="checkbox" id="include_notes"/>
-              <label for="include_notes">Notes</label>
-            </div>
+            <div class="checkbox-item"><input type="checkbox" id="include_labour" checked/><label for="include_labour">Labour Hours</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_tasks" checked/><label for="include_tasks">Tasks Completed</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_materials"/><label for="include_materials">Materials Used</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_photos" checked/><label for="include_photos">Photos</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_notes"/><label for="include_notes">Notes</label></div>
           </div>
         </div>
       </div>
 
-      <!-- CLIENT SIGNATURE -->
-      <!-- SIGN-OFF METHOD (only shown when service report enabled) -->
+      <!-- CLIENT SIGN-OFF -->
       <div class="signature-section" id="signatureSection">
         <div class="section-label">Client Sign-Off</div>
         <div class="job-number-toggle" style="margin-bottom: 0;">
@@ -1051,13 +568,10 @@
             <label for="signoff_remote">📧 Email Link to Client</label>
           </div>
         </div>
-        
         <div id="remoteEmailField" style="display: none; margin-top: 12px;">
           <label for="signoff_email">Client Email Address <span class="required">*</span></label>
           <input type="email" id="signoff_email" placeholder="client@example.com"/>
-          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">
-            A signing link will be emailed to the client. Link expires in 30 days.
-          </div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">A signing link will be emailed to the client. Link expires in 30 days.</div>
         </div>
       </div>
 
@@ -1069,7 +583,6 @@
         <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
       </div>
 
-      <!-- PDF ACTIONS (shown after save) -->
       <div class="pdf-actions" id="pdfActions">
         <h3>✅ Service Report Saved!</h3>
         <p>Your service report is ready. What would you like to do?</p>
@@ -1099,7 +612,8 @@
   <p>© 2026 Bromar Electrical Services | Industrial | Infrastructure | Automation</p>
 </footer>
 
-<div class="revision-number">V1.00</div>
+<!-- Revision number (bottom-right, every page) -->
+<div class="revision-number">V1.01</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1108,16 +622,11 @@
       <h2>Service Report Preview</h2>
       <button type="button" class="signoff-close" id="signoffClose">&times;</button>
     </div>
-    
-    <div class="signoff-modal-body" id="signoffSummary">
-      <!-- Filled by JS -->
-    </div>
-    
+    <div class="signoff-modal-body" id="signoffSummary"></div>
     <div class="signoff-modal-footer">
       <div class="signoff-instruction">
         <strong>Please review the report above.</strong> By signing below you confirm the work described has been completed satisfactorily.
       </div>
-      
       <div class="signature-canvas-wrapper" style="margin: 16px 0;">
         <label>Client Signature <span class="required">*</span></label>
         <canvas id="signatureCanvas" class="signature-canvas"></canvas>
@@ -1128,7 +637,6 @@
           <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
         </div>
       </div>
-      
       <div class="signoff-modal-actions">
         <button type="button" class="btn-secondary" id="signoffCancel">Back to Edit</button>
         <button type="button" class="submit-btn" id="signoffConfirm">Confirm & Sign</button>
@@ -1148,174 +656,238 @@
 
 <script>
   // ============================================================
-  // SUPABASE CONFIGURATION - REPLACE WITH YOUR CREDENTIALS
+  // SUPABASE
   // ============================================================
   const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
-  
-  // Use 'sb' to avoid collision with window.supabase
+
   if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
     alert('A required library failed to load. Check your internet connection or browser tracking-prevention settings, then refresh.');
     throw new Error('Supabase library not loaded');
   }
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Employee list (loaded from Supabase on init)
   let EMPLOYEES = [];
-  let currentUser = null; // The person filling out the form
+  let currentUser = null;
+  const NOTIFY_PEOPLE = ['Manager', 'Project Manager', 'Safety Officer', 'Admin', 'Accounts', 'Procurement', 'Estimator'];
 
-  const NOTIFY_PEOPLE = [
-    'Manager', 'Project Manager', 'Safety Officer', 'Admin',
-    'Accounts', 'Procurement', 'Estimator'
-  ];
-
-  // State
   let selectedJobData = null;
   let uploadedFiles = [];
   let currentJobSheetNumber = null;
   let currentJobNumber = null;
-  let currentReportData = null;
 
   // ============================================================
-  // INITIALIZATION
+  // DOCUMENT SCANNER SETUP
   // ============================================================
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Set today's date
-    document.getElementById('sheet_date').valueAsDate = new Date();
-    
-    // Load employees first
-    await loadEmployees();
-    
-    // Initialize sections
-    addTask();
-    addLabour();
-    
-    // Setup signature canvas
-    setupSignatureCanvas();
-    
-    // Setup theme
-    initTheme();
-  });
+  let bromarScanner = null;
 
-  // ============================================================
-  // LOAD EMPLOYEES FROM SUPABASE
-  // ============================================================
-  async function loadEmployees() {
-    try {
-      const { data, error } = await sb
-        .from('employees')
-        .select('full_name, email')
-        .order('full_name');
-      
-      if (error) {
-        console.error('Failed to load employees:', error);
-        showInfo('Could not load employees: ' + error.message);
-        return;
-      }
-      
-      EMPLOYEES = data || [];
-      console.log(`Loaded ${EMPLOYEES.length} employees`);
-      
-      // Populate "Filled out by" dropdown
-      const select = document.getElementById('filled_by');
-      if (select) {
-        select.innerHTML = '<option value="">Select your name...</option>' +
-          EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
-      }
-      
-      // Auto-select if user is logged in (Supabase Auth)
-      await autoSelectLoggedInUser();
-    } catch (err) {
-      console.error('Error loading employees:', err);
+  function initScanner() {
+    if (typeof BromarScanner === 'undefined') {
+      console.warn('BromarScanner not loaded — file buttons will be unavailable');
+      return;
     }
+    bromarScanner = new BromarScanner({
+      supabase: sb,
+      bucket: 'job-sheet-files',
+      pathPrefix: currentJobNumber ? `${currentJobNumber}/scans` : 'scans',
+      outputFormat: 'pdf'
+    });
+
+    // Wire up the four upload buttons
+    document.getElementById('btnPhotoLibrary').addEventListener('click', () => {
+      bromarScanner._onComplete = handleScannerComplete;
+      bromarScanner._show();
+      bromarScanner._triggerPhotoLibrary();
+    });
+    document.getElementById('btnTakePhoto').addEventListener('click', () => {
+      bromarScanner._onComplete = handleScannerComplete;
+      bromarScanner._show();
+      bromarScanner._showScanView(false);
+    });
+    document.getElementById('btnScanDoc').addEventListener('click', () => {
+      bromarScanner._onComplete = handleScannerComplete;
+      bromarScanner._show();
+      bromarScanner._showScanView(true);
+    });
+    document.getElementById('btnBrowseFiles').addEventListener('click', () => {
+      bromarScanner._onComplete = handleScannerComplete;
+      bromarScanner._show();
+      bromarScanner._triggerFilePicker();
+    });
+  }
+
+  function handleScannerComplete(files) {
+    // files = [{ name, path, type, size, blob, url }]
+    files.forEach(f => {
+      const isImage = f.type.startsWith('image/');
+      const isPdf = f.type === 'application/pdf';
+      uploadedFiles.push({
+        id: Date.now() + Math.random(),
+        file: f.blob,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        tags: isPdf ? ['scanned'] : [],
+        description: '',
+        supabasePath: f.path || null,
+        supabaseUrl: f.url || null,
+        alreadyUploaded: !!f.path // scanner already uploaded it
+      });
+    });
+    renderFileList();
   }
 
   // ============================================================
-  // AUTO-SELECT LOGGED-IN USER (works once Supabase Auth is enabled)
+  // DRAG AND DROP (fallback for desktop)
   // ============================================================
+  const fileUploadArea = document.getElementById('fileUploadArea');
+  const fileInput = document.getElementById('fileInput');
+
+  fileUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); fileUploadArea.classList.add('dragover'); });
+  fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+  fileUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+    handleLocalFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', (e) => handleLocalFiles(e.target.files));
+
+  function handleLocalFiles(files) {
+    Array.from(files).forEach(file => {
+      if (file.size > 50 * 1024 * 1024) { showInfo(`${file.name} is too large (max 50MB)`); return; }
+      uploadedFiles.push({ id: Date.now() + Math.random(), file, name: file.name, size: file.size, type: file.type, tags: [], description: '', alreadyUploaded: false });
+    });
+    renderFileList();
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = uploadedFiles.map(f => {
+      const icon = f.type.startsWith('image/') ? '🖼️' : f.type === 'application/pdf' ? '📑' : '📄';
+      const sizeKB = (f.size / 1024).toFixed(1);
+      const presetTags = ['progress', 'before', 'after', 'electrical', 'safety', 'scanned'];
+      const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
+      return `
+        <div class="file-item" style="flex-direction: column; align-items: stretch;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
+            <div class="file-info">
+              <div class="file-icon">${icon}</div>
+              <div class="file-details">
+                <div class="file-name">${escapeHtml(f.name)}</div>
+                <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}</div>
+              </div>
+            </div>
+            <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
+          </div>
+          <div style="margin-top: 10px;">
+            <input type="text" placeholder="Description (optional)" value="${escapeHtml(f.description || '')}"
+                   oninput="updateFileDescription(${f.id}, this.value)"
+                   style="width: 100%; padding: 8px 10px; font-size: 0.85rem;"/>
+          </div>
+          <div class="file-tags" style="margin-top: 10px;">
+            ${presetTags.map(t => `<span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" onclick="toggleTag(${f.id}, '${t}')">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
+            ${customTags.map(t => `<span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">${escapeHtml(t)} ×</span>`).join('')}
+            <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">+ Custom</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.toggleTag = function(fileId, tag) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const idx = file.tags.indexOf(tag);
+    if (idx > -1) file.tags.splice(idx, 1); else file.tags.push(tag);
+    renderFileList();
+  };
+  window.updateFileDescription = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.description = value;
+  };
+  window.addCustomTag = function(fileId) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const tag = prompt('Enter custom tag:');
+    if (!tag) return;
+    const clean = tag.trim().toLowerCase();
+    if (clean && !file.tags.includes(clean)) file.tags.push(clean);
+    renderFileList();
+  };
+  window.removeFile = function(fileId) {
+    uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+    renderFileList();
+  };
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('sheet_date').valueAsDate = new Date();
+    await loadEmployees();
+    addTask();
+    addLabour();
+    setupSignatureCanvas();
+    initTheme();
+    initScanner();
+  });
+
+  async function loadEmployees() {
+    try {
+      const { data, error } = await sb.from('employees').select('full_name, email').order('full_name');
+      if (error) { console.error(error); showInfo('Could not load employees: ' + error.message); return; }
+      EMPLOYEES = data || [];
+      const select = document.getElementById('filled_by');
+      select.innerHTML = '<option value="">Select your name...</option>' +
+        EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
+      await autoSelectLoggedInUser();
+    } catch (err) { console.error(err); }
+  }
+
   async function autoSelectLoggedInUser() {
     try {
       const { data: { user } } = await sb.auth.getUser();
-      if (!user || !user.email) return; // Not logged in - dropdown stays manual
-      
-      const match = EMPLOYEES.find(e => 
-        e.email && e.email.toLowerCase() === user.email.toLowerCase()
-      );
-      
-      if (!match) {
-        console.warn(`Logged-in user ${user.email} not found in employees table`);
-        return;
-      }
-      
+      if (!user?.email) return;
+      const match = EMPLOYEES.find(e => e.email?.toLowerCase() === user.email.toLowerCase());
+      if (!match) return;
       const select = document.getElementById('filled_by');
       select.value = match.full_name;
-      select.disabled = true; // Prevent changing - they're authenticated
-      
-      // Trigger change event to update currentUser
+      select.disabled = true;
       select.dispatchEvent(new Event('change', { bubbles: true }));
-      
-      // Visual indicator
-      const label = select.previousElementSibling;
-      if (label) {
-        label.innerHTML = 'Filled Out By <span style="color: var(--success); font-size: 0.75rem;">🔒 Logged in</span>';
-      }
-      
-      console.log(`Auto-selected: ${match.full_name}`);
-    } catch (err) {
-      // Auth not configured yet - silent
-      console.log('Auth not active - manual selection required');
-    }
+    } catch (err) { /* auth not active */ }
   }
 
-  // Track current user when selected
   document.addEventListener('change', (e) => {
     if (e.target.id === 'filled_by') {
       const opt = e.target.selectedOptions[0];
-      if (opt && opt.value) {
-        currentUser = {
-          name: opt.value,
-          email: opt.dataset.email
-        };
-      } else {
-        currentUser = null;
-      }
+      currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email } : null;
     }
   });
 
   // ============================================================
-  // THEME TOGGLE
+  // THEME
   // ============================================================
   function initTheme() {
     const html = document.documentElement;
-    const themeToggle = document.getElementById('themeToggle');
-
-    function getInitialTheme() {
+    const toggle = document.getElementById('themeToggle');
+    function getTheme() {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || saved === 'light') return saved;
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-      return 'light';
+      return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-
-    html.setAttribute('data-theme', getInitialTheme());
-
-    themeToggle.addEventListener('click', () => {
+    html.setAttribute('data-theme', getTheme());
+    toggle.addEventListener('click', () => {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
     });
-
-    // Follow system theme if user hasn't explicitly chosen
-    if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (!localStorage.getItem('theme')) {
-          html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-        }
-      });
-    }
+    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (!localStorage.getItem('theme')) html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    });
   }
 
   // ============================================================
-  // JOB NUMBER MANAGEMENT
+  // JOB NUMBER
   // ============================================================
   document.querySelectorAll('input[name="job_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
@@ -1333,53 +905,26 @@
 
   async function searchJobs(query) {
     const results = document.getElementById('autocompleteResults');
-    if (query.length < 2) {
-      results.classList.remove('show');
-      return;
-    }
-
+    if (query.length < 2) { results.classList.remove('show'); return; }
     try {
-      const { data, error } = await sb
-        .from('job_number_register')
-        .select('job_number, client_name, site_address, prefix')
-        .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
-        .limit(10);
-      
-      if (error) {
-        console.error('Supabase returned error:', error);
-        throw new Error(error.message || error.hint || 'Unknown server error');
-      }
-      
-      if (data && data.length > 0) {
+      const { data, error } = await sb.from('job_number_register').select('job_number, client_name, site_address, prefix')
+        .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`).limit(10);
+      if (error) throw new Error(error.message);
+      if (data?.length > 0) {
         results.innerHTML = data.map(job => `
           <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
-            <div class="autocomplete-item-number">
-              ${job.job_number}
-              <span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span>
-            </div>
+            <div class="autocomplete-item-number">${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span></div>
             <div class="autocomplete-item-client">${job.client_name}</div>
-          </div>
-        `).join('');
-        
+          </div>`).join('');
         results.querySelectorAll('.autocomplete-item').forEach(item => {
-          item.addEventListener('click', () => {
-            const job = JSON.parse(item.dataset.job.replace(/&#39;/g, "'"));
-            selectJob(job);
-          });
+          item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'"))));
         });
-        
         results.classList.add('show');
       } else {
         results.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
         results.classList.add('show');
       }
-    } catch (err) {
-      console.error('Search error (full):', err);
-      const msg = err?.message || err?.error_description || JSON.stringify(err);
-      showInfo('Search failed: ' + msg);
-      results.innerHTML = `<div class="autocomplete-item" style="color:var(--error);">Error: ${msg}</div>`;
-      results.classList.add('show');
-    }
+    } catch (err) { showInfo('Search failed: ' + err.message); }
   }
 
   function selectJob(job) {
@@ -1389,37 +934,23 @@
     document.getElementById('detail-address').textContent = job.site_address || '';
     document.getElementById('job-details-display').style.display = 'block';
     document.getElementById('autocompleteResults').classList.remove('show');
+    // Update scanner path prefix
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
   }
 
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.autocomplete-wrapper')) {
-      document.getElementById('autocompleteResults').classList.remove('show');
-    }
+    if (!e.target.closest('.autocomplete-wrapper')) document.getElementById('autocompleteResults').classList.remove('show');
   });
 
   document.getElementById('new_prefix').addEventListener('change', async function() {
     const preview = document.getElementById('next_job_preview');
-    if (!this.value) {
-      preview.value = 'Select type first...';
-      return;
-    }
+    if (!this.value) { preview.value = 'Select type first...'; return; }
     preview.value = 'Loading...';
-    
     try {
-      const { data, error } = await sb
-        .from('job_number_counters')
-        .select('last_sequence')
-        .eq('prefix', this.value)
-        .single();
-      
+      const { data, error } = await sb.from('job_number_counters').select('last_sequence').eq('prefix', this.value).single();
       if (error) throw error;
-      
-      const seq = (data.last_sequence + 1).toString().padStart(4, '0');
-      preview.value = `${this.value}${seq}`;
-    } catch (err) {
-      preview.value = 'Error';
-      console.error(err);
-    }
+      preview.value = `${this.value}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
+    } catch (err) { preview.value = 'Error'; }
   });
 
   // ============================================================
@@ -1430,131 +961,12 @@
     document.getElementById('signatureSection').classList.toggle('show', this.checked);
   });
 
-  // Show/hide email input based on sign-off method
   document.querySelectorAll('input[name="signoff_method"]').forEach(r => {
     r.addEventListener('change', () => {
-      document.getElementById('remoteEmailField').style.display = 
+      document.getElementById('remoteEmailField').style.display =
         document.querySelector('input[name="signoff_method"]:checked').value === 'remote' ? 'block' : 'none';
     });
   });
-
-  // ============================================================
-  // FILE UPLOADS
-  // ============================================================
-  const fileUploadArea = document.getElementById('fileUploadArea');
-  const fileInput = document.getElementById('fileInput');
-
-  fileUploadArea.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-  fileUploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    fileUploadArea.classList.add('dragover');
-  });
-  fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
-  fileUploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    fileUploadArea.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
-  });
-
-  function handleFiles(files) {
-    Array.from(files).forEach(file => {
-      if (file.size > 10 * 1024 * 1024) {
-        showInfo(`${file.name} is too large (max 10MB)`);
-        return;
-      }
-      uploadedFiles.push({
-        id: Date.now() + Math.random(),
-        file: file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        tags: []
-      });
-    });
-    renderFileList();
-  }
-
-  function renderFileList() {
-    const list = document.getElementById('fileList');
-    list.innerHTML = uploadedFiles.map(f => {
-      const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
-      const sizeKB = (f.size / 1024).toFixed(1);
-      const presetTags = ['progress', 'before', 'after', 'electrical', 'safety'];
-      // Custom tags = ones the user typed in that aren't in the preset list
-      const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
-      
-      return `
-        <div class="file-item" style="flex-direction: column; align-items: stretch;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
-            <div class="file-info">
-              <div class="file-icon">${icon}</div>
-              <div class="file-details">
-                <div class="file-name">${escapeHtml(f.name)}</div>
-                <div class="file-size">${sizeKB} KB</div>
-              </div>
-            </div>
-            <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
-          </div>
-          <div style="margin-top: 10px;">
-            <input type="text"
-                   placeholder="Description (optional)"
-                   value="${escapeHtml(f.description || '')}"
-                   oninput="updateFileDescription(${f.id}, this.value)"
-                   style="width: 100%; padding: 8px 10px; font-size: 0.85rem;"/>
-          </div>
-          <div class="file-tags" style="margin-top: 10px;">
-            ${presetTags.map(t => `
-              <span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" 
-                    onclick="toggleTag(${f.id}, '${t}')">
-                ${t.charAt(0).toUpperCase() + t.slice(1)}
-              </span>
-            `).join('')}
-            ${customTags.map(t => `
-              <span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">
-                ${escapeHtml(t)} ×
-              </span>
-            `).join('')}
-            <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">
-              + Custom
-            </span>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  window.toggleTag = function(fileId, tag) {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (!file) return;
-    const idx = file.tags.indexOf(tag);
-    if (idx > -1) file.tags.splice(idx, 1);
-    else file.tags.push(tag);
-    renderFileList();
-  };
-
-  window.updateFileDescription = function(fileId, value) {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (file) file.description = value;
-    // Don't re-render - would lose input focus
-  };
-
-  window.addCustomTag = function(fileId) {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (!file) return;
-    const tag = prompt('Enter custom tag:');
-    if (!tag) return;
-    const clean = tag.trim().toLowerCase();
-    if (!clean) return;
-    if (!file.tags.includes(clean)) file.tags.push(clean);
-    renderFileList();
-  };
-
-  window.removeFile = function(fileId) {
-    uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
-    renderFileList();
-  };
 
   // ============================================================
   // SIGNATURE PAD
@@ -1566,60 +978,20 @@
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
+      if (!rect.width) return;
       const dpr = window.devicePixelRatio || 1;
       const prev = canvas.toDataURL();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
+      canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (prev && prev !== 'data:,') {
-        const img = new Image();
-        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
-        img.src = prev;
-      }
+      if (prev && prev !== 'data:,') { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height); img.src = prev; }
     }
-    resize();
-    setTimeout(resize, 100);
-    window.addEventListener('resize', resize);
+    resize(); setTimeout(resize, 100); window.addEventListener('resize', resize);
 
-    function getPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-
-    function start(e) {
-      e.preventDefault();
-      drawing = true;
-      const p = getPos(e);
-      [lastX, lastY] = [p.x, p.y];
-      if (e.pointerId !== undefined && canvas.setPointerCapture) {
-        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-      }
-    }
-
-    function draw(e) {
-      if (!drawing) return;
-      e.preventDefault();
-      const p = getPos(e);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-      [lastX, lastY] = [p.x, p.y];
-    }
-
-    function stop(e) {
-      drawing = false;
-      if (e && e.pointerId !== undefined && canvas.releasePointerCapture) {
-        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
-      }
-    }
+    function getPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); [lastX, lastY] = [p.x, p.y]; if (e.pointerId !== undefined && canvas.setPointerCapture) try { canvas.setPointerCapture(e.pointerId); } catch(err) {} }
+    function draw(e) { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke(); [lastX, lastY] = [p.x, p.y]; }
+    function stop(e) { drawing = false; if (e?.pointerId !== undefined && canvas.releasePointerCapture) try { canvas.releasePointerCapture(e.pointerId); } catch(err) {} }
 
     canvas.addEventListener('pointerdown', start);
     canvas.addEventListener('pointermove', draw);
@@ -1627,178 +999,73 @@
     canvas.addEventListener('pointercancel', stop);
 
     document.getElementById('clearSignatureBtn').addEventListener('click', () => {
-      const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
+      const r = canvas.getBoundingClientRect(); ctx.clearRect(0, 0, r.width, r.height);
     });
   }
 
-  function getSignatureData() {
-    return document.getElementById('signatureCanvas').toDataURL('image/png');
-  }
-
+  function getSignatureData() { return document.getElementById('signatureCanvas').toDataURL('image/png'); }
   function isSignatureEmpty() {
     const canvas = document.getElementById('signatureCanvas');
-    const ctx = canvas.getContext('2d');
-    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    for (let i = 3; i < pixels.length; i += 4) {
-      if (pixels[i] !== 0) return false;
-    }
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 0) return false;
     return true;
   }
 
   // ============================================================
-  // IN-PERSON SIGN-OFF MODAL
+  // SIGN-OFF MODAL
   // ============================================================
   async function openSignoffModal(jobSheetNumber, jobNumber) {
-    const modal = document.getElementById('signoffModal');
-    const summary = document.getElementById('signoffSummary');
-    
-    summary.innerHTML = buildSummaryHTML(jobSheetNumber, jobNumber);
-    modal.classList.add('show');
-    
-    // Re-init canvas (size changes when shown)
-    setTimeout(() => {
-      const c = document.getElementById('signatureCanvas');
-      const rect = c.getBoundingClientRect();
-      c.width = rect.width;
-      c.height = rect.height;
-    }, 50);
+    document.getElementById('signoffSummary').innerHTML = buildSummaryHTML(jobSheetNumber, jobNumber);
+    document.getElementById('signoffModal').classList.add('show');
+    setTimeout(() => { const c = document.getElementById('signatureCanvas'); const r = c.getBoundingClientRect(); c.width = r.width; c.height = r.height; }, 50);
   }
-  
-  function buildSummaryHTML(jobSheetNumber, jobNumber) {
-    const sections = {
-      labour: document.getElementById('include_labour').checked,
-      tasks: document.getElementById('include_tasks').checked,
-      photos: document.getElementById('include_photos').checked,
-      notes: document.getElementById('include_notes').checked
-    };
-    
-    let html = `
-      <div class="summary-section">
-        <h3>Job Details</h3>
-        <div class="summary-row"><span class="summary-label">Report #:</span><span class="summary-value">${jobSheetNumber}</span></div>
-        <div class="summary-row"><span class="summary-label">Job Number:</span><span class="summary-value">${jobNumber}</span></div>
-        <div class="summary-row"><span class="summary-label">Date:</span><span class="summary-value">${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</span></div>
-        ${selectedJobData ? `
-          <div class="summary-row"><span class="summary-label">Client:</span><span class="summary-value">${selectedJobData.client_name}</span></div>
-          <div class="summary-row"><span class="summary-label">Site:</span><span class="summary-value">${selectedJobData.site_address || ''}</span></div>
-        ` : ''}
-        <div class="summary-row"><span class="summary-label">Prepared by:</span><span class="summary-value">${currentUser?.name || ''}</span></div>
-      </div>
-    `;
-    
-    if (sections.tasks) {
-      const tasks = Array.from(document.querySelectorAll('.task-description'))
-        .map(t => t.value.trim()).filter(t => t);
-      if (tasks.length) {
-        html += `<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol></div>`;
-      }
-    }
-    
-    if (sections.labour) {
-      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({
-        employee: c.querySelector('.labour-employee').value,
-        normal: parseFloat(c.querySelector('.labour-normal').value) || 0,
-        ot: parseFloat(c.querySelector('.labour-overtime').value) || 0
-      })).filter(l => l.employee);
-      
-      if (labour.length) {
-        const totalN = labour.reduce((s, l) => s + l.normal, 0);
-        const totalO = labour.reduce((s, l) => s + l.ot, 0);
-        html += `<div class="summary-section"><h3>Labour Hours</h3>
-          <table class="summary-table">
-            <thead><tr><th>Employee</th><th style="text-align:right;">Normal</th><th style="text-align:right;">OT</th></tr></thead>
-            <tbody>${labour.map(l => `<tr><td>${escapeHtml(l.employee)}</td><td style="text-align:right;">${l.normal}h</td><td style="text-align:right;">${l.ot}h</td></tr>`).join('')}</tbody>
-            <tfoot><tr style="font-weight:600;border-top:2px solid var(--divider);"><td>TOTAL</td><td style="text-align:right;">${totalN}h</td><td style="text-align:right;">${totalO}h</td></tr></tfoot>
-          </table></div>`;
-      }
-    }
 
-    if (sections.materials) {
-      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({
-        name: c.querySelector('.material-name').value.trim(),
-        qty: parseFloat(c.querySelector('.material-qty').value) || 0,
-        unit: c.querySelector('.material-unit').value
-      })).filter(m => m.name);
-      
-      if (materials.length) {
-        html += `<div class="summary-section"><h3>Materials</h3>
-          <table class="summary-table">
-            <thead><tr><th>Description</th><th style="text-align:right;">Qty</th><th>Unit</th></tr></thead>
-            <tbody>${materials.map(m => `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right;">${m.qty}</td><td>${escapeHtml(m.unit)}</td></tr>`).join('')}</tbody>
-          </table></div>`;
+  function buildSummaryHTML(jobSheetNumber, jobNumber) {
+    const sections = { labour: document.getElementById('include_labour').checked, tasks: document.getElementById('include_tasks').checked, photos: document.getElementById('include_photos').checked, notes: document.getElementById('include_notes').checked };
+    let html = `<div class="summary-section"><h3>Job Details</h3>
+      <table class="summary-table"><tbody>
+        <tr><td><strong>Report #</strong></td><td>${jobSheetNumber}</td></tr>
+        <tr><td><strong>Job #</strong></td><td>${jobNumber}</td></tr>
+        <tr><td><strong>Date</strong></td><td>${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</td></tr>
+        ${selectedJobData ? `<tr><td><strong>Client</strong></td><td>${selectedJobData.client_name}</td></tr>` : ''}
+        <tr><td><strong>Prepared by</strong></td><td>${currentUser?.name || ''}</td></tr>
+      </tbody></table></div>`;
+    if (sections.tasks) {
+      const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
+      if (tasks.length) html += `<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol></div>`;
+    }
+    if (sections.labour) {
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normal: parseFloat(c.querySelector('.labour-normal').value) || 0, ot: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
+      if (labour.length) {
+        const tN = labour.reduce((s,l)=>s+l.normal,0), tO = labour.reduce((s,l)=>s+l.ot,0);
+        html += `<div class="summary-section"><h3>Labour</h3><table class="summary-table"><thead><tr><th>Employee</th><th>Normal</th><th>OT</th></tr></thead><tbody>${labour.map(l=>`<tr><td>${escapeHtml(l.employee)}</td><td>${l.normal}h</td><td>${l.ot}h</td></tr>`).join('')}</tbody><tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${tN}h</strong></td><td><strong>${tO}h</strong></td></tr></tfoot></table></div>`;
       }
     }
-    
-    if (sections.photos && uploadedFiles.length) {
-      const photoCount = uploadedFiles.filter(f => f.type.startsWith('image/')).length;
-      html += `<div class="summary-section"><h3>Attachments</h3>
-        <div class="summary-row"><span class="summary-value">${photoCount} photo(s) and ${uploadedFiles.length - photoCount} document(s) attached</span></div></div>`;
-    }
-    
-    if (sections.notes) {
-      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => c.querySelector('.note-text').value.trim()).filter(n => n);
-      if (notes.length) {
-        html += `<div class="summary-section"><h3>Notes</h3><ul class="summary-list">${notes.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></div>`;
-      }
-    }
-    
     return html;
   }
-  
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
 
-  document.getElementById('signoffClose').addEventListener('click', closeSignoffModal);
-  document.getElementById('signoffCancel').addEventListener('click', closeSignoffModal);
-
-  function closeSignoffModal() {
-    document.getElementById('signoffModal').classList.remove('show');
-  }
+  document.getElementById('signoffClose').addEventListener('click', () => document.getElementById('signoffModal').classList.remove('show'));
+  document.getElementById('signoffCancel').addEventListener('click', () => document.getElementById('signoffModal').classList.remove('show'));
 
   document.getElementById('signoffConfirm').addEventListener('click', async () => {
     const sigName = document.getElementById('clientSignatureName').value.trim();
-    if (!sigName) {
-      alert('Please enter the client name');
-      return;
-    }
-    if (isSignatureEmpty()) {
-      alert('Please capture the client signature');
-      return;
-    }
-    
+    if (!sigName) { alert('Please enter the client name'); return; }
+    if (isSignatureEmpty()) { alert('Please capture the client signature'); return; }
     showLoading('Saving signature...', 'Recording client sign-off');
     try {
-      const { error } = await sb
-        .from('job_sheets')
-        .update({
-          client_signature_data: getSignatureData(),
-          client_signature_name: sigName,
-          client_signature_date: new Date().toISOString(),
-          signing_status: 'signed',
-          signing_method: 'in_person'
-        })
-        .eq('job_sheet_number', currentJobSheetNumber);
-      
+      const { error } = await sb.from('job_sheets').update({ client_signature_data: getSignatureData(), client_signature_name: sigName, client_signature_date: new Date().toISOString(), signing_status: 'signed', signing_method: 'in_person' }).eq('job_sheet_number', currentJobSheetNumber);
       if (error) throw error;
-      
-      closeSignoffModal();
+      document.getElementById('signoffModal').classList.remove('show');
       hideLoading();
       showSuccess('Service report signed and saved');
       document.getElementById('pdfActions').classList.add('show');
-      document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      hideLoading();
-      alert('Error saving signature: ' + err.message);
-    }
+    } catch (err) { hideLoading(); alert('Error: ' + err.message); }
   });
 
   // ============================================================
-  // TASKS, LABOUR, NOTES
+  // TASKS / LABOUR / MATERIALS / NOTES
   // ============================================================
   let taskCount = 0, labourCount = 0, noteCount = 0, materialCount = 0;
-
   document.getElementById('addTaskBtn').addEventListener('click', addTask);
   document.getElementById('addLabourBtn').addEventListener('click', addLabour);
   document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
@@ -1808,464 +1075,191 @@
     taskCount++;
     const id = taskCount;
     const div = document.createElement('div');
-    div.className = 'task-card';
-    div.dataset.taskId = id;
-    div.innerHTML = `
-      <div class="task-header">
-        <span class="task-title">Task ${id}</span>
-        ${id > 1 ? `<button type="button" class="remove-btn" onclick="removeTask(${id})">Remove</button>` : ''}
-      </div>
-      <textarea class="task-description" placeholder="Describe the work performed..." required></textarea>
-    `;
+    div.className = 'task-card'; div.dataset.taskId = id;
+    div.innerHTML = `<div class="task-header"><span class="task-title">Task ${id}</span>${id > 1 ? `<button type="button" class="remove-btn" onclick="removeTask(${id})">Remove</button>` : ''}</div><textarea class="task-description" placeholder="Describe the work performed..."></textarea>`;
     document.getElementById('tasksContainer').appendChild(div);
   }
-
-  window.removeTask = function(id) {
-    const card = document.querySelector(`[data-task-id="${id}"]`);
-    if (card) card.remove();
-  };
+  window.removeTask = id => document.querySelector(`[data-task-id="${id}"]`)?.remove();
 
   function addLabour() {
     labourCount++;
     const id = labourCount;
     const div = document.createElement('div');
-    div.className = 'labour-card';
-    div.dataset.labourId = id;
-    
-    const employeeOptions = EMPLOYEES.map(e => `<option value="${e.full_name}">${e.full_name}</option>`).join('');
-    
-    div.innerHTML = `
-      <div class="labour-header">
-        <span class="labour-title">Labour Entry ${id}</span>
-        ${id > 1 ? `<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>` : ''}
-      </div>
-      <div class="field-group">
-        <label>Employee <span class="required">*</span></label>
-        <select class="labour-employee" required>
-          <option value="">Select employee...</option>
-          ${employeeOptions}
-        </select>
-      </div>
+    div.className = 'labour-card'; div.dataset.labourId = id;
+    const opts = EMPLOYEES.map(e => `<option value="${e.full_name}">${e.full_name}</option>`).join('');
+    div.innerHTML = `<div class="labour-header"><span class="labour-title">Labour Entry ${id}</span>${id > 1 ? `<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>` : ''}</div>
+      <div class="field-group"><label>Employee <span class="required">*</span></label><select class="labour-employee"><option value="">Select employee...</option>${opts}</select></div>
       <div class="hours-inputs">
-        <div class="field-group" style="margin-bottom: 0;">
-          <label>Normal Hours</label>
-          <input type="number" class="labour-normal" min="0" max="8" step="0.25" placeholder="0" value="0"/>
-        </div>
-        <div class="field-group" style="margin-bottom: 0;">
-          <label>Overtime Hours</label>
-          <input type="number" class="labour-overtime" min="0" step="0.25" placeholder="0" value="0"/>
-        </div>
-      </div>
-    `;
+        <div class="field-group" style="margin-bottom:0"><label>Normal Hours</label><input type="number" class="labour-normal" min="0" max="8" step="0.25" value="0"/></div>
+        <div class="field-group" style="margin-bottom:0"><label>Overtime Hours</label><input type="number" class="labour-overtime" min="0" step="0.25" value="0"/></div>
+      </div>`;
     document.getElementById('labourContainer').appendChild(div);
   }
+  window.removeLabour = id => document.querySelector(`[data-labour-id="${id}"]`)?.remove();
 
   function addMaterial() {
     materialCount++;
     const id = materialCount;
     const div = document.createElement('div');
-    div.className = 'labour-card';
-    div.dataset.materialId = id;
-    div.innerHTML = `
-      <div class="labour-header">
-        <span class="labour-title">Material ${id}</span>
-        <button type="button" class="remove-btn" onclick="removeMaterial(${id})">Remove</button>
-      </div>
-      <div class="field-group">
-        <label>Material / Description</label>
-        <input type="text" class="material-name" placeholder="e.g. 2.5mm TPS cable" autocomplete="off"/>
-      </div>
+    div.className = 'labour-card'; div.dataset.materialId = id;
+    div.innerHTML = `<div class="labour-header"><span class="labour-title">Material ${id}</span><button type="button" class="remove-btn" onclick="removeMaterial(${id})">Remove</button></div>
+      <div class="field-group"><label>Material / Description</label><input type="text" class="material-name" placeholder="e.g. 2.5mm TPS cable"/></div>
       <div class="hours-inputs">
-        <div class="field-group" style="margin-bottom: 0;">
-          <label>Quantity</label>
-          <input type="number" class="material-qty" min="0" step="0.01" placeholder="0" value="0"/>
-        </div>
-        <div class="field-group" style="margin-bottom: 0;">
-          <label>Unit</label>
-          <select class="material-unit">
-            <option value="ea">each</option>
-            <option value="m">metres</option>
-            <option value="kg">kg</option>
-            <option value="L">litres</option>
-            <option value="pkt">packet</option>
-            <option value="box">box</option>
-            <option value="roll">roll</option>
-            <option value="set">set</option>
-            <option value="hr">hour</option>
-          </select>
-        </div>
-      </div>
-    `;
+        <div class="field-group" style="margin-bottom:0"><label>Quantity</label><input type="number" class="material-qty" min="0" step="0.01" value="0"/></div>
+        <div class="field-group" style="margin-bottom:0"><label>Unit</label><select class="material-unit"><option value="ea">each</option><option value="m">metres</option><option value="kg">kg</option><option value="L">litres</option><option value="pkt">packet</option><option value="box">box</option><option value="roll">roll</option><option value="set">set</option><option value="hr">hour</option></select></div>
+      </div>`;
     document.getElementById('materialsContainer').appendChild(div);
   }
-
-  window.removeMaterial = function(id) {
-    const card = document.querySelector(`[data-material-id="${id}"]`);
-    if (card) card.remove();
-  };
-
-  window.removeLabour = function(id) {
-    const card = document.querySelector(`[data-labour-id="${id}"]`);
-    if (card) card.remove();
-  };
+  window.removeMaterial = id => document.querySelector(`[data-material-id="${id}"]`)?.remove();
 
   function addNote() {
     noteCount++;
     const id = noteCount;
     const div = document.createElement('div');
-    div.className = 'note-card';
-    div.dataset.noteId = id;
-    
-    const notifyOptions = NOTIFY_PEOPLE.map(p => `<option value="${p}">${p}</option>`).join('');
-    
-    div.innerHTML = `
-      <div class="note-header">
-        <span class="note-title">Note ${id}</span>
-        <button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button>
-      </div>
-      <div class="field-group">
-        <label>Notify Person</label>
-        <select class="note-notify">
-          <option value="">No notification</option>
-          ${notifyOptions}
-        </select>
-      </div>
-      <div class="field-group" style="margin-bottom: 0;">
-        <label>Note</label>
-        <textarea class="note-text" placeholder="Note details..."></textarea>
-      </div>
-    `;
+    div.className = 'note-card'; div.dataset.noteId = id;
+    const opts = NOTIFY_PEOPLE.map(p => `<option value="${p}">${p}</option>`).join('');
+    div.innerHTML = `<div class="note-header"><span class="note-title">Note ${id}</span><button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button></div>
+      <div class="field-group"><label>Notify Person</label><select class="note-notify"><option value="">No notification</option>${opts}</select></div>
+      <div class="field-group" style="margin-bottom:0"><label>Note</label><textarea class="note-text" placeholder="Note details..."></textarea></div>`;
     document.getElementById('notesContainer').appendChild(div);
   }
-
-  window.removeNote = function(id) {
-    const card = document.querySelector(`[data-note-id="${id}"]`);
-    if (card) card.remove();
-  };
+  window.removeNote = id => document.querySelector(`[data-note-id="${id}"]`)?.remove();
 
   // ============================================================
   // FORM SUBMISSION
   // ============================================================
   document.getElementById('jobSheetForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
     showLoading('Saving job sheet...', 'Processing your data');
 
     try {
-      // Validate "Filled out by"
-      if (!currentUser) {
-        throw new Error('Please select who is filling out the form');
-      }
+      if (!currentUser) throw new Error('Please select who is filling out the form');
 
-      // Determine job number
       let jobNumber = '';
       const jobType = document.querySelector('input[name="job_type"]:checked').value;
-      
+
       if (jobType === 'existing') {
-        if (!selectedJobData) {
-          throw new Error('Please select a job number');
-        }
+        if (!selectedJobData) throw new Error('Please select a job number');
         jobNumber = selectedJobData.job_number;
       } else {
-        // Create new job
         const prefix = document.getElementById('new_prefix').value;
         const clientName = document.getElementById('new_client_name').value.trim();
         const siteAddress = document.getElementById('new_site_address').value.trim();
-        
-        if (!prefix || !clientName || !siteAddress) {
-          throw new Error('Please fill in all required fields for new job');
-        }
-
-        const { data: newJobNum, error: jobErr } = await sb.rpc('create_new_job', {
-          p_prefix: prefix,
-          p_client_name: clientName,
-          p_contact_person: document.getElementById('new_contact_person').value.trim(),
-          p_contact_phone: document.getElementById('new_contact_phone').value.trim(),
-          p_site_address: siteAddress
-        });
-        
+        if (!prefix || !clientName || !siteAddress) throw new Error('Please fill in all required fields for new job');
+        const { data: newJobNum, error: jobErr } = await sb.rpc('create_new_job', { p_prefix: prefix, p_client_name: clientName, p_contact_person: document.getElementById('new_contact_person').value.trim(), p_contact_phone: document.getElementById('new_contact_phone').value.trim(), p_site_address: siteAddress });
         if (jobErr) throw jobErr;
         jobNumber = newJobNum;
       }
 
-      // Collect tasks
-      const tasks = Array.from(document.querySelectorAll('.task-description'))
-        .map(t => t.value.trim())
-        .filter(t => t.length > 0);
-      
-      if (tasks.length === 0) throw new Error('Please add at least one task');
+      const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
+      if (!tasks.length) throw new Error('Please add at least one task');
 
-      // Collect labour
-      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(card => ({
-        employee: card.querySelector('.labour-employee').value,
-        normalHours: parseFloat(card.querySelector('.labour-normal').value) || 0,
-        overtimeHours: parseFloat(card.querySelector('.labour-overtime').value) || 0
-      })).filter(l => l.employee);
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normalHours: parseFloat(c.querySelector('.labour-normal').value) || 0, overtimeHours: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
+      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({ name: c.querySelector('.material-name').value.trim(), quantity: parseFloat(c.querySelector('.material-qty').value) || 0, unit: c.querySelector('.material-unit').value })).filter(m => m.name);
+      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => ({ text: c.querySelector('.note-text').value.trim(), notifyPerson: c.querySelector('.note-notify').value })).filter(n => n.text);
 
-      // Collect materials
-      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(card => ({
-        name: card.querySelector('.material-name').value.trim(),
-        quantity: parseFloat(card.querySelector('.material-qty').value) || 0,
-        unit: card.querySelector('.material-unit').value
-      })).filter(m => m.name);
-
-      // Collect notes
-      const notes = Array.from(document.querySelectorAll('.note-card')).map(card => ({
-        text: card.querySelector('.note-text').value.trim(),
-        notifyPerson: card.querySelector('.note-notify').value
-      })).filter(n => n.text);
-
-      // Create job sheet
-      const sheetDate = document.getElementById('sheet_date').value;
-      const { data: jobSheetNumber, error: sheetErr } = await sb.rpc('create_job_sheet', {
-        p_job_number: jobNumber,
-        p_sheet_date: sheetDate,
-        p_tasks: tasks,
-        p_labour: labour,
-        p_notes: notes,
-        p_created_by: currentUser.name
-      });
-
+      const { data: jobSheetNumber, error: sheetErr } = await sb.rpc('create_job_sheet', { p_job_number: jobNumber, p_sheet_date: document.getElementById('sheet_date').value, p_tasks: tasks, p_labour: labour, p_notes: notes, p_created_by: currentUser.name });
       if (sheetErr) throw sheetErr;
 
       currentJobSheetNumber = jobSheetNumber;
       currentJobNumber = jobNumber;
 
-      // Save materials (stored on job_sheets row as JSONB)
-      if (materials.length > 0) {
-        const { error: matErr } = await sb
-          .from('job_sheets')
-          .update({ materials: materials })
-          .eq('job_sheet_number', jobSheetNumber);
-        if (matErr) console.warn('Materials save failed:', matErr);
+      if (materials.length) await sb.from('job_sheets').update({ materials }).eq('job_sheet_number', jobSheetNumber);
+
+      // Upload only files not already uploaded by scanner
+      const pendingFiles = uploadedFiles.filter(f => !f.alreadyUploaded);
+      if (pendingFiles.length) {
+        showLoading('Uploading files...', `${pendingFiles.length} file(s)`);
+        await uploadFilesToSupabase(jobSheetNumber, jobNumber, pendingFiles);
       }
 
-      // Upload files
-      if (uploadedFiles.length > 0) {
-        showLoading('Uploading files...', `${uploadedFiles.length} file(s)`);
-        await uploadFilesToSupabase(jobSheetNumber, jobNumber);
+      // Record scanner-uploaded files in DB
+      const alreadyUploaded = uploadedFiles.filter(f => f.alreadyUploaded && f.supabasePath);
+      for (const f of alreadyUploaded) {
+        await sb.from('job_sheet_files').insert({ job_sheet_number: jobSheetNumber, job_number: jobNumber, file_name: f.name, file_path: f.supabasePath, file_type: f.type, file_size: f.size, file_category: f.type.startsWith('image/') ? 'photo' : 'document', tags: f.tags, description: f.description || null, uploaded_by: currentUser?.name || 'Unknown' });
       }
 
-      // Service report fields
       const isServiceReport = document.getElementById('isServiceReport').checked;
-      let signoffMethod = 'none';
-      let remoteEmail = '';
-      
       if (isServiceReport) {
-        const reportSections = {
-          labour: document.getElementById('include_labour').checked,
-          tasks: document.getElementById('include_tasks').checked,
-          materials: document.getElementById('include_materials').checked,
-          photos: document.getElementById('include_photos').checked,
-          notes: document.getElementById('include_notes').checked
-        };
+        const reportSections = { labour: document.getElementById('include_labour').checked, tasks: document.getElementById('include_tasks').checked, materials: document.getElementById('include_materials').checked, photos: document.getElementById('include_photos').checked, notes: document.getElementById('include_notes').checked };
+        const signoffMethod = document.querySelector('input[name="signoff_method"]:checked').value;
+        await sb.from('job_sheets').update({ is_service_report: true, report_sections: reportSections }).eq('job_sheet_number', jobSheetNumber);
 
-        signoffMethod = document.querySelector('input[name="signoff_method"]:checked').value;
-        
-        const updates = {
-          is_service_report: true,
-          report_sections: reportSections
-        };
-        
-        // Validate remote email if chosen
+        hideLoading();
+        if (signoffMethod === 'in_person') { await openSignoffModal(jobSheetNumber, jobNumber); return; }
         if (signoffMethod === 'remote') {
-          remoteEmail = document.getElementById('signoff_email').value.trim();
-          if (!remoteEmail || !remoteEmail.includes('@')) {
-            throw new Error('Please enter a valid client email for remote signing');
-          }
-        }
-
-        const { error: updErr } = await sb
-          .from('job_sheets')
-          .update(updates)
-          .eq('job_sheet_number', jobSheetNumber);
-
-        if (updErr) throw updErr;
-      }
-
-      hideLoading();
-
-      // Branch on signoff method
-      if (isServiceReport && signoffMethod === 'in_person') {
-        // Show preview modal - signature happens there
-        await openSignoffModal(jobSheetNumber, jobNumber);
-        return; // Modal handles the rest
-      }
-      
-      if (isServiceReport && signoffMethod === 'remote') {
-        // Generate signing token and send email
-        showLoading('Sending to client...', remoteEmail);
-        try {
-          const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', {
-            p_job_sheet_number: jobSheetNumber,
-            p_recipient_email: remoteEmail,
-            p_expires_days: 30
-          });
+          const remoteEmail = document.getElementById('signoff_email').value.trim();
+          if (!remoteEmail?.includes('@')) throw new Error('Please enter a valid client email');
+          showLoading('Sending to client...', remoteEmail);
+          const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', { p_job_sheet_number: jobSheetNumber, p_recipient_email: remoteEmail, p_expires_days: 30 });
           if (tokenErr) throw tokenErr;
-          
-          // Build signing URL (same site)
           const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
-          
-          // Send email via Edge Function
-          const { error: emailErr } = await sb.functions.invoke('send-signing-link', {
-            body: {
-              recipientEmail: remoteEmail,
-              jobSheetNumber: jobSheetNumber,
-              clientName: selectedJobData?.client_name || '',
-              signUrl: signUrl,
-              preparedBy: currentUser?.name || ''
-            }
-          });
-          
+          await sb.functions.invoke('send-signing-link', { body: { recipientEmail: remoteEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
           hideLoading();
-          
-          if (emailErr) {
-            console.error('Email send error:', emailErr);
-            // Email failed but token is saved - offer link to copy
-            const copy = confirm(
-              `Email sending failed. Token saved.\n\nCopy signing link to clipboard?\n\n${signUrl}`
-            );
-            if (copy) await navigator.clipboard.writeText(signUrl);
-          } else {
-            showSuccess(`Signing link sent to ${remoteEmail}`);
-          }
-        } catch (err) {
-          hideLoading();
-          throw err;
+          showSuccess(`Signing link sent to ${remoteEmail}`);
         }
-      } else {
-        showSuccess(`Job sheet saved: ${jobSheetNumber}`);
-      }
-      
-      if (isServiceReport) {
         document.getElementById('pdfActions').classList.add('show');
         document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
+      } else {
+        hideLoading();
+        showSuccess(`Job sheet saved: ${jobSheetNumber}`);
       }
-
     } catch (err) {
       hideLoading();
-      console.error('Submission error:', err);
       showInfo('Error: ' + err.message);
     } finally {
       submitBtn.disabled = false;
     }
   });
 
-  async function uploadFilesToSupabase(jobSheetNumber, jobNumber) {
-    for (const f of uploadedFiles) {
+  async function uploadFilesToSupabase(jobSheetNumber, jobNumber, files) {
+    for (const f of files) {
       const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${f.name}`;
-      
-      const { error: uploadErr } = await sb.storage
-        .from('job-sheet-files')
-        .upload(filePath, f.file, { cacheControl: '3600', upsert: false });
-      
+      const { error: uploadErr } = await sb.storage.from('job-sheet-files').upload(filePath, f.file, { cacheControl: '3600', upsert: false });
       if (uploadErr) throw uploadErr;
-
-      const { error: dbErr } = await sb
-        .from('job_sheet_files')
-        .insert({
-          job_sheet_number: jobSheetNumber,
-          job_number: jobNumber,
-          file_name: f.name,
-          file_path: filePath,
-          file_type: f.type,
-          file_size: f.size,
-          file_category: f.type.startsWith('image/') ? 'photo' : 'document',
-          tags: f.tags,
-          description: f.description || null,
-          uploaded_by: currentUser?.name || 'Unknown'
-        });
-      
-      if (dbErr) throw dbErr;
+      await sb.from('job_sheet_files').insert({ job_sheet_number: jobSheetNumber, job_number: jobNumber, file_name: f.name, file_path: filePath, file_type: f.type, file_size: f.size, file_category: f.type.startsWith('image/') ? 'photo' : 'document', tags: f.tags, description: f.description || null, uploaded_by: currentUser?.name || 'Unknown' });
     }
   }
 
   // ============================================================
-  // PDF GENERATION & EXPORT
+  // PDF GENERATION (unchanged from original)
   // ============================================================
   document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
     showLoading('Generating PDF...', 'Building service report');
-    try {
-      await generateAndDownloadPDF();
-      hideLoading();
-      showSuccess('PDF downloaded!');
-    } catch (err) {
-      hideLoading();
-      showInfo('Error: ' + err.message);
-    }
+    try { await generateAndDownloadPDF(); hideLoading(); showSuccess('PDF downloaded!'); }
+    catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
   });
-
   document.getElementById('copyLinkBtn').addEventListener('click', async () => {
-    showLoading('Generating shareable link...', 'Uploading PDF to cloud');
-    try {
-      const url = await generateAndUploadPDF();
-      await navigator.clipboard.writeText(url);
-      hideLoading();
-      showSuccess('Link copied to clipboard!');
-    } catch (err) {
-      hideLoading();
-      showInfo('Error: ' + err.message);
-    }
+    showLoading('Generating shareable link...', 'Uploading PDF');
+    try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); hideLoading(); showSuccess('Link copied!'); }
+    catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
   });
-
   document.getElementById('emailPdfBtn').addEventListener('click', async () => {
     const email = prompt('Enter client email address:');
     if (!email) return;
-    
-    showLoading('Preparing email...', 'Generating PDF and link');
+    showLoading('Preparing email...', 'Generating PDF');
     try {
-      const url = await generateAndUploadPDF();
-      hideLoading();
-      
-      // Open default email client with pre-filled message
+      const url = await generateAndUploadPDF(); hideLoading();
       const subject = encodeURIComponent(`Service Report - ${currentJobSheetNumber}`);
-      const body = encodeURIComponent(
-        `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\nDate: ${new Date().toLocaleDateString()}\n\nIf you have any questions, please contact us.\n\nBest regards,\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`
-      );
+      const body = encodeURIComponent(`Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`);
       window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-    } catch (err) {
-      hideLoading();
-      showInfo('Error: ' + err.message);
-    }
+    } catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
   });
-
-  document.getElementById('newSheetBtn').addEventListener('click', () => {
-    if (confirm('Start a new job sheet? Current data will be cleared.')) {
-      location.reload();
-    }
-  });
+  document.getElementById('newSheetBtn').addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
 
   async function fetchReportData() {
-    const { data: jobSheet, error } = await sb
-      .from('job_sheets')
-      .select('*, job_number_register(*)')
-      .eq('job_sheet_number', currentJobSheetNumber)
-      .single();
-    
+    const { data: jobSheet, error } = await sb.from('job_sheets').select('*, job_number_register(*)').eq('job_sheet_number', currentJobSheetNumber).single();
     if (error) throw error;
-
     let files = [];
     if (jobSheet.report_sections?.photos) {
-      const { data: filesData } = await sb
-        .from('job_sheet_files')
-        .select('*')
-        .eq('job_sheet_number', currentJobSheetNumber)
-        .eq('file_category', 'photo');
-      
-      // Get signed URLs
+      const { data: filesData } = await sb.from('job_sheet_files').select('*').eq('job_sheet_number', currentJobSheetNumber).eq('file_category', 'photo');
       if (filesData) {
-        for (const f of filesData) {
-          const { data: urlData } = await sb.storage
-            .from('job-sheet-files')
-            .createSignedUrl(f.file_path, 3600);
-          if (urlData) f.signedUrl = urlData.signedUrl;
-        }
+        for (const f of filesData) { const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600); if (urlData) f.signedUrl = urlData.signedUrl; }
         files = filesData;
       }
     }
-    
     return { jobSheet, files };
   }
 
@@ -2278,385 +1272,139 @@
     const margin = 20;
     let y = margin;
 
-    // ============================================================
-    // BRANDED HEADER
-    // ============================================================
-    // Top accent bar
     pdf.setFillColor(194, 68, 14);
     pdf.rect(0, 0, pageWidth, 4, 'F');
-    
-    // Logo (top-left) - load from existing form image
-    let logoLoaded = false;
     try {
-      const logoUrl = '../Bromar-Primary-Logo-Full-Colour.png';
-      const logoImg = await loadImage(logoUrl);
-      // Maintain aspect ratio, max height 18mm
-      const logoH = 18;
-      const logoW = (logoImg.width / logoImg.height) * logoH;
+      const logoImg = await loadImage('../Bromar-Primary-Logo-Full-Colour.png');
+      const logoH = 18, logoW = (logoImg.width / logoImg.height) * logoH;
       pdf.addImage(logoImg, 'PNG', margin, 10, logoW, logoH);
-      logoLoaded = true;
-    } catch (err) {
-      console.warn('Could not load logo for PDF:', err);
-    }
-    
-    // Company details (top-right)
-    pdf.setFontSize(8);
-    pdf.setTextColor(80, 80, 80);
-    pdf.setFont(undefined, 'bold');
+    } catch(e) {}
+    pdf.setFontSize(8); pdf.setTextColor(80, 80, 80); pdf.setFont(undefined, 'bold');
     pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD', pageWidth - margin, 12, { align: 'right' });
-    pdf.setFont(undefined, 'normal');
-    pdf.setFontSize(7.5);
-    pdf.setTextColor(100, 100, 100);
+    pdf.setFont(undefined, 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(100, 100, 100);
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049', pageWidth - margin, 16, { align: 'right' });
-    pdf.text('Ph: +61 3 9335 5344  |  Fax: +61 3 9335 5322', pageWidth - margin, 20, { align: 'right' });
-    pdf.text('admin@bromar.com.au  |  bromar.com.au', pageWidth - margin, 24, { align: 'right' });
-    pdf.text('ABN: 45 634 835 939  |  REC: 30340', pageWidth - margin, 28, { align: 'right' });
-    
-    // Divider under header
+    pdf.text('Ph: +61 3 9335 5344  |  admin@bromar.com.au  |  bromar.com.au', pageWidth - margin, 20, { align: 'right' });
+    pdf.text('ABN: 45 634 835 939  |  REC: 30340', pageWidth - margin, 24, { align: 'right' });
     y = 36;
-    pdf.setDrawColor(194, 68, 14);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, y, pageWidth - margin, y);
-    pdf.setLineWidth(0.2);
-    y += 10;
-    
-    // ============================================================
-    // REPORT TITLE
-    // ============================================================
-    pdf.setFontSize(22);
-    pdf.setTextColor(194, 68, 14);
-    pdf.setFont(undefined, 'bold');
+    pdf.setDrawColor(194, 68, 14); pdf.setLineWidth(0.5); pdf.line(margin, y, pageWidth - margin, y); pdf.setLineWidth(0.2); y += 10;
+
+    pdf.setFontSize(22); pdf.setTextColor(194, 68, 14); pdf.setFont(undefined, 'bold');
     pdf.text('SERVICE REPORT', margin, y);
-    
-    // Report meta box (right-aligned)
-    pdf.setFontSize(9);
-    pdf.setFont(undefined, 'normal');
-    pdf.setTextColor(80, 80, 80);
+    pdf.setFontSize(9); pdf.setFont(undefined, 'normal'); pdf.setTextColor(80, 80, 80);
     pdf.text(`Report #:  ${currentJobSheetNumber}`, pageWidth - margin, y - 4, { align: 'right' });
-    pdf.text(`Date of Works:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
-    if (jobSheet.created_by) {
-      pdf.text(`Prepared by:  ${jobSheet.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
-    }
-    
+    pdf.text(`Date:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    if (jobSheet.created_by) pdf.text(`Prepared by:  ${jobSheet.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
     y += 14;
 
-    // Helper: branded section header
     const sectionHeader = (title) => {
-      pdf.setFillColor(255, 243, 238); // brand-orange-soft
+      pdf.setFillColor(255, 243, 238);
       pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
-      pdf.setFontSize(10);
-      pdf.setTextColor(194, 68, 14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(10); pdf.setTextColor(194, 68, 14); pdf.setFont(undefined, 'bold');
       pdf.text(title.toUpperCase(), margin + 2, y);
-      y += 8;
-      pdf.setTextColor(40, 40, 40);
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      y += 8; pdf.setTextColor(40, 40, 40); pdf.setFontSize(10); pdf.setFont(undefined, 'normal');
     };
 
-    // Client Info
-    sectionHeader('Client Information');
-    
-    y += 2;
+    sectionHeader('Client Information'); y += 2;
     const client = jobSheet.job_number_register;
     const drawField = (label, value) => {
       if (!value) return;
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(label, margin, y);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(40, 40, 40);
+      pdf.setFont(undefined, 'bold'); pdf.setTextColor(80, 80, 80); pdf.text(label, margin, y);
+      pdf.setFont(undefined, 'normal'); pdf.setTextColor(40, 40, 40);
       const lines = pdf.splitTextToSize(String(value), pageWidth - margin - 50);
-      lines.forEach((line, i) => {
-        pdf.text(line, margin + 32, y);
-        if (i < lines.length - 1) y += 5;
-      });
-      y += 6;
+      lines.forEach((line, i) => { pdf.text(line, margin + 32, y); if (i < lines.length - 1) y += 5; }); y += 6;
     };
-    
-    drawField('Client:', client.client_name);
-    drawField('Job Number:', jobSheet.job_number);
-    drawField('Site:', client.site_address);
-    drawField('Contact:', client.contact_person);
-    drawField('Phone:', client.contact_phone);
-    y += 4;
+    drawField('Client:', client.client_name); drawField('Job Number:', jobSheet.job_number);
+    drawField('Site:', client.site_address); drawField('Contact:', client.contact_person); y += 4;
 
-    // Tasks
-    if (jobSheet.report_sections?.tasks && jobSheet.tasks?.length > 0) {
+    if (jobSheet.report_sections?.tasks && jobSheet.tasks?.length) {
       if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
       sectionHeader('Work Performed');
-      pdf.setTextColor(40, 40, 40);
-      
       jobSheet.tasks.forEach((task, i) => {
         if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
-        const text = `${i + 1}. ${task}`;
-        const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
-        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
-        y += 2;
-      });
-      y += 8;
+        pdf.splitTextToSize(`${i + 1}. ${task}`, pageWidth - 2 * margin).forEach(l => { pdf.text(l, margin, y); y += 5; }); y += 2;
+      }); y += 8;
     }
 
-    // Labour
-    if (jobSheet.report_sections?.labour && jobSheet.labour?.length > 0) {
+    if (jobSheet.report_sections?.labour && jobSheet.labour?.length) {
       if (y > pageHeight - 60) { pdf.addPage(); y = margin; }
       sectionHeader('Labour Hours');
-      
-      // Table header
-      pdf.setFillColor(243, 246, 255);
-      pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
-      pdf.setFontSize(9);
-      pdf.text('Employee', margin + 2, y);
-      pdf.text('Normal', pageWidth - margin - 50, y);
-      pdf.text('Overtime', pageWidth - margin - 25, y);
-      y += 6;
-      
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(60, 60, 60);
-      
-      let totalNormal = 0, totalOT = 0;
+      pdf.setFillColor(243, 246, 255); pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(9); pdf.text('Employee', margin + 2, y); pdf.text('Normal', pageWidth - margin - 50, y); pdf.text('Overtime', pageWidth - margin - 25, y); y += 6;
+      pdf.setFont(undefined, 'normal'); pdf.setTextColor(60, 60, 60);
+      let tN = 0, tO = 0;
       jobSheet.labour.forEach(l => {
         if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
-        pdf.text(l.employee, margin + 2, y);
-        pdf.text(`${l.normalHours || 0}h`, pageWidth - margin - 50, y);
-        pdf.text(`${l.overtimeHours || 0}h`, pageWidth - margin - 25, y);
-        totalNormal += parseFloat(l.normalHours || 0);
-        totalOT += parseFloat(l.overtimeHours || 0);
-        y += 6;
+        pdf.text(l.employee, margin + 2, y); pdf.text(`${l.normalHours || 0}h`, pageWidth - margin - 50, y); pdf.text(`${l.overtimeHours || 0}h`, pageWidth - margin - 25, y);
+        tN += parseFloat(l.normalHours || 0); tO += parseFloat(l.overtimeHours || 0); y += 6;
       });
-      
-      y += 2;
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 5;
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('TOTAL', margin + 2, y);
-      pdf.text(`${totalNormal}h`, pageWidth - margin - 50, y);
-      pdf.text(`${totalOT}h`, pageWidth - margin - 25, y);
-      y += 10;
+      y += 2; pdf.setDrawColor(200,200,200); pdf.line(margin, y, pageWidth - margin, y); y += 5;
+      pdf.setFont(undefined, 'bold'); pdf.setTextColor(0,0,0);
+      pdf.text('TOTAL', margin + 2, y); pdf.text(`${tN}h`, pageWidth - margin - 50, y); pdf.text(`${tO}h`, pageWidth - margin - 25, y); y += 10;
     }
 
-    // Materials
-    if (jobSheet.report_sections?.materials && jobSheet.materials?.length > 0) {
-      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
-      sectionHeader('Materials');
-      pdf.setTextColor(40, 40, 40);
-      pdf.setFontSize(9);
-
-      // Table header
-      pdf.setFillColor(243, 246, 255);
-      pdf.rect(margin, y - 4, pageWidth - 2 * margin, 7, 'F');
-      pdf.text('Description', margin + 2, y);
-      pdf.text('Qty', pageWidth - margin - 35, y);
-      pdf.text('Unit', pageWidth - margin - 15, y);
-      y += 7;
-
-      pdf.setFontSize(10);
-      jobSheet.materials.forEach(m => {
-        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
-        const nameLines = pdf.splitTextToSize(m.name || '', pageWidth - margin - 50);
-        nameLines.forEach((line, i) => {
-          pdf.text(line, margin + 2, y);
-          if (i === 0) {
-            pdf.text(String(m.quantity || 0), pageWidth - margin - 35, y);
-            pdf.text(m.unit || '', pageWidth - margin - 15, y);
-          }
-          y += 5;
-        });
-        y += 1;
-      });
-      y += 5;
-    }
-
-    // Notes
-    if (jobSheet.report_sections?.notes && jobSheet.notes?.length > 0) {
-      if (y > pageHeight - 40) { pdf.addPage(); y = margin; }
-      sectionHeader('Additional Notes');
-      pdf.setTextColor(40, 40, 40);
-      
-      jobSheet.notes.forEach(note => {
-        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
-        const text = typeof note === 'string' ? note : note.text;
-        const lines = pdf.splitTextToSize(`• ${text}`, pageWidth - 2 * margin);
-        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
-        y += 3;
-      });
-      y += 5;
-    }
-
-    // Photos
-    if (jobSheet.report_sections?.photos && files.length > 0) {
-      pdf.addPage();
-      y = margin;
-      sectionHeader('Photos');
-      y += 4;
-      
+    if (jobSheet.report_sections?.photos && files.length) {
+      pdf.addPage(); y = margin; sectionHeader('Photos'); y += 4;
       for (const file of files) {
         if (!file.signedUrl) continue;
         try {
           const img = await loadImage(file.signedUrl);
-
-          // Re-render to canvas to normalise EXIF orientation
-          // Browsers respect EXIF for naturalWidth/Height in modern engines,
-          // but jsPDF reads raw pixels - so we bake the orientation in here
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || img.width;
-          canvas.height = img.naturalHeight || img.height;
-          const cctx = canvas.getContext('2d');
-          cctx.drawImage(img, 0, 0);
-
-          const maxW = pageWidth - 2 * margin;
-          const maxH = 110;
-          let w = maxW;
-          let h = (canvas.height / canvas.width) * w;
+          const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth || img.width; canvas.height = img.naturalHeight || img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          const maxW = pageWidth - 2 * margin, maxH = 110;
+          let w = maxW, h = (canvas.height / canvas.width) * w;
           if (h > maxH) { h = maxH; w = (canvas.width / canvas.height) * h; }
-          
           if (y + h > pageHeight - margin) { pdf.addPage(); y = margin; }
-          
-          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', margin, y, w, h);
-          y += h + 4;
-
-          // Description (if present)
-          if (file.description) {
-            pdf.setFontSize(9);
-            pdf.setTextColor(40, 40, 40);
-            const descLines = pdf.splitTextToSize(file.description, pageWidth - 2 * margin);
-            descLines.forEach(line => {
-              if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
-              pdf.text(line, margin, y);
-              y += 4.5;
-            });
-            y += 2;
-          }
-
-          if (file.tags?.length > 0) {
-            pdf.setFontSize(8);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y);
-            y += 8;
-          } else {
-            y += 4;
-          }
-        } catch (err) {
-          console.error('Error loading image:', err);
-        }
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', margin, y, w, h); y += h + 4;
+          if (file.description) { pdf.setFontSize(9); pdf.setTextColor(40,40,40); pdf.splitTextToSize(file.description, pageWidth - 2*margin).forEach(l => { if (y > pageHeight-20) { pdf.addPage(); y=margin; } pdf.text(l, margin, y); y += 4.5; }); y += 2; }
+          if (file.tags?.length) { pdf.setFontSize(8); pdf.setTextColor(100,100,100); pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y); y += 8; } else { y += 4; }
+        } catch(err) { console.error(err); }
       }
     }
 
-    // Signature
     if (jobSheet.client_signature_name) {
       if (y > pageHeight - 70) { pdf.addPage(); y = margin; }
-      y += 6;
-      sectionHeader('Client Sign-Off');
-      y += 4;
-      
-      if (jobSheet.client_signature_data) {
-        try {
-          pdf.addImage(jobSheet.client_signature_data, 'PNG', margin, y, 80, 30);
-          y += 35;
-        } catch (e) { console.error(e); }
-      }
-      
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(60, 60, 60);
+      y += 6; sectionHeader('Client Sign-Off'); y += 4;
+      if (jobSheet.client_signature_data) { try { pdf.addImage(jobSheet.client_signature_data, 'PNG', margin, y, 80, 30); y += 35; } catch(e) {} }
+      pdf.setFontSize(10); pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
       pdf.text(`Signed by: ${jobSheet.client_signature_name}`, margin, y); y += 5;
       pdf.text(`Date: ${new Date(jobSheet.client_signature_date).toLocaleDateString('en-AU')}`, margin, y);
     }
 
-    // Footer on every page
     const pageCount = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
-      
-      // Footer accent bar
-      pdf.setFillColor(194, 68, 14);
-      pdf.rect(0, pageHeight - 14, pageWidth, 0.5, 'F');
-      
-      pdf.setFontSize(7);
-      pdf.setTextColor(120, 120, 120);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFillColor(194, 68, 14); pdf.rect(0, pageHeight - 14, pageWidth, 0.5, 'F');
+      pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
       pdf.text('Bromar', margin, pageHeight - 9);
-      pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
-      
-      pdf.setFontSize(6.5);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+      pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.01`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
-
     return pdf;
   }
 
-  function loadImage(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = url;
-    });
-  }
-
-  async function generateAndDownloadPDF() {
-    const pdf = await generatePDF();
-    pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`);
-  }
-
+  function loadImage(url) { return new Promise((res, rej) => { const img = new Image(); img.crossOrigin = 'Anonymous'; img.onload = () => res(img); img.onerror = rej; img.src = url; }); }
+  async function generateAndDownloadPDF() { const pdf = await generatePDF(); pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`); }
   async function generateAndUploadPDF() {
     const pdf = await generatePDF();
     const pdfBlob = pdf.output('blob');
     const fileName = `service-reports/${currentJobNumber}/${currentJobSheetNumber}.pdf`;
-    
-    // Upload PDF to Supabase
-    const { error } = await sb.storage
-      .from('job-sheet-files')
-      .upload(fileName, pdfBlob, {
-        contentType: 'application/pdf',
-        upsert: true
-      });
-    
+    const { error } = await sb.storage.from('job-sheet-files').upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
     if (error) throw error;
-    
-    // Get signed URL (valid for 30 days)
-    const { data: urlData, error: urlErr } = await sb.storage
-      .from('job-sheet-files')
-      .createSignedUrl(fileName, 60 * 60 * 24 * 30);
-    
+    const { data: urlData, error: urlErr } = await sb.storage.from('job-sheet-files').createSignedUrl(fileName, 60*60*24*30);
     if (urlErr) throw urlErr;
-    
     return urlData.signedUrl;
   }
 
   // ============================================================
   // UI HELPERS
   // ============================================================
-  function showLoading(text, subtext) {
-    document.getElementById('loadingText').textContent = text;
-    document.getElementById('loadingSubtext').textContent = subtext || '';
-    document.getElementById('loadingOverlay').classList.add('show');
-  }
-
-  function hideLoading() {
-    document.getElementById('loadingOverlay').classList.remove('show');
-  }
-
-  function showSuccess(text) {
-    const banner = document.getElementById('successBanner');
-    document.getElementById('successText').textContent = text;
-    banner.classList.add('show');
-    setTimeout(() => banner.classList.remove('show'), 5000);
-  }
-
-  function showInfo(text) {
-    const banner = document.getElementById('infoBanner');
-    document.getElementById('infoBannerText').textContent = text;
-    banner.classList.add('show');
-    setTimeout(() => banner.classList.remove('show'), 5000);
-  }
-
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function showLoading(text, subtext) { document.getElementById('loadingText').textContent = text; document.getElementById('loadingSubtext').textContent = subtext || ''; document.getElementById('loadingOverlay').classList.add('show'); }
+  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+  function showSuccess(text) { const b = document.getElementById('successBanner'); document.getElementById('successText').textContent = text; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 5000); }
+  function showInfo(text) { const b = document.getElementById('infoBanner'); document.getElementById('infoBannerText').textContent = text; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 5000); }
 </script>
-
 </body>
 </html>
