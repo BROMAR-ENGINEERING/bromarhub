@@ -340,9 +340,32 @@
 
     .form-footer { margin-top: 2rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
     .footer-disclaimer { border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem 1.125rem; margin-bottom: 1.25rem; background: var(--bg-main); font-style: italic; font-size: 0.8rem; }
-    .footer-details { border-top: 1px solid var(--border); padding-top: 1rem; }
-    .footer-details p { margin-bottom: 3px; }
-    .footer-details a { color: var(--accent); text-decoration: none; }
+    .footer-title-block {
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+      text-align: center;
+    }
+    .footer-title {
+      font-size: clamp(1rem, 4vw, 1.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin: 0 0 0.5rem 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .footer-bug-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .footer-bug-link:hover { opacity: 0.75; text-decoration: underline; }
 
     /* Revision number — bottom of every page */
     .revision-number {
@@ -630,17 +653,18 @@
       <div class="footer-disclaimer">
         <p><em>💡 Job sheets are saved to your work record. Service reports include client sign-off and PDF export.</em></p>
       </div>
-      <div class="footer-details">
-        <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
-        <p>PH: +61 3 9335 5344 | EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
-        <p>ABN: 45 634 835 939 | ACN: 634 835 939 | REC: 30340</p>
+      <div class="footer-title-block">
+        <h2 class="footer-title">BROMAR HUB — JOBSHEET SUBMISSION</h2>
+        <a href="../employee-resources/suggestions-feedback.html" class="footer-bug-link">
+          <span>🐞</span> Report a bug or suggest an improvement
+        </a>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.02</div>
+<div class="revision-number">V1.03</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1500,7 +1524,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.02`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.03`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
