@@ -26,6 +26,7 @@
       display: flex; align-items: flex-end; justify-content: center;
       opacity: 0; transition: opacity 0.3s ease;
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior: none; touch-action: pan-y;
     }
     .bsc-overlay.bsc-visible { opacity: 1; }
 
@@ -37,6 +38,12 @@
       display: flex; flex-direction: column;
       transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
       overflow: hidden;
+      /* Prevent iOS back-swipe and Android edge-swipe triggering navigation */
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .bsc-overlay {
+      overscroll-behavior: none;
     }
     .bsc-overlay.bsc-visible .bsc-sheet { transform: translateY(0); }
 
@@ -64,7 +71,7 @@
     }
     .bsc-close:hover { background: var(--error-bg, #fee2e2); color: var(--error, #dc2626); }
 
-    .bsc-body { flex: 1; overflow-y: auto; }
+    .bsc-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 
     /* ── SOURCE PICKER ────────────────────────────────────────── */
     .bsc-sources {
@@ -160,7 +167,7 @@
     .bsc-torch-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── PREVIEW / CROP ───────────────────────────────────────── */
-    .bsc-preview-view { padding: 12px; display: none; flex-direction: column; gap: 12px; }
+    .bsc-preview-view { padding: 12px; display: none; flex-direction: column; gap: 12px; touch-action: none; overscroll-behavior: none; }
     .bsc-preview-view.bsc-active { display: flex; }
 
     .bsc-preview-frame {
@@ -586,10 +593,34 @@
         requestAnimationFrame(() => this._el.classList.add('bsc-visible'));
       });
       this._goToView('sources');
+
+      // Lock body scroll and block iOS/Android swipe-back while scanner is open
+      this._prevBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none';
+
+      // Block touchmove on the overlay itself (prevents browser chrome gestures).
+      // We allow scrolling inside .bsc-body only.
+      this._overlayTouchMove = (e) => {
+        const bscBody = this._el.querySelector('.bsc-body');
+        if (bscBody && bscBody.contains(e.target)) return;
+        e.preventDefault();
+      };
+      this._el.addEventListener('touchmove', this._overlayTouchMove, { passive: false });
     }
 
     _close() {
       this._el.classList.remove('bsc-visible');
+      if (this._loupeEl) this._loupeEl.classList.remove('bsc-loupe-visible');
+
+      // Restore scroll behaviour
+      document.body.style.overflow = this._prevBodyOverflow || '';
+      document.documentElement.style.overscrollBehavior = '';
+      if (this._overlayTouchMove) {
+        this._el.removeEventListener('touchmove', this._overlayTouchMove);
+        this._overlayTouchMove = null;
+      }
+
       setTimeout(() => {
         this._el.style.display = 'none';
         this._stopCamera();
@@ -660,6 +691,8 @@
     async _showScanView(scanMode = false) {
       this._scanMode = scanMode;
       this._goToView('scan');
+      // Block browser navigation gestures while in scan/crop view
+      document.documentElement.style.overscrollBehaviorX = 'none';
       await this._startCamera();
       if (scanMode) this._startEdgeDetection();
     }
@@ -707,66 +740,194 @@
       } catch (e) { /* torch not supported */ }
     }
 
-    // ── EDGE DETECTION (simple, canvas-based) ──────────────────────────────────
+    // ── EDGE / DOCUMENT DETECTION ─────────────────────────────────────────────
+    // Strategy: downsample → grayscale → blur → Sobel magnitude → threshold.
+    // Then run a scanline approach: for each of 8 directions from centre, march
+    // outward along rays spaced 5° apart and find the first strong-edge pixel.
+    // Cluster into 4 corners (TL/TR/BR/BL) by direction. This is much more
+    // robust than simply taking the extremal edge pixel.
     _startEdgeDetection() {
-      const video = this._el.querySelector('.bsc-video');
+      const video  = this._el.querySelector('.bsc-video');
       const canvas = this._el.querySelector('.bsc-edge-canvas');
+      const SCALE  = 0.3; // work at 30% res — fast enough at 8fps
+
+      // Smoothed quad for display (exponential smoothing to reduce jitter)
+      let smoothQuad = null;
+      const ALPHA = 0.35; // smoothing factor
 
       this._edgeDetectTimer = setInterval(() => {
         if (!video.videoWidth) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        this._detectAndDrawEdges(ctx, canvas.width, canvas.height);
-      }, 200);
-    }
 
-    _detectAndDrawEdges(ctx, w, h) {
-      // Pull pixel data and run Sobel edge detection (simplified)
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const data = imgData.data;
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const sw = Math.round(vw * SCALE), sh = Math.round(vh * SCALE);
+        const dispW = video.clientWidth  || vw;
+        const dispH = video.clientHeight || vh;
 
-      // Convert to grayscale
-      const gray = new Uint8Array(w * h);
-      for (let i = 0; i < w * h; i++) {
-        const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
-        gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
-      }
+        canvas.width  = dispW;
+        canvas.height = dispH;
+        // Store dims so capture can use them for coord mapping
+        this._lastEdgeCanvasW = dispW;
+        this._lastEdgeCanvasH = dispH;
 
-      // Sobel
-      const edges = new Uint8Array(w * h);
-      const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-      const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-      const step = Math.max(1, Math.floor(w / 160)); // sample density
+        // ── Step 1: downsample
+        const off = document.createElement('canvas');
+        off.width = sw; off.height = sh;
+        off.getContext('2d').drawImage(video, 0, 0, sw, sh);
+        const imgData = off.getContext('2d').getImageData(0, 0, sw, sh);
+        const d = imgData.data;
 
-      for (let y = 1; y < h - 1; y += step) {
-        for (let x = 1; x < w - 1; x += step) {
-          let gx = 0, gy = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const p = gray[(y + ky) * w + (x + kx)];
-              const ki = (ky + 1) * 3 + (kx + 1);
-              gx += sobelX[ki] * p;
-              gy += sobelY[ki] * p;
+        // ── Step 2: grayscale
+        const gray = new Float32Array(sw * sh);
+        for (let i = 0; i < sw * sh; i++) {
+          gray[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+        }
+
+        // ── Step 3: 5×5 box blur for noise suppression
+        const blur = new Float32Array(sw * sh);
+        const R = 2;
+        for (let y = R; y < sh - R; y++) {
+          for (let x = R; x < sw - R; x++) {
+            let s = 0, n = 0;
+            for (let dy = -R; dy <= R; dy++) {
+              for (let dx = -R; dx <= R; dx++) {
+                s += gray[(y+dy)*sw+(x+dx)]; n++;
+              }
+            }
+            blur[y*sw+x] = s / n;
+          }
+        }
+
+        // ── Step 4: Sobel magnitude
+        const sobelX = [-1,0,1,-2,0,2,-1,0,1];
+        const sobelY = [-1,-2,-1,0,0,0,1,2,1];
+        const mag = new Float32Array(sw * sh);
+        let maxMag = 1;
+        for (let y = 1; y < sh - 1; y++) {
+          for (let x = 1; x < sw - 1; x++) {
+            let gx = 0, gy = 0;
+            for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
+              const p = blur[(y+ky)*sw+(x+kx)];
+              const ki = (ky+1)*3+(kx+1);
+              gx += sobelX[ki]*p; gy += sobelY[ki]*p;
+            }
+            const m = Math.sqrt(gx*gx + gy*gy);
+            mag[y*sw+x] = m;
+            if (m > maxMag) maxMag = m;
+          }
+        }
+
+        // ── Step 5: adaptive threshold (30% of max)
+        const thresh = maxMag * 0.30;
+
+        // ── Step 6: ray-march from centre to find document edges
+        // Cast rays every 5°, march outward; record first edge hit per ray.
+        // Skip the outer 8% border (likely frame/hand) and inner 15% (likely noise).
+        const cx = sw / 2, cy = sh / 2;
+        const maxR = Math.min(sw, sh) * 0.5;
+        const minR = Math.min(sw, sh) * 0.15;
+        const border = 0.08;
+
+        const rayHits = []; // {x, y, angle}
+        for (let deg = 0; deg < 360; deg += 5) {
+          const rad = deg * Math.PI / 180;
+          const cos = Math.cos(rad), sin = Math.sin(rad);
+          for (let r = minR; r < maxR; r += 1.5) {
+            const rx = Math.round(cx + cos * r);
+            const ry = Math.round(cy + sin * r);
+            if (rx < sw*border || rx > sw*(1-border) || ry < sh*border || ry > sh*(1-border)) break;
+            if (mag[ry*sw+rx] > thresh) {
+              rayHits.push({ x: rx, y: ry, angle: rad });
+              break;
             }
           }
-          edges[y * w + x] = Math.min(255, Math.sqrt(gx * gx + gy * gy));
         }
-      }
 
-      // Draw edge overlay (orange tint where strong edges)
-      const overlay = ctx.createImageData(w, h);
-      const threshold = 80;
-      for (let i = 0; i < w * h; i++) {
-        if (edges[i] > threshold) {
-          overlay.data[i * 4] = 234;     // R
-          overlay.data[i * 4 + 1] = 88; // G
-          overlay.data[i * 4 + 2] = 12; // B
-          overlay.data[i * 4 + 3] = Math.min(200, edges[i] * 1.5);
+        if (rayHits.length < 8) {
+          // Not enough hits — clear overlay and wait
+          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
+          smoothQuad = null;
+          this._detectedQuad = null;
+          return;
         }
-      }
-      ctx.putImageData(overlay, 0, 0);
+
+        // ── Step 7: cluster hits into 4 corners by angle quadrant
+        // TL = rays pointing upper-left (135°–225°), TR = upper-right (315°–45°)
+        // BR = lower-right (45°–135°),              BL = lower-left  (225°–315°)
+        const corners = { tl: [], tr: [], br: [], bl: [] };
+        rayHits.forEach(h => {
+          const deg = ((h.angle * 180 / Math.PI) + 360) % 360;
+          if (deg >= 315 || deg < 45)  corners.tr.push(h);
+          else if (deg < 135)          corners.br.push(h);
+          else if (deg < 225)          corners.bl.push(h);
+          else                         corners.tl.push(h);
+        });
+
+        const centroid = (pts) => pts.length ? {
+          x: pts.reduce((s,p)=>s+p.x,0)/pts.length,
+          y: pts.reduce((s,p)=>s+p.y,0)/pts.length
+        } : null;
+
+        const tl = centroid(corners.tl), tr = centroid(corners.tr);
+        const br = centroid(corners.br), bl = centroid(corners.bl);
+
+        if (!tl || !tr || !br || !bl) {
+          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
+          smoothQuad = null; this._detectedQuad = null; return;
+        }
+
+        // ── Step 8: validate — quad should be reasonably large (>20% of frame area)
+        const scaleX = dispW / sw, scaleY = dispH / sh;
+        const rawQuad = [tl, tr, br, bl].map(p => ({ x: p.x*scaleX, y: p.y*scaleY }));
+
+        const quadArea = Math.abs(
+          (rawQuad[0].x*(rawQuad[1].y-rawQuad[3].y) +
+           rawQuad[1].x*(rawQuad[2].y-rawQuad[0].y) +
+           rawQuad[2].x*(rawQuad[3].y-rawQuad[1].y) +
+           rawQuad[3].x*(rawQuad[0].y-rawQuad[2].y)) / 2
+        );
+        const frameArea = dispW * dispH;
+        if (quadArea < frameArea * 0.12) {
+          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
+          smoothQuad = null; this._detectedQuad = null; return;
+        }
+
+        // ── Step 9: exponential smoothing to reduce flicker
+        if (!smoothQuad) {
+          smoothQuad = rawQuad.map(p => ({...p}));
+        } else {
+          smoothQuad = smoothQuad.map((sp, i) => ({
+            x: sp.x + ALPHA*(rawQuad[i].x - sp.x),
+            y: sp.y + ALPHA*(rawQuad[i].y - sp.y)
+          }));
+        }
+
+        this._detectedQuad = smoothQuad.map(p => ({...p})); // snapshot for capture
+
+        // ── Step 10: draw overlay
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, dispW, dispH);
+        const pts = smoothQuad;
+
+        // Semi-transparent green fill
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        pts.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(34,197,94,0.18)';
+        ctx.fill();
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        // Corner markers
+        pts.forEach(p => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2);
+          ctx.fillStyle = '#22c55e'; ctx.fill();
+          ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+        });
+
+      }, 125);
     }
 
     // ── CAPTURE ────────────────────────────────────────────────────────────────
@@ -774,14 +935,15 @@
       const video = this._el.querySelector('.bsc-video');
       if (!video.videoWidth) return;
 
-      // Render frame to offscreen canvas
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
+      canvas.width  = video.videoWidth;
       canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+      canvas.getContext('2d').drawImage(video, 0, 0);
 
       this._capturedImageData = canvas.toDataURL('image/jpeg', 0.95);
+      // Store detected quad (in video display coords) to pre-fill crop handles
+      this._autoQuad = this._detectedQuad || null;
+      this._detectedQuad = null;
       this._stopCamera();
       this._showPreview(this._capturedImageData);
     }
@@ -807,14 +969,48 @@
 
       const W = frame.clientWidth;
       const H = frame.clientHeight;
-      // Start handles flush with the actual image edges (no inset)
       const m = 2;
-      this._cropPoints = [
-        { x: m,     y: m     }, // TL
-        { x: W - m, y: m     }, // TR
-        { x: W - m, y: H - m }, // BR
-        { x: m,     y: H - m }, // BL
-      ];
+
+      // If we have a detected quad from the viewfinder, map it into preview frame coords.
+      // The edge canvas matched the video's display rect; the preview frame has the same
+      // aspect ratio (both are 3/4) but a different pixel size. We also need to account
+      // for the fact the image uses object-fit:contain inside the preview frame, so we
+      // map through the image's rendered rect rather than the raw frame rect.
+      if (this._autoQuad && this._autoQuad.length === 4) {
+        // The quad was in video-display coords (edge canvas = video display size).
+        // The preview frame is W×H; image is object-fit:contain inside it.
+        const srcImg   = this._el.querySelector('.bsc-preview-img');
+        const naturalW = srcImg.naturalWidth  || 1;
+        const naturalH = srcImg.naturalHeight || 1;
+        const imgAspect   = naturalW / naturalH;
+        const frameAspect = W / H;
+        let rendW, rendH, offX, offY;
+        if (imgAspect > frameAspect) {
+          rendW = W; rendH = W / imgAspect; offX = 0; offY = (H - rendH) / 2;
+        } else {
+          rendH = H; rendW = H * imgAspect; offX = (W - rendW) / 2; offY = 0;
+        }
+
+        // The edge canvas was sized to video.clientWidth × video.clientHeight.
+        // We stored the quad in those display px. The video display is also 3/4
+        // aspect and fills its container, so we can treat the quad as normalised
+        // fractions of the video display rect and re-apply to the rendered image rect.
+        const edgeCanvasW = this._lastEdgeCanvasW || W;
+        const edgeCanvasH = this._lastEdgeCanvasH || H;
+
+        this._cropPoints = this._autoQuad.map(p => ({
+          x: Math.max(0, Math.min(W, offX + (p.x / edgeCanvasW) * rendW)),
+          y: Math.max(0, Math.min(H, offY + (p.y / edgeCanvasH) * rendH))
+        }));
+        this._autoQuad = null;
+      } else {
+        this._cropPoints = [
+          { x: m,     y: m     }, // TL
+          { x: W - m, y: m     }, // TR
+          { x: W - m, y: H - m }, // BR
+          { x: m,     y: H - m }, // BL
+        ];
+      }
 
       // Cache the full-resolution source image for the loupe
       const srcImg = this._el.querySelector('.bsc-preview-img');
@@ -893,35 +1089,36 @@
 
         const onStart = (e) => {
           dragging = true;
-          const touch = e.touches ? e.touches[0] : e;
-          startX = touch.clientX - pt.x;
-          startY = touch.clientY - pt.y;
-          showLoupe(touch.clientX, touch.clientY, pt);
-          e.preventDefault();
+          e.preventDefault(); // critical: stops browser swipe-back gesture
+          e.stopPropagation();
+          startX = e.clientX - pt.x;
+          startY = e.clientY - pt.y;
+          handle.setPointerCapture(e.pointerId); // lock pointer to this handle
+          showLoupe(e.clientX, e.clientY, pt);
         };
 
         const onMove = (e) => {
           if (!dragging) return;
-          const touch = e.touches ? e.touches[0] : e;
-          pt.x = Math.max(0, Math.min(W, touch.clientX - startX));
-          pt.y = Math.max(0, Math.min(H, touch.clientY - startY));
+          e.preventDefault();
+          pt.x = Math.max(0, Math.min(W, e.clientX - startX));
+          pt.y = Math.max(0, Math.min(H, e.clientY - startY));
           handle.style.left = pt.x + 'px';
           handle.style.top  = pt.y + 'px';
           this._drawCropOverlay();
-          showLoupe(touch.clientX, touch.clientY, pt);
-          e.preventDefault();
+          showLoupe(e.clientX, e.clientY, pt);
         };
 
-        const onEnd = () => {
+        const onEnd = (e) => {
           if (!dragging) return;
           dragging = false;
           hideLoupe();
         };
 
-        handle.addEventListener('pointerdown', onStart);
-        document.addEventListener('pointermove', onMove);
-        document.addEventListener('pointerup',   onEnd);
-        document.addEventListener('pointercancel', onEnd);
+        // Use the handle itself for all pointer events (setPointerCapture keeps them here)
+        handle.addEventListener('pointerdown',   onStart, { passive: false });
+        handle.addEventListener('pointermove',   onMove,  { passive: false });
+        handle.addEventListener('pointerup',     onEnd);
+        handle.addEventListener('pointercancel', onEnd);
       });
 
       this._drawCropOverlay();
