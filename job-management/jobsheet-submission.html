@@ -1401,26 +1401,45 @@
     list.innerHTML = uploadedFiles.map(f => {
       const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
       const sizeKB = (f.size / 1024).toFixed(1);
-      const tags = ['progress', 'before', 'after', 'electrical', 'safety'];
+      const presetTags = ['progress', 'before', 'after', 'electrical', 'safety'];
+      // Custom tags = ones the user typed in that aren't in the preset list
+      const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
       
       return `
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-icon">${icon}</div>
-            <div class="file-details">
-              <div class="file-name">${f.name}</div>
-              <div class="file-size">${sizeKB} KB</div>
-              <div class="file-tags">
-                ${tags.map(t => `
-                  <span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" 
-                        onclick="toggleTag(${f.id}, '${t}')">
-                    ${t.charAt(0).toUpperCase() + t.slice(1)}
-                  </span>
-                `).join('')}
+        <div class="file-item" style="flex-direction: column; align-items: stretch;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
+            <div class="file-info">
+              <div class="file-icon">${icon}</div>
+              <div class="file-details">
+                <div class="file-name">${escapeHtml(f.name)}</div>
+                <div class="file-size">${sizeKB} KB</div>
               </div>
             </div>
+            <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
           </div>
-          <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
+          <div style="margin-top: 10px;">
+            <input type="text"
+                   placeholder="Description (optional)"
+                   value="${escapeHtml(f.description || '')}"
+                   oninput="updateFileDescription(${f.id}, this.value)"
+                   style="width: 100%; padding: 8px 10px; font-size: 0.85rem;"/>
+          </div>
+          <div class="file-tags" style="margin-top: 10px;">
+            ${presetTags.map(t => `
+              <span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" 
+                    onclick="toggleTag(${f.id}, '${t}')">
+                ${t.charAt(0).toUpperCase() + t.slice(1)}
+              </span>
+            `).join('')}
+            ${customTags.map(t => `
+              <span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">
+                ${escapeHtml(t)} ×
+              </span>
+            `).join('')}
+            <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">
+              + Custom
+            </span>
+          </div>
         </div>
       `;
     }).join('');
@@ -1432,6 +1451,23 @@
     const idx = file.tags.indexOf(tag);
     if (idx > -1) file.tags.splice(idx, 1);
     else file.tags.push(tag);
+    renderFileList();
+  };
+
+  window.updateFileDescription = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.description = value;
+    // Don't re-render - would lose input focus
+  };
+
+  window.addCustomTag = function(fileId) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const tag = prompt('Enter custom tag:');
+    if (!tag) return;
+    const clean = tag.trim().toLowerCase();
+    if (!clean) return;
+    if (!file.tags.includes(clean)) file.tags.push(clean);
     renderFileList();
   };
 
@@ -2040,6 +2076,7 @@
           file_size: f.size,
           file_category: f.type.startsWith('image/') ? 'photo' : 'document',
           tags: f.tags,
+          description: f.description || null,
           uploaded_by: currentUser?.name || 'Unknown'
         });
       
@@ -2361,22 +2398,47 @@
         if (!file.signedUrl) continue;
         try {
           const img = await loadImage(file.signedUrl);
+
+          // Re-render to canvas to normalise EXIF orientation
+          // Browsers respect EXIF for naturalWidth/Height in modern engines,
+          // but jsPDF reads raw pixels - so we bake the orientation in here
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const cctx = canvas.getContext('2d');
+          cctx.drawImage(img, 0, 0);
+
           const maxW = pageWidth - 2 * margin;
           const maxH = 110;
           let w = maxW;
-          let h = (img.height / img.width) * w;
-          if (h > maxH) { h = maxH; w = (img.width / img.height) * h; }
+          let h = (canvas.height / canvas.width) * w;
+          if (h > maxH) { h = maxH; w = (canvas.width / canvas.height) * h; }
           
           if (y + h > pageHeight - margin) { pdf.addPage(); y = margin; }
           
-          pdf.addImage(img, 'JPEG', margin, y, w, h);
-          y += h + 5;
-          
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', margin, y, w, h);
+          y += h + 4;
+
+          // Description (if present)
+          if (file.description) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(40, 40, 40);
+            const descLines = pdf.splitTextToSize(file.description, pageWidth - 2 * margin);
+            descLines.forEach(line => {
+              if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+              pdf.text(line, margin, y);
+              y += 4.5;
+            });
+            y += 2;
+          }
+
           if (file.tags?.length > 0) {
             pdf.setFontSize(8);
             pdf.setTextColor(100, 100, 100);
             pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y);
             y += 8;
+          } else {
+            y += 4;
           }
         } catch (err) {
           console.error('Error loading image:', err);
