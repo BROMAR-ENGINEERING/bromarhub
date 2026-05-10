@@ -109,7 +109,18 @@
     [data-theme="dark"] .control-btn .sun-icon { display: block; }
     [data-theme="dark"] .control-btn .moon-icon { display: none; }
 
-    .header-content { max-width: 1400px; margin: 0 auto; text-align: center; padding-top: 0.5rem; }
+    /* Centred logo - sits above the buttons, ignores them */
+    .header-content {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .header-content img { pointer-events: auto; }
+
     .logo-image { max-height: 40px; height: auto; }
     .light-logo { display: block; }
     .dark-logo { display: none; }
@@ -168,6 +179,7 @@
     }
     textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
     input[type="date"] { max-width: 100%; min-width: 0; }
+    input:disabled, select:disabled, textarea:disabled { opacity: 0.7; cursor: not-allowed; }
 
     .job-number-section { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
     .job-number-toggle { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
@@ -194,6 +206,21 @@
     .prefix-BS { background: #fce7f3; color: #9f1239; }
     .prefix-BM { background: #e0e7ff; color: #3730a3; }
 
+    /* New-job created notice */
+    .new-job-created {
+      display: none;
+      align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .new-job-created.show { display: flex; }
+
     /* ── FILE UPLOAD AREA (scanner-integrated) ── */
     .file-upload-area {
       border: 2px dashed var(--border);
@@ -209,7 +236,6 @@
     .upload-text { font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.25rem; }
     .upload-hint { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1rem; }
 
-    /* Scanner action buttons inside upload area */
     .scanner-actions {
       display: flex; flex-wrap: wrap; gap: 8px;
       justify-content: center; padding: 4px 0;
@@ -225,7 +251,11 @@
       cursor: pointer; color: var(--text-primary);
       transition: all 0.2s;
     }
-    .scanner-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .scanner-action-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .scanner-action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     .scanner-action-btn svg { width: 15px; height: 15px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     .file-list { margin-top: 1rem; }
@@ -313,9 +343,6 @@
     .footer-details { border-top: 1px solid var(--border); padding-top: 1rem; }
     .footer-details p { margin-bottom: 3px; }
     .footer-details a { color: var(--accent); text-decoration: none; }
-
-    .page-footer { background: var(--accent); color: white; text-align: center; padding: 1.5rem; margin-top: 3rem; }
-    .page-footer p { margin: 0; font-size: 0.9rem; }
 
     /* Revision number — bottom of every page */
     .revision-number {
@@ -480,6 +507,11 @@
             <label for="new_site_address">Site Address <span class="required">*</span></label>
             <textarea id="new_site_address" rows="2" placeholder="Job site address"></textarea>
           </div>
+
+          <div class="new-job-created" id="newJobCreatedNotice">
+            <span>✅</span>
+            <span>Job <strong id="newJobCreatedNumber"></strong> created — you can now add photos, documents and continue filling in the sheet.</span>
+          </div>
         </div>
       </div>
 
@@ -507,7 +539,6 @@
             Browse Files
           </button>
         </div>
-        <!-- Drag-and-drop still works -->
         <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;"/>
       </div>
       <div class="file-list" id="fileList"></div>
@@ -608,12 +639,8 @@
   </div>
 </div>
 
-<footer class="page-footer">
-  <p>© 2026 Bromar Electrical Services | Industrial | Infrastructure | Automation</p>
-</footer>
-
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.01</div>
+<div class="revision-number">V1.02</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -677,7 +704,7 @@
   let currentJobNumber = null;
 
   // ============================================================
-  // DOCUMENT SCANNER SETUP
+  // DOCUMENT SCANNER SETUP — gated by job selection
   // ============================================================
   let bromarScanner = null;
 
@@ -689,37 +716,40 @@
     bromarScanner = new BromarScanner({
       supabase: sb,
       bucket: 'job-sheet-files',
-      pathPrefix: currentJobNumber ? `${currentJobNumber}/scans` : 'scans',
+      pathPrefix: 'scans',
       outputFormat: 'pdf'
     });
 
-    // Wire up the four upload buttons
-    document.getElementById('btnPhotoLibrary').addEventListener('click', () => {
+    const requireJob = () => {
+      if (!selectedJobData) {
+        showInfo('Please pick or create a job number first');
+        // Focus the first relevant input
+        const jobType = document.querySelector('input[name="job_type"]:checked').value;
+        if (jobType === 'existing') document.getElementById('existing_job_number').focus();
+        else document.getElementById('new_prefix').focus();
+        return false;
+      }
+      return true;
+    };
+
+    const openScanner = (mode) => {
+      if (!requireJob()) return;
       bromarScanner._onComplete = handleScannerComplete;
       bromarScanner._show();
-      bromarScanner._triggerPhotoLibrary();
-    });
-    document.getElementById('btnTakePhoto').addEventListener('click', () => {
-      bromarScanner._onComplete = handleScannerComplete;
-      bromarScanner._show();
-      bromarScanner._showScanView(false);
-    });
-    document.getElementById('btnScanDoc').addEventListener('click', () => {
-      bromarScanner._onComplete = handleScannerComplete;
-      bromarScanner._show();
-      bromarScanner._showScanView(true);
-    });
-    document.getElementById('btnBrowseFiles').addEventListener('click', () => {
-      bromarScanner._onComplete = handleScannerComplete;
-      bromarScanner._show();
-      bromarScanner._triggerFilePicker();
-    });
+      if (mode === 'photo-library') bromarScanner._triggerPhotoLibrary();
+      else if (mode === 'take-photo') bromarScanner._showScanView(false);
+      else if (mode === 'scan-doc') bromarScanner._showScanView(true);
+      else if (mode === 'browse') bromarScanner._triggerFilePicker();
+    };
+
+    document.getElementById('btnPhotoLibrary').addEventListener('click', () => openScanner('photo-library'));
+    document.getElementById('btnTakePhoto').addEventListener('click', () => openScanner('take-photo'));
+    document.getElementById('btnScanDoc').addEventListener('click', () => openScanner('scan-doc'));
+    document.getElementById('btnBrowseFiles').addEventListener('click', () => openScanner('browse'));
   }
 
   function handleScannerComplete(files) {
-    // files = [{ name, path, type, size, blob, url }]
     files.forEach(f => {
-      const isImage = f.type.startsWith('image/');
       const isPdf = f.type === 'application/pdf';
       uploadedFiles.push({
         id: Date.now() + Math.random(),
@@ -731,7 +761,7 @@
         description: '',
         supabasePath: f.path || null,
         supabaseUrl: f.url || null,
-        alreadyUploaded: !!f.path // scanner already uploaded it
+        alreadyUploaded: !!f.path
       });
     });
     renderFileList();
@@ -748,6 +778,7 @@
   fileUploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
     fileUploadArea.classList.remove('dragover');
+    if (!selectedJobData) { showInfo('Please pick or create a job number first'); return; }
     handleLocalFiles(e.dataTransfer.files);
   });
   fileInput.addEventListener('change', (e) => handleLocalFiles(e.target.files));
@@ -854,6 +885,16 @@
       select.value = match.full_name;
       select.disabled = true;
       select.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Add 🔒 Logged in badge next to the label
+      const label = document.querySelector('label[for="filled_by"]');
+      if (label && !label.querySelector('.logged-in-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'logged-in-badge';
+        badge.style.cssText = 'color: var(--success); font-size: 0.75rem; font-weight: 600; margin-left: 6px;';
+        badge.textContent = '🔒 Logged in';
+        label.appendChild(badge);
+      }
     } catch (err) { /* auth not active */ }
   }
 
@@ -887,15 +928,42 @@
   }
 
   // ============================================================
-  // JOB NUMBER
+  // JOB NUMBER MODE TOGGLE — with warning when switching after auto-create
   // ============================================================
   document.querySelectorAll('input[name="job_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
+      // Warn if user switches AWAY from "Create New Job" after a job was auto-created
+      if (this.value === 'existing' && selectedJobData && selectedJobData.justCreated) {
+        const confirmed = confirm(
+          `Job ${selectedJobData.job_number} was just created and will remain in the register (empty). Continue switching to an existing job?`
+        );
+        if (!confirmed) {
+          // Revert the radio selection
+          document.getElementById('new_job').checked = true;
+          document.getElementById('existing-job-fields').classList.remove('active');
+          document.getElementById('new-job-fields').classList.add('active');
+          return;
+        }
+        // User confirmed - clear the new-job state so they start fresh on existing
+        selectedJobData = null;
+        document.getElementById('newJobCreatedNotice').classList.remove('show');
+        // Unlock the new-job fields in case they swap back
+        document.getElementById('new_prefix').disabled = false;
+        document.getElementById('new_client_name').disabled = false;
+        document.getElementById('new_site_address').disabled = false;
+        // Update scanner path back to default
+        if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
+      }
+
+      // Toggle field visibility
       document.getElementById('existing-job-fields').classList.toggle('active', this.value === 'existing');
       document.getElementById('new-job-fields').classList.toggle('active', this.value === 'new');
     });
   });
 
+  // ============================================================
+  // EXISTING JOB AUTOCOMPLETE
+  // ============================================================
   let searchTimeout;
   document.getElementById('existing_job_number').addEventListener('input', function() {
     this.value = this.value.toUpperCase();
@@ -928,7 +996,7 @@
   }
 
   function selectJob(job) {
-    selectedJobData = job;
+    selectedJobData = job; // does NOT have justCreated flag - existing job
     document.getElementById('existing_job_number').value = job.job_number;
     document.getElementById('detail-client').textContent = job.client_name;
     document.getElementById('detail-address').textContent = job.site_address || '';
@@ -942,6 +1010,9 @@
     if (!e.target.closest('.autocomplete-wrapper')) document.getElementById('autocompleteResults').classList.remove('show');
   });
 
+  // ============================================================
+  // NEW JOB — auto-create as soon as required fields filled
+  // ============================================================
   document.getElementById('new_prefix').addEventListener('change', async function() {
     const preview = document.getElementById('next_job_preview');
     if (!this.value) { preview.value = 'Select type first...'; return; }
@@ -951,7 +1022,69 @@
       if (error) throw error;
       preview.value = `${this.value}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
     } catch (err) { preview.value = 'Error'; }
+
+    // Then try to auto-create
+    checkAndCreateNewJob();
   });
+
+  // Trigger check whenever any new-job required field changes/blurs
+  ['new_client_name', 'new_site_address'].forEach(id => {
+    document.getElementById(id).addEventListener('blur', checkAndCreateNewJob);
+  });
+
+  function checkAndCreateNewJob() {
+    const jobType = document.querySelector('input[name="job_type"]:checked').value;
+    if (jobType !== 'new') return;
+    if (selectedJobData) return; // already created
+
+    const prefix = document.getElementById('new_prefix').value;
+    const clientName = document.getElementById('new_client_name').value.trim();
+    const siteAddress = document.getElementById('new_site_address').value.trim();
+    if (!prefix || !clientName || !siteAddress) return;
+
+    createNewJobNow(prefix, clientName, siteAddress);
+  }
+
+  async function createNewJobNow(prefix, clientName, siteAddress) {
+    try {
+      const contactPerson = document.getElementById('new_contact_person').value.trim();
+      const contactPhone = document.getElementById('new_contact_phone').value.trim();
+
+      const { data: newJobNum, error } = await sb.rpc('create_new_job', {
+        p_prefix: prefix,
+        p_client_name: clientName,
+        p_contact_person: contactPerson,
+        p_contact_phone: contactPhone,
+        p_site_address: siteAddress
+      });
+      if (error) throw error;
+
+      // Populate selectedJobData so rest of form treats this as existing
+      selectedJobData = {
+        job_number: newJobNum,
+        client_name: clientName,
+        site_address: siteAddress,
+        contact_person: contactPerson,
+        prefix: prefix,
+        justCreated: true   // flag for switch-mode warning
+      };
+
+      // Update scanner path
+      if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
+
+      // Lock the required fields so user can't change them after creation
+      document.getElementById('new_prefix').disabled = true;
+      document.getElementById('new_client_name').disabled = true;
+      document.getElementById('new_site_address').disabled = true;
+      // Contact fields stay editable
+
+      // Show notice
+      document.getElementById('newJobCreatedNumber').textContent = newJobNum;
+      document.getElementById('newJobCreatedNotice').classList.add('show');
+    } catch (err) {
+      showInfo('Could not create job: ' + err.message);
+    }
+  }
 
   // ============================================================
   // SERVICE REPORT TOGGLE
@@ -1137,21 +1270,9 @@
     try {
       if (!currentUser) throw new Error('Please select who is filling out the form');
 
-      let jobNumber = '';
-      const jobType = document.querySelector('input[name="job_type"]:checked').value;
-
-      if (jobType === 'existing') {
-        if (!selectedJobData) throw new Error('Please select a job number');
-        jobNumber = selectedJobData.job_number;
-      } else {
-        const prefix = document.getElementById('new_prefix').value;
-        const clientName = document.getElementById('new_client_name').value.trim();
-        const siteAddress = document.getElementById('new_site_address').value.trim();
-        if (!prefix || !clientName || !siteAddress) throw new Error('Please fill in all required fields for new job');
-        const { data: newJobNum, error: jobErr } = await sb.rpc('create_new_job', { p_prefix: prefix, p_client_name: clientName, p_contact_person: document.getElementById('new_contact_person').value.trim(), p_contact_phone: document.getElementById('new_contact_phone').value.trim(), p_site_address: siteAddress });
-        if (jobErr) throw jobErr;
-        jobNumber = newJobNum;
-      }
+      // Job number always comes from selectedJobData now (existing OR auto-created new)
+      if (!selectedJobData) throw new Error('Please complete the job details first');
+      const jobNumber = selectedJobData.job_number;
 
       const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
       if (!tasks.length) throw new Error('Please add at least one task');
@@ -1224,7 +1345,7 @@
   }
 
   // ============================================================
-  // PDF GENERATION (unchanged from original)
+  // PDF GENERATION
   // ============================================================
   document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
     showLoading('Generating PDF...', 'Building service report');
@@ -1379,7 +1500,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.01`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.02`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
@@ -1389,7 +1510,8 @@
   async function generateAndUploadPDF() {
     const pdf = await generatePDF();
     const pdfBlob = pdf.output('blob');
-    const fileName = `service-reports/${currentJobNumber}/${currentJobSheetNumber}.pdf`;
+    // Service reports now sit inside the job's own folder
+    const fileName = `${currentJobNumber}/service-reports/${currentJobSheetNumber}.pdf`;
     const { error } = await sb.storage.from('job-sheet-files').upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
     if (error) throw error;
     const { data: urlData, error: urlErr } = await sb.storage.from('job-sheet-files').createSignedUrl(fileName, 60*60*24*30);
