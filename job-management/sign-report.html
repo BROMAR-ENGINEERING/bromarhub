@@ -6,6 +6,7 @@
   <title>Sign Service Report - Bromar</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
   
   <style>
@@ -262,7 +263,7 @@
       <div class="report-title">SERVICE REPORT</div>
       <div class="report-meta">
         <span><strong>Report #:</strong> <span id="reportNumber"></span></span>
-        <span><strong>Date:</strong> <span id="reportDate"></span></span>
+        <span><strong>Date of Works:</strong> <span id="reportDate"></span></span>
         <span><strong>Prepared by:</strong> <span id="preparedBy"></span></span>
       </div>
 
@@ -332,6 +333,8 @@
 
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
+  let currentReport = null;        // store loaded report data for PDF generation
+  let cachedPhotos = [];           // store photo data with signed URLs
 
   if (!token) {
     showError('Invalid signing link', 'No token provided. Please use the link from your email.');
@@ -348,6 +351,7 @@
         return;
       }
       const report = data[0];
+      currentReport = report;
 
       if (report.signing_status === 'signed') {
         document.getElementById('loadingState').style.display = 'none';
@@ -441,6 +445,9 @@
         if (f.file_category !== 'photo') continue;
         const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600);
         if (urlData?.signedUrl) {
+          // Cache for PDF generation
+          cachedPhotos.push({ ...f, signedUrl: urlData.signedUrl });
+
           const wrap = document.createElement('div');
           const img = document.createElement('img');
           img.src = urlData.signedUrl;
@@ -565,13 +572,15 @@
     if (isSignatureEmpty()) { alert('Please provide your signature'); return; }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
+    submitBtn.textContent = 'Submitting signature...';
 
     try {
-      const sigData = document.getElementById('signCanvas').toDataURL('image/png');
+      const sigDataUrl = document.getElementById('signCanvas').toDataURL('image/png');
+
+      // Step 1: Submit signature to database
       const { data, error } = await sb.rpc('submit_signature_by_token', {
         p_token: token,
-        p_signature_data: sigData,
+        p_signature_data: sigDataUrl,
         p_client_name: name
       });
       if (error) throw error;
@@ -584,15 +593,333 @@
         return;
       }
 
+      // Step 2: Generate signed PDF
+      submitBtn.textContent = 'Generating PDF...';
+      const pdf = await buildSignedPdf({
+        ...currentReport,
+        client_signature_data: sigDataUrl,
+        client_signature_name: name,
+        client_signature_date: new Date().toISOString()
+      });
+
+      // Step 3: Upload PDF to storage
+      submitBtn.textContent = 'Saving copy...';
+      const pdfBlob = pdf.output('blob');
+      const pdfPath = `${currentReport.job_number}/${currentReport.job_sheet_number}/signed-${currentReport.job_sheet_number}.pdf`;
+      const { error: uploadErr } = await sb.storage
+        .from('job-sheet-files')
+        .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+      if (uploadErr) console.warn('PDF upload failed (continuing):', uploadErr);
+
+      // Step 4: Email signed PDF to client
+      submitBtn.textContent = 'Emailing report...';
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+      const emailResp = await sb.functions.invoke('send-signed-report', {
+        body: {
+          recipientEmail: currentReport.signing_sent_to,
+          jobSheetNumber: currentReport.job_sheet_number,
+          clientName: currentReport.client_name,
+          signedByName: name,
+          pdfBase64
+        }
+      });
+      if (emailResp.error) {
+        console.warn('Email send failed:', emailResp.error);
+      }
+
+      // Done - show success regardless of email outcome
       document.getElementById('reportContent').style.display = 'none';
       document.getElementById('successState').style.display = 'block';
       window.scrollTo(0, 0);
     } catch (err) {
       console.error('Submit error:', err);
-      alert('Could not submit: ' + err.message);
+      alert('Could not submit: ' + (err.message || err));
       submitBtn.disabled = false;
       submitBtn.textContent = 'Sign & Submit';
     }
+  }
+
+  // ============================================================
+  // BUILD SIGNED PDF
+  // ============================================================
+  async function buildSignedPdf(r) {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let y = margin;
+
+    // Header accent bar
+    pdf.setFillColor(194, 68, 14);
+    pdf.rect(0, 0, pageWidth, 4, 'F');
+
+    // Company block top-right
+    pdf.setFontSize(8);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD', pageWidth - margin, 12, { align: 'right' });
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049', pageWidth - margin, 16, { align: 'right' });
+    pdf.text('Ph: +61 3 9335 5344  |  admin@bromar.com.au', pageWidth - margin, 20, { align: 'right' });
+    pdf.text('ABN: 45 634 835 939  |  REC: 30340', pageWidth - margin, 24, { align: 'right' });
+
+    y = 36;
+    pdf.setDrawColor(194, 68, 14);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+    pdf.setLineWidth(0.2);
+    y += 10;
+
+    // Title
+    pdf.setFontSize(22);
+    pdf.setTextColor(194, 68, 14);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('SERVICE REPORT', margin, y);
+
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(`Report #:  ${r.job_sheet_number}`, pageWidth - margin, y - 4, { align: 'right' });
+    pdf.text(`Date:  ${new Date(r.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    if (r.created_by) pdf.text(`Prepared by:  ${r.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
+
+    y += 14;
+
+    const sectionHeader = (title) => {
+      pdf.setFillColor(255, 243, 238);
+      pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(10);
+      pdf.setTextColor(194, 68, 14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(title.toUpperCase(), margin + 2, y);
+      y += 8;
+      pdf.setTextColor(40, 40, 40);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+    };
+
+    const drawField = (label, value) => {
+      if (!value) return;
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(label, margin, y);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(40, 40, 40);
+      const lines = pdf.splitTextToSize(String(value), pageWidth - margin - 50);
+      lines.forEach((line, i) => {
+        pdf.text(line, margin + 32, y);
+        if (i < lines.length - 1) y += 5;
+      });
+      y += 6;
+    };
+
+    // Client info
+    sectionHeader('Client Information');
+    y += 2;
+    drawField('Client:', r.client_name);
+    drawField('Job Number:', r.job_number);
+    drawField('Site:', r.site_address);
+    drawField('Contact:', r.contact_person);
+    drawField('Phone:', r.contact_phone);
+    y += 4;
+
+    const sections = r.report_sections || {};
+
+    // Tasks
+    if (sections.tasks && r.tasks?.length) {
+      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
+      sectionHeader('Work Performed');
+      r.tasks.forEach((task, i) => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const text = typeof task === 'string' ? task : (task.description || '');
+        const lines = pdf.splitTextToSize(`${i + 1}. ${text}`, pageWidth - 2 * margin);
+        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
+        y += 2;
+      });
+      y += 5;
+    }
+
+    // Labour
+    if (sections.labour && r.labour?.length) {
+      if (y > pageHeight - 60) { pdf.addPage(); y = margin; }
+      sectionHeader('Labour Hours');
+      pdf.setFillColor(243, 246, 255);
+      pdf.rect(margin, y - 4, pageWidth - 2 * margin, 7, 'F');
+      pdf.setFontSize(9);
+      pdf.text('Employee', margin + 2, y);
+      pdf.text('Normal', pageWidth - margin - 50, y);
+      pdf.text('Overtime', pageWidth - margin - 25, y);
+      y += 7;
+
+      pdf.setFontSize(10);
+      let totalN = 0, totalO = 0;
+      r.labour.forEach(l => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const n = parseFloat(l.normalHours || 0);
+        const o = parseFloat(l.overtimeHours || 0);
+        totalN += n; totalO += o;
+        pdf.text(l.employee || '', margin + 2, y);
+        pdf.text(`${n}h`, pageWidth - margin - 50, y);
+        pdf.text(`${o}h`, pageWidth - margin - 25, y);
+        y += 6;
+      });
+      y += 1;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      pdf.setFont(undefined, 'bold');
+      pdf.text('TOTAL', margin + 2, y);
+      pdf.text(`${totalN}h`, pageWidth - margin - 50, y);
+      pdf.text(`${totalO}h`, pageWidth - margin - 25, y);
+      pdf.setFont(undefined, 'normal');
+      y += 10;
+    }
+
+    // Materials
+    if (sections.materials && r.materials?.length) {
+      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
+      sectionHeader('Materials');
+      pdf.setFillColor(243, 246, 255);
+      pdf.rect(margin, y - 4, pageWidth - 2 * margin, 7, 'F');
+      pdf.setFontSize(9);
+      pdf.text('Description', margin + 2, y);
+      pdf.text('Qty', pageWidth - margin - 35, y);
+      pdf.text('Unit', pageWidth - margin - 15, y);
+      y += 7;
+
+      pdf.setFontSize(10);
+      r.materials.forEach(m => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const nameLines = pdf.splitTextToSize(m.name || '', pageWidth - margin - 50);
+        nameLines.forEach((line, i) => {
+          pdf.text(line, margin + 2, y);
+          if (i === 0) {
+            pdf.text(String(m.quantity || 0), pageWidth - margin - 35, y);
+            pdf.text(m.unit || '', pageWidth - margin - 15, y);
+          }
+          y += 5;
+        });
+        y += 1;
+      });
+      y += 5;
+    }
+
+    // Notes
+    if (sections.notes && r.notes?.length) {
+      if (y > pageHeight - 40) { pdf.addPage(); y = margin; }
+      sectionHeader('Additional Notes');
+      r.notes.forEach(note => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const text = typeof note === 'string' ? note : (note.text || '');
+        const lines = pdf.splitTextToSize(`• ${text}`, pageWidth - 2 * margin);
+        lines.forEach(line => { pdf.text(line, margin, y); y += 5; });
+        y += 3;
+      });
+      y += 5;
+    }
+
+    // Photos
+    if (sections.photos && cachedPhotos.length > 0) {
+      pdf.addPage();
+      y = margin;
+      sectionHeader('Photos');
+      y += 4;
+
+      for (const file of cachedPhotos) {
+        try {
+          const img = await loadPdfImage(file.signedUrl);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+
+          const maxW = pageWidth - 2 * margin;
+          const maxH = 110;
+          let w = maxW;
+          let h = (canvas.height / canvas.width) * w;
+          if (h > maxH) { h = maxH; w = (canvas.width / canvas.height) * h; }
+
+          if (y + h > pageHeight - margin) { pdf.addPage(); y = margin; }
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', margin, y, w, h);
+          y += h + 4;
+
+          if (file.description) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(40, 40, 40);
+            const descLines = pdf.splitTextToSize(file.description, pageWidth - 2 * margin);
+            descLines.forEach(line => {
+              if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+              pdf.text(line, margin, y);
+              y += 4.5;
+            });
+            y += 2;
+          }
+
+          if (file.tags && file.tags.length > 0) {
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y);
+            y += 8;
+          } else {
+            y += 4;
+          }
+        } catch (err) {
+          console.warn('Photo skipped:', err);
+        }
+      }
+    }
+
+    // Signature
+    if (r.client_signature_name) {
+      if (y > pageHeight - 70) { pdf.addPage(); y = margin; }
+      y += 6;
+      sectionHeader('Client Sign-Off');
+      y += 4;
+
+      if (r.client_signature_data) {
+        try {
+          pdf.addImage(r.client_signature_data, 'PNG', margin, y, 80, 30);
+          y += 35;
+        } catch (e) { console.warn(e); }
+      }
+
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`Signed by: ${r.client_signature_name}`, margin, y); y += 5;
+      pdf.text(`Date: ${new Date(r.client_signature_date).toLocaleDateString('en-AU')}`, margin, y);
+    }
+
+    // Footer
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFillColor(194, 68, 14);
+      pdf.rect(0, pageHeight - 14, pageWidth, 0.5, 'F');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Bromar', margin, pageHeight - 9);
+      pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Report ${r.job_sheet_number}  |  Generated ${new Date().toLocaleDateString('en-AU')}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    }
+
+    return pdf;
+  }
+
+  function loadPdfImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
   }
 
   function showError(title, message) {
