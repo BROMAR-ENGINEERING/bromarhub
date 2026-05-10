@@ -796,7 +796,7 @@
       </picture>
     </div>
     <h1 class="header-title">Daily Job Sheet</h1>
-    <p class="header-subtitle">Quick daily documentation — saved to Supabase for compilation</p>
+    <p class="header-subtitle">Quick daily documentation — saved for weekly compilation</p>
   </div>
 
   <div class="form-card">
@@ -816,7 +816,7 @@
       <div class="section-label">Basic Information</div>
       <div class="field-row">
         <div class="field-group">
-          <label for="sheet_date">Date <span class="required">*</span></label>
+          <label for="sheet_date">Date of Works <span class="required">*</span></label>
           <input type="date" id="sheet_date" name="sheet_date" required/>
         </div>
         <div class="field-group">
@@ -1011,7 +1011,7 @@
 
     <div class="form-footer">
       <div class="footer-disclaimer">
-        <p><em>💡 Job sheets save to Supabase. Service reports include client sign-off and PDF export.</em></p>
+        <p><em>💡 Job sheets are saved to your work record. Service reports include client sign-off and PDF export.</em></p>
       </div>
       <div class="footer-details">
         <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
@@ -1076,7 +1076,7 @@
   
   // Use 'sb' to avoid collision with window.supabase
   if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
-    alert('Supabase library failed to load. Check your internet connection or browser tracking-prevention settings, then refresh.');
+    alert('A required library failed to load. Check your internet connection or browser tracking-prevention settings, then refresh.');
     throw new Error('Supabase library not loaded');
   }
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1267,7 +1267,7 @@
       
       if (error) {
         console.error('Supabase returned error:', error);
-        throw new Error(error.message || error.hint || 'Unknown Supabase error');
+        throw new Error(error.message || error.hint || 'Unknown server error');
       }
       
       if (data && data.length > 0) {
@@ -2253,7 +2253,7 @@
     pdf.setFont(undefined, 'normal');
     pdf.setTextColor(80, 80, 80);
     pdf.text(`Report #:  ${currentJobSheetNumber}`, pageWidth - margin, y - 4, { align: 'right' });
-    pdf.text(`Date:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    pdf.text(`Date of Works:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
     if (jobSheet.created_by) {
       pdf.text(`Prepared by:  ${jobSheet.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
     }
