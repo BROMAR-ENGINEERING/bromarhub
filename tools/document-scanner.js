@@ -164,21 +164,46 @@
     .bsc-preview-view.bsc-active { display: flex; }
 
     .bsc-preview-frame {
-      position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #111;
+      position: relative; width: 100%; border-radius: 12px; background: #111;
       aspect-ratio: 3/4;
     }
-    .bsc-preview-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .bsc-preview-img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 12px; }
     .bsc-corner-handle {
-      position: absolute; width: 22px; height: 22px;
+      position: absolute; width: 28px; height: 28px;
       background: #ea580c; border-radius: 50%;
-      border: 2px solid white; cursor: grab; transform: translate(-50%,-50%);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4); touch-action: none;
-      z-index: 10;
+      border: 3px solid white; cursor: grab; transform: translate(-50%,-50%);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5); touch-action: none;
+      z-index: 10; transition: transform 0.1s;
     }
+    .bsc-corner-handle:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.15); }
     .bsc-crop-canvas {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      pointer-events: none;
+      pointer-events: none; border-radius: 12px;
     }
+
+    /* ── LOUPE MAGNIFIER ─────────────────────────────────────── */
+    .bsc-loupe {
+      position: fixed;
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      border: 3px solid #ea580c;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.15);
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 100000;
+      display: none;
+      background: #000;
+    }
+    .bsc-loupe.bsc-loupe-visible { display: block; }
+    .bsc-loupe canvas { width: 100%; height: 100%; display: block; }
+    .bsc-loupe-crosshair {
+      position: absolute; inset: 0; pointer-events: none;
+    }
+    .bsc-loupe-crosshair::before, .bsc-loupe-crosshair::after {
+      content: ''; position: absolute; background: rgba(234,88,12,0.9);
+    }
+    .bsc-loupe-crosshair::before { left: 50%; top: 25%; width: 1.5px; height: 50%; transform: translateX(-50%); }
+    .bsc-loupe-crosshair::after  { top: 50%; left: 25%; height: 1.5px; width: 50%; transform: translateY(-50%); }
 
     .bsc-adjustments {
       display: flex; gap: 8px; overflow-x: auto; padding: 2px 0;
@@ -485,6 +510,12 @@
         </div>
       `;
 
+      // Loupe lives outside the sheet so it is never clipped by overflow
+      this._loupeEl = document.createElement('div');
+      this._loupeEl.className = 'bsc-loupe';
+      this._loupeEl.innerHTML = '<canvas></canvas><div class=\"bsc-loupe-crosshair\"></div>';
+      document.body.appendChild(this._loupeEl);
+
       document.body.appendChild(this._el);
       this._bindEvents();
     }
@@ -772,27 +803,90 @@
 
     _setupCropHandles() {
       const frame = this._el.querySelector('.bsc-preview-frame');
-
-      // Remove old handles
       frame.querySelectorAll('.bsc-corner-handle').forEach(h => h.remove());
 
       const W = frame.clientWidth;
       const H = frame.clientHeight;
-      const margin = 20;
-
-      // Default corners (with slight inset)
+      // Start handles flush with the actual image edges (no inset)
+      const m = 2;
       this._cropPoints = [
-        { x: margin, y: margin },         // TL
-        { x: W - margin, y: margin },     // TR
-        { x: W - margin, y: H - margin }, // BR
-        { x: margin, y: H - margin }      // BL
+        { x: m,     y: m     }, // TL
+        { x: W - m, y: m     }, // TR
+        { x: W - m, y: H - m }, // BR
+        { x: m,     y: H - m }, // BL
       ];
 
-      this._cropPoints.forEach((pt, i) => {
+      // Cache the full-resolution source image for the loupe
+      const srcImg = this._el.querySelector('.bsc-preview-img');
+
+      const showLoupe = (clientX, clientY, pt) => {
+        const loupe = this._loupeEl;
+        const loupeSize = 110;
+        const zoom = 3.5;
+
+        // Position loupe above-left of finger (so finger doesn't block it)
+        const offset = 70;
+        let lx = clientX - offset - loupeSize;
+        let ly = clientY - offset - loupeSize;
+        // Keep on screen
+        lx = Math.max(8, Math.min(window.innerWidth - loupeSize - 8, lx));
+        ly = Math.max(8, Math.min(window.innerHeight - loupeSize - 8, ly));
+
+        loupe.style.left = lx + 'px';
+        loupe.style.top  = ly + 'px';
+        loupe.classList.add('bsc-loupe-visible');
+
+        // Draw zoomed region onto loupe canvas
+        const loupeCanvas = loupe.querySelector('canvas');
+        loupeCanvas.width  = loupeSize;
+        loupeCanvas.height = loupeSize;
+        const ctx = loupeCanvas.getContext('2d');
+
+        // Map handle position (frame coords) → source image coords
+        const frameRect = frame.getBoundingClientRect();
+        const naturalW = srcImg.naturalWidth  || srcImg.width;
+        const naturalH = srcImg.naturalHeight || srcImg.height;
+
+        // The img uses object-fit:contain — compute rendered size/offset within frame
+        const frameAspect = frameRect.width / frameRect.height;
+        const imgAspect   = naturalW / naturalH;
+        let rendW, rendH, offX, offY;
+        if (imgAspect > frameAspect) {
+          rendW = frameRect.width;
+          rendH = frameRect.width / imgAspect;
+          offX  = 0;
+          offY  = (frameRect.height - rendH) / 2;
+        } else {
+          rendH = frameRect.height;
+          rendW = frameRect.height * imgAspect;
+          offX  = (frameRect.width - rendW) / 2;
+          offY  = 0;
+        }
+
+        // pt is in frame coords → map to source image coords
+        const imgX = ((pt.x - offX) / rendW) * naturalW;
+        const imgY = ((pt.y - offY) / rendH) * naturalH;
+
+        // Region of source image to show (in source px, centred on imgX/imgY)
+        const regionW = loupeSize / zoom;
+        const regionH = loupeSize / zoom;
+        const sx = imgX - regionW / 2;
+        const sy = imgY - regionH / 2;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(srcImg, sx, sy, regionW, regionH, 0, 0, loupeSize, loupeSize);
+      };
+
+      const hideLoupe = () => {
+        this._loupeEl.classList.remove('bsc-loupe-visible');
+      };
+
+      this._cropPoints.forEach((pt) => {
         const handle = document.createElement('div');
         handle.className = 'bsc-corner-handle';
         handle.style.left = pt.x + 'px';
-        handle.style.top = pt.y + 'px';
+        handle.style.top  = pt.y + 'px';
         frame.appendChild(handle);
 
         let dragging = false, startX, startY;
@@ -802,26 +896,32 @@
           const touch = e.touches ? e.touches[0] : e;
           startX = touch.clientX - pt.x;
           startY = touch.clientY - pt.y;
+          showLoupe(touch.clientX, touch.clientY, pt);
           e.preventDefault();
         };
+
         const onMove = (e) => {
           if (!dragging) return;
           const touch = e.touches ? e.touches[0] : e;
           pt.x = Math.max(0, Math.min(W, touch.clientX - startX));
           pt.y = Math.max(0, Math.min(H, touch.clientY - startY));
           handle.style.left = pt.x + 'px';
-          handle.style.top = pt.y + 'px';
+          handle.style.top  = pt.y + 'px';
           this._drawCropOverlay();
+          showLoupe(touch.clientX, touch.clientY, pt);
           e.preventDefault();
         };
-        const onEnd = () => { dragging = false; };
 
-        handle.addEventListener('mousedown', onStart);
-        handle.addEventListener('touchstart', onStart, { passive: false });
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('touchmove', onMove, { passive: false });
-        document.addEventListener('mouseup', onEnd);
-        document.addEventListener('touchend', onEnd);
+        const onEnd = () => {
+          if (!dragging) return;
+          dragging = false;
+          hideLoupe();
+        };
+
+        handle.addEventListener('pointerdown', onStart);
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup',   onEnd);
+        document.addEventListener('pointercancel', onEnd);
       });
 
       this._drawCropOverlay();
