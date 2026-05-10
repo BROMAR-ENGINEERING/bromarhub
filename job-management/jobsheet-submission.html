@@ -950,6 +950,11 @@
       <div id="labourContainer"></div>
       <button type="button" class="add-btn" id="addLabourBtn">+ Add Labour Entry</button>
 
+      <!-- MATERIALS -->
+      <div class="section-label">Materials</div>
+      <div id="materialsContainer"></div>
+      <button type="button" class="add-btn" id="addMaterialBtn">+ Add Material</button>
+
       <!-- NOTES -->
       <div class="section-label">Notes & Notifications</div>
       <div id="notesContainer"></div>
@@ -1642,10 +1647,11 @@
   // ============================================================
   // TASKS, LABOUR, NOTES
   // ============================================================
-  let taskCount = 0, labourCount = 0, noteCount = 0;
+  let taskCount = 0, labourCount = 0, noteCount = 0, materialCount = 0;
 
   document.getElementById('addTaskBtn').addEventListener('click', addTask);
   document.getElementById('addLabourBtn').addEventListener('click', addLabour);
+  document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
   document.getElementById('addNoteBtn').addEventListener('click', addNote);
 
   function addTask() {
@@ -1703,6 +1709,50 @@
     `;
     document.getElementById('labourContainer').appendChild(div);
   }
+
+  function addMaterial() {
+    materialCount++;
+    const id = materialCount;
+    const div = document.createElement('div');
+    div.className = 'labour-card';
+    div.dataset.materialId = id;
+    div.innerHTML = `
+      <div class="labour-header">
+        <span class="labour-title">Material ${id}</span>
+        <button type="button" class="remove-btn" onclick="removeMaterial(${id})">Remove</button>
+      </div>
+      <div class="field-group">
+        <label>Material / Description</label>
+        <input type="text" class="material-name" placeholder="e.g. 2.5mm TPS cable" autocomplete="off"/>
+      </div>
+      <div class="hours-inputs">
+        <div class="field-group" style="margin-bottom: 0;">
+          <label>Quantity</label>
+          <input type="number" class="material-qty" min="0" step="0.01" placeholder="0" value="0"/>
+        </div>
+        <div class="field-group" style="margin-bottom: 0;">
+          <label>Unit</label>
+          <select class="material-unit">
+            <option value="ea">each</option>
+            <option value="m">metres</option>
+            <option value="kg">kg</option>
+            <option value="L">litres</option>
+            <option value="pkt">packet</option>
+            <option value="box">box</option>
+            <option value="roll">roll</option>
+            <option value="set">set</option>
+            <option value="hr">hour</option>
+          </select>
+        </div>
+      </div>
+    `;
+    document.getElementById('materialsContainer').appendChild(div);
+  }
+
+  window.removeMaterial = function(id) {
+    const card = document.querySelector(`[data-material-id="${id}"]`);
+    if (card) card.remove();
+  };
 
   window.removeLabour = function(id) {
     const card = document.querySelector(`[data-labour-id="${id}"]`);
@@ -1798,11 +1848,18 @@
       if (tasks.length === 0) throw new Error('Please add at least one task');
 
       // Collect labour
-      const labour = Array.from(document.querySelectorAll('.labour-card')).map(card => ({
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(card => ({
         employee: card.querySelector('.labour-employee').value,
         normalHours: parseFloat(card.querySelector('.labour-normal').value) || 0,
         overtimeHours: parseFloat(card.querySelector('.labour-overtime').value) || 0
       })).filter(l => l.employee);
+
+      // Collect materials
+      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(card => ({
+        name: card.querySelector('.material-name').value.trim(),
+        quantity: parseFloat(card.querySelector('.material-qty').value) || 0,
+        unit: card.querySelector('.material-unit').value
+      })).filter(m => m.name);
 
       // Collect notes
       const notes = Array.from(document.querySelectorAll('.note-card')).map(card => ({
@@ -1825,6 +1882,15 @@
 
       currentJobSheetNumber = jobSheetNumber;
       currentJobNumber = jobNumber;
+
+      // Save materials (stored on job_sheets row as JSONB)
+      if (materials.length > 0) {
+        const { error: matErr } = await sb
+          .from('job_sheets')
+          .update({ materials: materials })
+          .eq('job_sheet_number', jobSheetNumber);
+        if (matErr) console.warn('Materials save failed:', matErr);
+      }
 
       // Upload files
       if (uploadedFiles.length > 0) {
@@ -2086,7 +2152,7 @@
     pdf.setFontSize(8);
     pdf.setTextColor(80, 80, 80);
     pdf.setFont(undefined, 'bold');
-    pdf.text('BROMAR ENGINEERING', pageWidth - margin, 12, { align: 'right' });
+    pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD', pageWidth - margin, 12, { align: 'right' });
     pdf.setFont(undefined, 'normal');
     pdf.setFontSize(7.5);
     pdf.setTextColor(100, 100, 100);
@@ -2218,6 +2284,38 @@
       pdf.text(`${totalNormal}h`, pageWidth - margin - 50, y);
       pdf.text(`${totalOT}h`, pageWidth - margin - 25, y);
       y += 10;
+    }
+
+    // Materials
+    if (jobSheet.report_sections?.materials && jobSheet.materials?.length > 0) {
+      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
+      sectionHeader('Materials');
+      pdf.setTextColor(40, 40, 40);
+      pdf.setFontSize(9);
+
+      // Table header
+      pdf.setFillColor(243, 246, 255);
+      pdf.rect(margin, y - 4, pageWidth - 2 * margin, 7, 'F');
+      pdf.text('Description', margin + 2, y);
+      pdf.text('Qty', pageWidth - margin - 35, y);
+      pdf.text('Unit', pageWidth - margin - 15, y);
+      y += 7;
+
+      pdf.setFontSize(10);
+      jobSheet.materials.forEach(m => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        const nameLines = pdf.splitTextToSize(m.name || '', pageWidth - margin - 50);
+        nameLines.forEach((line, i) => {
+          pdf.text(line, margin + 2, y);
+          if (i === 0) {
+            pdf.text(String(m.quantity || 0), pageWidth - margin - 35, y);
+            pdf.text(m.unit || '', pageWidth - margin - 15, y);
+          }
+          y += 5;
+        });
+        y += 1;
+      });
+      y += 5;
     }
 
     // Notes
