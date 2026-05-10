@@ -472,41 +472,79 @@
     const ctx = canvas.getContext('2d');
     let drawing = false, lastX = 0, lastY = 0;
 
+    // Size the canvas backing store to match its CSS box size,
+    // accounting for device pixel ratio so lines stay crisp.
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      if (rect.width === 0 || rect.height === 0) return; // not laid out yet
+      const dpr = window.devicePixelRatio || 1;
+      // Preserve any existing drawing
+      const prev = canvas.toDataURL();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Restore drawing if there was one
+      if (prev && prev !== 'data:,') {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        img.src = prev;
+      }
     }
     resize();
+    // Resize again after layout settles (handles the "shown after data load" case)
+    setTimeout(resize, 100);
     window.addEventListener('resize', resize);
 
     function pos(e) {
       const r = canvas.getBoundingClientRect();
-      const x = e.touches ? e.touches[0].clientX : e.clientX;
-      const y = e.touches ? e.touches[0].clientY : e.clientY;
-      return { x: x - r.left, y: y - r.top };
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
     }
-    function start(e) { drawing = true; const p = pos(e); [lastX, lastY] = [p.x, p.y]; }
+
+    function start(e) {
+      e.preventDefault();
+      drawing = true;
+      const p = pos(e);
+      [lastX, lastY] = [p.x, p.y];
+      // Capture pointer so we keep getting events even if cursor leaves canvas
+      if (e.pointerId !== undefined && canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+    }
+
     function draw(e) {
       if (!drawing) return;
       e.preventDefault();
       const p = pos(e);
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
       [lastX, lastY] = [p.x, p.y];
     }
-    function stop() { drawing = false; }
 
-    canvas.addEventListener('mousedown', start);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stop);
-    canvas.addEventListener('mouseout', stop);
-    canvas.addEventListener('touchstart', start);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stop);
+    function stop(e) {
+      drawing = false;
+      if (e && e.pointerId !== undefined && canvas.releasePointerCapture) {
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    }
+
+    // Pointer events handle mouse, touch, and pen with one API
+    canvas.addEventListener('pointerdown', start);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+    // Don't stop on pointerleave - pointer capture handles it
 
     document.getElementById('clearBtn').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
     });
     document.getElementById('submitBtn').addEventListener('click', submitSignature);
   }
