@@ -1486,23 +1486,37 @@
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      if (rect.width === 0 || rect.height === 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      const prev = canvas.toDataURL();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (prev && prev !== 'data:,') {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        img.src = prev;
+      }
     }
     resize();
+    setTimeout(resize, 100);
     window.addEventListener('resize', resize);
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
-      const x = e.touches ? e.touches[0].clientX : e.clientX;
-      const y = e.touches ? e.touches[0].clientY : e.clientY;
-      return { x: x - rect.left, y: y - rect.top };
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
     function start(e) {
+      e.preventDefault();
       drawing = true;
       const p = getPos(e);
       [lastX, lastY] = [p.x, p.y];
+      if (e.pointerId !== undefined && canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      }
     }
 
     function draw(e) {
@@ -1512,6 +1526,7 @@
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(p.x, p.y);
@@ -1519,18 +1534,21 @@
       [lastX, lastY] = [p.x, p.y];
     }
 
-    function stop() { drawing = false; }
+    function stop(e) {
+      drawing = false;
+      if (e && e.pointerId !== undefined && canvas.releasePointerCapture) {
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    }
 
-    canvas.addEventListener('mousedown', start);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stop);
-    canvas.addEventListener('mouseout', stop);
-    canvas.addEventListener('touchstart', start);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stop);
+    canvas.addEventListener('pointerdown', start);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
 
     document.getElementById('clearSignatureBtn').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
     });
   }
 
