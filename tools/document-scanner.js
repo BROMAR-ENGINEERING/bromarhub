@@ -142,6 +142,33 @@
     }
     .bsc-queue-meta { font-size: 0.7rem; color: var(--text-secondary, #888); margin-top: 1px; }
     .bsc-queue-btns { display: flex; gap: 5px; margin-top: 5px; }
+
+    /* Unrenamed item: stand out so user knows action is required */
+    .bsc-queue-item.bsc-needs-rename {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.06);
+    }
+    .bsc-queue-item.bsc-needs-rename .bsc-queue-name {
+      color: #92400e;
+      font-style: italic;
+    }
+    .bsc-queue-item.bsc-needs-rename .bsc-queue-btn.rename {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+      animation: bsc-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes bsc-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    }
+    .bsc-rename-required-badge {
+      display: inline-block; margin-left: 6px;
+      font-size: 0.65rem; font-weight: 700;
+      padding: 1px 6px; border-radius: 10px;
+      background: #f59e0b; color: white;
+      vertical-align: middle;
+    }
     .bsc-queue-btn {
       font-size: 0.72rem; font-weight: 600; padding: 4px 9px;
       border-radius: 6px; border: 1px solid var(--border, #e5e7eb);
@@ -662,12 +689,21 @@
         return;
       }
 
-      procBtn.disabled = false;
-      procBtn.textContent = `Convert & Upload (${this._queue.length}) →`;
+      // All items must be renamed (have item.renamed === true) before upload
+      const unnamedCount = this._queue.filter(q => !q.renamed).length;
+
+      if (unnamedCount > 0) {
+        procBtn.disabled = true;
+        procBtn.textContent = `Rename ${unnamedCount} file${unnamedCount > 1 ? 's' : ''} to continue`;
+      } else {
+        procBtn.disabled = false;
+        procBtn.textContent = `Convert & Upload (${this._queue.length}) →`;
+      }
 
       this._queue.forEach(item => {
         const wrap = document.createElement('div');
         wrap.className = 'bsc-queue-item';
+        if (!item.renamed) wrap.classList.add('bsc-needs-rename');
 
         // ── Top row ───────────────────────────────────────────────────────
         const top = document.createElement('div');
@@ -686,7 +722,11 @@
 
         const metaEl = document.createElement('div');
         metaEl.className = 'bsc-queue-meta';
-        metaEl.textContent = this._fmtSize(item.size);
+        if (item.renamed) {
+          metaEl.textContent = this._fmtSize(item.size);
+        } else {
+          metaEl.innerHTML = `${this._fmtSize(item.size)} <span class="bsc-rename-required-badge">RENAME REQUIRED</span>`;
+        }
 
         const btns = document.createElement('div');
         btns.className = 'bsc-queue-btns';
@@ -817,11 +857,14 @@
             const name = buildName();
             if (!name) return;
             item.name = name;
+            item.renamed = true;
             nameEl.textContent = name; nameEl.title = name;
             // Remember the job number entered here, so subsequent renames pre-fill
             const enteredJob = jobInput.value.trim();
             if (enteredJob) this.options.jobNumber = enteredJob;
             panel.remove();
+            // Re-render queue so the upload button state and badges update
+            this._renderQueue();
           });
 
           cancelBtn.addEventListener('click', () => panel.remove());
@@ -1031,39 +1074,66 @@
     }
 
     // Lazy-load OpenCV.js on first use; cached for subsequent calls.
+    // Uses a polling approach because OpenCV.js initialisation timing varies
+    // across builds — sometimes cv.imread is ready before the script's load
+    // event fires, sometimes after onRuntimeInitialized, sometimes neither
+    // fires reliably and we just have to poll for cv to appear.
     _ensureOpenCV() {
-      if (this._opencvReady) return this._opencvReady;
+      // If a previous load attempt rejected, allow a fresh retry (don't cache
+      // a permanent failure — could have been a transient network blip).
+      if (this._opencvReady && !this._opencvFailed) return this._opencvReady;
+
+      this._opencvFailed = false;
 
       this._opencvReady = new Promise((resolve, reject) => {
-        if (window.cv && window.cv.imread) { resolve(); return; }
-
-        // OpenCV.js calls a global onRuntimeInitialized hook when ready.
-        // We set it BEFORE inserting the script so it gets picked up.
-        window.Module = window.Module || {};
-        const prevHook = window.Module.onRuntimeInitialized;
-        window.Module.onRuntimeInitialized = () => {
-          if (prevHook) try { prevHook(); } catch(e){}
+        // Already loaded?
+        if (window.cv && typeof window.cv.imread === 'function') {
           resolve();
-        };
+          return;
+        }
 
-        const s = document.createElement('script');
-        s.src = 'https://docs.opencv.org/4.8.0/opencv.js';
-        s.async = true;
-        s.onerror = () => reject(new Error('Failed to load OpenCV.js'));
-        document.head.appendChild(s);
+        const isReady = () => window.cv && typeof window.cv.imread === 'function';
 
-        // Some builds expose cv synchronously after load and never fire the hook
-        s.onload = () => {
-          if (window.cv && window.cv.imread) resolve();
-          // Otherwise wait for onRuntimeInitialized
-        };
+        // Insert the script tag if it isn't already there
+        let s = document.querySelector('script[data-bsc-opencv]');
+        if (!s) {
+          s = document.createElement('script');
+          s.src = 'https://docs.opencv.org/4.8.0/opencv.js';
+          s.async = true;
+          s.setAttribute('data-bsc-opencv', '1');
+          s.onerror = () => {
+            this._opencvFailed = true;
+            reject(new Error('Failed to load OpenCV.js'));
+          };
+          document.head.appendChild(s);
+        }
 
-        // Safety timeout (15s) — if OpenCV doesn't load, fall through to manual
-        setTimeout(() => {
-          if (!(window.cv && window.cv.imread)) {
-            reject(new Error('OpenCV.js load timed out'));
+        // Poll for cv.imread to be defined. OpenCV.js completes its WASM
+        // initialisation asynchronously after the script tag loads, so a
+        // simple onload listener isn't reliable across all builds. Poll
+        // every 80ms for up to 30s.
+        let elapsed = 0;
+        const interval = 80;
+        const maxWait  = 30000;
+
+        const poll = setInterval(() => {
+          if (isReady()) {
+            clearInterval(poll);
+            resolve();
+            return;
           }
-        }, 15000);
+          elapsed += interval;
+          if (elapsed >= maxWait) {
+            clearInterval(poll);
+            this._opencvFailed = true;
+            reject(new Error('OpenCV.js initialisation timed out'));
+          }
+        }, interval);
+      });
+
+      // If this promise rejects, clear the cache so next call retries.
+      this._opencvReady.catch(() => {
+        this._opencvReady = null;
       });
 
       return this._opencvReady;
@@ -1340,6 +1410,13 @@
 
     // ── PROCESS: BUILD PDF + UPLOAD ───────────────────────────────────────────
     async _process() {
+      // Defensive check — block upload if any item hasn't been renamed
+      const unnamed = this._queue.filter(q => !q.renamed);
+      if (unnamed.length > 0) {
+        alert(`${unnamed.length} file(s) still need to be renamed before uploading.\n\nTap the ✏️ Rename button on each highlighted item.`);
+        return;
+      }
+
       this._goToView('progress');
       this._setProgress(0, 'Building PDF...', `${this._queue.length} file(s)`);
 
@@ -1348,14 +1425,26 @@
         const others = this._queue.filter(q => !q.type.startsWith('image/'));
         const uploads = [];
 
-        if (images.length) {
-          this._setProgress(10, 'Converting to PDF...', `${images.length} image(s)`);
-          const blob = await this._imagesToPdf(images);
-          // Honour renamed filename from first image, otherwise generic
-          const fname = images[0].name.endsWith('.pdf')
-            ? images[0].name
-            : images[0].name.replace(/\.[^.]+$/, '') + '.pdf';
-          uploads.push({ blob, name: fname, type: 'application/pdf' });
+        // Group images by their assigned filename — same name = same PDF
+        // (allows multi-page docs by giving multiple scans the same rename)
+        const imageGroups = {};
+        images.forEach(img => {
+          const key = img.name.replace(/\.[^.]+$/, '');
+          if (!imageGroups[key]) imageGroups[key] = [];
+          imageGroups[key].push(img);
+        });
+
+        const groupKeys = Object.keys(imageGroups);
+        for (let g = 0; g < groupKeys.length; g++) {
+          const key   = groupKeys[g];
+          const group = imageGroups[key];
+          this._setProgress(
+            Math.round(10 + (g / groupKeys.length) * 40),
+            'Converting to PDF...',
+            `${key}.pdf`
+          );
+          const blob = await this._imagesToPdf(group);
+          uploads.push({ blob, name: `${key}.pdf`, type: 'application/pdf' });
         }
 
         others.forEach(q => uploads.push({ blob: q.file, name: q.name, type: q.type }));
