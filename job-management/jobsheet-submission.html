@@ -467,6 +467,9 @@
               <strong id="detail-client"></strong><br>
               <span id="detail-address" style="color: var(--text-secondary); font-size: 0.8rem;"></span>
             </div>
+            <div id="detail-sheet-preview" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+              Next sheet: <span id="detail-sheet-number" style="font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600;">loading...</span>
+            </div>
           </div>
         </div>
 
@@ -635,7 +638,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.14</div>
+<div class="revision-number">V1.15</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1046,16 +1049,29 @@
   }
 
   function selectJob(job) {
-    selectedJobData = job; // does NOT have justCreated flag - existing job
+    selectedJobData = job;
     document.getElementById('existing_job_number').value = job.job_number;
     document.getElementById('detail-client').textContent = job.client_name;
     document.getElementById('detail-address').textContent = job.site_address || '';
     document.getElementById('job-details-display').style.display = 'block';
+    document.getElementById('detail-sheet-number').textContent = 'loading...';
     document.getElementById('autocompleteResults').classList.remove('show');
-    // Update scanner path prefix
     if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
-    // Show the rest of the form
     setPostJobSectionsVisible(true);
+
+    // Look up next sheet number for this job
+    sb.from('job_sheet_counters')
+      .select('last_sequence')
+      .eq('job_number', job.job_number)
+      .maybeSingle()
+      .then(({ data }) => {
+        const next = data ? data.last_sequence + 1 : 1;
+        const padded = String(next).padStart(3, '0');
+        document.getElementById('detail-sheet-number').textContent = `${job.job_number}-JS${padded}`;
+      })
+      .catch(() => {
+        document.getElementById('detail-sheet-number').textContent = `${job.job_number}-JS001`;
+      });
   }
 
   function setPostJobSectionsVisible(visible) {
@@ -1140,6 +1156,13 @@
       // Show notice
       document.getElementById('newJobCreatedNumber').textContent = newJobNum;
       document.getElementById('newJobCreatedNotice').classList.add('show');
+
+      // Show next sheet number (always JS001 for a brand new job)
+      const sheetPreview = document.getElementById('detail-sheet-preview');
+      if (sheetPreview) {
+        sheetPreview.style.display = 'block';
+        document.getElementById('detail-sheet-number').textContent = `${newJobNum}-JS001`;
+      }
 
       // Reveal the rest of the form
       setPostJobSectionsVisible(true);
@@ -1755,7 +1778,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.14`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.15`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
