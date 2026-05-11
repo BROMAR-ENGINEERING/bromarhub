@@ -635,7 +635,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.10</div>
+<div class="revision-number">V1.11</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1329,17 +1329,26 @@
     if (!dateStr) return;
     const day = new Date(dateStr).getDay(); // 0=Sun, 6=Sat
     const isWeekend = (day === 0 || day === 6);
+    const holiday = getPublicHoliday(dateStr);
+    const isHoliday = !!holiday;
+    const overtimeOnly = isWeekend || isHoliday;
 
     const normalInput = card.querySelector('.labour-normal');
     const overtimeInput = card.querySelector('.labour-overtime');
     const notice = card.querySelector('.weekend-notice');
     const normalLabel = card.querySelector('.labour-normal-label');
 
-    if (isWeekend) {
+    if (overtimeOnly) {
       normalInput.value = 0;
       normalInput.disabled = true;
       normalInput.style.opacity = '0.5';
-      normalLabel.textContent = 'Normal Hours (N/A on weekends)';
+      if (isHoliday) {
+        normalLabel.textContent = 'Normal Hours (N/A on public holidays)';
+        notice.textContent = `⚠️ ${holiday} (public holiday) — all hours count as overtime`;
+      } else {
+        normalLabel.textContent = 'Normal Hours (N/A on weekends)';
+        notice.textContent = '⚠️ Weekend — all hours count as overtime';
+      }
       notice.style.display = 'block';
     } else {
       normalInput.disabled = false;
@@ -1355,6 +1364,47 @@
         if (v < 0) normalInput.value = 0;
       }, { once: false });
     }
+  }
+
+  // ============================================================
+  // VIC PUBLIC HOLIDAYS (hardcoded 2026-2027 — update annually)
+  // Source: business.vic.gov.au · Last verified May 2026
+  // ============================================================
+  const VIC_PUBLIC_HOLIDAYS = {
+    // 2026
+    '2026-01-01': 'New Year\u2019s Day',
+    '2026-01-26': 'Australia Day',
+    '2026-03-09': 'Labour Day',
+    '2026-04-03': 'Good Friday',
+    '2026-04-04': 'Saturday before Easter Sunday',
+    '2026-04-05': 'Easter Sunday',
+    '2026-04-06': 'Easter Monday',
+    '2026-04-25': 'ANZAC Day',
+    '2026-06-08': 'King\u2019s Birthday',
+    '2026-09-25': 'Friday before AFL Grand Final',
+    '2026-11-03': 'Melbourne Cup Day',
+    '2026-12-25': 'Christmas Day',
+    '2026-12-26': 'Boxing Day',
+    '2026-12-28': 'Boxing Day (observed)',  // 26th is Saturday
+    // 2027
+    '2027-01-01': 'New Year\u2019s Day',
+    '2027-01-26': 'Australia Day',
+    '2027-03-08': 'Labour Day',
+    '2027-03-26': 'Good Friday',
+    '2027-03-27': 'Saturday before Easter Sunday',
+    '2027-03-28': 'Easter Sunday',
+    '2027-03-29': 'Easter Monday',
+    '2027-04-25': 'ANZAC Day',
+    '2027-06-14': 'King\u2019s Birthday',
+    '2027-09-24': 'Friday before AFL Grand Final',
+    '2027-11-02': 'Melbourne Cup Day',
+    '2027-12-25': 'Christmas Day',
+    '2027-12-27': 'Christmas Day (observed)',  // 25th is Saturday
+    '2027-12-28': 'Boxing Day (observed)'      // 26th is Sunday
+  };
+
+  function getPublicHoliday(dateStr) {
+    return VIC_PUBLIC_HOLIDAYS[dateStr] || null;
   }
 
   function applyDateRulesToAllLabour() {
@@ -1727,7 +1777,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.10`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.11`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
