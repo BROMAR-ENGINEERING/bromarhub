@@ -527,15 +527,32 @@
               <input type="tel" id="new_contact_phone" placeholder="Phone number"/>
             </div>
           </div>
-          <div class="field-group full">
+          <div class="field-group full" style="position: relative;">
             <label for="new_site_address">Site Address <span class="required">*</span></label>
-            <textarea id="new_site_address" rows="2" placeholder="Job site address"></textarea>
+            <input type="text" id="new_site_address" placeholder="Start typing address..." autocomplete="off"/>
+            <div id="address-results" style="
+              display: none; position: absolute; top: 100%; left: 0; right: 0;
+              background: var(--bg-secondary); border: 1px solid var(--border);
+              border-top: none; border-radius: 0 0 10px 10px;
+              max-height: 220px; overflow-y: auto; z-index: 1000;
+              box-shadow: 0 8px 24px var(--shadow);
+            "></div>
           </div>
 
           <div class="new-job-created" id="newJobCreatedNotice">
             <span>✅</span>
             <span>Job <strong id="newJobCreatedNumber"></strong> created — you can now add photos, documents and continue filling in the sheet.</span>
           </div>
+
+          <!-- Manual trigger if auto-create doesn't fire -->
+          <button type="button" id="confirmNewJobBtn" style="
+            display: none; width: 100%; margin-top: 12px;
+            padding: 0.875rem; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white; font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease;
+          ">Create Job & Continue →</button>
         </div>
       </div>
 
@@ -661,7 +678,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.20</div>
+<div class="revision-number">V1.22</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1028,8 +1045,8 @@
         document.getElementById('new_site_address').disabled = false;
         // Update scanner path back to default
         if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
-        // Hide form sections again until they pick an existing job
         setPostJobSectionsVisible(false);
+        document.getElementById('confirmNewJobBtn').style.display = 'none';
       }
 
       // Toggle field visibility
@@ -1139,9 +1156,34 @@
   });
 
   // Trigger check whenever any new-job required field changes/blurs
-  ['new_client_name', 'new_site_name', 'new_site_address'].forEach(id => {
-    document.getElementById(id).addEventListener('blur', checkAndCreateNewJob);
+  // Show "Create Job & Continue" button when all required new-job fields are filled
+  function updateConfirmJobBtn() {
+    const jobType = document.querySelector('input[name="job_type"]:checked').value;
+    if (jobType !== 'new' || selectedJobData) {
+      document.getElementById('confirmNewJobBtn').style.display = 'none';
+      return;
+    }
+    const prefix = document.getElementById('new_prefix').value;
+    const clientName = document.getElementById('new_client_name').value.trim();
+    const siteName = document.getElementById('new_site_name').value.trim();
+    const siteAddress = document.getElementById('new_site_address').value.trim();
+    document.getElementById('confirmNewJobBtn').style.display =
+      (prefix && clientName && siteName && siteAddress) ? 'block' : 'none';
+  }
+
+  document.getElementById('confirmNewJobBtn').addEventListener('click', () => {
+    checkAndCreateNewJob();
   });
+
+  // Trigger button visibility check on all relevant field changes
+  ['new_client_name', 'new_site_name', 'new_site_address'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateConfirmJobBtn);
+    document.getElementById(id).addEventListener('blur', () => {
+      updateConfirmJobBtn();
+      checkAndCreateNewJob();
+    });
+  });
+  document.getElementById('new_job_type').addEventListener('change', updateConfirmJobBtn);
   function checkAndCreateNewJob() {
     const jobType = document.querySelector('input[name="job_type"]:checked').value;
     if (jobType !== 'new') return;
@@ -1194,6 +1236,7 @@
       // Show notice
       document.getElementById('newJobCreatedNumber').textContent = newJobNum;
       document.getElementById('newJobCreatedNotice').classList.add('show');
+      document.getElementById('confirmNewJobBtn').style.display = 'none';
 
       // Show this job sheet number (always JS001 for a brand new job)
       const sheetNum = `${newJobNum}-JS001`;
@@ -1209,6 +1252,7 @@
       setPostJobSectionsVisible(true);
     } catch (err) {
       showInfo('Could not create job: ' + err.message);
+      document.getElementById('confirmNewJobBtn').style.display = 'block';
     }
   }
 
@@ -1415,7 +1459,80 @@
   }
 
   // ============================================================
-  // VIC PUBLIC HOLIDAYS (hardcoded 2026-2027 — update annually)
+  // ADDRESS LOOKUP — OpenStreetMap Nominatim (AU biased)
+  // ============================================================
+  let addressTimeout;
+
+  document.getElementById('new_site_address').addEventListener('input', function() {
+    clearTimeout(addressTimeout);
+    const q = this.value.trim();
+    const results = document.getElementById('address-results');
+    if (q.length < 4) { results.style.display = 'none'; return; }
+    results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">Searching...</div>';
+    results.style.display = 'block';
+    addressTimeout = setTimeout(() => searchAddress(q), 400);
+  });
+
+  document.getElementById('new_site_address').addEventListener('blur', () => {
+    setTimeout(() => { document.getElementById('address-results').style.display = 'none'; }, 200);
+  });
+
+  async function searchAddress(query) {
+    const results = document.getElementById('address-results');
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?` + new URLSearchParams({
+        q: query,
+        format: 'json',
+        addressdetails: 1,
+        limit: 6,
+        countrycodes: 'au',
+        'accept-language': 'en'
+      });
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('Search failed');
+      const data = await resp.json();
+
+      if (!data.length) {
+        results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">No results found</div>';
+        return;
+      }
+
+      results.innerHTML = data.map((item, i) => {
+        // Build a clean display address
+        const a = item.address;
+        const parts = [
+          a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road,
+          a.suburb || a.city_district || a.neighbourhood,
+          a.state,
+          a.postcode
+        ].filter(Boolean);
+        const display = parts.join(', ');
+        const full = item.display_name;
+
+        return `<div class="address-result-item" style="
+          padding: 10px 14px; cursor: pointer;
+          border-bottom: 1px solid var(--border); font-size: 0.875rem;
+          transition: background 0.15s;
+        " onmouseenter="this.style.background='var(--card-hover)'"
+           onmouseleave="this.style.background=''"
+           onclick="selectAddress('${escapeHtml(display).replace(/'/g, "&#39;")}')">
+          <div style="font-weight: 500; color: var(--text-primary);">${escapeHtml(display)}</div>
+          ${a.state ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(a.state)}${a.country ? ', ' + escapeHtml(a.country) : ''}</div>` : ''}
+        </div>`;
+      }).join('');
+
+    } catch (err) {
+      results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">Search unavailable — enter address manually</div>';
+    }
+  }
+
+  window.selectAddress = function(address) {
+    const input = document.getElementById('new_site_address');
+    input.value = address;
+    document.getElementById('address-results').style.display = 'none';
+    input.dispatchEvent(new Event('blur'));
+    checkAndCreateNewJob();
+  };
   // Source: business.vic.gov.au · Last verified May 2026
   // ============================================================
   const VIC_PUBLIC_HOLIDAYS = {
@@ -1875,7 +1992,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.20`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.22`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
