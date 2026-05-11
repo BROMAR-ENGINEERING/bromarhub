@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,260 +7,387 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   
   <style>
     :root {
-      --orange: #c2440e;
-      --orange-soft: #fff3ee;
-      --text: #111827;
-      --text-mid: #374151;
-      --text-muted: #6b7280;
-      --border: #d1d9f0;
-      --bg: #f8fafc;
-      --card: #ffffff;
+      --bg-main: #fafafa;
+      --bg-secondary: #ffffff;
+      --bg-glass: rgba(255, 255, 255, 0.7);
+      --text-primary: #0a0a0a;
+      --text-secondary: #666666;
+      --accent: #ea580c;
+      --accent-light: #fb923c;
+      --border: rgba(0, 0, 0, 0.08);
+      --shadow: rgba(0, 0, 0, 0.04);
+      --card-hover: rgba(234, 88, 12, 0.03);
       --success: #15803d;
-      --error: #ef4444;
+      --error: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg-main: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-glass: rgba(20, 20, 20, 0.7);
+      --text-primary: #fafafa;
+      --text-secondary: #999999;
+      --accent: #fb923c;
+      --accent-light: #fdba74;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --card-hover: rgba(251, 146, 60, 0.05);
+      --success: #a7f3d0;
+      --error: #fca5a5;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
       min-height: 100vh;
-      padding: 20px 16px 40px;
-      line-height: 1.5;
+      padding: 0 0 60px;
+      line-height: 1.6;
+      transition: background 0.4s ease, color 0.4s ease;
     }
-    .wrapper { max-width: 800px; margin: 0 auto; }
+
+    /* Fixed glass header */
     .header {
-      background: var(--card);
-      border-radius: 12px 12px 0 0;
-      padding: 24px 32px;
-      border-bottom: 4px solid var(--orange);
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .header-controls {
+      position: absolute;
+      top: 10px;
+      right: 2rem;
       display: flex;
-      justify-content: space-between;
+      z-index: 10;
+    }
+    .control-btn {
+      width: 40px; height: 40px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
       align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
+      justify-content: center;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
     }
-    .header img { max-height: 50px; }
-    .company-info {
-      text-align: right;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      line-height: 1.5;
+    .control-btn:hover { background: var(--card-hover); border-color: var(--accent); transform: translateY(-2px); }
+    .control-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .control-btn .sun-icon { display: none; }
+    .control-btn .moon-icon { display: block; }
+    [data-theme="dark"] .control-btn .sun-icon { display: block; }
+    [data-theme="dark"] .control-btn .moon-icon { display: none; }
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      text-align: center;
+      padding-top: 0.5rem;
     }
-    .company-info strong { color: var(--text); }
-    .card { background: var(--card); padding: 32px; }
-    .card.last { border-radius: 0 0 12px 12px; }
-    .report-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      letter-spacing: 2px;
-      color: var(--orange);
-      margin-bottom: 4px;
-    }
-    .report-meta {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-    .report-meta span { margin-right: 16px; }
-    .section { margin-bottom: 24px; }
-    .section-label {
-      font-size: 0.7rem;
+    .logo-image { max-height: 40px; }
+    .light-logo { display: block; }
+    .dark-logo { display: none; }
+    [data-theme="dark"] .light-logo { display: none; }
+    [data-theme="dark"] .dark-logo { display: block; }
+
+    .wrapper { max-width: 800px; margin: 80px auto 0; padding: 0 1.5rem; }
+
+    /* Page title */
+    .page-title-wrapper { text-align: center; margin: 1rem 0 1.5rem; }
+    .page-title-wrapper h1 {
+      font-size: 1.75rem;
       font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--orange-soft);
+      letter-spacing: -0.03em;
+      color: var(--accent);
     }
+    .page-title-wrapper p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px var(--shadow);
+      margin-bottom: 1rem;
+    }
+
+    .report-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .report-meta strong { color: var(--text-primary); }
+
+    .section { margin-bottom: 1.75rem; }
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+    }
+    .section-label::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+      border-radius: 4px;
+    }
+
     .field-grid {
       display: grid;
       grid-template-columns: 120px 1fr;
       gap: 8px 16px;
       font-size: 0.9rem;
     }
-    .field-grid dt { font-weight: 600; color: var(--text-mid); }
+    .field-grid dt { font-weight: 600; color: var(--text-secondary); }
+
     ul.task-list, ul.note-list { list-style: none; }
     ul.task-list li, ul.note-list li {
-      padding: 10px 14px;
-      background: var(--bg);
-      border-left: 3px solid var(--orange);
-      border-radius: 4px;
-      margin-bottom: 8px;
+      padding: 0.625rem 0.875rem;
+      background: var(--bg-main);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
       font-size: 0.9rem;
     }
-    table.labour-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+    table.labour-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
     table.labour-table th, table.labour-table td {
-      padding: 10px;
+      padding: 0.625rem;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
     table.labour-table th {
-      background: var(--orange-soft);
-      color: var(--orange);
+      background: var(--card-hover);
+      color: var(--accent);
       font-weight: 700;
       font-size: 0.75rem;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     table.labour-table td.num { text-align: right; }
     table.labour-table tr.total td {
       font-weight: 700;
-      background: var(--bg);
-      border-top: 2px solid var(--orange);
+      background: var(--bg-main);
+      border-top: 2px solid var(--accent);
     }
+
     .photo-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px;
+      gap: 0.75rem;
     }
     .photo-grid img {
       width: 100%;
       aspect-ratio: 1;
       object-fit: cover;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       cursor: pointer;
+      transition: transform 0.2s;
     }
+    .photo-grid img:hover { transform: scale(1.02); }
+
     .sign-card {
-      background: var(--orange-soft);
-      border: 2px solid var(--orange);
-      border-radius: 12px;
-      padding: 24px;
-      margin-top: 24px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 1rem;
     }
-    .sign-title { font-size: 1.1rem; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
-    .sign-instructions { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 16px; }
-    label { display: block; font-size: 0.83rem; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
+    .sign-title { font-size: 1.25rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem; }
+    .sign-instructions { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5; }
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
     input[type="text"] {
       width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       font-family: inherit;
-      font-size: 0.95rem;
-      background: white;
+      font-size: 1rem;
+      background: var(--bg-main);
+      color: var(--text-primary);
       outline: none;
+      transition: all 0.3s;
     }
-    input[type="text"]:focus { border-color: var(--orange); }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1); }
+
     .canvas-wrapper {
       background: white;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: 1rem;
     }
     canvas#signCanvas {
       width: 100%;
       height: 200px;
       border: 1px dashed var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: crosshair;
       touch-action: none;
       display: block;
     }
-    .canvas-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .canvas-actions { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
     .clear-btn {
-      padding: 6px 14px;
+      padding: 0.375rem 0.875rem;
       background: transparent;
       border: 1px solid var(--border);
-      color: var(--text-muted);
-      border-radius: 6px;
+      color: var(--text-secondary);
+      border-radius: 8px;
       cursor: pointer;
+      font-family: 'Outfit', sans-serif;
       font-size: 0.8rem;
     }
+    .clear-btn:hover { border-color: var(--error); color: var(--error); }
     .submit-btn {
       width: 100%;
-      padding: 14px;
-      margin-top: 20px;
-      background: var(--orange);
+      padding: 0.875rem;
+      margin-top: 1.25rem;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
       font-size: 1rem;
       font-weight: 700;
+      letter-spacing: 0.02em;
       cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
     }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .state-msg { text-align: center; padding: 40px 20px; }
+
+    .state-msg { text-align: center; padding: 3rem 1.5rem; }
     .state-msg.success { color: var(--success); }
     .state-msg.error { color: var(--error); }
-    .state-msg .icon { font-size: 3rem; margin-bottom: 12px; }
-    .loading { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .state-msg .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .state-msg h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .state-msg p { color: var(--text-secondary); }
+
+    .loading { text-align: center; padding: 4rem 1.5rem; color: var(--text-secondary); }
     .spinner {
       width: 40px; height: 40px;
-      margin: 0 auto 16px;
-      border: 3px solid var(--orange-soft);
-      border-top-color: var(--orange);
+      margin: 0 auto 1rem;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .footer {
+
+    .page-footer {
+      background: var(--accent);
+      color: white;
       text-align: center;
-      margin-top: 24px;
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      padding: 1.25rem;
+      margin-top: 2rem;
+      font-size: 0.85rem;
     }
+
     @media (max-width: 640px) {
-      .header { flex-direction: column; align-items: flex-start; }
-      .company-info { text-align: left; }
-      .card { padding: 20px; }
+      .header-controls { right: 1rem; }
+      .wrapper { padding: 0 1rem; }
+      .card { padding: 1.5rem; }
       .field-grid { grid-template-columns: 1fr; gap: 2px 0; }
-      .field-grid dt { margin-top: 8px; }
+      .field-grid dt { margin-top: 0.5rem; }
+      .photo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     }
   </style>
 </head>
 <body>
 
+<!-- Fixed glass nav (matches hub) -->
+<div class="header">
+  <div class="header-controls">
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="../Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
 <div class="wrapper">
-  <div id="loadingState" class="card" style="border-radius: 12px;">
+  <div id="loadingState" class="card">
     <div class="loading">
       <div class="spinner"></div>
       <div>Loading service report...</div>
     </div>
   </div>
 
-  <div id="errorState" class="card" style="border-radius: 12px; display: none;">
+  <div id="errorState" class="card" style="display: none;">
     <div class="state-msg error">
       <div class="icon">⚠️</div>
       <h2 id="errorTitle">Unable to load report</h2>
-      <p id="errorMessage" style="color: var(--text-muted);">Please contact Bromar for assistance.</p>
+      <p id="errorMessage">Please contact Bromar for assistance.</p>
     </div>
   </div>
 
-  <div id="signedState" class="card" style="border-radius: 12px; display: none;">
+  <div id="signedState" class="card" style="display: none;">
     <div class="state-msg success">
       <div class="icon">✅</div>
       <h2>Report Already Signed</h2>
-      <p style="color: var(--text-muted);">This service report has been signed and submitted.</p>
+      <p>This service report has been signed and submitted.</p>
+      <div id="viewSignedCopyLink" style="margin-top: 1.25rem;"></div>
     </div>
   </div>
 
-  <div id="successState" class="card" style="border-radius: 12px; display: none;">
+  <div id="successState" class="card" style="display: none;">
     <div class="state-msg success">
       <div class="icon">✅</div>
       <h2>Thank You!</h2>
-      <p style="color: var(--text-muted);">Your signature has been recorded. A copy of the signed report will be emailed to you shortly.</p>
+      <p>Your signature has been recorded. A copy of the signed report will be emailed to you shortly.</p>
     </div>
   </div>
 
   <div id="reportContent" style="display: none;">
-    <div class="header">
-      <img id="logoImg" src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar"/>
-      <div class="company-info">
-        <strong>BROMAR ELECTRICAL SERVICES PTY LTD</strong><br>
-        2/98-108 Western Ave, Westmeadows VIC 3049<br>
-        Ph: 03 9335 5344 &nbsp;|&nbsp; admin@bromar.com.au<br>
-        ABN: 45 634 835 939 &nbsp;|&nbsp; REC: 30340
-      </div>
+    <div class="page-title-wrapper">
+      <h1>SERVICE REPORT</h1>
+      <p>Please review and sign below</p>
     </div>
 
     <div class="card">
-      <div class="report-title">SERVICE REPORT</div>
       <div class="report-meta">
         <span><strong>Report #:</strong> <span id="reportNumber"></span></span>
         <span><strong>Date of Works:</strong> <span id="reportDate"></span></span>
@@ -298,7 +425,7 @@
       </div>
     </div>
 
-    <div class="card last">
+    <div class="card">
       <div class="sign-card">
         <div class="sign-title">Client Sign-Off</div>
         <div class="sign-instructions">
@@ -318,10 +445,45 @@
     </div>
   </div>
 
-  <div class="footer">Bromar &nbsp;|&nbsp; bromar.com.au</div>
+  <div style="height: 1rem;"></div>
 </div>
 
+<footer class="page-footer">
+  <p>© 2026 Bromar Electrical Services | Industrial | Infrastructure | Automation</p>
+</footer>
+
 <script>
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  (function initTheme() {
+    const html = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    let theme = saved;
+    if (theme !== 'dark' && theme !== 'light') {
+      theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    html.setAttribute('data-theme', theme);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+    });
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) {
+          html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        }
+      });
+    }
+  })();
+
   const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
 
@@ -356,6 +518,30 @@
       if (report.signing_status === 'signed') {
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('signedState').style.display = 'block';
+
+        // Try to generate a link to the signed PDF
+        const pdfPath = `${report.job_number}/service-reports/signed-${report.job_sheet_number}.pdf`;
+        try {
+          const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(pdfPath, 60 * 60 * 24 * 7); // 7 days
+          if (urlData?.signedUrl) {
+            document.getElementById('viewSignedCopyLink').innerHTML = `
+              <a href="${urlData.signedUrl}" target="_blank" rel="noopener" style="
+                display: inline-flex; align-items: center; gap: 8px;
+                padding: 0.75rem 1.5rem;
+                background: var(--accent);
+                color: white;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 0.95rem;
+                transition: opacity 0.2s;
+              " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                📄 View Signed Copy
+              </a>`;
+          }
+        } catch (_) {
+          // PDF not found — skip link silently
+        }
         return;
       }
       if (report.signing_status === 'expired' || new Date(report.signing_token_expires_at) < new Date()) {
@@ -463,7 +649,7 @@
           }
           if (f.tags && f.tags.length > 0) {
             const tagBar = document.createElement('div');
-            tagBar.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;';
+            tagBar.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;';
             tagBar.textContent = 'Tags: ' + f.tags.join(', ');
             wrap.appendChild(tagBar);
           }
