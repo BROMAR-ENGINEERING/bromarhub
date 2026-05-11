@@ -538,6 +538,14 @@
         </div>
       </div>
 
+      <!-- Placeholder message shown while no job is picked -->
+      <div id="awaitingJobMessage" style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic; border: 2px dashed var(--border); border-radius: 12px; margin-top: 1rem;">
+        👆 Select an existing job or fill in the new job details above to continue
+      </div>
+
+      <!-- ALL SECTIONS BELOW ARE HIDDEN UNTIL A JOB IS PICKED OR CREATED -->
+      <div id="postJobSections" style="display: none;">
+
       <!-- PHOTOS & DOCUMENTS — scanner integrated -->
       <div class="section-label">Photos & Documents</div>
       <div class="file-upload-area" id="fileUploadArea">
@@ -629,6 +637,8 @@
         </div>
       </div>
 
+      </div><!-- /postJobSections -->
+
       <!-- SUBMIT -->
       <div class="form-divider"></div>
       <div class="submit-row">
@@ -664,7 +674,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.03</div>
+<div class="revision-number">V1.04</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -885,6 +895,7 @@
     setupSignatureCanvas();
     initTheme();
     initScanner();
+    setPostJobSectionsVisible(false); // start hidden until job is picked
   });
 
   async function loadEmployees() {
@@ -977,6 +988,8 @@
         document.getElementById('new_site_address').disabled = false;
         // Update scanner path back to default
         if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
+        // Hide form sections again until they pick an existing job
+        setPostJobSectionsVisible(false);
       }
 
       // Toggle field visibility
@@ -1028,6 +1041,15 @@
     document.getElementById('autocompleteResults').classList.remove('show');
     // Update scanner path prefix
     if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
+    // Show the rest of the form
+    setPostJobSectionsVisible(true);
+  }
+
+  function setPostJobSectionsVisible(visible) {
+    document.getElementById('postJobSections').style.display = visible ? 'block' : 'none';
+    document.querySelector('.form-divider').style.display = visible ? 'block' : 'none';
+    document.querySelector('.submit-row').style.display = visible ? 'flex' : 'none';
+    document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
   }
 
   document.addEventListener('click', (e) => {
@@ -1105,6 +1127,9 @@
       // Show notice
       document.getElementById('newJobCreatedNumber').textContent = newJobNum;
       document.getElementById('newJobCreatedNotice').classList.add('show');
+
+      // Reveal the rest of the form
+      setPostJobSectionsVisible(true);
     } catch (err) {
       showInfo('Could not create job: ' + err.message);
     }
@@ -1524,7 +1549,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.03`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.04`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
