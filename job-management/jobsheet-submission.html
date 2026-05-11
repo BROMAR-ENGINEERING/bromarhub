@@ -73,6 +73,8 @@
       min-height: 100vh;
       transition: background 0.4s ease, color 0.4s ease;
       padding-bottom: 80px;
+      overflow-x: hidden;
+      max-width: 100vw;
     }
 
     .header {
@@ -131,14 +133,15 @@
     .page-title-wrapper h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); margin-bottom: 0.25rem; }
     .page-title-wrapper .subtitle { color: var(--text-secondary); font-size: 1rem; font-weight: 300; }
 
-    .page-wrapper { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; }
-
+    .page-wrapper { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; box-sizing: border-box; width: 100%; }
     .form-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 2.5rem;
       box-shadow: 0 4px 12px var(--shadow);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .section-label {
@@ -380,12 +383,13 @@
 
     @media (max-width: 720px) {
       .field-row { grid-template-columns: 1fr; }
-      .form-card { padding: 1.5rem; }
+      .form-card { padding: 1.25rem; }
       .header-controls { left: 1rem; right: 1rem; }
       .page-title-wrapper { padding: 0 1rem; margin-top: 80px; }
-      .page-wrapper { padding: 0 1rem; }
+      .page-wrapper { padding: 0 0.75rem; }
       .page-title-wrapper h1 { font-size: 1.5rem; }
       .signoff-method-row { grid-template-columns: 1fr; }
+      input, select, textarea { max-width: 100%; }
     }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -677,7 +681,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.23</div>
+<div class="revision-number">V1.25</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1171,9 +1175,10 @@
   }
 
   document.getElementById('confirmNewJobBtn').addEventListener('click', async () => {
-    // Force-clear selectedJobData in case a previous attempt left it in a bad state
+    const btn = document.getElementById('confirmNewJobBtn');
+
     if (selectedJobData && !selectedJobData.job_number) selectedJobData = null;
-    if (selectedJobData) return; // already created successfully
+    if (selectedJobData) return;
 
     const jobTypeVal = document.getElementById('new_job_type').value;
     const prefix = document.getElementById('new_prefix').value;
@@ -1181,12 +1186,23 @@
     const siteName = document.getElementById('new_site_name').value.trim();
     const siteAddress = document.getElementById('new_site_address').value.trim();
 
+    console.log('[Create Job] Click → fields:', { prefix, jobTypeVal, clientName, siteName, siteAddress });
+
     if (!prefix || !clientName || !siteName || !siteAddress) {
       showInfo('Please fill in all required fields: Job Type, Client Name, Site Name and Site Address');
       return;
     }
-    const jobTypeLabel = jobTypeVal.split('|')[1] || '';
-    await createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel);
+
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+      const jobTypeLabel = jobTypeVal.split('|')[1] || '';
+      await createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Job & Continue →';
+    }
   });
 
   // Trigger button visibility check on all relevant field changes
@@ -1219,15 +1235,22 @@
       const contactPerson = document.getElementById('new_contact_person').value.trim();
       const contactPhone = document.getElementById('new_contact_phone').value.trim();
 
-      const { data: newJobNum, error } = await sb.rpc('create_new_job', {
+      const rpcParams = {
         p_prefix: prefix,
         p_client_name: clientName,
         p_contact_person: contactPerson,
         p_contact_phone: contactPhone,
         p_site_name: siteName,
         p_site_address: siteAddress
-      });
+      };
+      console.log('[Create Job] Calling RPC with:', rpcParams);
+
+      const { data: newJobNum, error } = await sb.rpc('create_new_job', rpcParams);
+
+      console.log('[Create Job] RPC response:', { newJobNum, error });
+
       if (error) throw error;
+      if (!newJobNum) throw new Error('RPC returned no job number');
 
       selectedJobData = {
         job_number: newJobNum,
@@ -1265,7 +1288,8 @@
       // Reveal the rest of the form
       setPostJobSectionsVisible(true);
     } catch (err) {
-      showInfo('Could not create job: ' + err.message);
+      console.error('[Create Job] Failed:', err);
+      showInfo('Could not create job: ' + (err.message || err.toString()));
       document.getElementById('confirmNewJobBtn').style.display = 'block';
     }
   }
@@ -2006,7 +2030,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.23`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.25`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
