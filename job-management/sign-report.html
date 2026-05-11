@@ -301,15 +301,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .page-footer {
-      background: var(--accent);
-      color: white;
-      text-align: center;
-      padding: 1.25rem;
-      margin-top: 2rem;
-      font-size: 0.85rem;
-    }
-
     @media (max-width: 640px) {
       .header-controls { right: 1rem; }
       .wrapper { padding: 0 1rem; }
@@ -448,9 +439,7 @@
   <div style="height: 1rem;"></div>
 </div>
 
-<footer class="page-footer">
-  <p>© 2026 Bromar Electrical Services | Industrial | Infrastructure | Automation</p>
-</footer>
+
 
 <script>
   // ============================================================
@@ -519,28 +508,34 @@
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('signedState').style.display = 'block';
 
-        // Try to generate a link to the signed PDF
-        const pdfPath = `${report.job_number}/service-reports/signed-${report.job_sheet_number}.pdf`;
-        try {
-          const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(pdfPath, 60 * 60 * 24 * 7); // 7 days
-          if (urlData?.signedUrl) {
-            document.getElementById('viewSignedCopyLink').innerHTML = `
-              <a href="${urlData.signedUrl}" target="_blank" rel="noopener" style="
-                display: inline-flex; align-items: center; gap: 8px;
-                padding: 0.75rem 1.5rem;
-                background: var(--accent);
-                color: white;
-                border-radius: 10px;
-                text-decoration: none;
-                font-weight: 600;
-                font-size: 0.95rem;
-                transition: opacity 0.2s;
-              " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                📄 View Signed Copy
-              </a>`;
-          }
-        } catch (_) {
-          // PDF not found — skip link silently
+        // Try signed copy first (in-person), then unsigned (skip sign-off)
+        const pathSigned   = `${report.job_number}/service-reports/signed-${report.job_sheet_number}.pdf`;
+        const pathUnsigned = `${report.job_number}/service-reports/${report.job_sheet_number}.pdf`;
+        const linkEl = document.getElementById('viewSignedCopyLink');
+
+        const tryPath = async (path) => {
+          const { data } = await sb.storage.from('job-sheet-files').createSignedUrl(path, 60 * 60 * 24 * 7);
+          return data?.signedUrl || null;
+        };
+
+        let pdfUrl = null;
+        try { pdfUrl = await tryPath(pathSigned); } catch {}
+        if (!pdfUrl) { try { pdfUrl = await tryPath(pathUnsigned); } catch {} }
+
+        if (pdfUrl) {
+          linkEl.innerHTML = `
+            <a href="${pdfUrl}" target="_blank" rel="noopener" style="
+              display: inline-flex; align-items: center; gap: 8px;
+              padding: 0.75rem 1.5rem;
+              background: var(--accent);
+              color: white; border-radius: 10px;
+              text-decoration: none; font-weight: 600; font-size: 0.95rem;
+              transition: opacity 0.2s;
+            " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              📄 View Signed Copy
+            </a>`;
+        } else {
+          linkEl.innerHTML = `<p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.5rem;">Signed copy not available — please contact <a href="mailto:admin@bromar.com.au" style="color:var(--accent);">admin@bromar.com.au</a></p>`;
         }
         return;
       }
