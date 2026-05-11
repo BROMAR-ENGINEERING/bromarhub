@@ -7,6 +7,10 @@
   
   <!-- Supabase Auth -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- jsPDF (client-side PDF generation) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   
   <!-- Bromar Hub Shared Styles -->
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
@@ -413,7 +417,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.06</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.08</p>
       </div>
     </div>
   </div>
@@ -1528,6 +1532,213 @@
   const timesheetForm = document.getElementById('timesheetForm');
   const submitBtn = document.getElementById('submitBtn');
 
+  // ============================================================
+  // PDF GENERATION (client-side via jsPDF)
+  // ============================================================
+  async function buildTimesheetPDF(formData) {
+    if (!window.jspdf?.jsPDF) throw new Error('jsPDF not loaded');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const employeeName = formData.employee_name || '';
+    const employeeEmail = formData.employee_email || '';
+    const employeeType = formData.employee_type || '';
+    const weekStarting = formData.week_starting || '';
+    const generalComments = formData.general_comments || '';
+    const standby = formData.standby === 'on';
+    const firstAid = formData.allowance_first_aid === 'on';
+    const constructionWiring = formData.allowance_construction_wiring === 'on';
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    // Try to load logo (orange brand)
+    const logoData = await loadImageAsDataURL('../Bromar-Primary-Logo-Full-Colour.png').catch(() => null);
+
+    // ── Header ──
+    if (logoData) {
+      try { doc.addImage(logoData, 'PNG', margin, 10, 32, 12); } catch (_) {}
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Timesheet Submission', pageW - margin, 16, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(employeeName, pageW - margin, 22, { align: 'right' });
+
+    // Orange accent bar
+    doc.setFillColor(194, 68, 14);
+    doc.rect(margin, 26, pageW - margin * 2, 1, 'F');
+
+    // ── Employee block ──
+    let y = 34;
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EMPLOYEE', margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(17, 24, 39);
+    doc.text(`Name: ${employeeName}`, margin, y); y += 4.5;
+    doc.text(`Email: ${employeeEmail}`, margin, y); y += 4.5;
+    doc.text(`Type: ${employeeType}`, margin, y); y += 4.5;
+    doc.text(`Week Starting: ${weekStarting ? new Date(weekStarting).toLocaleDateString('en-AU') : ''}`, margin, y); y += 4.5;
+    if (standby) { doc.text('On-Call Standby: Yes', margin, y); y += 4.5; }
+    const weeklyAllowances = [];
+    if (firstAid) weeklyAllowances.push('First Aid');
+    if (constructionWiring) weeklyAllowances.push('Construction Wiring');
+    if (weeklyAllowances.length) { doc.text(`Weekly Allowances: ${weeklyAllowances.join(', ')}`, margin, y); y += 4.5; }
+
+    // ── Parse jobs from formData (same pattern as backend) ──
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const rows = [];
+    let totalNormal = 0, totalOT = 0, totalTravel = 0;
+
+    for (let d = 0; d < 7; d++) {
+      const dayPrefix = `day_${d}`;
+      const shift = formData[`${dayPrefix}_shift`] || '';
+      const laha = formData[`${dayPrefix}_laha`] === 'on';
+      const office = formData[`${dayPrefix}_office`] === 'on';
+      const owncar = formData[`${dayPrefix}_owncar`] === 'on';
+      const owncarKm = formData[`${dayPrefix}_owncar_km`] || '0';
+
+      let j = 0;
+      while (formData[`job-${d}-${j}_type`] !== undefined) {
+        const p = `job-${d}-${j}`;
+        let type = formData[`${p}_type`];
+        const otherType = (formData[`${p}_other_type`] || '').trim();
+        if (type === 'Other' && otherType) type = `Other: ${otherType}`;
+
+        const normal = parseFloat(formData[`${p}_hours`]) || 0;
+        const ot = parseFloat(formData[`${p}_overtime`]) || 0;
+        const travel = parseFloat(formData[`${p}_travel_time`]) || 0;
+
+        if (type && (normal > 0 || ot > 0 || travel > 0)) {
+          const allowances = [];
+          if (formData[`${p}_site_allowance`] === 'on') allowances.push('Site');
+          if (laha) allowances.push('LAHA');
+          if (office) allowances.push('Office');
+          if (owncar) allowances.push(`Own Car (${owncarKm}km)`);
+          if (formData[`${p}_owncar`] === 'on') allowances.push(`+${formData[`${p}_owncar_km`] || 0}km`);
+
+          rows.push([
+            days[d],
+            shift || '-',
+            type,
+            normal ? normal.toFixed(2) : '-',
+            ot ? ot.toFixed(2) : '-',
+            travel ? travel.toFixed(2) : '-',
+            formData[`${p}_number`] || '-',
+            formData[`${p}_client`] || '-',
+            allowances.join(', ') || '-',
+            formData[`${p}_comment`] || '-'
+          ]);
+          totalNormal += normal;
+          totalOT += ot;
+          totalTravel += travel;
+        }
+        j++;
+      }
+    }
+
+    // ── Totals summary boxes ──
+    y += 4;
+    const boxW = (pageW - margin * 2 - 9) / 4;
+    const boxH = 16;
+    const totals = [
+      { label: 'NORMAL', value: totalNormal.toFixed(2), color: [26, 86, 219] },
+      { label: 'OVERTIME', value: totalOT.toFixed(2), color: [245, 158, 11] },
+      { label: 'TRAVEL', value: totalTravel.toFixed(2), color: [147, 51, 234] },
+      { label: 'TOTAL', value: (totalNormal + totalOT + totalTravel).toFixed(2), color: [14, 159, 110] }
+    ];
+    totals.forEach((t, i) => {
+      const x = margin + i * (boxW + 3);
+      doc.setDrawColor(229, 231, 235);
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(x, y, boxW, boxH, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...t.color);
+      doc.text(t.label, x + 2, y + 5);
+      doc.setFontSize(14);
+      doc.setTextColor(17, 24, 39);
+      doc.text(t.value, x + 2, y + 13);
+    });
+    y += boxH + 6;
+
+    // ── Entries table ──
+    doc.autoTable({
+      startY: y,
+      head: [['Day', 'Shift', 'Type', 'Normal', 'OT', 'Travel', 'Job #', 'Client', 'Allowances', 'Comment']],
+      body: rows.length ? rows : [['—', '—', 'No entries', '', '', '', '', '', '', '']],
+      styles: { fontSize: 7.5, cellPadding: 1.8, overflow: 'linebreak' },
+      headStyles: { fillColor: [26, 86, 219], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      columnStyles: {
+        0: { cellWidth: 16 },
+        1: { cellWidth: 11 },
+        3: { cellWidth: 13, halign: 'right' },
+        4: { cellWidth: 11, halign: 'right' },
+        5: { cellWidth: 13, halign: 'right' },
+        6: { cellWidth: 18 }
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    // ── General comments ──
+    let afterTable = doc.lastAutoTable.finalY + 6;
+    if (generalComments && generalComments !== 'No additional comments') {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text('GENERAL COMMENTS', margin, afterTable);
+      afterTable += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(17, 24, 39);
+      const lines = doc.splitTextToSize(generalComments, pageW - margin * 2);
+      doc.text(lines, margin, afterTable);
+    }
+
+    // ── Page footer on every page ──
+    const total = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+      doc.setPage(p);
+      doc.setFontSize(7.5);
+      doc.setTextColor(156, 163, 175);
+      const footerY = doc.internal.pageSize.getHeight() - 8;
+      doc.text(`Bromar Hub — Timesheet Submission`, margin, footerY);
+      doc.text(`Page ${p} of ${total}`, pageW - margin, footerY, { align: 'right' });
+    }
+
+    // Return base64 + filename
+    const datauri = doc.output('datauristring');
+    const base64 = datauri.split(',')[1];
+    const safeName = (employeeName || 'timesheet').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const filename = `timesheet-${safeName}-${weekStarting || 'week'}.pdf`;
+    return { filename, content: base64 };
+  }
+
+  function loadImageAsDataURL(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
   timesheetForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -1558,11 +1769,28 @@
         }
       }
       console.log('Total fields:', Object.keys(debugData).length);
-      
+
+      // Build PDF attachment (client-side)
+      let pdfAttachment = null;
+      try {
+        submitBtn.textContent = 'Generating PDF…';
+        pdfAttachment = await buildTimesheetPDF(debugData);
+      } catch (pdfErr) {
+        console.warn('PDF generation failed, submitting without attachment:', pdfErr);
+      }
+
+      submitBtn.textContent = 'Sending…';
+
+      // Build payload — JSON so we can include base64 PDF
+      const payload = {
+        form: debugData,
+        pdf: pdfAttachment  // { filename, content (base64) } or null
+      };
+
       const response = await fetch('/api/submit-timesheet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData).toString()
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
