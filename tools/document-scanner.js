@@ -1,9 +1,19 @@
 /**
  * Bromar Document Scanner
- * Version: V1.04
+ * Version: V1.05
  *
- * Mobile document scanner with OpenCV.js auto edge detection and multi-page
- * support.
+ * Mobile document scanner with split routing:
+ *   - "Scan Document" → full scan pipeline (crop, auto-detect, perspective
+ *     correction, multi-page, PDF conversion)
+ *   - "Take Photo" / "Photo Library" → JPEG capture only (compressed, no
+ *     crop, no PDF). Each photo uploads as its own JPEG.
+ *   - "Browse Files" → pass through as-is.
+ *
+ * Each returned file carries a `source` field:
+ *   'scan-doc' | 'take-photo' | 'photo-library' | 'browse'
+ *
+ * Auto edge detection uses OpenCV.js (lazy-loaded, ~2MB cached after first
+ * scan).
  *
  * Flow: capture/import → auto-detect document corners (OpenCV.js, lazy-loaded)
  *       → manual corner adjustment → perspective correction → PDF → upload.
@@ -699,10 +709,11 @@
       el.querySelector('[data-action="crop-cancel"]').addEventListener('click', () => this._cancelCrop());
       el.querySelector('[data-action="crop-apply"]').addEventListener('click',  () => this._applyCrop());
 
-      // File inputs
+      // File inputs — each carries its source ID so _handleFiles can route
+      // photos vs scans differently.
       ['scan', 'photo-library', 'camera', 'files'].forEach(id => {
         el.querySelector(`#bsc-in-${id}`).addEventListener('change', e => {
-          this._handleFiles(e.target.files);
+          this._handleFiles(e.target.files, id);
           e.target.value = '';
         });
       });
@@ -759,9 +770,15 @@
     }
 
     // ── HANDLE FILES FROM INPUT ───────────────────────────────────────────────
-    async _handleFiles(fileList) {
+    // source: 'scan' | 'photo-library' | 'camera' | 'files'
+    //   'scan'          → full scan pipeline (crop, perspective correct, PDF)
+    //   'camera'        → compress to JPEG, no crop, no PDF
+    //   'photo-library' → compress to JPEG, no crop, no PDF
+    //   'files'         → pass through as-is, no crop, no PDF
+    async _handleFiles(fileList, source = 'files') {
       if (!fileList?.length) return;
 
+      const isScanPipeline = (source === 'scan');
       const incomingImages = [];
 
       for (const file of Array.from(fileList)) {
@@ -769,38 +786,53 @@
         const id = `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
         if (file.type.startsWith('image/')) {
-          // Auto-rotate based on EXIF orientation so portrait photos stay portrait
-          const orientation = await this._readExifOrientation(file);
-          let workingFile = file;
-          if (orientation !== 1) {
-            try {
-              workingFile = await this._bakeRotation(file, { exifOrientation: orientation });
-            } catch (e) {
-              console.warn('EXIF rotation failed, using original:', e);
-            }
+          if (isScanPipeline) {
+            // SCAN pipeline — image will go through crop + perspective correction + PDF
+            const workingFile = file;
+            const dataUrl = await this._toDataUrl(workingFile);
+            incomingImages.push({
+              id, file: workingFile, dataUrl,
+              name: file.name, size: workingFile.size,
+              type: workingFile.type || file.type,
+              source: 'scan-doc'
+            });
+          } else {
+            // PHOTO pipeline — compress to JPEG and add straight to queue
+            const compressed = await this._compressImage(file);
+            const dataUrl    = await this._toDataUrl(compressed);
+            const photoSource = source === 'camera' ? 'take-photo'
+                              : source === 'photo-library' ? 'photo-library'
+                              : 'browse';
+            this._queue.push({
+              id,
+              file: compressed,
+              dataUrl,
+              name: this._photoFilename(file.name),
+              size: compressed.size,
+              type: 'image/jpeg',
+              renamed: false,
+              groupId: id,
+              pageIndex: 0,
+              source: photoSource,
+              isPhoto: true   // marks this as non-scan, non-PDF
+            });
           }
-
-          const dataUrl = await this._toDataUrl(workingFile);
-          incomingImages.push({
-            id, file: workingFile, dataUrl,
-            name: file.name, size: workingFile.size, type: workingFile.type || file.type
-          });
         } else {
-          // PDFs / docs go straight to queue (no group, no crop)
+          // PDFs / docs / anything else — pass through unchanged
           this._queue.push({
             id, file,
             dataUrl: this._iconDataUrl(file.name),
             name: file.name, size: file.size, type: file.type,
             renamed: false,
-            groupId: id,        // own group of 1
-            pageIndex: 0
+            groupId: id,
+            pageIndex: 0,
+            source: 'browse'
           });
         }
       }
 
-      // Every image must be cropped — process them one at a time
+      // Scan pipeline images need crop — process one at a time
       if (incomingImages.length > 0) {
-        // If we're in "add page" mode, mark these to join the target group
         if (this._addPageTargetGroupId) {
           incomingImages.forEach(it => {
             it._joinGroup = this._addPageTargetGroupId;
@@ -811,10 +843,54 @@
         return;
       }
 
-      // No images — just show queue
+      // No scan items — go straight to queue
       this._addPageTargetGroupId = null;
       this._goToView('queue');
       this._renderQueue();
+    }
+
+    // Photos and library picks get a clean default filename (the user will
+    // still rename via the dropdown). Preserves any user-meaningful name from
+    // a library pick but strips IMG_xxxx-style camera defaults.
+    _photoFilename(original) {
+      const base = (original || '').replace(/\.[^.]+$/, '');
+      if (!base || /^IMG_\d+$/i.test(base) || /^image\d*$/i.test(base)) {
+        return `photo_${Date.now()}.jpg`;
+      }
+      return base + '.jpg';
+    }
+
+    // Compress an image file to JPEG at sensible web/print resolution.
+    // Keeps long edge ≤ 2400px which is enough for A4 print without bloat.
+    async _compressImage(file, { maxDim = 2400, quality = 0.85 } = {}) {
+      // If it's already a small JPEG, skip processing
+      if (file.type === 'image/jpeg' && file.size < 500 * 1024) return file;
+
+      const dataUrl = await this._toDataUrl(file);
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = rej;
+        i.src = dataUrl;
+      });
+
+      const natW = img.naturalWidth, natH = img.naturalHeight;
+      const longEdge = Math.max(natW, natH);
+      const scale = longEdge > maxDim ? maxDim / longEdge : 1;
+      const w = Math.round(natW * scale);
+      const h = Math.round(natH * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const blob = await new Promise(res =>
+        canvas.toBlob(b => res(b), 'image/jpeg', quality)
+      );
+      return blob;
     }
 
     // ── RENDER QUEUE ──────────────────────────────────────────────────────────
@@ -911,19 +987,23 @@
         const btns = document.createElement('div');
         btns.className = 'bsc-queue-btns';
 
-        // Only images get image-specific buttons (rotate, re-crop, add page)
-        const isImage = item.type.startsWith('image/');
+        // Scan-pipeline images (not photos, not other files) get the scan
+        // workflow buttons: Add Page (multi-page support) and Re-crop.
+        const isImage    = item.type.startsWith('image/');
+        const isScanItem = isImage && !item.isPhoto;
 
-        if (isImage) {
+        if (isScanItem) {
           // ── Add Page button ──
           const addPageBtn = document.createElement('button');
           addPageBtn.type = 'button';
           addPageBtn.className = 'bsc-queue-btn addpage';
           addPageBtn.textContent = '➕ Add Page';
           addPageBtn.addEventListener('click', () => {
-            // Mark target group, then open source picker to capture another page
+            // Mark target group, then open source picker to capture another page.
+            // Restrict source picker to scan input only (no point adding a photo
+            // to a scan group, since photos don't go into the PDF).
             this._addPageTargetGroupId = group.id;
-            this._goToView('sources');
+            this._triggerInput('scan');
           });
           btns.appendChild(addPageBtn);
 
@@ -1962,14 +2042,14 @@
       this._setProgress(0, 'Building PDF...', `${this._queue.length} file(s)`);
 
       try {
-        const images = this._queue.filter(q => q.type.startsWith('image/'));
-        const others = this._queue.filter(q => !q.type.startsWith('image/'));
+        const scanImages = this._queue.filter(q => q.type.startsWith('image/') && !q.isPhoto);
+        const photos    = this._queue.filter(q => q.type.startsWith('image/') &&  q.isPhoto);
+        const others    = this._queue.filter(q => !q.type.startsWith('image/'));
         const uploads = [];
 
-        // Group images by groupId — each group becomes one PDF.
-        // Pages within a group are sorted by pageIndex.
+        // ── Scan pipeline: group images by groupId and bundle each as one PDF ──
         const imageGroups = new Map();
-        images.forEach(img => {
+        scanImages.forEach(img => {
           const gid = img.groupId || img.id;
           if (!imageGroups.has(gid)) imageGroups.set(gid, []);
           imageGroups.get(gid).push(img);
@@ -1985,15 +2065,33 @@
             ? group[0].name
             : group[0].name.replace(/\.[^.]+$/, '') + '.pdf';
           this._setProgress(
-            Math.round(10 + (g / groupIds.length) * 40),
+            Math.round(10 + (g / Math.max(1, groupIds.length)) * 40),
             'Converting to PDF...',
             `${fileName} (${group.length} page${group.length > 1 ? 's' : ''})`
           );
           const blob = await this._imagesToPdf(group);
-          uploads.push({ blob, name: fileName, type: 'application/pdf' });
+          uploads.push({
+            blob, name: fileName, type: 'application/pdf',
+            source: group[0].source || 'scan-doc'
+          });
         }
 
-        others.forEach(q => uploads.push({ blob: q.file, name: q.name, type: q.type }));
+        // ── Photo pipeline: each photo uploaded individually as JPEG ──
+        photos.forEach(p => {
+          const photoName = p.name.toLowerCase().endsWith('.jpg') || p.name.toLowerCase().endsWith('.jpeg')
+            ? p.name
+            : p.name.replace(/\.[^.]+$/, '') + '.jpg';
+          uploads.push({
+            blob: p.file, name: photoName, type: 'image/jpeg',
+            source: p.source || 'take-photo'
+          });
+        });
+
+        // ── Pass-through files ──
+        others.forEach(q => uploads.push({
+          blob: q.file, name: q.name, type: q.type,
+          source: q.source || 'browse'
+        }));
 
         this._setProgress(55, 'Uploading...', '');
         const results = await this._upload(uploads);
@@ -2056,6 +2154,7 @@
         );
 
         const path = `${prefix}/${Date.now()}-${f.name}`;
+        const source = f.source || 'browse';
 
         if (sb) {
           const { error } = await sb.storage.from(bucket)
@@ -2065,9 +2164,15 @@
           const { data: u } = await sb.storage.from(bucket)
             .createSignedUrl(path, 60 * 60 * 24 * 30);
 
-          results.push({ name: f.name, path, type: f.type, size: f.blob.size, blob: f.blob, url: u?.signedUrl || null });
+          results.push({
+            name: f.name, path, type: f.type, size: f.blob.size,
+            blob: f.blob, url: u?.signedUrl || null, source
+          });
         } else {
-          results.push({ name: f.name, path, type: f.type, size: f.blob.size, blob: f.blob, url: URL.createObjectURL(f.blob) });
+          results.push({
+            name: f.name, path, type: f.type, size: f.blob.size,
+            blob: f.blob, url: URL.createObjectURL(f.blob), source
+          });
         }
       }
       return results;
