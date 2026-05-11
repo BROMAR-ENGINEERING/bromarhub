@@ -635,7 +635,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.11</div>
+<div class="revision-number">V1.12</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1535,11 +1535,15 @@
 
         if (signoffMethod === 'remote') {
           // Generate signing token + email link
-          showLoading('Sending signing link...', clientEmail);
+          showLoading('Generating signing link...', clientEmail);
           const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', { p_job_sheet_number: jobSheetNumber, p_recipient_email: clientEmail, p_expires_days: 30 });
-          if (tokenErr) throw tokenErr;
+          if (tokenErr) throw new Error('Could not generate signing token: ' + tokenErr.message);
+          if (!token) throw new Error('Signing token came back empty — check generate_signing_token function in Supabase');
           const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
-          await sb.functions.invoke('send-signing-link', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
+          console.log('Sending signing link:', { recipientEmail: clientEmail, jobSheetNumber, signUrl });
+          showLoading('Sending signing link...', clientEmail);
+          const { error: emailErr } = await sb.functions.invoke('send-signing-link', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
+          if (emailErr) throw new Error('Email failed: ' + emailErr.message);
           hideLoading();
           showSuccess(`Signing link sent to ${clientEmail}`);
         }
@@ -1777,7 +1781,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.11`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.12`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
