@@ -413,7 +413,7 @@
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">EMAIL: <a href="mailto:admin@bromar.com.au" style="color: var(--brand-orange); text-decoration: none;">admin@bromar.com.au</a>  |  REC: 30340</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.04</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.05</p>
       </div>
     </div>
   </div>
@@ -1741,6 +1741,73 @@
 
 <!-- Bromar Hub Shared JS -->
 <script src="../tools/bromar-hub.js" defer></script>
+
+<!-- Auto-populate logged-in user -->
+<script defer>
+  (async function autoFillLoggedInUser() {
+    // Wait for Supabase client (provided by bromar-hub.js)
+    let tries = 0;
+    while (!window.sb && tries < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if (!window.sb) return;
+
+    try {
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (!user) return;
+
+      const nameInput  = document.getElementById('employee_name');
+      const emailInput = document.getElementById('employee_email');
+      const nameLabel  = document.querySelector('label[for="employee_name"]');
+
+      // Resolve display name: employees table → user_metadata → email prefix
+      let displayName = '';
+      try {
+        const { data: emp } = await window.sb
+          .from('employees')
+          .select('full_name')
+          .eq('email', user.email)
+          .maybeSingle();
+        if (emp?.full_name) displayName = emp.full_name;
+      } catch (_) { /* table may not exist; fall through */ }
+
+      if (!displayName) {
+        displayName = user.user_metadata?.full_name
+                   || user.user_metadata?.name
+                   || (user.email ? user.email.split('@')[0] : '');
+      }
+
+      // Fill + lock
+      if (nameInput && displayName) {
+        nameInput.value = displayName;
+        nameInput.readOnly = true;
+        nameInput.style.cursor = 'not-allowed';
+        nameInput.style.opacity = '0.85';
+      }
+      if (emailInput && user.email) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+        emailInput.style.cursor = 'not-allowed';
+        emailInput.style.opacity = '0.85';
+      }
+
+      // Logged-in badge next to Full Name label
+      if (nameLabel && !nameLabel.querySelector('.logged-in-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'logged-in-badge';
+        badge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;color:var(--success,#0e9f6e);font-size:0.75rem;font-weight:600;margin-left:8px;';
+        badge.innerHTML = '🔒 <span>Logged in</span>';
+        nameLabel.appendChild(badge);
+      }
+
+      // Persist via global so other code can read it
+      window.currentUser = { name: displayName, email: user.email || '' };
+    } catch (err) {
+      console.warn('[Timesheet] auto-fill failed:', err);
+    }
+  })();
+</script>
 
 </body>
 </html>
