@@ -356,17 +356,26 @@
     .bsc-crop-stage {
       position: relative; width: 100%;
       background: #1a1a1a; border-radius: 12px;
-      aspect-ratio: 3/4; overflow: hidden;
+      aspect-ratio: 3/4;
       max-height: 60vh;
+      /* IMPORTANT: no overflow:hidden — corner handles sit at stage edges
+         and need to remain fully visible and tappable. The img/overlay are
+         clipped via border-radius on their own elements. */
+    }
+    .bsc-crop-stage::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 12px; pointer-events: none;
+      /* Optional thin border for visual definition */
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
     }
     .bsc-crop-img {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: contain; user-select: none; -webkit-user-drag: none;
-      pointer-events: none;
+      pointer-events: none; border-radius: 12px;
     }
     .bsc-crop-overlay {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      pointer-events: none;
+      pointer-events: none; border-radius: 12px;
     }
     .bsc-crop-handle {
       position: absolute; width: 32px; height: 32px;
@@ -724,6 +733,7 @@
     _close() {
       this._el.classList.remove('bsc-visible');
       this._loupeEl?.classList.remove('bsc-loupe-on');
+      if (this._cropDragTeardown) { this._cropDragTeardown(); this._cropDragTeardown = null; }
       document.body.style.overflow = this._prevOverflow || '';
       document.documentElement.style.overscrollBehavior = '';
       this._el.removeEventListener('touchmove', this._moveTrap);
@@ -1336,10 +1346,12 @@
         rendH = H; rendW = H * imgAspect; offX = (W - rendW) / 2; offY = 0;
       }
 
-      // Map each detected point from image coords → stage display coords
+      // Map each detected point from image coords → stage display coords.
+      // Clamp into the IMAGE rendered area (not the full stage) so handles
+      // never land in the letterbox region.
       this._cropPts = imageQuad.map(p => ({
-        x: Math.max(0, Math.min(W, offX + (p.x / natW) * rendW)),
-        y: Math.max(0, Math.min(H, offY + (p.y / natH) * rendH)),
+        x: Math.max(offX, Math.min(offX + rendW, offX + (p.x / natW) * rendW)),
+        y: Math.max(offY, Math.min(offY + rendH, offY + (p.y / natH) * rendH)),
       }));
 
       // Reposition the existing handles in the DOM
@@ -1420,6 +1432,11 @@
     }
 
     _setupCropHandles(stage, img) {
+      // Tear down any prior drag listeners (avoids accumulating them across
+      // resets / re-opens of the crop view)
+      if (this._cropDragTeardown) this._cropDragTeardown();
+      this._cropDragTeardown = null;
+
       // Remove old handles
       stage.querySelectorAll('.bsc-crop-handle').forEach(h => h.remove());
 
@@ -1501,6 +1518,17 @@
         this._loupeEl.classList.remove('bsc-loupe-on');
       };
 
+      // Collect all document-level listeners we register so we can clean them
+      // up when the crop view is re-initialised.
+      const docListeners = [];
+      const addDocListener = (event, fn, opts) => {
+        document.addEventListener(event, fn, opts);
+        docListeners.push([event, fn, opts]);
+      };
+      this._cropDragTeardown = () => {
+        docListeners.forEach(([ev, fn, opts]) => document.removeEventListener(ev, fn, opts));
+      };
+
       this._cropPts.forEach((pt, i) => {
         const handle = document.createElement('div');
         handle.className = 'bsc-crop-handle';
@@ -1511,19 +1539,21 @@
 
         let startX = 0, startY = 0, ptStartX = 0, ptStartY = 0;
         let dragging = false;
+        let activePointerId = null;
 
         const onDown = (e) => {
           dragging = true;
+          activePointerId = e.pointerId;
           e.preventDefault(); e.stopPropagation();
           startX   = e.clientX; startY = e.clientY;
           ptStartX = pt.x;      ptStartY = pt.y;
-          handle.setPointerCapture(e.pointerId);
+          try { handle.setPointerCapture(e.pointerId); } catch (_) {}
           showLoupe(e.clientX, e.clientY, pt);
         };
         const onMove = (e) => {
           if (!dragging) return;
+          if (activePointerId !== null && e.pointerId !== activePointerId) return;
           e.preventDefault();
-          // Constrain to current stage size
           const r = stage.getBoundingClientRect();
           pt.x = Math.max(0, Math.min(r.width,  ptStartX + (e.clientX - startX)));
           pt.y = Math.max(0, Math.min(r.height, ptStartY + (e.clientY - startY)));
@@ -1532,16 +1562,18 @@
           this._drawCropOverlay(stage);
           showLoupe(e.clientX, e.clientY, pt);
         };
-        const onUp = () => {
+        const onUp = (e) => {
           if (!dragging) return;
+          if (activePointerId !== null && e && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
           dragging = false;
+          activePointerId = null;
           hideLoupe();
         };
 
-        handle.addEventListener('pointerdown',   onDown, { passive: false });
-        handle.addEventListener('pointermove',   onMove, { passive: false });
-        handle.addEventListener('pointerup',     onUp);
-        handle.addEventListener('pointercancel', onUp);
+        handle.addEventListener('pointerdown', onDown, { passive: false });
+        addDocListener('pointermove',   onMove, { passive: false });
+        addDocListener('pointerup',     onUp);
+        addDocListener('pointercancel', onUp);
       });
 
       this._drawCropOverlay(stage);
