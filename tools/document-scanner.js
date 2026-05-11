@@ -579,7 +579,8 @@
               </div>
               <p class="bsc-crop-hint">Auto-detected corners shown — drag any to adjust, then Apply</p>
               <div class="bsc-crop-actions">
-                <button class="bsc-crop-reset" data-action="crop-reset">↺ Reset</button>
+                <button class="bsc-crop-reset"  data-action="crop-rotate">↻ Rotate</button>
+                <button class="bsc-crop-reset"  data-action="crop-reset">↺ Reset</button>
                 <button class="bsc-crop-cancel" data-action="crop-cancel">Cancel</button>
                 <button class="bsc-crop-apply"  data-action="crop-apply">✓ Apply Crop</button>
               </div>
@@ -634,6 +635,7 @@
       el.querySelector('[data-action="process"]').addEventListener('click',   () => this._process());
 
       // Crop view buttons
+      el.querySelector('[data-action="crop-rotate"]').addEventListener('click', () => this._rotateCropImage());
       el.querySelector('[data-action="crop-reset"]').addEventListener('click',  () => this._resetCrop());
       el.querySelector('[data-action="crop-cancel"]').addEventListener('click', () => this._cancelCrop());
       el.querySelector('[data-action="crop-apply"]').addEventListener('click',  () => this._applyCrop());
@@ -863,27 +865,6 @@
             this._goToView('sources');
           });
           btns.appendChild(addPageBtn);
-
-          // ── Rotate button (rotates current head; for multi-page, rotates page 1) ──
-          const rotBtn = document.createElement('button');
-          rotBtn.type = 'button';
-          rotBtn.className = 'bsc-queue-btn rotate';
-          rotBtn.textContent = '↻ Rotate';
-          rotBtn.title = 'Rotate this page 90°';
-          rotBtn.addEventListener('click', async () => {
-            rotBtn.disabled = true;
-            try {
-              const rotated = await this._bakeRotation(item.file, { rotateDeg: 90 });
-              item.file    = rotated;
-              item.size    = rotated.size;
-              item.dataUrl = await this._toDataUrl(rotated);
-              this._renderQueue();
-            } catch (e) {
-              alert('Rotate failed: ' + e.message);
-              rotBtn.disabled = false;
-            }
-          });
-          btns.appendChild(rotBtn);
 
           // ── Re-crop button ──
           const cropBtn = document.createElement('button');
@@ -1484,6 +1465,70 @@
       const stage = this._el.querySelector('.bsc-crop-stage');
       const img   = this._el.querySelector('.bsc-crop-img');
       this._setupCropHandles(stage, img);
+    }
+
+    // Rotate the image currently being cropped by 90° clockwise.
+    // Re-runs auto-detection on the rotated image so the new corners are
+    // suggested correctly.
+    async _rotateCropImage() {
+      const item = this._cropTargetItem;
+      if (!item) return;
+
+      const view       = this._el.querySelector('[data-view="crop"]');
+      const stage      = view.querySelector('.bsc-crop-stage');
+      const img        = view.querySelector('.bsc-crop-img');
+      const status     = view.querySelector('.bsc-crop-status');
+      const statusText = view.querySelector('.bsc-crop-status-text');
+      const rotBtn     = view.querySelector('[data-action="crop-rotate"]');
+
+      rotBtn.disabled = true;
+      status.classList.remove('success', 'fail');
+      status.classList.add('bsc-crop-status-on');
+      statusText.textContent = 'Rotating...';
+
+      try {
+        const rotated = await this._bakeRotation(item.file, { rotateDeg: 90 });
+        item.file    = rotated;
+        item.size    = rotated.size;
+        item.type    = 'image/jpeg';
+        item.dataUrl = await this._toDataUrl(rotated);
+
+        // Reload the <img> with new data, then re-run auto-detect
+        await new Promise((resolve, reject) => {
+          img.onload  = resolve;
+          img.onerror = reject;
+          img.src = item.dataUrl;
+        });
+
+        // Re-init handles at full-frame default for the new orientation
+        await new Promise(r => requestAnimationFrame(r));
+        this._setupCropHandles(stage, img);
+
+        // Re-run auto-detect on the rotated image
+        statusText.textContent = 'Detecting edges...';
+        try {
+          const quad = await this._autoDetectCorners(img);
+          if (quad) {
+            this._applyAutoQuad(stage, quad);
+            statusText.textContent = '✓ Edges detected — adjust if needed';
+            status.classList.add('success');
+          } else {
+            statusText.textContent = 'No clear edges — drag corners manually';
+            status.classList.add('fail');
+          }
+        } catch (e) {
+          statusText.textContent = 'Auto-detect unavailable — drag manually';
+          status.classList.add('fail');
+        }
+
+        setTimeout(() => status.classList.remove('bsc-crop-status-on'), 3000);
+      } catch (err) {
+        console.error('[BromarScanner] Rotate error:', err);
+        statusText.textContent = 'Rotate failed';
+        status.classList.add('fail');
+      } finally {
+        rotBtn.disabled = false;
+      }
     }
 
     _cancelCrop() {
