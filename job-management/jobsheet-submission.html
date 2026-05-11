@@ -269,7 +269,7 @@
 
     <div class="form-footer">
       <div class="footer-disclaimer">
-        <p><em>💡 Job sheets are saved to your work record. Service reports include client sign-off and PDF export.</em></p>
+        <p><em>💡 To view past jobsheet submissions or prepare multi-day service reports, use the <a href="../job-management/index.html" style="color:var(--accent); text-decoration:none;">Job Manager</a>.</em></p>
       </div>
       <div class="footer-title-block">
         <h2 class="footer-title">BROMAR HUB — JOBSHEET SUBMISSION</h2>
@@ -281,7 +281,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.32</div>
+<div class="revision-number">V1.33</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -610,7 +610,8 @@ async function searchJobs(query) {
       results.innerHTML = data.map(job => `
         <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
           <div class="autocomplete-item-number">${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span></div>
-          <div class="autocomplete-item-client">${job.client_name}${job.site_name ? ` · ${job.site_name}` : ''}</div>
+          <div class="autocomplete-item-client">${job.client_name}</div>
+          ${job.site_name ? `<div style="font-size:0.8rem; color:var(--accent); margin-top:1px;">📍 ${job.site_name}</div>` : ''}
         </div>`).join('');
       results.querySelectorAll('.autocomplete-item').forEach(item => {
         item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g,"'"))));
@@ -788,7 +789,7 @@ function applyDateRulesToLabour(card){
   const day=new Date(dateStr).getDay(), holiday=getPublicHoliday(dateStr), overtimeOnly=(day===0||day===6)||!!holiday;
   const normalInput=card.querySelector('.labour-normal'), notice=card.querySelector('.weekend-notice'), normalLabel=card.querySelector('.labour-normal-label');
   if(overtimeOnly){normalInput.value=0;normalInput.disabled=true;normalInput.style.opacity='0.5';normalLabel.textContent=holiday?'Normal Hours (N/A on public holidays)':'Normal Hours (N/A on weekends)';notice.textContent=holiday?`⚠️ ${holiday} (public holiday) — all hours count as overtime`:'⚠️ Weekend — all hours count as overtime';notice.style.display='block';}
-  else{normalInput.disabled=false;normalInput.style.opacity='1';normalInput.max=8;normalLabel.textContent='Normal Hours (max 8)';notice.style.display='none';normalInput.addEventListener('input',()=>{const v=parseFloat(normalInput.value)||0;if(v>8)normalInput.value=8;if(v<0)normalInput.value=0;},{once:false});}
+  else{normalInput.disabled=false;normalInput.style.opacity='1';normalInput.max=8;normalLabel.textContent='Normal Hours';notice.style.display='none';normalInput.addEventListener('input',()=>{const v=parseFloat(normalInput.value)||0;if(v>8)normalInput.value=8;if(v<0)normalInput.value=0;},{once:false});}
 }
 
 // ── SIGNATURE ─────────────────────────────────────────────────
@@ -1016,7 +1017,7 @@ async function generatePDF(){
     pdf.setPage(i);pdf.setFillColor(194,68,14);pdf.rect(0,ph-14,pw,0.5,'F');
     pdf.setFontSize(7);pdf.setTextColor(120,120,120);pdf.setFont(undefined,'normal');
     pdf.text('Bromar',m,ph-9);pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
-    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.32`,pw/2,ph-5,{align:'center'});
+    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.33`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
