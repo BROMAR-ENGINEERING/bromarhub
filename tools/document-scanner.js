@@ -238,6 +238,75 @@
       position: absolute; width: 1px; height: 1px;
       opacity: 0; pointer-events: none;
     }
+
+    /* ── CROP VIEW ──────────────────────────────────────────────────────── */
+    .bsc-crop-view {
+      padding: 12px; display: none; flex-direction: column; gap: 12px;
+      touch-action: none;
+    }
+    .bsc-crop-view.bsc-active { display: flex; }
+
+    .bsc-crop-stage {
+      position: relative; width: 100%;
+      background: #1a1a1a; border-radius: 12px;
+      aspect-ratio: 3/4; overflow: hidden;
+    }
+    .bsc-crop-img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; user-select: none; -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    .bsc-crop-overlay {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .bsc-crop-handle {
+      position: absolute; width: 32px; height: 32px;
+      background: var(--accent, #ea580c);
+      border: 3px solid white; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: grab; touch-action: none;
+      z-index: 10;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .bsc-crop-handle:active {
+      cursor: grabbing;
+      transform: translate(-50%, -50%) scale(1.2);
+      background: var(--accent-light, #fb923c);
+    }
+
+    .bsc-crop-hint {
+      font-size: 0.78rem; color: var(--text-secondary, #888);
+      text-align: center; padding: 0 8px;
+    }
+
+    .bsc-crop-actions {
+      display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px;
+    }
+    .bsc-crop-reset {
+      padding: 11px 12px; border: 1.5px solid var(--border, #e5e7eb);
+      border-radius: 10px; background: transparent;
+      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; color: var(--text-secondary, #666);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .bsc-crop-cancel {
+      padding: 11px; border: 1.5px solid var(--border, #e5e7eb);
+      border-radius: 10px; background: transparent;
+      font-family: inherit; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; color: var(--text-secondary, #666);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .bsc-crop-apply {
+      padding: 11px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #ea580c, #fb923c);
+      font-family: inherit; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; color: white;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .bsc-queue-btn.crop:active { border-color: var(--accent, #ea580c); color: var(--accent, #ea580c); }
   `;
 
   // ─── ICONS ─────────────────────────────────────────────────────────────────
@@ -370,6 +439,20 @@
               </div>
             </div>
 
+            <!-- CROP -->
+            <div class="bsc-crop-view bsc-view" data-view="crop">
+              <div class="bsc-crop-stage">
+                <img class="bsc-crop-img" alt="Crop preview"/>
+                <canvas class="bsc-crop-overlay"></canvas>
+              </div>
+              <p class="bsc-crop-hint">Drag the corners to trim the background — the image will be straightened automatically</p>
+              <div class="bsc-crop-actions">
+                <button class="bsc-crop-reset" data-action="crop-reset">↺ Reset</button>
+                <button class="bsc-crop-cancel" data-action="crop-cancel">Cancel</button>
+                <button class="bsc-crop-apply"  data-action="crop-apply">✓ Apply Crop</button>
+              </div>
+            </div>
+
           </div>
 
           <!--
@@ -417,6 +500,11 @@
       // Queue buttons
       el.querySelector('[data-action="add-more"]').addEventListener('click',  () => this._goToView('sources'));
       el.querySelector('[data-action="process"]').addEventListener('click',   () => this._process());
+
+      // Crop view buttons
+      el.querySelector('[data-action="crop-reset"]').addEventListener('click',  () => this._resetCrop());
+      el.querySelector('[data-action="crop-cancel"]').addEventListener('click', () => this._cancelCrop());
+      el.querySelector('[data-action="crop-apply"]').addEventListener('click',  () => this._applyCrop());
 
       // File inputs
       ['scan', 'photo-library', 'camera', 'files'].forEach(id => {
@@ -526,6 +614,16 @@
         const btns = document.createElement('div');
         btns.className = 'bsc-queue-btns';
 
+        // Crop button — only for images
+        if (item.type.startsWith('image/')) {
+          const cropBtn = document.createElement('button');
+          cropBtn.type = 'button';
+          cropBtn.className = 'bsc-queue-btn crop';
+          cropBtn.textContent = '✂️ Crop';
+          cropBtn.addEventListener('click', () => this._openCrop(item));
+          btns.appendChild(cropBtn);
+        }
+
         const renBtn = document.createElement('button');
         renBtn.type = 'button'; renBtn.className = 'bsc-queue-btn rename';
         renBtn.textContent = '✏️ Rename';
@@ -609,9 +707,255 @@
       });
     }
 
+    // ── CROP ──────────────────────────────────────────────────────────────────
+    _openCrop(item) {
+      this._cropTargetItem = item;
+      const view  = this._el.querySelector('[data-view="crop"]');
+      const img   = view.querySelector('.bsc-crop-img');
+      const stage = view.querySelector('.bsc-crop-stage');
+
+      img.src = item.dataUrl;
+
+      img.onload = () => {
+        // Wait for layout, then set up handles at full-frame default
+        requestAnimationFrame(() => this._setupCropHandles(stage, img));
+        this._goToView('crop');
+      };
+
+      // If src is already cached and onload doesn't fire, force it
+      if (img.complete && img.naturalWidth) {
+        requestAnimationFrame(() => this._setupCropHandles(stage, img));
+        this._goToView('crop');
+      }
+    }
+
+    _setupCropHandles(stage, img) {
+      // Remove old handles
+      stage.querySelectorAll('.bsc-crop-handle').forEach(h => h.remove());
+
+      const stageRect = stage.getBoundingClientRect();
+      const W = stageRect.width;
+      const H = stageRect.height;
+
+      // Default crop: full frame, slight inset so handles are visible
+      const inset = 6;
+      this._cropPts = [
+        { x: inset,     y: inset     }, // TL
+        { x: W - inset, y: inset     }, // TR
+        { x: W - inset, y: H - inset }, // BR
+        { x: inset,     y: H - inset }, // BL
+      ];
+
+      this._cropPts.forEach((pt, i) => {
+        const handle = document.createElement('div');
+        handle.className = 'bsc-crop-handle';
+        handle.dataset.idx = i;
+        handle.style.left = pt.x + 'px';
+        handle.style.top  = pt.y + 'px';
+        stage.appendChild(handle);
+
+        let startX = 0, startY = 0, ptStartX = 0, ptStartY = 0;
+        let dragging = false;
+
+        const onDown = (e) => {
+          dragging = true;
+          e.preventDefault(); e.stopPropagation();
+          startX   = e.clientX; startY = e.clientY;
+          ptStartX = pt.x;      ptStartY = pt.y;
+          handle.setPointerCapture(e.pointerId);
+        };
+        const onMove = (e) => {
+          if (!dragging) return;
+          e.preventDefault();
+          // Constrain to current stage size
+          const r = stage.getBoundingClientRect();
+          pt.x = Math.max(0, Math.min(r.width,  ptStartX + (e.clientX - startX)));
+          pt.y = Math.max(0, Math.min(r.height, ptStartY + (e.clientY - startY)));
+          handle.style.left = pt.x + 'px';
+          handle.style.top  = pt.y + 'px';
+          this._drawCropOverlay(stage);
+        };
+        const onUp = () => { dragging = false; };
+
+        handle.addEventListener('pointerdown',   onDown, { passive: false });
+        handle.addEventListener('pointermove',   onMove, { passive: false });
+        handle.addEventListener('pointerup',     onUp);
+        handle.addEventListener('pointercancel', onUp);
+      });
+
+      this._drawCropOverlay(stage);
+    }
+
+    _drawCropOverlay(stage) {
+      const canvas = stage.querySelector('.bsc-crop-overlay');
+      const rect   = stage.getBoundingClientRect();
+      canvas.width  = rect.width;
+      canvas.height = rect.height;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const pts = this._cropPts;
+      if (!pts) return;
+
+      // Dim the area outside the quad
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.rect(0, 0, rect.width, rect.height);
+      // Subtract quad using even-odd fill
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.lineTo(pts[2].x, pts[2].y);
+      ctx.lineTo(pts[3].x, pts[3].y);
+      ctx.closePath();
+      ctx.fill('evenodd');
+
+      // Quad border
+      ctx.strokeStyle = '#ea580c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    _resetCrop() {
+      const stage = this._el.querySelector('.bsc-crop-stage');
+      const img   = this._el.querySelector('.bsc-crop-img');
+      this._setupCropHandles(stage, img);
+    }
+
+    _cancelCrop() {
+      this._cropTargetItem = null;
+      this._cropPts = null;
+      this._goToView('queue');
+    }
+
+    async _applyCrop() {
+      const item = this._cropTargetItem;
+      if (!item || !this._cropPts) return;
+
+      this._goToView('progress');
+      this._setProgress(20, 'Cropping...', 'Applying perspective correction');
+
+      try {
+        const newBlob = await this._perspectiveCrop(item.file, this._cropPts);
+        this._setProgress(80, 'Updating preview...', '');
+
+        // Replace item.file and dataUrl
+        item.file    = newBlob;
+        item.size    = newBlob.size;
+        item.type    = 'image/jpeg';
+        item.dataUrl = await this._toDataUrl(newBlob);
+
+        // If filename was the original (e.g. IMG_1234.HEIC), normalise to .jpg
+        if (!item.name.toLowerCase().endsWith('.pdf')) {
+          item.name = item.name.replace(/\.[^.]+$/, '') + '.jpg';
+        }
+
+        this._cropTargetItem = null;
+        this._cropPts = null;
+
+        this._goToView('queue');
+        this._renderQueue();
+      } catch (err) {
+        console.error('[BromarScanner] Crop error:', err);
+        alert('Crop failed: ' + err.message);
+        this._goToView('queue');
+      }
+    }
+
+    async _perspectiveCrop(fileBlob, displayPts) {
+      // Load image at full resolution
+      const dataUrl = await this._toDataUrl(fileBlob);
+      const img     = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = rej;
+        i.src = dataUrl;
+      });
+
+      // Map display coords → source image coords.
+      // Image was object-fit:contain inside the stage, so we account for letterbox.
+      const stage     = this._el.querySelector('.bsc-crop-stage');
+      const stageRect = stage.getBoundingClientRect();
+      const sW = stageRect.width, sH = stageRect.height;
+      const nW = img.naturalWidth, nH = img.naturalHeight;
+
+      const stageAspect = sW / sH;
+      const imgAspect   = nW / nH;
+
+      let rendW, rendH, offX, offY;
+      if (imgAspect > stageAspect) {
+        rendW = sW; rendH = sW / imgAspect;
+        offX = 0;   offY  = (sH - rendH) / 2;
+      } else {
+        rendH = sH; rendW = sH * imgAspect;
+        offX = (sW - rendW) / 2; offY = 0;
+      }
+
+      // Convert display → source coords
+      const srcPts = displayPts.map(p => ({
+        x: ((p.x - offX) / rendW) * nW,
+        y: ((p.y - offY) / rendH) * nH
+      }));
+
+      // Output dimensions: take the longer of each opposite side pair
+      const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+      const outW = Math.round(Math.max(dist(srcPts[0], srcPts[1]), dist(srcPts[3], srcPts[2])));
+      const outH = Math.round(Math.max(dist(srcPts[0], srcPts[3]), dist(srcPts[1], srcPts[2])));
+
+      // Clamp to reasonable max
+      const MAX = 2480;
+      const scale = Math.min(1, MAX / Math.max(outW, outH));
+      const finalW = Math.max(100, Math.round(outW * scale));
+      const finalH = Math.max(100, Math.round(outH * scale));
+
+      // Source image to canvas
+      const srcCanvas = document.createElement('canvas');
+      srcCanvas.width  = nW;
+      srcCanvas.height = nH;
+      srcCanvas.getContext('2d').drawImage(img, 0, 0);
+      const srcData = srcCanvas.getContext('2d').getImageData(0, 0, nW, nH);
+
+      // Build output via bilinear mapping (perspective via quad → rectangle)
+      const dstCanvas = document.createElement('canvas');
+      dstCanvas.width  = finalW;
+      dstCanvas.height = finalH;
+      const dstCtx = dstCanvas.getContext('2d');
+      const dstData = dstCtx.createImageData(finalW, finalH);
+
+      const [tl, tr, br, bl] = srcPts;
+
+      for (let y = 0; y < finalH; y++) {
+        const v = y / finalH;
+        for (let x = 0; x < finalW; x++) {
+          const u = x / finalW;
+          // Bilinear quad mapping
+          const sx = (1 - u) * ((1 - v) * tl.x + v * bl.x) + u * ((1 - v) * tr.x + v * br.x);
+          const sy = (1 - u) * ((1 - v) * tl.y + v * bl.y) + u * ((1 - v) * tr.y + v * br.y);
+
+          const ix = Math.round(sx);
+          const iy = Math.round(sy);
+          if (ix < 0 || ix >= nW || iy < 0 || iy >= nH) continue;
+
+          const si = (iy * nW + ix) * 4;
+          const di = (y * finalW + x) * 4;
+          dstData.data[di]     = srcData.data[si];
+          dstData.data[di + 1] = srcData.data[si + 1];
+          dstData.data[di + 2] = srcData.data[si + 2];
+          dstData.data[di + 3] = 255;
+        }
+      }
+
+      dstCtx.putImageData(dstData, 0, 0);
+      return await new Promise(res =>
+        dstCanvas.toBlob(b => res(b), 'image/jpeg', this.options.pdfQuality)
+      );
+    }
+
     // ── PROCESS: BUILD PDF + UPLOAD ───────────────────────────────────────────
     async _process() {
-      if (!this._queue.length) return;
       this._goToView('progress');
       this._setProgress(0, 'Building PDF...', `${this._queue.length} file(s)`);
 
