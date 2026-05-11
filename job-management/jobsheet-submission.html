@@ -465,6 +465,7 @@
           <div id="job-details-display" style="display: none; padding: 12px; background: var(--bg-main); border-radius: 6px;">
             <div style="font-size: 0.85rem;">
               <strong id="detail-client"></strong><br>
+              <span id="detail-site-name" style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;"></span>
               <span id="detail-address" style="color: var(--text-secondary); font-size: 0.8rem;"></span>
             </div>
             <div id="detail-sheet-preview" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">
@@ -494,6 +495,10 @@
           <div class="field-group full">
             <label for="new_client_name">Client Name <span class="required">*</span></label>
             <input type="text" id="new_client_name" placeholder="Client or company name"/>
+          </div>
+          <div class="field-group full">
+            <label for="new_site_name">Site Name <span class="required">*</span></label>
+            <input type="text" id="new_site_name" placeholder="e.g. Westmeadows Warehouse, Collins St Office"/>
           </div>
           <div class="field-row">
             <div class="field-group">
@@ -639,7 +644,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.17</div>
+<div class="revision-number">V1.18</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1003,6 +1008,7 @@
         // Unlock the new-job fields in case they swap back
         document.getElementById('new_prefix').disabled = false;
         document.getElementById('new_client_name').disabled = false;
+        document.getElementById('new_site_name').disabled = false;
         document.getElementById('new_site_address').disabled = false;
         // Update scanner path back to default
         if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
@@ -1030,14 +1036,14 @@
     const results = document.getElementById('autocompleteResults');
     if (query.length < 2) { results.classList.remove('show'); return; }
     try {
-      const { data, error } = await sb.from('job_number_register').select('job_number, client_name, site_address, prefix')
+      const { data, error } = await sb.from('job_number_register').select('job_number, client_name, site_name, site_address, prefix')
         .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`).limit(10);
       if (error) throw new Error(error.message);
       if (data?.length > 0) {
         results.innerHTML = data.map(job => `
           <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
             <div class="autocomplete-item-number">${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span></div>
-            <div class="autocomplete-item-client">${job.client_name}</div>
+            <div class="autocomplete-item-client">${job.client_name}${job.site_name ? ` · ${job.site_name}` : ''}</div>
           </div>`).join('');
         results.querySelectorAll('.autocomplete-item').forEach(item => {
           item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'"))));
@@ -1054,6 +1060,7 @@
     selectedJobData = job;
     document.getElementById('existing_job_number').value = job.job_number;
     document.getElementById('detail-client').textContent = job.client_name;
+    document.getElementById('detail-site-name').textContent = job.site_name ? job.site_name + ' · ' : '';
     document.getElementById('detail-address').textContent = job.site_address || '';
     document.getElementById('job-details-display').style.display = 'block';
     document.getElementById('detail-sheet-number').textContent = 'loading...';
@@ -1112,7 +1119,7 @@
   });
 
   // Trigger check whenever any new-job required field changes/blurs
-  ['new_client_name', 'new_site_address'].forEach(id => {
+  ['new_client_name', 'new_site_name', 'new_site_address'].forEach(id => {
     document.getElementById(id).addEventListener('blur', checkAndCreateNewJob);
   });
 
@@ -1123,13 +1130,14 @@
 
     const prefix = document.getElementById('new_prefix').value;
     const clientName = document.getElementById('new_client_name').value.trim();
+    const siteName = document.getElementById('new_site_name').value.trim();
     const siteAddress = document.getElementById('new_site_address').value.trim();
-    if (!prefix || !clientName || !siteAddress) return;
+    if (!prefix || !clientName || !siteName || !siteAddress) return;
 
-    createNewJobNow(prefix, clientName, siteAddress);
+    createNewJobNow(prefix, clientName, siteName, siteAddress);
   }
 
-  async function createNewJobNow(prefix, clientName, siteAddress) {
+  async function createNewJobNow(prefix, clientName, siteName, siteAddress) {
     try {
       const contactPerson = document.getElementById('new_contact_person').value.trim();
       const contactPhone = document.getElementById('new_contact_phone').value.trim();
@@ -1139,28 +1147,27 @@
         p_client_name: clientName,
         p_contact_person: contactPerson,
         p_contact_phone: contactPhone,
+        p_site_name: siteName,
         p_site_address: siteAddress
       });
       if (error) throw error;
 
-      // Populate selectedJobData so rest of form treats this as existing
       selectedJobData = {
         job_number: newJobNum,
         client_name: clientName,
+        site_name: siteName,
         site_address: siteAddress,
         contact_person: contactPerson,
         prefix: prefix,
-        justCreated: true   // flag for switch-mode warning
+        justCreated: true
       };
 
-      // Update scanner path
       if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
 
-      // Lock the required fields so user can't change them after creation
       document.getElementById('new_prefix').disabled = true;
       document.getElementById('new_client_name').disabled = true;
+      document.getElementById('new_site_name').disabled = true;
       document.getElementById('new_site_address').disabled = true;
-      // Contact fields stay editable
 
       // Show notice
       document.getElementById('newJobCreatedNumber').textContent = newJobNum;
@@ -1788,7 +1795,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.17`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.18`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
