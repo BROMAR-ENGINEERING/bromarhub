@@ -179,6 +179,25 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .bsc-rename-preview .hi { color: var(--accent, #ea580c); font-weight: 700; }
+    .bsc-rename-jobinput-wrap {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .bsc-rename-jobinput-label {
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-secondary, #888);
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .bsc-rename-jobinput {
+      width: 100%; padding: 9px 10px;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem; font-weight: 600;
+      background: var(--bg-main, #fafafa);
+      color: var(--text-primary, #0a0a0a);
+      text-transform: uppercase; outline: none;
+    }
+    .bsc-rename-jobinput:focus { border-color: var(--accent, #ea580c); }
     .bsc-rename-row { display: flex; gap: 6px; }
     .bsc-rename-apply {
       flex: 1; padding: 8px; border: none; border-radius: 7px;
@@ -558,6 +577,12 @@
         this._el.classList.add('bsc-visible')
       ));
       this._goToView('sources');
+
+      // Pre-load OpenCV.js in the background so it's ready by the time the
+      // user captures an image. First open ≈ 2-3s, cached after that.
+      this._ensureOpenCV().catch(err => {
+        console.warn('[BromarScanner] OpenCV preload failed:', err);
+      });
       this._prevOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overscrollBehavior = 'none';
@@ -701,15 +726,43 @@
           const existing = wrap.querySelector('.bsc-rename-panel');
           if (existing) { existing.remove(); return; }
 
-          const jobNum = (this.options.jobNumber || '').toLowerCase().replace(/\s/g, '');
+          // Resolve job number from options, or fall back to common globals,
+          // or read from a known input field if present on the page.
+          const resolveJobNumber = () => {
+            if (this.options.jobNumber) return this.options.jobNumber;
+            if (window.currentJobNumber)  return window.currentJobNumber;
+            // Try common input IDs used by Bromar hub pages
+            const tryIds = ['existing_job_number', 'job_number', 'jobNumber'];
+            for (const id of tryIds) {
+              const el = document.getElementById(id);
+              if (el && el.value) return el.value;
+            }
+            return '';
+          };
+
+          const initialJobNum = (resolveJobNumber() || '').toUpperCase().replace(/\s/g, '');
 
           const panel = document.createElement('div');
           panel.className = 'bsc-rename-panel';
 
+          // Document type dropdown
           const sel = document.createElement('select');
           sel.className = 'bsc-rename-select';
           sel.innerHTML = '<option value="">— Select document type —</option>' +
             DOC_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('');
+
+          // Job number input — pre-filled if we found one, editable either way
+          const jobWrap = document.createElement('div');
+          jobWrap.className = 'bsc-rename-jobinput-wrap';
+          const jobLabel = document.createElement('label');
+          jobLabel.className = 'bsc-rename-jobinput-label';
+          jobLabel.textContent = 'Job Number';
+          const jobInput = document.createElement('input');
+          jobInput.type = 'text';
+          jobInput.className = 'bsc-rename-jobinput';
+          jobInput.placeholder = 'e.g. BC0042';
+          jobInput.value = initialJobNum;
+          jobWrap.append(jobLabel, jobInput);
 
           const preview = document.createElement('div');
           preview.className = 'bsc-rename-preview';
@@ -727,30 +780,47 @@
           cancelBtn.textContent = 'Cancel';
 
           row.append(applyBtn, cancelBtn);
-          panel.append(sel, preview, row);
+          panel.append(sel, jobWrap, preview, row);
           wrap.appendChild(panel);
 
-          const buildName = v => v
-            ? (jobNum ? `${v}_${jobNum}.pdf` : `${v}.pdf`)
-            : null;
-
-          sel.addEventListener('change', () => {
-            const name = buildName(sel.value);
-            if (name) {
-              const jp = jobNum ? `_<span class="hi">${jobNum}</span>` : '';
-              preview.innerHTML = `${sel.value}${jp}<span class="hi">.pdf</span>`;
-              applyBtn.disabled = false;
-            } else {
-              preview.textContent = 'Select a type to preview filename';
-              applyBtn.disabled = true;
-            }
+          // Force uppercase, no spaces
+          jobInput.addEventListener('input', () => {
+            const cursor = jobInput.selectionStart;
+            jobInput.value = jobInput.value.toUpperCase().replace(/\s/g, '');
+            jobInput.setSelectionRange(cursor, cursor);
+            updatePreview();
           });
 
+          const buildName = () => {
+            const type   = sel.value;
+            const jobNum = jobInput.value.trim().toLowerCase();
+            if (!type) return null;
+            return jobNum ? `${type}_${jobNum}.pdf` : `${type}.pdf`;
+          };
+
+          const updatePreview = () => {
+            const type   = sel.value;
+            const jobNum = jobInput.value.trim();
+            if (!type) {
+              preview.textContent = 'Select a type to preview filename';
+              applyBtn.disabled = true;
+              return;
+            }
+            const jp = jobNum ? `_<span class="hi">${jobNum.toLowerCase()}</span>` : '';
+            preview.innerHTML = `${type}${jp}<span class="hi">.pdf</span>`;
+            applyBtn.disabled = false;
+          };
+
+          sel.addEventListener('change', updatePreview);
+
           applyBtn.addEventListener('click', () => {
-            const name = buildName(sel.value);
+            const name = buildName();
             if (!name) return;
             item.name = name;
             nameEl.textContent = name; nameEl.title = name;
+            // Remember the job number entered here, so subsequent renames pre-fill
+            const enteredJob = jobInput.value.trim();
+            if (enteredJob) this.options.jobNumber = enteredJob;
             panel.remove();
           });
 
@@ -778,36 +848,47 @@
       this._goToView('crop');
 
       const begin = async () => {
-        // Show "Detecting..." badge
+        // Show initial badge
         status.classList.remove('success', 'fail');
         status.classList.add('bsc-crop-status-on');
-        statusText.textContent = 'Detecting edges...';
 
-        // Set up handles at full-frame default first (so user can drag immediately
-        // if detection is slow)
+        // Set up handles at full-frame default first (instant interactivity)
         await new Promise(r => requestAnimationFrame(r));
         this._setupCropHandles(stage, img);
 
-        // Try OpenCV auto-detect (lazy-load on first scan)
+        // Show status based on OpenCV state:
+        //  - already loaded     → 'Detecting edges...'
+        //  - still loading      → 'Loading detector...' (and we wait for it)
+        //  - load already failed → 'Auto-detect unavailable — drag manually'
+        const cvReady = !!(window.cv && window.cv.imread);
+        statusText.textContent = cvReady ? 'Detecting edges...' : 'Loading detector...';
+
         try {
+          // Wait for OpenCV with a generous timeout. If it's not loaded yet,
+          // this waits silently in the background.
+          await this._ensureOpenCV();
+
+          // Now it's ready — run detection
+          statusText.textContent = 'Detecting edges...';
           const quad = await this._autoDetectCorners(img);
+
           if (quad) {
             this._applyAutoQuad(stage, quad);
-            statusText.textContent = 'Edges detected — adjust if needed';
+            statusText.textContent = '✓ Edges detected — adjust if needed';
             status.classList.remove('fail');
             status.classList.add('success');
           } else {
-            statusText.textContent = 'Auto-detect failed — drag corners manually';
+            statusText.textContent = 'No clear edges — drag corners manually';
             status.classList.add('fail');
           }
         } catch (err) {
           console.warn('[BromarScanner] Auto-detect error:', err);
-          statusText.textContent = 'Manual crop only';
+          statusText.textContent = 'Auto-detect unavailable — drag manually';
           status.classList.add('fail');
         }
 
-        // Fade the status badge after 2.5s
-        setTimeout(() => status.classList.remove('bsc-crop-status-on'), 2500);
+        // Fade the status badge after 3s
+        setTimeout(() => status.classList.remove('bsc-crop-status-on'), 3000);
       };
 
       if (img.complete && img.naturalWidth) {
