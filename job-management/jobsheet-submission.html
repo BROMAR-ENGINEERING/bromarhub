@@ -635,7 +635,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.13</div>
+<div class="revision-number">V1.14</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1256,9 +1256,12 @@
         showLoading('Emailing signed report...', pendingSignoffEmail);
         const pdfBase64 = pdf.output('datauristring').split(',')[1];
         const { error: emailErr } = await sb.functions.invoke('send-signed-report', { body: { recipientEmail: pendingSignoffEmail, jobSheetNumber: currentJobSheetNumber, clientName: selectedJobData?.client_name || '', signedByName: sigName, pdfBase64 } });
-        if (emailErr) throw new Error('Email failed: ' + emailErr.message);
         hideLoading();
-        showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
+        if (emailErr) {
+          showInfo(`Signature saved — but email failed: ${emailErr.message}`);
+        } else {
+          showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
+        }
       } else {
         hideLoading();
         showSuccess('Service report signed and saved');
@@ -1529,9 +1532,12 @@
           const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
           showLoading('Sending signing link...', clientEmail);
           const { error: linkErr } = await sb.functions.invoke('send-signing-link', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
-          if (linkErr) throw new Error('Email failed: ' + linkErr.message);
           hideLoading();
-          showSuccess(`Signing link sent to ${clientEmail}`);
+          if (linkErr) {
+            showInfo(`Link generated — but email failed: ${linkErr.message}`);
+          } else {
+            showSuccess(`Signing link sent to ${clientEmail}`);
+          }
         }
 
         if (signoffMethod === 'none') {
@@ -1541,10 +1547,13 @@
           await sb.storage.from('job-sheet-files').upload(pdfPath, pdf.output('blob'), { contentType: 'application/pdf', upsert: true });
           showLoading('Emailing report...', clientEmail);
           const pdfBase64 = pdf.output('datauristring').split(',')[1];
-          const { error: emailErr } = await sb.functions.invoke('send-signed-report', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signedByName: '(No signature required)', pdfBase64 } });
-          if (emailErr) throw new Error('Email failed: ' + emailErr.message);
+          const { data: emailData, error: emailErr } = await sb.functions.invoke('send-signed-report', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signedByName: '(No signature required)', pdfBase64 } });
           hideLoading();
-          showSuccess(`Report emailed to ${clientEmail}`);
+          if (emailErr) {
+            showInfo(`Report saved — but email failed: ${emailErr.message}`);
+          } else {
+            showSuccess(`Report emailed to ${clientEmail}`);
+          }
         }
 
         document.getElementById('pdfActions').classList.add('show');
@@ -1746,7 +1755,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.13`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.14`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
