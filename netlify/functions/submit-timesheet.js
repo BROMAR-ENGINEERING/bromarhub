@@ -67,7 +67,11 @@ exports.handler = async (event) => {
       
       while (formData[`job-${dayIndex}-${jobIndex}_type`]) {
         const jobPrefix = `job-${dayIndex}-${jobIndex}`;
-        const type = formData[`${jobPrefix}_type`];
+        let type = formData[`${jobPrefix}_type`];
+        const otherType = (formData[`${jobPrefix}_other_type`] || '').trim();
+        if (type === 'Other' && otherType) {
+          type = `Other: ${otherType}`;
+        }
         const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
         const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
         const travelHours = parseFloat(formData[`${jobPrefix}_travel_time`]) || 0;
