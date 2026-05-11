@@ -357,6 +357,7 @@
       position: relative; width: 100%;
       background: #1a1a1a; border-radius: 12px;
       aspect-ratio: 3/4; overflow: hidden;
+      max-height: 60vh;
     }
     .bsc-crop-img {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -388,22 +389,53 @@
       text-align: center; padding: 0 8px;
     }
 
+    /* Magnifying loupe — shown while dragging a crop handle.
+       Renders a fixed-position circular zoomed view of the area under the finger. */
+    .bsc-loupe {
+      position: fixed;
+      width: 130px; height: 130px;
+      border-radius: 50%;
+      border: 3px solid var(--accent, #ea580c);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(255,255,255,0.4);
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 100001;
+      display: none;
+      background: #1a1a1a;
+    }
+    .bsc-loupe.bsc-loupe-on { display: block; }
+    .bsc-loupe-canvas { width: 100%; height: 100%; display: block; }
+    /* Crosshair overlay — pure CSS, no extra element */
+    .bsc-loupe::before, .bsc-loupe::after {
+      content: ''; position: absolute;
+      background: rgba(234, 88, 12, 0.85);
+      pointer-events: none;
+    }
+    .bsc-loupe::before {
+      left: 50%; top: 25%; width: 2px; height: 50%;
+      transform: translateX(-50%);
+    }
+    .bsc-loupe::after {
+      top: 50%; left: 25%; height: 2px; width: 50%;
+      transform: translateY(-50%);
+    }
+
     .bsc-crop-actions {
-      display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
     }
-    .bsc-crop-reset {
-      padding: 11px 12px; border: 1.5px solid var(--border, #e5e7eb);
+    .bsc-crop-utility-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+    }
+    .bsc-crop-utility {
+      padding: 10px 6px; border: 1.5px solid var(--border, #e5e7eb);
       border-radius: 10px; background: transparent;
-      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
       cursor: pointer; color: var(--text-secondary, #666);
       -webkit-tap-highlight-color: transparent;
     }
-    .bsc-crop-cancel {
-      padding: 11px; border: 1.5px solid var(--border, #e5e7eb);
-      border-radius: 10px; background: transparent;
-      font-family: inherit; font-size: 0.85rem; font-weight: 600;
-      cursor: pointer; color: var(--text-secondary, #666);
-      -webkit-tap-highlight-color: transparent;
+    .bsc-crop-utility:active {
+      border-color: var(--accent, #ea580c);
+      color: var(--accent, #ea580c);
     }
     /* Auto-detect badge / spinner shown above the image while OpenCV works */
     .bsc-crop-status {
@@ -427,11 +459,17 @@
     }
 
     .bsc-crop-apply {
-      padding: 11px; border: none; border-radius: 10px;
+      width: 100%;
+      padding: 14px; border: none; border-radius: 10px;
       background: linear-gradient(135deg, #ea580c, #fb923c);
-      font-family: inherit; font-size: 0.85rem; font-weight: 700;
+      font-family: inherit; font-size: 0.95rem; font-weight: 700;
       cursor: pointer; color: white;
       -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 8px rgba(234,88,12,0.3);
+    }
+    .bsc-crop-apply:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 4px rgba(234,88,12,0.4);
     }
 
     .bsc-queue-btn.crop:active { border-color: var(--accent, #ea580c); color: var(--accent, #ea580c); }
@@ -579,9 +617,11 @@
               </div>
               <p class="bsc-crop-hint">Auto-detected corners shown — drag any to adjust, then Apply</p>
               <div class="bsc-crop-actions">
-                <button class="bsc-crop-reset"  data-action="crop-rotate">↻ Rotate</button>
-                <button class="bsc-crop-reset"  data-action="crop-reset">↺ Reset</button>
-                <button class="bsc-crop-cancel" data-action="crop-cancel">Cancel</button>
+                <div class="bsc-crop-utility-row">
+                  <button class="bsc-crop-utility" data-action="crop-rotate">↻ Rotate</button>
+                  <button class="bsc-crop-utility" data-action="crop-reset">↺ Reset</button>
+                  <button class="bsc-crop-utility" data-action="crop-cancel">Cancel</button>
+                </div>
                 <button class="bsc-crop-apply"  data-action="crop-apply">✓ Apply Crop</button>
               </div>
             </div>
@@ -612,6 +652,13 @@
       `;
 
       document.body.appendChild(this._el);
+
+      // Loupe magnifier — lives outside the sheet so it's never clipped
+      this._loupeEl = document.createElement('div');
+      this._loupeEl.className = 'bsc-loupe';
+      this._loupeEl.innerHTML = '<canvas class="bsc-loupe-canvas"></canvas>';
+      document.body.appendChild(this._loupeEl);
+
       this._bind();
     }
 
@@ -676,6 +723,7 @@
 
     _close() {
       this._el.classList.remove('bsc-visible');
+      this._loupeEl?.classList.remove('bsc-loupe-on');
       document.body.style.overflow = this._prevOverflow || '';
       document.documentElement.style.overscrollBehavior = '';
       this._el.removeEventListener('touchmove', this._moveTrap);
@@ -1388,6 +1436,71 @@
         { x: inset,     y: H - inset }, // BL
       ];
 
+      // Loupe helpers — shared by all 4 handles
+      const showLoupe = (clientX, clientY, pt) => {
+        const loupe       = this._loupeEl;
+        const loupeSize   = 130;
+        const zoom        = 3.2;
+        const img         = stage.querySelector('.bsc-crop-img');
+
+        // Position loupe above-left of the finger so finger doesn't block view
+        const offset = 60;
+        let lx = clientX - offset - loupeSize;
+        let ly = clientY - offset - loupeSize;
+        // If too close to left/top edge, flip to opposite side of finger
+        if (lx < 8)  lx = clientX + offset;
+        if (ly < 8)  ly = clientY + offset;
+        // Final clamp inside viewport
+        lx = Math.max(8, Math.min(window.innerWidth  - loupeSize - 8, lx));
+        ly = Math.max(8, Math.min(window.innerHeight - loupeSize - 8, ly));
+
+        loupe.style.left = lx + 'px';
+        loupe.style.top  = ly + 'px';
+        loupe.classList.add('bsc-loupe-on');
+
+        // Draw zoomed region centred on the handle position
+        const canvas = loupe.querySelector('.bsc-loupe-canvas');
+        canvas.width  = loupeSize;
+        canvas.height = loupeSize;
+        const ctx = canvas.getContext('2d');
+
+        // Map handle position (stage coords) → source image natural coords.
+        // Image uses object-fit:contain inside stage, so compute rendered rect.
+        const r          = stage.getBoundingClientRect();
+        const natW       = img.naturalWidth  || 1;
+        const natH       = img.naturalHeight || 1;
+        const stageAspect = r.width / r.height;
+        const imgAspect   = natW / natH;
+        let rendW, rendH, offX, offY;
+        if (imgAspect > stageAspect) {
+          rendW = r.width;  rendH = r.width / imgAspect;
+          offX = 0;         offY  = (r.height - rendH) / 2;
+        } else {
+          rendH = r.height; rendW = r.height * imgAspect;
+          offX = (r.width - rendW) / 2; offY = 0;
+        }
+
+        const imgX = ((pt.x - offX) / rendW) * natW;
+        const imgY = ((pt.y - offY) / rendH) * natH;
+
+        const regionW = loupeSize / zoom;
+        const regionH = loupeSize / zoom;
+        const sx = imgX - regionW / 2;
+        const sy = imgY - regionH / 2;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, loupeSize, loupeSize);
+        try {
+          ctx.drawImage(img, sx, sy, regionW, regionH, 0, 0, loupeSize, loupeSize);
+        } catch (e) { /* off-image — leave blank background */ }
+      };
+
+      const hideLoupe = () => {
+        this._loupeEl.classList.remove('bsc-loupe-on');
+      };
+
       this._cropPts.forEach((pt, i) => {
         const handle = document.createElement('div');
         handle.className = 'bsc-crop-handle';
@@ -1405,6 +1518,7 @@
           startX   = e.clientX; startY = e.clientY;
           ptStartX = pt.x;      ptStartY = pt.y;
           handle.setPointerCapture(e.pointerId);
+          showLoupe(e.clientX, e.clientY, pt);
         };
         const onMove = (e) => {
           if (!dragging) return;
@@ -1416,8 +1530,13 @@
           handle.style.left = pt.x + 'px';
           handle.style.top  = pt.y + 'px';
           this._drawCropOverlay(stage);
+          showLoupe(e.clientX, e.clientY, pt);
         };
-        const onUp = () => { dragging = false; };
+        const onUp = () => {
+          if (!dragging) return;
+          dragging = false;
+          hideLoupe();
+        };
 
         handle.addEventListener('pointerdown',   onDown, { passive: false });
         handle.addEventListener('pointermove',   onMove, { passive: false });
