@@ -281,7 +281,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.31</div>
+<div class="revision-number">V1.32</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -337,11 +337,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   EMPLOYEES = await BromarHub.loadEmployees('filled_by');
   await BromarHub.autoSelectLoggedInUser('filled_by');
-  document.addEventListener('change', (e) => {
-    if (e.target.id === 'filled_by') {
-      const opt = e.target.selectedOptions[0];
-      currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
-    }
+
+  // Set currentUser from whatever is selected (handles auto-login)
+  const filledBy = document.getElementById('filled_by');
+  if (filledBy.value) {
+    const opt = filledBy.selectedOptions[0];
+    currentUser = { name: opt.value, email: opt.dataset.email || '' };
+  }
+  // Keep in sync if manually changed
+  filledBy.addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
   });
 
   addTask(); addLabour(); setupSignatureCanvas(); initScanner();
@@ -847,7 +853,14 @@ async function handleFormSubmit(e){
   submitBtn.disabled=true;
   BromarHub.showLoading('Saving job sheet...','Processing your data');
   try{
-    if(!currentUser)throw new Error('Please select who is filling out the form');
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) {
+        const opt = sel.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+    }
+    if (!currentUser) throw new Error('Please select who is filling out the form');
     if(!selectedJobData)throw new Error('Please complete the job details first');
     const jobNumber=selectedJobData.job_number;
     const tasks=Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);
@@ -1003,7 +1016,7 @@ async function generatePDF(){
     pdf.setPage(i);pdf.setFillColor(194,68,14);pdf.rect(0,ph-14,pw,0.5,'F');
     pdf.setFontSize(7);pdf.setTextColor(120,120,120);pdf.setFont(undefined,'normal');
     pdf.text('Bromar',m,ph-9);pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
-    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.31`,pw/2,ph-5,{align:'center'});
+    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.32`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
