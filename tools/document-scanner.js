@@ -1,8 +1,9 @@
 /**
  * Bromar Document Scanner
- * Version: V1.03
+ * Version: V1.04
  *
- * Mobile document scanner with OpenCV.js auto edge detection.
+ * Mobile document scanner with OpenCV.js auto edge detection and multi-page
+ * support.
  *
  * Flow: capture/import → auto-detect document corners (OpenCV.js, lazy-loaded)
  *       → manual corner adjustment → perspective correction → PDF → upload.
@@ -161,6 +162,61 @@
     @keyframes bsc-pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
       50%      { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    }
+
+    /* Page count badge */
+    .bsc-page-count-badge {
+      display: inline-block; margin-left: 6px;
+      font-size: 0.66rem; font-weight: 700;
+      padding: 1px 7px; border-radius: 10px;
+      background: var(--accent, #ea580c); color: white;
+      vertical-align: middle;
+    }
+
+    /* Page thumbnails strip (shown when item has multiple pages) */
+    .bsc-page-strip {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border, #e5e7eb);
+    }
+    .bsc-page-thumb-wrap {
+      position: relative;
+      width: 50px; height: 50px;
+      border-radius: 6px; overflow: hidden;
+      background: #e2e8f0;
+      border: 1px solid var(--border, #e5e7eb);
+    }
+    .bsc-page-thumb-wrap img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .bsc-page-num {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.7); color: white;
+      font-size: 0.62rem; font-weight: 700;
+      padding: 1px 0; text-align: center;
+    }
+    .bsc-page-remove-btn {
+      position: absolute; top: -4px; right: -4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #dc2626; color: white; border: 2px solid white;
+      font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; padding: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    /* Rotate button — small inline icon button */
+    .bsc-queue-btn.rotate {
+      padding: 4px 8px;
+    }
+    .bsc-queue-btn.addpage {
+      border-color: var(--accent, #ea580c);
+      color: var(--accent, #ea580c);
+      background: rgba(234, 88, 12, 0.05);
+    }
+    .bsc-queue-btn.addpage:active {
+      background: rgba(234, 88, 12, 0.15);
     }
     .bsc-rename-required-badge {
       display: inline-block; margin-left: 6px;
@@ -643,7 +699,6 @@
     async _handleFiles(fileList) {
       if (!fileList?.length) return;
 
-      // Separate images (require crop) from other files (pass through)
       const incomingImages = [];
 
       for (const file of Array.from(fileList)) {
@@ -651,27 +706,50 @@
         const id = `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
         if (file.type.startsWith('image/')) {
-          const dataUrl = await this._toDataUrl(file);
-          const item = { id, file, dataUrl, name: file.name, size: file.size, type: file.type };
-          incomingImages.push(item);
+          // Auto-rotate based on EXIF orientation so portrait photos stay portrait
+          const orientation = await this._readExifOrientation(file);
+          let workingFile = file;
+          if (orientation !== 1) {
+            try {
+              workingFile = await this._bakeRotation(file, { exifOrientation: orientation });
+            } catch (e) {
+              console.warn('EXIF rotation failed, using original:', e);
+            }
+          }
+
+          const dataUrl = await this._toDataUrl(workingFile);
+          incomingImages.push({
+            id, file: workingFile, dataUrl,
+            name: file.name, size: workingFile.size, type: workingFile.type || file.type
+          });
         } else {
-          // PDFs / docs go straight to queue
+          // PDFs / docs go straight to queue (no group, no crop)
           this._queue.push({
             id, file,
             dataUrl: this._iconDataUrl(file.name),
-            name: file.name, size: file.size, type: file.type
+            name: file.name, size: file.size, type: file.type,
+            renamed: false,
+            groupId: id,        // own group of 1
+            pageIndex: 0
           });
         }
       }
 
       // Every image must be cropped — process them one at a time
       if (incomingImages.length > 0) {
+        // If we're in "add page" mode, mark these to join the target group
+        if (this._addPageTargetGroupId) {
+          incomingImages.forEach(it => {
+            it._joinGroup = this._addPageTargetGroupId;
+          });
+        }
         this._pendingCropItems = incomingImages;
         this._openCrop(this._pendingCropItems[0]);
         return;
       }
 
       // No images — just show queue
+      this._addPageTargetGroupId = null;
       this._goToView('queue');
       this._renderQueue();
     }
@@ -689,18 +767,48 @@
         return;
       }
 
-      // All items must be renamed (have item.renamed === true) before upload
-      const unnamedCount = this._queue.filter(q => !q.renamed).length;
+      // Count unnamed GROUPS (not individual pages) — one rename = whole document
+      const groupIds = new Set();
+      const unnamedGroupIds = new Set();
+      this._queue.forEach(q => {
+        const gid = q.groupId || q.id;
+        groupIds.add(gid);
+        if (!q.renamed) unnamedGroupIds.add(gid);
+      });
+      const totalGroups   = groupIds.size;
+      const unnamedCount  = unnamedGroupIds.size;
 
       if (unnamedCount > 0) {
         procBtn.disabled = true;
-        procBtn.textContent = `Rename ${unnamedCount} file${unnamedCount > 1 ? 's' : ''} to continue`;
+        procBtn.textContent = `Rename ${unnamedCount} document${unnamedCount > 1 ? 's' : ''} to continue`;
       } else {
         procBtn.disabled = false;
-        procBtn.textContent = `Convert & Upload (${this._queue.length}) →`;
+        procBtn.textContent = `Convert & Upload (${totalGroups}) →`;
       }
 
-      this._queue.forEach(item => {
+      // ── Group items by groupId so multi-page docs render as one block ──
+      const groups = [];
+      const groupMap = new Map();
+      this._queue.forEach(it => {
+        const gid = it.groupId || it.id;
+        if (!groupMap.has(gid)) {
+          const g = { id: gid, pages: [], head: null };
+          groupMap.set(gid, g);
+          groups.push(g);
+        }
+        groupMap.get(gid).pages.push(it);
+      });
+      // Sort pages within each group by pageIndex
+      groups.forEach(g => {
+        g.pages.sort((a, b) => (a.pageIndex || 0) - (b.pageIndex || 0));
+        g.head = g.pages[0];
+      });
+
+      groups.forEach(group => {
+        const item = group.head; // representative item for the group
+        const totalPages = group.pages.length;
+        const isMultiPage = totalPages > 1;
+
         const wrap = document.createElement('div');
         wrap.className = 'bsc-queue-item';
         if (!item.renamed) wrap.classList.add('bsc-needs-rename');
@@ -718,29 +826,77 @@
 
         const nameEl = document.createElement('div');
         nameEl.className = 'bsc-queue-name';
-        nameEl.textContent = item.name; nameEl.title = item.name;
+        // Show name with page count badge if multi-page
+        if (isMultiPage) {
+          nameEl.innerHTML = `${this._escapeHtml(item.name)}<span class="bsc-page-count-badge">${totalPages} pages</span>`;
+        } else {
+          nameEl.textContent = item.name;
+        }
+        nameEl.title = item.name;
+
+        // Sum sizes across all pages
+        const totalSize = group.pages.reduce((s, p) => s + (p.size || 0), 0);
 
         const metaEl = document.createElement('div');
         metaEl.className = 'bsc-queue-meta';
         if (item.renamed) {
-          metaEl.textContent = this._fmtSize(item.size);
+          metaEl.textContent = this._fmtSize(totalSize);
         } else {
-          metaEl.innerHTML = `${this._fmtSize(item.size)} <span class="bsc-rename-required-badge">RENAME REQUIRED</span>`;
+          metaEl.innerHTML = `${this._fmtSize(totalSize)} <span class="bsc-rename-required-badge">RENAME REQUIRED</span>`;
         }
 
         const btns = document.createElement('div');
         btns.className = 'bsc-queue-btns';
 
-        // Re-crop button — only for images (initial crop already happened on import)
-        if (item.type.startsWith('image/')) {
+        // Only images get image-specific buttons (rotate, re-crop, add page)
+        const isImage = item.type.startsWith('image/');
+
+        if (isImage) {
+          // ── Add Page button ──
+          const addPageBtn = document.createElement('button');
+          addPageBtn.type = 'button';
+          addPageBtn.className = 'bsc-queue-btn addpage';
+          addPageBtn.textContent = '➕ Add Page';
+          addPageBtn.addEventListener('click', () => {
+            // Mark target group, then open source picker to capture another page
+            this._addPageTargetGroupId = group.id;
+            this._goToView('sources');
+          });
+          btns.appendChild(addPageBtn);
+
+          // ── Rotate button (rotates current head; for multi-page, rotates page 1) ──
+          const rotBtn = document.createElement('button');
+          rotBtn.type = 'button';
+          rotBtn.className = 'bsc-queue-btn rotate';
+          rotBtn.textContent = '↻ Rotate';
+          rotBtn.title = 'Rotate this page 90°';
+          rotBtn.addEventListener('click', async () => {
+            rotBtn.disabled = true;
+            try {
+              const rotated = await this._bakeRotation(item.file, { rotateDeg: 90 });
+              item.file    = rotated;
+              item.size    = rotated.size;
+              item.dataUrl = await this._toDataUrl(rotated);
+              this._renderQueue();
+            } catch (e) {
+              alert('Rotate failed: ' + e.message);
+              rotBtn.disabled = false;
+            }
+          });
+          btns.appendChild(rotBtn);
+
+          // ── Re-crop button ──
           const cropBtn = document.createElement('button');
           cropBtn.type = 'button';
           cropBtn.className = 'bsc-queue-btn crop';
           cropBtn.textContent = '✂️ Re-crop';
           cropBtn.addEventListener('click', () => {
-            // Treat as single-item pending crop
+            // Preserve grouping/renaming state across the re-crop cycle
+            item._preserveGroupId   = item.groupId;
+            item._preservePageIndex = item.pageIndex;
+            item._preserveRenamed   = item.renamed;
+            item._preserveName      = item.name;
             this._pendingCropItems = [item];
-            // Remove from queue while re-cropping (will be re-added on apply)
             this._queue = this._queue.filter(q => q.id !== item.id);
             this._openCrop(item);
           });
@@ -759,6 +915,53 @@
         info.append(nameEl, metaEl, btns);
         top.append(thumb, info);
         wrap.appendChild(top);
+
+        // ── Page strip (shown only for multi-page docs) ──
+        if (isMultiPage) {
+          const strip = document.createElement('div');
+          strip.className = 'bsc-page-strip';
+
+          group.pages.forEach((page, idx) => {
+            const pageWrap = document.createElement('div');
+            pageWrap.className = 'bsc-page-thumb-wrap';
+
+            const pImg = document.createElement('img');
+            pImg.src = page.dataUrl; pImg.alt = `Page ${idx + 1}`;
+
+            const pNum = document.createElement('div');
+            pNum.className = 'bsc-page-num';
+            pNum.textContent = `${idx + 1}`;
+
+            pageWrap.append(pImg, pNum);
+
+            // Only show remove button if more than 1 page
+            if (group.pages.length > 1) {
+              const pRemove = document.createElement('button');
+              pRemove.type = 'button';
+              pRemove.className = 'bsc-page-remove-btn';
+              pRemove.textContent = '×';
+              pRemove.title = `Remove page ${idx + 1}`;
+              pRemove.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._queue = this._queue.filter(q => q.id !== page.id);
+                // Re-index remaining pages in this group
+                let newIdx = 0;
+                this._queue.forEach(q => {
+                  if (q.groupId === group.id) {
+                    q.pageIndex = newIdx++;
+                  }
+                });
+                this._renderQueue();
+              });
+              pageWrap.appendChild(pRemove);
+            }
+
+            strip.appendChild(pageWrap);
+          });
+
+          wrap.appendChild(strip);
+        }
+
         list.appendChild(wrap);
 
         // ── Rename ────────────────────────────────────────────────────────
@@ -785,11 +988,27 @@
           const panel = document.createElement('div');
           panel.className = 'bsc-rename-panel';
 
-          // Document type dropdown
+          // Document type dropdown — includes a special "Custom" option
           const sel = document.createElement('select');
           sel.className = 'bsc-rename-select';
-          sel.innerHTML = '<option value="">— Select document type —</option>' +
-            DOC_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('');
+          sel.innerHTML =
+            '<option value="">— Select document type —</option>' +
+            DOC_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('') +
+            '<option value="__custom__">✏️ Custom name...</option>';
+
+          // Custom name input (hidden unless "Custom" is chosen in the dropdown)
+          const customWrap = document.createElement('div');
+          customWrap.className = 'bsc-rename-jobinput-wrap';
+          customWrap.style.display = 'none';
+          const customLabel = document.createElement('label');
+          customLabel.className = 'bsc-rename-jobinput-label';
+          customLabel.textContent = 'Custom Name';
+          const customInput = document.createElement('input');
+          customInput.type = 'text';
+          customInput.className = 'bsc-rename-jobinput';
+          customInput.placeholder = 'e.g. site_diagram';
+          customInput.style.textTransform = 'lowercase';
+          customWrap.append(customLabel, customInput);
 
           // Job number input — pre-filled if we found one, editable either way
           const jobWrap = document.createElement('div');
@@ -820,10 +1039,10 @@
           cancelBtn.textContent = 'Cancel';
 
           row.append(applyBtn, cancelBtn);
-          panel.append(sel, jobWrap, preview, row);
+          panel.append(sel, customWrap, jobWrap, preview, row);
           wrap.appendChild(panel);
 
-          // Force uppercase, no spaces
+          // Job number — force uppercase, no spaces
           jobInput.addEventListener('input', () => {
             const cursor = jobInput.selectionStart;
             jobInput.value = jobInput.value.toUpperCase().replace(/\s/g, '');
@@ -831,48 +1050,80 @@
             updatePreview();
           });
 
+          // Custom name — lowercase, replace spaces with underscores,
+          // strip anything that isn't a-z 0-9 _ -
+          customInput.addEventListener('input', () => {
+            const cursor = customInput.selectionStart;
+            customInput.value = customInput.value
+              .toLowerCase()
+              .replace(/\s+/g, '_')
+              .replace(/[^a-z0-9_-]/g, '');
+            customInput.setSelectionRange(cursor, cursor);
+            updatePreview();
+          });
+
+          // Resolve which prefix to use — either selected DOC_TYPE or custom text
+          const getPrefix = () => {
+            if (sel.value === '__custom__') return customInput.value.trim();
+            return sel.value;
+          };
+
           const buildName = () => {
-            const type   = sel.value;
+            const prefix = getPrefix();
             const jobNum = jobInput.value.trim().toLowerCase();
-            if (!type) return null;
-            return jobNum ? `${type}_${jobNum}.pdf` : `${type}.pdf`;
+            if (!prefix) return null;
+            return jobNum ? `${prefix}_${jobNum}.pdf` : `${prefix}.pdf`;
           };
 
           const updatePreview = () => {
-            const type   = sel.value;
+            const prefix = getPrefix();
             const jobNum = jobInput.value.trim();
-            if (!type) {
-              preview.textContent = 'Select a type to preview filename';
+            if (!prefix) {
+              preview.textContent = sel.value === '__custom__'
+                ? 'Type a custom name above'
+                : 'Select a type to preview filename';
               applyBtn.disabled = true;
               return;
             }
             const jp = jobNum ? `_<span class="hi">${jobNum.toLowerCase()}</span>` : '';
-            preview.innerHTML = `${type}${jp}<span class="hi">.pdf</span>`;
+            preview.innerHTML = `${prefix}${jp}<span class="hi">.pdf</span>`;
             applyBtn.disabled = false;
           };
 
-          sel.addEventListener('change', updatePreview);
+          // Toggle custom input visibility based on dropdown choice
+          sel.addEventListener('change', () => {
+            if (sel.value === '__custom__') {
+              customWrap.style.display = '';
+              customInput.focus();
+            } else {
+              customWrap.style.display = 'none';
+            }
+            updatePreview();
+          });
 
           applyBtn.addEventListener('click', () => {
             const name = buildName();
             if (!name) return;
-            item.name = name;
-            item.renamed = true;
-            nameEl.textContent = name; nameEl.title = name;
-            // Remember the job number entered here, so subsequent renames pre-fill
+            // Apply name + renamed flag to EVERY page in this group
+            this._queue.forEach(q => {
+              if (q.groupId === group.id) {
+                q.name = name;
+                q.renamed = true;
+              }
+            });
+            // Remember the job number entered here for subsequent renames
             const enteredJob = jobInput.value.trim();
             if (enteredJob) this.options.jobNumber = enteredJob;
             panel.remove();
-            // Re-render queue so the upload button state and badges update
             this._renderQueue();
           });
 
           cancelBtn.addEventListener('click', () => panel.remove());
         });
 
-        // ── Remove ────────────────────────────────────────────────────────
+        // ── Remove (removes ENTIRE document group) ──────────────────────
         delBtn.addEventListener('click', () => {
-          this._queue = this._queue.filter(q => q.id !== item.id);
+          this._queue = this._queue.filter(q => q.groupId !== group.id);
           this._renderQueue();
         });
       });
@@ -1282,7 +1533,37 @@
           item.name = item.name.replace(/\.[^.]+$/, '') + '.jpg';
         }
 
-        // Add cropped item to queue
+        // Add cropped item to queue with grouping metadata
+        if (item._preserveGroupId !== undefined) {
+          // Re-crop: restore exactly what was there
+          item.groupId   = item._preserveGroupId;
+          item.pageIndex = item._preservePageIndex;
+          item.renamed   = item._preserveRenamed;
+          item.name      = item._preserveName;
+          delete item._preserveGroupId;
+          delete item._preservePageIndex;
+          delete item._preserveRenamed;
+          delete item._preserveName;
+        } else if (item._joinGroup) {
+          // Joining an existing document — inherit groupId and inherit renamed
+          // state from the head item
+          item.groupId = item._joinGroup;
+          const head = this._queue.find(q => q.id === item.groupId);
+          item.renamed = head ? head.renamed : false;
+          if (head) {
+            // Same name as the head so they merge into one PDF during _process
+            item.name = head.name;
+          }
+          // Append at the end of that group (pageIndex = current count of pages)
+          item.pageIndex = this._queue.filter(q => q.groupId === item.groupId).length;
+          delete item._joinGroup;
+        } else {
+          // New standalone document
+          item.groupId = item.id;
+          item.pageIndex = 0;
+          item.renamed = false;
+        }
+
         this._queue.push(item);
 
         this._cropTargetItem = null;
@@ -1308,8 +1589,9 @@
         // Next item — open crop view
         this._openCrop(this._pendingCropItems[0]);
       } else {
-        // All done — show queue
+        // All done — show queue and clear any add-page mode
         this._pendingCropItems = null;
+        this._addPageTargetGroupId = null;
         this._goToView('queue');
         this._renderQueue();
       }
@@ -1410,10 +1692,13 @@
 
     // ── PROCESS: BUILD PDF + UPLOAD ───────────────────────────────────────────
     async _process() {
-      // Defensive check — block upload if any item hasn't been renamed
-      const unnamed = this._queue.filter(q => !q.renamed);
-      if (unnamed.length > 0) {
-        alert(`${unnamed.length} file(s) still need to be renamed before uploading.\n\nTap the ✏️ Rename button on each highlighted item.`);
+      // Defensive check — block upload if any document group hasn't been renamed
+      const unnamedGroups = new Set();
+      this._queue.forEach(q => {
+        if (!q.renamed) unnamedGroups.add(q.groupId || q.id);
+      });
+      if (unnamedGroups.size > 0) {
+        alert(`${unnamedGroups.size} document(s) still need to be renamed before uploading.\n\nTap the ✏️ Rename button on each highlighted item.`);
         return;
       }
 
@@ -1425,26 +1710,31 @@
         const others = this._queue.filter(q => !q.type.startsWith('image/'));
         const uploads = [];
 
-        // Group images by their assigned filename — same name = same PDF
-        // (allows multi-page docs by giving multiple scans the same rename)
-        const imageGroups = {};
+        // Group images by groupId — each group becomes one PDF.
+        // Pages within a group are sorted by pageIndex.
+        const imageGroups = new Map();
         images.forEach(img => {
-          const key = img.name.replace(/\.[^.]+$/, '');
-          if (!imageGroups[key]) imageGroups[key] = [];
-          imageGroups[key].push(img);
+          const gid = img.groupId || img.id;
+          if (!imageGroups.has(gid)) imageGroups.set(gid, []);
+          imageGroups.get(gid).push(img);
         });
 
-        const groupKeys = Object.keys(imageGroups);
-        for (let g = 0; g < groupKeys.length; g++) {
-          const key   = groupKeys[g];
-          const group = imageGroups[key];
+        const groupIds = [...imageGroups.keys()];
+        for (let g = 0; g < groupIds.length; g++) {
+          const gid   = groupIds[g];
+          const group = imageGroups.get(gid).slice().sort(
+            (a, b) => (a.pageIndex || 0) - (b.pageIndex || 0)
+          );
+          const fileName = group[0].name.toLowerCase().endsWith('.pdf')
+            ? group[0].name
+            : group[0].name.replace(/\.[^.]+$/, '') + '.pdf';
           this._setProgress(
-            Math.round(10 + (g / groupKeys.length) * 40),
+            Math.round(10 + (g / groupIds.length) * 40),
             'Converting to PDF...',
-            `${key}.pdf`
+            `${fileName} (${group.length} page${group.length > 1 ? 's' : ''})`
           );
           const blob = await this._imagesToPdf(group);
-          uploads.push({ blob, name: `${key}.pdf`, type: 'application/pdf' });
+          uploads.push({ blob, name: fileName, type: 'application/pdf' });
         }
 
         others.forEach(q => uploads.push({ blob: q.file, name: q.name, type: q.type }));
@@ -1567,6 +1857,106 @@
       return b < 1024 ? b + ' B'
         : b < 1048576 ? (b / 1024).toFixed(1) + ' KB'
         : (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    _escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    // ── EXIF ORIENTATION ─────────────────────────────────────────────────
+    // Read EXIF orientation tag (1-8) from a JPEG file. Returns 1 if absent
+    // or non-JPEG. Used to auto-rotate phone photos to correct orientation.
+    async _readExifOrientation(file) {
+      if (!file || !file.type || !file.type.startsWith('image/jpeg')) return 1;
+
+      try {
+        const buf  = await file.slice(0, 65536).arrayBuffer();
+        const view = new DataView(buf);
+        if (view.getUint16(0) !== 0xFFD8) return 1; // not a JPEG
+
+        let offset = 2;
+        const len = view.byteLength;
+        while (offset < len) {
+          if (view.getUint16(offset) !== 0xFF00 && (view.getUint16(offset) & 0xFF00) === 0xFF00) {
+            const marker = view.getUint16(offset);
+            offset += 2;
+            // APP1 (EXIF) marker
+            if (marker === 0xFFE1) {
+              if (view.getUint32(offset + 2) !== 0x45786966) return 1; // "Exif"
+              const little = view.getUint16(offset + 8) === 0x4949;
+              const ifdOffset = view.getUint32(offset + 12, little);
+              const tagCount  = view.getUint16(offset + 8 + ifdOffset, little);
+              for (let i = 0; i < tagCount; i++) {
+                const entryOffset = offset + 8 + ifdOffset + 2 + i * 12;
+                if (view.getUint16(entryOffset, little) === 0x0112) {
+                  return view.getUint16(entryOffset + 8, little);
+                }
+              }
+              return 1;
+            } else {
+              const segLen = view.getUint16(offset, false);
+              offset += segLen;
+            }
+          } else {
+            offset++;
+          }
+        }
+      } catch (e) {
+        console.warn('EXIF read failed:', e);
+      }
+      return 1;
+    }
+
+    // Bake a rotation into the actual pixels of a blob.
+    // exifOrientation: 1..8 OR a direct angle in degrees if rotateDeg passed.
+    // Returns a new Blob (image/jpeg).
+    async _bakeRotation(fileBlob, { exifOrientation = 1, rotateDeg = 0 } = {}) {
+      // If no rotation needed at all, return as-is
+      if (exifOrientation === 1 && rotateDeg === 0) return fileBlob;
+
+      const dataUrl = await this._toDataUrl(fileBlob);
+      const img     = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+      });
+
+      // Decode EXIF orientation to rotation/flip
+      let rot = 0, flipH = false, flipV = false;
+      switch (exifOrientation) {
+        case 2: flipH = true; break;
+        case 3: rot = 180; break;
+        case 4: flipV = true; break;
+        case 5: rot = 90;  flipH = true; break;
+        case 6: rot = 90;  break;
+        case 7: rot = 270; flipH = true; break;
+        case 8: rot = 270; break;
+      }
+      // Add any user-applied rotation on top
+      rot = (rot + rotateDeg) % 360;
+
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const swap = rot === 90 || rot === 270;
+      const cw = swap ? h : w;
+      const ch = swap ? w : h;
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      ctx.rotate(rot * Math.PI / 180);
+      if (flipH) ctx.scale(-1, 1);
+      if (flipV) ctx.scale(1, -1);
+      ctx.drawImage(img, -w / 2, -h / 2);
+      ctx.restore();
+
+      return new Promise(res => {
+        canvas.toBlob(b => res(b), 'image/jpeg', 0.92);
+      });
     }
 
     _loadScript(src) {
