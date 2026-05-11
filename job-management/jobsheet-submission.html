@@ -635,7 +635,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.09</div>
+<div class="revision-number">V1.10</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -901,13 +901,14 @@
   // ============================================================
   document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('sheet_date').valueAsDate = new Date();
+    document.getElementById('sheet_date').addEventListener('change', applyDateRulesToAllLabour);
     await loadEmployees();
     addTask();
     addLabour();
     setupSignatureCanvas();
     initTheme();
     initScanner();
-    setPostJobSectionsVisible(false); // start hidden until job is picked
+    setPostJobSectionsVisible(false);
   });
 
   async function loadEmployees() {
@@ -1314,12 +1315,51 @@
     div.innerHTML = `<div class="labour-header"><span class="labour-title">Labour Entry ${id}</span>${id > 1 ? `<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>` : ''}</div>
       <div class="field-group"><label>Employee <span class="required">*</span></label><select class="labour-employee"><option value="">Select employee...</option>${opts}</select></div>
       <div class="hours-inputs">
-        <div class="field-group" style="margin-bottom:0"><label>Normal Hours</label><input type="number" class="labour-normal" min="0" max="8" step="0.25" value="0"/></div>
+        <div class="field-group" style="margin-bottom:0"><label class="labour-normal-label">Normal Hours</label><input type="number" class="labour-normal" min="0" max="8" step="0.25" value="0"/></div>
         <div class="field-group" style="margin-bottom:0"><label>Overtime Hours</label><input type="number" class="labour-overtime" min="0" step="0.25" value="0"/></div>
-      </div>`;
+      </div>
+      <div class="weekend-notice" style="display:none; margin-top:10px; font-size:0.75rem; color:var(--accent); font-style:italic;">⚠️ Weekend — all hours count as overtime</div>`;
     document.getElementById('labourContainer').appendChild(div);
+    applyDateRulesToLabour(div);
   }
   window.removeLabour = id => document.querySelector(`[data-labour-id="${id}"]`)?.remove();
+
+  function applyDateRulesToLabour(card) {
+    const dateStr = document.getElementById('sheet_date').value;
+    if (!dateStr) return;
+    const day = new Date(dateStr).getDay(); // 0=Sun, 6=Sat
+    const isWeekend = (day === 0 || day === 6);
+
+    const normalInput = card.querySelector('.labour-normal');
+    const overtimeInput = card.querySelector('.labour-overtime');
+    const notice = card.querySelector('.weekend-notice');
+    const normalLabel = card.querySelector('.labour-normal-label');
+
+    if (isWeekend) {
+      normalInput.value = 0;
+      normalInput.disabled = true;
+      normalInput.style.opacity = '0.5';
+      normalLabel.textContent = 'Normal Hours (N/A on weekends)';
+      notice.style.display = 'block';
+    } else {
+      normalInput.disabled = false;
+      normalInput.style.opacity = '1';
+      normalInput.max = 8;
+      normalLabel.textContent = 'Normal Hours (max 8)';
+      notice.style.display = 'none';
+
+      // Clamp on input
+      normalInput.addEventListener('input', () => {
+        const v = parseFloat(normalInput.value) || 0;
+        if (v > 8) normalInput.value = 8;
+        if (v < 0) normalInput.value = 0;
+      }, { once: false });
+    }
+  }
+
+  function applyDateRulesToAllLabour() {
+    document.querySelectorAll('[data-labour-id]').forEach(card => applyDateRulesToLabour(card));
+  }
 
   function addMaterial() {
     materialCount++;
@@ -1687,7 +1727,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.09`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.10`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
