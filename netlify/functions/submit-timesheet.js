@@ -20,12 +20,20 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Parse form data
-    const params = new URLSearchParams(event.body);
-    const formData = {};
-    
-    for (const [key, value] of params) {
-      formData[key] = value;
+    // Parse body — supports JSON { form, pdf } (new) or URL-encoded (legacy)
+    let formData = {};
+    let pdfAttachment = null;
+    const contentType = (event.headers['content-type'] || event.headers['Content-Type'] || '').toLowerCase();
+
+    if (contentType.includes('application/json')) {
+      const parsed = JSON.parse(event.body || '{}');
+      formData = parsed.form || {};
+      pdfAttachment = parsed.pdf || null;  // { filename, content (base64) }
+    } else {
+      const params = new URLSearchParams(event.body);
+      for (const [key, value] of params) {
+        formData[key] = value;
+      }
     }
 
     // Extract employee details
@@ -312,16 +320,43 @@ exports.handler = async (event) => {
       </html>
     `;
 
-    // Send email via SendGrid
-    const msg = {
-      to: ['servicet@bromar.com.au', employeeEmail],
+    // Send two separate emails:
+    //   1. Employee — HTML confirmation only (no attachment)
+    //   2. Admin    — same HTML + PDF attachment
+    const subject = `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`;
+
+    const employeeMsg = {
+      to: employeeEmail,
       from: 'servicet@bromar.com.au', // Must be verified in SendGrid
       replyTo: 'admin@bromar.com.au',
-      subject: `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`,
+      subject: `${subject} (Confirmation)`,
       html: emailHTML,
     };
 
-    await sgMail.send(msg);
+    const adminMsg = {
+      to: 'servicet@bromar.com.au',
+      from: 'servicet@bromar.com.au',
+      replyTo: employeeEmail || 'admin@bromar.com.au',
+      subject,
+      html: emailHTML,
+    };
+
+    if (pdfAttachment?.content) {
+      adminMsg.attachments = [{
+        content: pdfAttachment.content,
+        filename: pdfAttachment.filename || `timesheet-${employeeName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`,
+        type: 'application/pdf',
+        disposition: 'attachment'
+      }];
+      console.log('PDF attached to admin email:', adminMsg.attachments[0].filename);
+    } else {
+      console.log('No PDF attachment provided');
+    }
+
+    await Promise.all([
+      sgMail.send(employeeMsg),
+      sgMail.send(adminMsg)
+    ]);
 
     // Return success
     return {
