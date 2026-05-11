@@ -590,14 +590,36 @@
     // ── HANDLE FILES FROM INPUT ───────────────────────────────────────────────
     async _handleFiles(fileList) {
       if (!fileList?.length) return;
+
+      // Separate images (require crop) from other files (pass through)
+      const incomingImages = [];
+
       for (const file of Array.from(fileList)) {
         if (file.size > 50 * 1024 * 1024) { alert(`${file.name} exceeds 50MB`); continue; }
-        const id      = `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
-        const dataUrl = file.type.startsWith('image/')
-          ? await this._toDataUrl(file)
-          : this._iconDataUrl(file.name);
-        this._queue.push({ id, file, dataUrl, name: file.name, size: file.size, type: file.type });
+        const id = `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await this._toDataUrl(file);
+          const item = { id, file, dataUrl, name: file.name, size: file.size, type: file.type };
+          incomingImages.push(item);
+        } else {
+          // PDFs / docs go straight to queue
+          this._queue.push({
+            id, file,
+            dataUrl: this._iconDataUrl(file.name),
+            name: file.name, size: file.size, type: file.type
+          });
+        }
       }
+
+      // Every image must be cropped — process them one at a time
+      if (incomingImages.length > 0) {
+        this._pendingCropItems = incomingImages;
+        this._openCrop(this._pendingCropItems[0]);
+        return;
+      }
+
+      // No images — just show queue
       this._goToView('queue');
       this._renderQueue();
     }
@@ -644,13 +666,19 @@
         const btns = document.createElement('div');
         btns.className = 'bsc-queue-btns';
 
-        // Crop button — only for images
+        // Re-crop button — only for images (initial crop already happened on import)
         if (item.type.startsWith('image/')) {
           const cropBtn = document.createElement('button');
           cropBtn.type = 'button';
           cropBtn.className = 'bsc-queue-btn crop';
-          cropBtn.textContent = '✂️ Crop';
-          cropBtn.addEventListener('click', () => this._openCrop(item));
+          cropBtn.textContent = '✂️ Re-crop';
+          cropBtn.addEventListener('click', () => {
+            // Treat as single-item pending crop
+            this._pendingCropItems = [item];
+            // Remove from queue while re-cropping (will be re-added on apply)
+            this._queue = this._queue.filter(q => q.id !== item.id);
+            this._openCrop(item);
+          });
           btns.appendChild(cropBtn);
         }
 
@@ -1057,20 +1085,39 @@
     }
 
     _cancelCrop() {
+      // Confirm if there are more items waiting — cancelling here drops the
+      // current image but the user might still want to crop the rest.
+      const remaining = this._pendingCropItems?.length || 0;
+      if (remaining > 1) {
+        const skipAll = confirm(
+          `Skip cropping this image?\n\n` +
+          `${remaining - 1} more image(s) waiting. Tap OK to skip this one and continue, ` +
+          `or Cancel to keep cropping.`
+        );
+        if (!skipAll) return; // back to crop view
+      }
+
       this._cropTargetItem = null;
       this._cropPts = null;
-      this._goToView('queue');
+      this._advanceCropOrFinish();
     }
 
     async _applyCrop() {
       const item = this._cropTargetItem;
       if (!item || !this._cropPts) return;
 
+      // CRITICAL: capture stage dimensions BEFORE switching views.
+      // Once we go to 'progress', the crop stage has 0×0 dimensions and
+      // the coord mapping would produce NaN.
+      const stage     = this._el.querySelector('.bsc-crop-stage');
+      const stageRect = stage.getBoundingClientRect();
+      const cropPtsCopy = this._cropPts.map(p => ({ x: p.x, y: p.y }));
+
       this._goToView('progress');
       this._setProgress(20, 'Cropping...', 'Applying perspective correction');
 
       try {
-        const newBlob = await this._perspectiveCrop(item.file, this._cropPts);
+        const newBlob = await this._perspectiveCrop(item.file, cropPtsCopy, stageRect);
         this._setProgress(80, 'Updating preview...', '');
 
         // Replace item.file and dataUrl
@@ -1084,19 +1131,40 @@
           item.name = item.name.replace(/\.[^.]+$/, '') + '.jpg';
         }
 
+        // Add cropped item to queue
+        this._queue.push(item);
+
         this._cropTargetItem = null;
         this._cropPts = null;
 
-        this._goToView('queue');
-        this._renderQueue();
+        // Advance to next pending crop, or back to queue
+        this._advanceCropOrFinish();
       } catch (err) {
         console.error('[BromarScanner] Crop error:', err);
         alert('Crop failed: ' + err.message);
-        this._goToView('queue');
+        // Skip this item but continue with the rest
+        this._advanceCropOrFinish();
       }
     }
 
-    async _perspectiveCrop(fileBlob, displayPts) {
+    _advanceCropOrFinish() {
+      // Remove the just-completed item from the pending queue
+      if (this._pendingCropItems?.length) {
+        this._pendingCropItems.shift();
+      }
+
+      if (this._pendingCropItems?.length) {
+        // Next item — open crop view
+        this._openCrop(this._pendingCropItems[0]);
+      } else {
+        // All done — show queue
+        this._pendingCropItems = null;
+        this._goToView('queue');
+        this._renderQueue();
+      }
+    }
+
+    async _perspectiveCrop(fileBlob, displayPts, stageRect) {
       // Load image at full resolution
       const dataUrl = await this._toDataUrl(fileBlob);
       const img     = await new Promise((res, rej) => {
@@ -1108,10 +1176,14 @@
 
       // Map display coords → source image coords.
       // Image was object-fit:contain inside the stage, so we account for letterbox.
-      const stage     = this._el.querySelector('.bsc-crop-stage');
-      const stageRect = stage.getBoundingClientRect();
+      // stageRect is passed in because by the time we run, the stage is hidden
+      // (view switched to 'progress') and would report 0×0 dimensions.
       const sW = stageRect.width, sH = stageRect.height;
       const nW = img.naturalWidth, nH = img.naturalHeight;
+
+      if (!sW || !sH || !nW || !nH) {
+        throw new Error('Invalid image or stage dimensions');
+      }
 
       const stageAspect = sW / sH;
       const imgAspect   = nW / nH;
