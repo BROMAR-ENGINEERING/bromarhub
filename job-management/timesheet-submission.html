@@ -3,8 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Employee Timesheet Submission</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <title>Employee Timesheet Submission - Bromar Hub</title>
+  
+  <!-- Supabase Auth -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Bromar Hub Shared Styles -->
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  
+  <!-- Timesheet-Specific Overrides -->
   <style>
     :root {
       --brand-primary: #1a56db;
@@ -971,7 +978,7 @@
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">EMAIL: <a href="mailto:admin@bromar.com.au" style="color: var(--brand-orange); text-decoration: none;">admin@bromar.com.au</a>  |  REC: 30340</p>
         <p style="margin: 4px 0; font-size: 0.875rem; color: var(--text-secondary);">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.01</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.03</p>
       </div>
     </div>
   </div>
@@ -2332,5 +2339,12 @@
     }
   });
 </script>
+
+<!-- Bromar Hub Auth -->
+<script src="/tools/auth.js"></script>
+
+<!-- Bromar Hub Shared JS -->
+<script src="../tools/bromar-hub.js" defer></script>
+
 </body>
 </html>
