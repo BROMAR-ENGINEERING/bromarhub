@@ -25,15 +25,33 @@ exports.handler = async (event) => {
     let pdfAttachment = null;
     const contentType = (event.headers['content-type'] || event.headers['Content-Type'] || '').toLowerCase();
 
+    // Netlify may base64-encode the body for binary or large payloads
+    let rawBody = event.body || '';
+    if (event.isBase64Encoded) {
+      rawBody = Buffer.from(rawBody, 'base64').toString('utf8');
+    }
+
+    console.log('=== REQUEST DEBUG ===');
+    console.log('Content-Type:', contentType);
+    console.log('isBase64Encoded:', !!event.isBase64Encoded);
+    console.log('Body length:', rawBody.length);
+
     if (contentType.includes('application/json')) {
-      const parsed = JSON.parse(event.body || '{}');
+      const parsed = JSON.parse(rawBody || '{}');
       formData = parsed.form || {};
       pdfAttachment = parsed.pdf || null;  // { filename, content (base64) }
+      console.log('Parsed form fields:', Object.keys(formData).length);
+      console.log('PDF attachment present:', !!pdfAttachment);
+      if (pdfAttachment) {
+        console.log('  filename:', pdfAttachment.filename);
+        console.log('  content length:', pdfAttachment.content?.length || 0);
+      }
     } else {
-      const params = new URLSearchParams(event.body);
+      const params = new URLSearchParams(rawBody);
       for (const [key, value] of params) {
         formData[key] = value;
       }
+      console.log('Parsed URL-encoded fields:', Object.keys(formData).length);
     }
 
     // Extract employee details
