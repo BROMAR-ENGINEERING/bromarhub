@@ -574,24 +574,27 @@
       <!-- CLIENT SIGN-OFF -->
       <div class="signature-section" id="signatureSection">
         <div class="section-label">Client Sign-Off</div>
+
+        <!-- Email field always required when service report is on -->
+        <div class="field-group" style="margin-bottom: 1rem;">
+          <label for="signoff_email">Client Email Address <span class="required">*</span></label>
+          <input type="email" id="signoff_email" placeholder="client@example.com"/>
+          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">A copy of the report will be sent to this address.</div>
+        </div>
+
         <div class="job-number-toggle" style="margin-bottom: 0;">
           <div class="radio-option">
             <input type="radio" id="signoff_none" name="signoff_method" value="none" checked/>
-            <label for="signoff_none">⏭️ Skip Sign-Off</label>
+            <label for="signoff_none">⏭️ Skip Sign-Off<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Email PDF only</span></label>
           </div>
           <div class="radio-option">
             <input type="radio" id="signoff_inperson" name="signoff_method" value="in_person"/>
-            <label for="signoff_inperson">✍️ Sign Now (In Person)</label>
+            <label for="signoff_inperson">✍️ Sign Now<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Sign in person now</span></label>
           </div>
           <div class="radio-option">
             <input type="radio" id="signoff_remote" name="signoff_method" value="remote"/>
-            <label for="signoff_remote">📧 Email Link to Client</label>
+            <label for="signoff_remote">📧 Email Link<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Client signs remotely</span></label>
           </div>
-        </div>
-        <div id="remoteEmailField" style="display: none; margin-top: 12px;">
-          <label for="signoff_email">Client Email Address <span class="required">*</span></label>
-          <input type="email" id="signoff_email" placeholder="client@example.com"/>
-          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">A signing link will be emailed to the client. Link expires in 30 days.</div>
         </div>
       </div>
 
@@ -632,7 +635,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.06</div>
+<div class="revision-number">V1.09</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -793,25 +796,63 @@
       const sizeKB = (f.size / 1024).toFixed(1);
       const presetTags = ['progress', 'before', 'after', 'electrical', 'safety', 'scanned'];
       const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
+      const isScanned = (f.tags || []).includes('scanned');
+
+      // Split filename into base + extension so user can rename without breaking the ext
+      const dotIdx = f.name.lastIndexOf('.');
+      const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+      const baseName = dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name;
+
+      // Validation: rename required (base name and type both non-empty)
+      const renameValid = (f.renameBase || baseName).trim().length > 0;
+      const typeValid = (f.fileTypeLabel || '').trim().length > 0;
+
       return `
         <div class="file-item" style="flex-direction: column; align-items: stretch;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
             <div class="file-info">
               <div class="file-icon">${icon}</div>
               <div class="file-details">
-                <div class="file-name">${escapeHtml(f.name)}</div>
-                <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}</div>
+                <div class="file-name" style="word-break: break-all;">${escapeHtml(f.name)}</div>
+                <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}${isScanned ? ' · <span style="color:var(--accent)">📄 Scanned</span>' : ''}</div>
               </div>
             </div>
             <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
           </div>
-          <div style="margin-top: 10px;">
+
+          <!-- Rename + Type fields -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+            <div>
+              <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Filename <span style="color: var(--accent);">*</span></label>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <input type="text"
+                       value="${escapeHtml(f.renameBase ?? baseName)}"
+                       oninput="updateFileRename(${f.id}, this.value)"
+                       placeholder="e.g. site-plan"
+                       style="flex: 1; padding: 7px 10px; font-size: 0.85rem; min-width: 0;${renameValid ? '' : 'border-color: var(--error);'}"/>
+                <span style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">${escapeHtml(ext)}</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Type <span style="color: var(--accent);">*</span></label>
+              <input type="text"
+                     value="${escapeHtml(f.fileTypeLabel || '')}"
+                     oninput="updateFileType(${f.id}, this.value)"
+                     placeholder="e.g. SWMS, Invoice"
+                     style="width: 100%; padding: 7px 10px; font-size: 0.85rem;${typeValid ? '' : 'border-color: var(--error);'}"/>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div style="margin-top: 8px;">
             <input type="text" placeholder="Description (optional)" value="${escapeHtml(f.description || '')}"
                    oninput="updateFileDescription(${f.id}, this.value)"
-                   style="width: 100%; padding: 8px 10px; font-size: 0.85rem;"/>
+                   style="width: 100%; padding: 7px 10px; font-size: 0.85rem;"/>
           </div>
+
+          <!-- Tags -->
           <div class="file-tags" style="margin-top: 10px;">
-            ${presetTags.map(t => `<span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" onclick="toggleTag(${f.id}, '${t}')">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
+            ${presetTags.filter(t => t !== 'scanned').map(t => `<span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" onclick="toggleTag(${f.id}, '${t}')">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
             ${customTags.map(t => `<span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">${escapeHtml(t)} ×</span>`).join('')}
             <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">+ Custom</span>
           </div>
@@ -819,6 +860,16 @@
       `;
     }).join('');
   }
+
+  window.updateFileRename = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.renameBase = value;
+    // Don't re-render - would lose focus
+  };
+  window.updateFileType = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.fileTypeLabel = value;
+  };
 
   window.toggleTag = function(fileId, tag) {
     const file = uploadedFiles.find(f => f.id === fileId);
@@ -1104,13 +1155,6 @@
     document.getElementById('signatureSection').classList.toggle('show', this.checked);
   });
 
-  document.querySelectorAll('input[name="signoff_method"]').forEach(r => {
-    r.addEventListener('change', () => {
-      document.getElementById('remoteEmailField').style.display =
-        document.querySelector('input[name="signoff_method"]:checked').value === 'remote' ? 'block' : 'none';
-    });
-  });
-
   // ============================================================
   // SIGNATURE PAD
   // ============================================================
@@ -1157,7 +1201,10 @@
   // ============================================================
   // SIGN-OFF MODAL
   // ============================================================
-  async function openSignoffModal(jobSheetNumber, jobNumber) {
+  let pendingSignoffEmail = null;
+
+  async function openSignoffModal(jobSheetNumber, jobNumber, clientEmail) {
+    pendingSignoffEmail = clientEmail || null;
     document.getElementById('signoffSummary').innerHTML = buildSummaryHTML(jobSheetNumber, jobNumber);
     document.getElementById('signoffModal').classList.add('show');
     setTimeout(() => { const c = document.getElementById('signatureCanvas'); const r = c.getBoundingClientRect(); c.width = r.width; c.height = r.height; }, 50);
@@ -1199,8 +1246,42 @@
       const { error } = await sb.from('job_sheets').update({ client_signature_data: getSignatureData(), client_signature_name: sigName, client_signature_date: new Date().toISOString(), signing_status: 'signed', signing_method: 'in_person' }).eq('job_sheet_number', currentJobSheetNumber);
       if (error) throw error;
       document.getElementById('signoffModal').classList.remove('show');
-      hideLoading();
-      showSuccess('Service report signed and saved');
+
+      // Generate signed PDF and email to client
+      if (pendingSignoffEmail) {
+        showLoading('Generating signed PDF...', 'Preparing report');
+        try {
+          const pdf = await generatePDF();
+          const pdfBlob = pdf.output('blob');
+
+          const pdfPath = `${currentJobNumber}/service-reports/signed-${currentJobSheetNumber}.pdf`;
+          await sb.storage.from('job-sheet-files').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+          showLoading('Emailing signed report...', pendingSignoffEmail);
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          const emailResp = await sb.functions.invoke('send-signed-report', {
+            body: {
+              recipientEmail: pendingSignoffEmail,
+              jobSheetNumber: currentJobSheetNumber,
+              clientName: selectedJobData?.client_name || '',
+              signedByName: sigName,
+              pdfBase64
+            }
+          });
+          hideLoading();
+          if (emailResp.error) {
+            showInfo('Signature saved but email failed: ' + emailResp.error.message);
+          } else {
+            showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
+          }
+        } catch (err) {
+          hideLoading();
+          showInfo('Signature saved but PDF/email failed: ' + err.message);
+        }
+      } else {
+        hideLoading();
+        showSuccess('Service report signed and saved');
+      }
       document.getElementById('pdfActions').classList.add('show');
     } catch (err) { hideLoading(); alert('Error: ' + err.message); }
   });
@@ -1287,6 +1368,19 @@
       const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
       if (!tasks.length) throw new Error('Please add at least one task');
 
+      // Validate every file has filename + type filled in
+      if (uploadedFiles.length > 0) {
+        const invalid = uploadedFiles.find(f => {
+          const dotIdx = f.name.lastIndexOf('.');
+          const baseName = (f.renameBase ?? (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+          const typeLabel = (f.fileTypeLabel || '').trim();
+          return !baseName || !typeLabel;
+        });
+        if (invalid) {
+          throw new Error('Every file needs a filename and a type before uploading');
+        }
+      }
+
       const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normalHours: parseFloat(c.querySelector('.labour-normal').value) || 0, overtimeHours: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
       const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({ name: c.querySelector('.material-name').value.trim(), quantity: parseFloat(c.querySelector('.material-qty').value) || 0, unit: c.querySelector('.material-unit').value })).filter(m => m.name);
       const notes = Array.from(document.querySelectorAll('.note-card')).map(c => ({ text: c.querySelector('.note-text').value.trim(), notifyPerson: c.querySelector('.note-notify').value })).filter(n => n.text);
@@ -1306,31 +1400,95 @@
         await uploadFilesToSupabase(jobSheetNumber, jobNumber, pendingFiles);
       }
 
-      // Record scanner-uploaded files in DB
+      // Record scanner-uploaded files in DB (already in storage; just save metadata + user rename)
       const alreadyUploaded = uploadedFiles.filter(f => f.alreadyUploaded && f.supabasePath);
       for (const f of alreadyUploaded) {
-        await sb.from('job_sheet_files').insert({ job_sheet_number: jobSheetNumber, job_number: jobNumber, file_name: f.name, file_path: f.supabasePath, file_type: f.type, file_size: f.size, file_category: f.type.startsWith('image/') ? 'photo' : 'document', tags: f.tags, description: f.description || null, uploaded_by: currentUser?.name || 'Unknown' });
+        const dotIdx = f.name.lastIndexOf('.');
+        const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+        const baseName = (f.renameBase || (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+        const displayName = baseName.replace(/[^\w\-.\s]/g, '_') + ext;
+        await sb.from('job_sheet_files').insert({
+          job_sheet_number: jobSheetNumber,
+          job_number: jobNumber,
+          file_name: displayName,
+          file_path: f.supabasePath,
+          file_type: f.type,
+          file_size: f.size,
+          file_category: f.type.startsWith('image/') ? 'photo' : 'document',
+          tags: f.tags,
+          description: f.description || null,
+          type_label: (f.fileTypeLabel || '').trim() || null,
+          uploaded_by: currentUser?.name || 'Unknown'
+        });
       }
 
       const isServiceReport = document.getElementById('isServiceReport').checked;
       if (isServiceReport) {
         const reportSections = { labour: document.getElementById('include_labour').checked, tasks: document.getElementById('include_tasks').checked, materials: document.getElementById('include_materials').checked, photos: document.getElementById('include_photos').checked, notes: document.getElementById('include_notes').checked };
         const signoffMethod = document.querySelector('input[name="signoff_method"]:checked').value;
+        const clientEmail = document.getElementById('signoff_email').value.trim();
+
+        // Email is always required when service report is enabled
+        if (!clientEmail || !clientEmail.includes('@')) {
+          throw new Error('Please enter a valid client email address');
+        }
+
         await sb.from('job_sheets').update({ is_service_report: true, report_sections: reportSections }).eq('job_sheet_number', jobSheetNumber);
 
         hideLoading();
-        if (signoffMethod === 'in_person') { await openSignoffModal(jobSheetNumber, jobNumber); return; }
+
+        if (signoffMethod === 'in_person') {
+          // Open signing modal; after signing, PDF will email to client
+          await openSignoffModal(jobSheetNumber, jobNumber, clientEmail);
+          return;
+        }
+
         if (signoffMethod === 'remote') {
-          const remoteEmail = document.getElementById('signoff_email').value.trim();
-          if (!remoteEmail?.includes('@')) throw new Error('Please enter a valid client email');
-          showLoading('Sending to client...', remoteEmail);
-          const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', { p_job_sheet_number: jobSheetNumber, p_recipient_email: remoteEmail, p_expires_days: 30 });
+          // Generate signing token + email link
+          showLoading('Sending signing link...', clientEmail);
+          const { data: token, error: tokenErr } = await sb.rpc('generate_signing_token', { p_job_sheet_number: jobSheetNumber, p_recipient_email: clientEmail, p_expires_days: 30 });
           if (tokenErr) throw tokenErr;
           const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
-          await sb.functions.invoke('send-signing-link', { body: { recipientEmail: remoteEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
+          await sb.functions.invoke('send-signing-link', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
           hideLoading();
-          showSuccess(`Signing link sent to ${remoteEmail}`);
+          showSuccess(`Signing link sent to ${clientEmail}`);
         }
+
+        if (signoffMethod === 'none') {
+          // Skip sign-off: generate PDF and email it directly to client (no signature)
+          showLoading('Generating PDF...', 'Preparing report');
+          try {
+            const pdf = await generatePDF();
+            const pdfBlob = pdf.output('blob');
+
+            // Upload PDF
+            const pdfPath = `${jobNumber}/service-reports/${jobSheetNumber}.pdf`;
+            await sb.storage.from('job-sheet-files').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+            // Email the report
+            showLoading('Emailing report...', clientEmail);
+            const pdfBase64 = pdf.output('datauristring').split(',')[1];
+            const emailResp = await sb.functions.invoke('send-signed-report', {
+              body: {
+                recipientEmail: clientEmail,
+                jobSheetNumber,
+                clientName: selectedJobData?.client_name || '',
+                signedByName: '(No signature required)',
+                pdfBase64
+              }
+            });
+            hideLoading();
+            if (emailResp.error) {
+              showInfo('PDF saved but email failed: ' + emailResp.error.message);
+            } else {
+              showSuccess(`Report emailed to ${clientEmail}`);
+            }
+          } catch (err) {
+            hideLoading();
+            showInfo('Could not generate/email report: ' + err.message);
+          }
+        }
+
         document.getElementById('pdfActions').classList.add('show');
         document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
       } else {
@@ -1347,10 +1505,29 @@
 
   async function uploadFilesToSupabase(jobSheetNumber, jobNumber, files) {
     for (const f of files) {
-      const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${f.name}`;
+      // Apply rename: base + original extension
+      const dotIdx = f.name.lastIndexOf('.');
+      const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+      const baseName = (f.renameBase || (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+      const safeName = baseName.replace(/[^\w\-.\s]/g, '_') + ext;
+      const finalName = safeName;
+
+      const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${finalName}`;
       const { error: uploadErr } = await sb.storage.from('job-sheet-files').upload(filePath, f.file, { cacheControl: '3600', upsert: false });
       if (uploadErr) throw uploadErr;
-      await sb.from('job_sheet_files').insert({ job_sheet_number: jobSheetNumber, job_number: jobNumber, file_name: f.name, file_path: filePath, file_type: f.type, file_size: f.size, file_category: f.type.startsWith('image/') ? 'photo' : 'document', tags: f.tags, description: f.description || null, uploaded_by: currentUser?.name || 'Unknown' });
+      await sb.from('job_sheet_files').insert({
+        job_sheet_number: jobSheetNumber,
+        job_number: jobNumber,
+        file_name: finalName,
+        file_path: filePath,
+        file_type: f.type,
+        file_size: f.size,
+        file_category: f.type.startsWith('image/') ? 'photo' : 'document',
+        tags: f.tags,
+        description: f.description || null,
+        type_label: (f.fileTypeLabel || '').trim() || null,
+        uploaded_by: currentUser?.name || 'Unknown'
+      });
     }
   }
 
@@ -1510,7 +1687,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.06`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.09`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
