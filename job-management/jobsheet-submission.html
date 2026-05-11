@@ -639,7 +639,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.16</div>
+<div class="revision-number">V1.17</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -802,13 +802,10 @@
       const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
       const isScanned = (f.tags || []).includes('scanned');
 
-      // Split filename into base + extension so user can rename without breaking the ext
       const dotIdx = f.name.lastIndexOf('.');
       const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
       const baseName = dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name;
-
-      // Validation: rename required (base name and type both non-empty)
-      const renameValid = (f.renameBase || baseName).trim().length > 0;
+      const renameValid = (f.renameBase ?? baseName).trim().length > 0;
       const typeValid = (f.fileTypeLabel || '').trim().length > 0;
 
       return `
@@ -824,7 +821,8 @@
             <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
           </div>
 
-          <!-- Rename + Type fields -->
+          ${isScanned ? '' : `
+          <!-- Rename + Type — only for non-scanned files -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
             <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Filename <span style="color: var(--accent);">*</span></label>
@@ -846,20 +844,23 @@
                      style="width: 100%; padding: 7px 10px; font-size: 0.85rem;${typeValid ? '' : 'border-color: var(--error);'}"/>
             </div>
           </div>
+          `}
 
-          <!-- Description -->
+          <!-- Description — all files -->
           <div style="margin-top: 8px;">
             <input type="text" placeholder="Description (optional)" value="${escapeHtml(f.description || '')}"
                    oninput="updateFileDescription(${f.id}, this.value)"
                    style="width: 100%; padding: 7px 10px; font-size: 0.85rem;"/>
           </div>
 
-          <!-- Tags -->
+          ${isScanned ? '' : `
+          <!-- Tags — only for non-scanned files -->
           <div class="file-tags" style="margin-top: 10px;">
             ${presetTags.filter(t => t !== 'scanned').map(t => `<span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" onclick="toggleTag(${f.id}, '${t}')">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
             ${customTags.map(t => `<span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">${escapeHtml(t)} ×</span>`).join('')}
             <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">+ Custom</span>
           </div>
+          `}
         </div>
       `;
     }).join('');
@@ -1479,14 +1480,12 @@
       // Validate every file has filename + type filled in
       if (uploadedFiles.length > 0) {
         const invalid = uploadedFiles.find(f => {
+          if ((f.tags || []).includes('scanned')) return false; // scanner handles naming
           const dotIdx = f.name.lastIndexOf('.');
           const baseName = (f.renameBase ?? (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
-          const typeLabel = (f.fileTypeLabel || '').trim();
-          return !baseName || !typeLabel;
+          return !baseName || !(f.fileTypeLabel || '').trim();
         });
-        if (invalid) {
-          throw new Error('Every file needs a filename and a type before uploading');
-        }
+        if (invalid) throw new Error('Every file needs a filename and a type before uploading');
       }
 
       const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normalHours: parseFloat(c.querySelector('.labour-normal').value) || 0, overtimeHours: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
@@ -1789,7 +1788,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.16`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.17`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
