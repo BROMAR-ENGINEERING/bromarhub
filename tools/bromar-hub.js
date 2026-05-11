@@ -1,6 +1,9 @@
 /* ============================================================
    BROMAR HUB — SHARED JAVASCRIPT
-   Import this on every hub page AFTER the Supabase CDN script:
+   Import this on every hub page AFTER the Supabase CDN script and auth.js:
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <script src="/tools/auth.js"></script>
+     <link rel="stylesheet" href="../tools/bromar-hub.css"/>
      <script src="../tools/bromar-hub.js" defer></script>
    ============================================================
 
