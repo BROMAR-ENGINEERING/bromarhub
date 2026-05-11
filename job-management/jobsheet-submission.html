@@ -468,7 +468,7 @@
               <span id="detail-address" style="color: var(--text-secondary); font-size: 0.8rem;"></span>
             </div>
             <div id="detail-sheet-preview" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">
-              Next sheet: <span id="detail-sheet-number" style="font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600;">loading...</span>
+              Job Sheet: <span id="detail-sheet-number" style="font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600;">loading...</span>
             </div>
           </div>
         </div>
@@ -607,6 +607,7 @@
       <div class="form-divider"></div>
       <div class="submit-row">
         <span class="submit-note">* Required fields</span>
+        <span id="submitSheetNumber" style="display:none; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-right: auto;"></span>
         <button type="reset" class="btn-secondary">Clear</button>
         <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
       </div>
@@ -638,7 +639,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.15</div>
+<div class="revision-number">V1.16</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1067,10 +1068,17 @@
       .then(({ data }) => {
         const next = data ? data.last_sequence + 1 : 1;
         const padded = String(next).padStart(3, '0');
-        document.getElementById('detail-sheet-number').textContent = `${job.job_number}-JS${padded}`;
+        const sheetNum = `${job.job_number}-JS${padded}`;
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').style.display = 'inline';
+        document.getElementById('submit-note') && (document.getElementById('submit-note').style.display = 'none');
       })
       .catch(() => {
-        document.getElementById('detail-sheet-number').textContent = `${job.job_number}-JS001`;
+        const sheetNum = `${job.job_number}-JS001`;
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').style.display = 'inline';
       });
   }
 
@@ -1157,12 +1165,15 @@
       document.getElementById('newJobCreatedNumber').textContent = newJobNum;
       document.getElementById('newJobCreatedNotice').classList.add('show');
 
-      // Show next sheet number (always JS001 for a brand new job)
+      // Show this job sheet number (always JS001 for a brand new job)
+      const sheetNum = `${newJobNum}-JS001`;
       const sheetPreview = document.getElementById('detail-sheet-preview');
       if (sheetPreview) {
         sheetPreview.style.display = 'block';
-        document.getElementById('detail-sheet-number').textContent = `${newJobNum}-JS001`;
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
       }
+      document.getElementById('submitSheetNumber').textContent = sheetNum;
+      document.getElementById('submitSheetNumber').style.display = 'inline';
 
       // Reveal the rest of the form
       setPostJobSectionsVisible(true);
@@ -1778,7 +1789,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.15`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.16`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
