@@ -433,14 +433,15 @@
       display: flex; flex-direction: column; gap: 8px;
     }
     .bsc-crop-utility-row {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;
     }
     .bsc-crop-utility {
-      padding: 10px 6px; border: 1.5px solid var(--border, #e5e7eb);
+      padding: 10px 4px; border: 1.5px solid var(--border, #e5e7eb);
       border-radius: 10px; background: transparent;
-      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      font-family: inherit; font-size: 0.78rem; font-weight: 600;
       cursor: pointer; color: var(--text-secondary, #666);
       -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
     }
     .bsc-crop-utility:active {
       border-color: var(--accent, #ea580c);
@@ -627,6 +628,7 @@
               <p class="bsc-crop-hint">Auto-detected corners shown — drag any to adjust, then Apply</p>
               <div class="bsc-crop-actions">
                 <div class="bsc-crop-utility-row">
+                  <button class="bsc-crop-utility" data-action="crop-autodetect">⚡ Auto</button>
                   <button class="bsc-crop-utility" data-action="crop-rotate">↻ Rotate</button>
                   <button class="bsc-crop-utility" data-action="crop-reset">↺ Reset</button>
                   <button class="bsc-crop-utility" data-action="crop-cancel">Cancel</button>
@@ -691,6 +693,7 @@
       el.querySelector('[data-action="process"]').addEventListener('click',   () => this._process());
 
       // Crop view buttons
+      el.querySelector('[data-action="crop-autodetect"]').addEventListener('click', () => this._runAutoDetect());
       el.querySelector('[data-action="crop-rotate"]').addEventListener('click', () => this._rotateCropImage());
       el.querySelector('[data-action="crop-reset"]').addEventListener('click',  () => this._resetCrop());
       el.querySelector('[data-action="crop-cancel"]').addEventListener('click', () => this._cancelCrop());
@@ -1349,10 +1352,24 @@
       // Map each detected point from image coords → stage display coords.
       // Clamp into the IMAGE rendered area (not the full stage) so handles
       // never land in the letterbox region.
-      this._cropPts = imageQuad.map(p => ({
+      const newPts = imageQuad.map(p => ({
         x: Math.max(offX, Math.min(offX + rendW, offX + (p.x / natW) * rendW)),
         y: Math.max(offY, Math.min(offY + rendH, offY + (p.y / natH) * rendH)),
       }));
+
+      // IMPORTANT: mutate the existing this._cropPts objects in place instead
+      // of replacing the array. Each crop handle's drag closure holds a
+      // reference to its specific point object — if we replaced the array,
+      // the handles would update orphaned objects while the overlay reads
+      // the new ones (which is what made dragging appear to do nothing).
+      if (this._cropPts && this._cropPts.length === 4) {
+        newPts.forEach((np, idx) => {
+          this._cropPts[idx].x = np.x;
+          this._cropPts[idx].y = np.y;
+        });
+      } else {
+        this._cropPts = newPts;
+      }
 
       // Reposition the existing handles in the DOM
       const handles = stage.querySelectorAll('.bsc-crop-handle');
@@ -1616,6 +1633,49 @@
       const stage = this._el.querySelector('.bsc-crop-stage');
       const img   = this._el.querySelector('.bsc-crop-img');
       this._setupCropHandles(stage, img);
+    }
+
+    // Manually re-run OpenCV auto-detect on the current crop image. Useful when
+    // the initial detection fired before OpenCV was fully ready, or when the
+    // user has manually adjusted handles and wants to snap back to detected.
+    async _runAutoDetect() {
+      const view       = this._el.querySelector('[data-view="crop"]');
+      const stage      = view.querySelector('.bsc-crop-stage');
+      const img        = view.querySelector('.bsc-crop-img');
+      const status     = view.querySelector('.bsc-crop-status');
+      const statusText = view.querySelector('.bsc-crop-status-text');
+      const autoBtn    = view.querySelector('[data-action="crop-autodetect"]');
+
+      if (!img || !img.src) return;
+
+      autoBtn.disabled = true;
+      status.classList.remove('success', 'fail');
+      status.classList.add('bsc-crop-status-on');
+
+      try {
+        const cvReady = !!(window.cv && window.cv.imread);
+        statusText.textContent = cvReady ? 'Detecting edges...' : 'Loading detector...';
+        await this._ensureOpenCV();
+
+        statusText.textContent = 'Detecting edges...';
+        const quad = await this._autoDetectCorners(img);
+
+        if (quad) {
+          this._applyAutoQuad(stage, quad);
+          statusText.textContent = '✓ Edges detected — adjust if needed';
+          status.classList.add('success');
+        } else {
+          statusText.textContent = 'No clear edges found — drag corners manually';
+          status.classList.add('fail');
+        }
+      } catch (err) {
+        console.warn('[BromarScanner] Manual auto-detect error:', err);
+        statusText.textContent = 'Auto-detect unavailable — drag manually';
+        status.classList.add('fail');
+      } finally {
+        autoBtn.disabled = false;
+        setTimeout(() => status.classList.remove('bsc-crop-status-on'), 3000);
+      }
     }
 
     // Rotate the image currently being cropped by 90° clockwise.
