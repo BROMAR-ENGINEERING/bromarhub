@@ -476,20 +476,37 @@
 
         <div id="new-job-fields" class="job-number-fields">
           <div class="field-row">
-            <div class="field-group">
-              <label for="new_prefix">Project Type <span class="required">*</span></label>
-              <select id="new_prefix">
-                <option value="">Select type...</option>
-                <option value="BE">BE – Legacy & Projects</option>
-                <option value="BC">BC – Construction</option>
-                <option value="BA">BA – Automation & Engineering</option>
-                <option value="BS">BS – Service</option>
-                <option value="BM">BM – Maintenance</option>
+            <div class="field-group full">
+              <label for="new_job_type">Job Type <span class="required">*</span></label>
+              <select id="new_job_type">
+                <option value="">Select job type...</option>
+                <optgroup label="Maintenance — BM">
+                  <option value="BM|Maintenance">Maintenance</option>
+                  <option value="BM|Shift Coverage">Shift Coverage</option>
+                </optgroup>
+                <optgroup label="Service — BS">
+                  <option value="BS|Callout">Callout</option>
+                  <option value="BS|Breakdown">Breakdown</option>
+                </optgroup>
+                <optgroup label="Construction — BC">
+                  <option value="BC|Temporary Wiring">Temporary Wiring</option>
+                  <option value="BC|General Construction">General Construction</option>
+                  <option value="BC|Test & Tag">Test &amp; Tag</option>
+                  <option value="BC|RCD Testing">RCD Testing</option>
+                </optgroup>
+                <optgroup label="Automation — BA">
+                  <option value="BA|Programming">Programming</option>
+                  <option value="BA|CAD Drawings">CAD Drawings</option>
+                </optgroup>
               </select>
             </div>
+            <div class="field-group" style="display:none;">
+              <!-- Hidden prefix field auto-set from job type -->
+              <input type="hidden" id="new_prefix"/>
+            </div>
             <div class="field-group">
-              <label>Next Job Number</label>
-              <input type="text" id="next_job_preview" disabled style="font-weight: 700; color: var(--accent);" placeholder="Select type first..."/>
+              <label>Job Number</label>
+              <input type="text" id="next_job_preview" disabled style="font-weight: 700; color: var(--accent);" placeholder="Select job type first..."/>
             </div>
           </div>
           <div class="field-group full">
@@ -644,7 +661,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.18</div>
+<div class="revision-number">V1.20</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -700,8 +717,6 @@
 
   let EMPLOYEES = [];
   let currentUser = null;
-  const NOTIFY_PEOPLE = ['Manager', 'Project Manager', 'Safety Officer', 'Admin', 'Accounts', 'Procurement', 'Estimator'];
-
   let selectedJobData = null;
   let uploadedFiles = [];
   let currentJobSheetNumber = null;
@@ -1007,6 +1022,7 @@
         document.getElementById('newJobCreatedNotice').classList.remove('show');
         // Unlock the new-job fields in case they swap back
         document.getElementById('new_prefix').disabled = false;
+        document.getElementById('new_job_type').disabled = false;
         document.getElementById('new_client_name').disabled = false;
         document.getElementById('new_site_name').disabled = false;
         document.getElementById('new_site_address').disabled = false;
@@ -1104,17 +1120,21 @@
   // ============================================================
   // NEW JOB — auto-create as soon as required fields filled
   // ============================================================
-  document.getElementById('new_prefix').addEventListener('change', async function() {
+  document.getElementById('new_job_type').addEventListener('change', async function() {
     const preview = document.getElementById('next_job_preview');
-    if (!this.value) { preview.value = 'Select type first...'; return; }
+    if (!this.value) {
+      preview.value = 'Select job type first...';
+      document.getElementById('new_prefix').value = '';
+      return;
+    }
+    const [prefix, jobTypeLabel] = this.value.split('|');
+    document.getElementById('new_prefix').value = prefix;
     preview.value = 'Loading...';
     try {
-      const { data, error } = await sb.from('job_number_counters').select('last_sequence').eq('prefix', this.value).single();
+      const { data, error } = await sb.from('job_number_counters').select('last_sequence').eq('prefix', prefix).single();
       if (error) throw error;
-      preview.value = `${this.value}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
+      preview.value = `${prefix}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
     } catch (err) { preview.value = 'Error'; }
-
-    // Then try to auto-create
     checkAndCreateNewJob();
   });
 
@@ -1122,22 +1142,23 @@
   ['new_client_name', 'new_site_name', 'new_site_address'].forEach(id => {
     document.getElementById(id).addEventListener('blur', checkAndCreateNewJob);
   });
-
   function checkAndCreateNewJob() {
     const jobType = document.querySelector('input[name="job_type"]:checked').value;
     if (jobType !== 'new') return;
-    if (selectedJobData) return; // already created
+    if (selectedJobData) return;
 
+    const jobTypeVal = document.getElementById('new_job_type').value;
     const prefix = document.getElementById('new_prefix').value;
     const clientName = document.getElementById('new_client_name').value.trim();
     const siteName = document.getElementById('new_site_name').value.trim();
     const siteAddress = document.getElementById('new_site_address').value.trim();
     if (!prefix || !clientName || !siteName || !siteAddress) return;
 
-    createNewJobNow(prefix, clientName, siteName, siteAddress);
+    const jobTypeLabel = jobTypeVal.split('|')[1] || '';
+    createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel);
   }
 
-  async function createNewJobNow(prefix, clientName, siteName, siteAddress) {
+  async function createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel) {
     try {
       const contactPerson = document.getElementById('new_contact_person').value.trim();
       const contactPhone = document.getElementById('new_contact_phone').value.trim();
@@ -1165,6 +1186,7 @@
       if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
 
       document.getElementById('new_prefix').disabled = true;
+      document.getElementById('new_job_type').disabled = true;
       document.getElementById('new_client_name').disabled = true;
       document.getElementById('new_site_name').disabled = true;
       document.getElementById('new_site_address').disabled = true;
@@ -1457,13 +1479,64 @@
     const id = noteCount;
     const div = document.createElement('div');
     div.className = 'note-card'; div.dataset.noteId = id;
-    const opts = NOTIFY_PEOPLE.map(p => `<option value="${p}">${p}</option>`).join('');
-    div.innerHTML = `<div class="note-header"><span class="note-title">Note ${id}</span><button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button></div>
-      <div class="field-group"><label>Notify Person</label><select class="note-notify"><option value="">No notification</option>${opts}</select></div>
-      <div class="field-group" style="margin-bottom:0"><label>Note</label><textarea class="note-text" placeholder="Note details..."></textarea></div>`;
+    const opts = EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
+    div.innerHTML = `
+      <div class="note-header">
+        <span class="note-title">Note ${id}</span>
+        <button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button>
+      </div>
+      <div class="field-group" style="margin-bottom: 0.75rem;">
+        <label>Note</label>
+        <textarea class="note-text" placeholder="Note details..." style="margin-bottom: 0;"></textarea>
+      </div>
+      <div class="field-group" style="margin-bottom: 0;">
+        <label>Notify Staff <span style="font-weight:400; color: var(--text-secondary);">(optional — select multiple)</span></label>
+        <div class="note-employee-list" id="note-employees-${id}" style="
+          max-height: 180px; overflow-y: auto;
+          border: 1px solid var(--border); border-radius: 10px;
+          background: var(--bg-main); padding: 6px;
+          display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+        ">
+          ${EMPLOYEES.map(e => `
+            <label style="
+              display: flex; align-items: center; gap: 8px;
+              padding: 6px 10px; border-radius: 8px; cursor: pointer;
+              font-size: 0.85rem; font-weight: 400;
+              border: 1px solid transparent; transition: all 0.15s;
+            " class="note-emp-label">
+              <input type="checkbox" class="note-notify-cb" value="${escapeHtml(e.full_name)}" data-email="${escapeHtml(e.email || '')}"
+                     onchange="highlightNoteEmp(this)"
+                     style="accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer;"/>
+              ${escapeHtml(e.full_name)}
+            </label>
+          `).join('')}
+        </div>
+        <div id="note-selected-${id}" style="margin-top: 6px; font-size: 0.75rem; color: var(--text-secondary);"></div>
+      </div>`;
     document.getElementById('notesContainer').appendChild(div);
   }
   window.removeNote = id => document.querySelector(`[data-note-id="${id}"]`)?.remove();
+
+  window.highlightNoteEmp = function(cb) {
+    const label = cb.closest('label');
+    if (cb.checked) {
+      label.style.background = 'var(--card-hover)';
+      label.style.borderColor = 'var(--accent)';
+      label.style.color = 'var(--accent)';
+      label.style.fontWeight = '600';
+    } else {
+      label.style.background = '';
+      label.style.borderColor = 'transparent';
+      label.style.color = '';
+      label.style.fontWeight = '400';
+    }
+    // Update summary text
+    const card = cb.closest('[data-note-id]');
+    const id = card.dataset.noteId;
+    const selected = Array.from(card.querySelectorAll('.note-notify-cb:checked')).map(c => c.value);
+    const summary = document.getElementById(`note-selected-${id}`);
+    summary.textContent = selected.length ? `Notifying: ${selected.join(', ')}` : '';
+  };
 
   // ============================================================
   // FORM SUBMISSION
@@ -1497,7 +1570,14 @@
 
       const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normalHours: parseFloat(c.querySelector('.labour-normal').value) || 0, overtimeHours: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
       const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({ name: c.querySelector('.material-name').value.trim(), quantity: parseFloat(c.querySelector('.material-qty').value) || 0, unit: c.querySelector('.material-unit').value })).filter(m => m.name);
-      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => ({ text: c.querySelector('.note-text').value.trim(), notifyPerson: c.querySelector('.note-notify').value })).filter(n => n.text);
+      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => {
+        const text = c.querySelector('.note-text').value.trim();
+        const notifyPeople = Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb => ({
+          name: cb.value,
+          email: cb.dataset.email || ''
+        }));
+        return { text, notifyPeople };
+      }).filter(n => n.text);
 
       const { data: jobSheetNumber, error: sheetErr } = await sb.rpc('create_job_sheet', { p_job_number: jobNumber, p_sheet_date: document.getElementById('sheet_date').value, p_tasks: tasks, p_labour: labour, p_notes: notes, p_created_by: currentUser.name });
       if (sheetErr) throw sheetErr;
@@ -1795,7 +1875,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.18`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.20`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
