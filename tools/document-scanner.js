@@ -1,11 +1,16 @@
 /**
  * Bromar Document Scanner
- * Version: V1.02
+ * Version: V1.03
  *
- * Uses the native iOS document scanner via <input capture="environment">.
- * On iPhone, tapping "Scan Document" triggers Apple's built-in scanner
- * (same engine as Notes/Files) — handles edge detection, deskew, and
- * multi-page automatically. No canvas processing needed.
+ * Mobile document scanner with OpenCV.js auto edge detection.
+ *
+ * Flow: capture/import → auto-detect document corners (OpenCV.js, lazy-loaded)
+ *       → manual corner adjustment → perspective correction → PDF → upload.
+ *
+ * On iPhone, the "Scan Document" button uses Apple's native scanner UI for
+ * capture. On any device, the captured image is then run through OpenCV's
+ * findContours pipeline to locate the document edges, and the user can fine-
+ * tune the auto-detected corners before applying.
  *
  * Usage:
  *   const scanner = new BromarScanner({ supabase: sb, bucket: 'job-sheet-files' });
@@ -298,6 +303,27 @@
       cursor: pointer; color: var(--text-secondary, #666);
       -webkit-tap-highlight-color: transparent;
     }
+    /* Auto-detect badge / spinner shown above the image while OpenCV works */
+    .bsc-crop-status {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 16px;
+      background: rgba(0,0,0,0.75); color: white;
+      font-size: 0.72rem; font-weight: 600;
+      pointer-events: none; z-index: 5;
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .bsc-crop-status.bsc-crop-status-on { opacity: 1; }
+    .bsc-crop-status.success { background: rgba(34,197,94,0.9); }
+    .bsc-crop-status.fail    { background: rgba(234,88,12,0.9); }
+    .bsc-crop-mini-spinner {
+      width: 12px; height: 12px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: bsc-spin 0.7s linear infinite;
+    }
+
     .bsc-crop-apply {
       padding: 11px; border: none; border-radius: 10px;
       background: linear-gradient(135deg, #ea580c, #fb923c);
@@ -444,8 +470,12 @@
               <div class="bsc-crop-stage">
                 <img class="bsc-crop-img" alt="Crop preview"/>
                 <canvas class="bsc-crop-overlay"></canvas>
+                <div class="bsc-crop-status">
+                  <div class="bsc-crop-mini-spinner"></div>
+                  <span class="bsc-crop-status-text">Detecting edges...</span>
+                </div>
               </div>
-              <p class="bsc-crop-hint">Drag the corners to trim the background — the image will be straightened automatically</p>
+              <p class="bsc-crop-hint">Auto-detected corners shown — drag any to adjust, then Apply</p>
               <div class="bsc-crop-actions">
                 <button class="bsc-crop-reset" data-action="crop-reset">↺ Reset</button>
                 <button class="bsc-crop-cancel" data-action="crop-cancel">Cancel</button>
@@ -710,23 +740,224 @@
     // ── CROP ──────────────────────────────────────────────────────────────────
     _openCrop(item) {
       this._cropTargetItem = item;
-      const view  = this._el.querySelector('[data-view="crop"]');
-      const img   = view.querySelector('.bsc-crop-img');
-      const stage = view.querySelector('.bsc-crop-stage');
+      const view   = this._el.querySelector('[data-view="crop"]');
+      const img    = view.querySelector('.bsc-crop-img');
+      const stage  = view.querySelector('.bsc-crop-stage');
+      const status = view.querySelector('.bsc-crop-status');
+      const statusText = view.querySelector('.bsc-crop-status-text');
 
       img.src = item.dataUrl;
+      this._goToView('crop');
 
-      img.onload = () => {
-        // Wait for layout, then set up handles at full-frame default
-        requestAnimationFrame(() => this._setupCropHandles(stage, img));
-        this._goToView('crop');
+      const begin = async () => {
+        // Show "Detecting..." badge
+        status.classList.remove('success', 'fail');
+        status.classList.add('bsc-crop-status-on');
+        statusText.textContent = 'Detecting edges...';
+
+        // Set up handles at full-frame default first (so user can drag immediately
+        // if detection is slow)
+        await new Promise(r => requestAnimationFrame(r));
+        this._setupCropHandles(stage, img);
+
+        // Try OpenCV auto-detect (lazy-load on first scan)
+        try {
+          const quad = await this._autoDetectCorners(img);
+          if (quad) {
+            this._applyAutoQuad(stage, quad);
+            statusText.textContent = 'Edges detected — adjust if needed';
+            status.classList.remove('fail');
+            status.classList.add('success');
+          } else {
+            statusText.textContent = 'Auto-detect failed — drag corners manually';
+            status.classList.add('fail');
+          }
+        } catch (err) {
+          console.warn('[BromarScanner] Auto-detect error:', err);
+          statusText.textContent = 'Manual crop only';
+          status.classList.add('fail');
+        }
+
+        // Fade the status badge after 2.5s
+        setTimeout(() => status.classList.remove('bsc-crop-status-on'), 2500);
       };
 
-      // If src is already cached and onload doesn't fire, force it
       if (img.complete && img.naturalWidth) {
-        requestAnimationFrame(() => this._setupCropHandles(stage, img));
-        this._goToView('crop');
+        begin();
+      } else {
+        img.onload = begin;
       }
+    }
+
+    // ── OPENCV AUTO-DETECT ──────────────────────────────────────────────────
+    // Loads OpenCV.js on first call (cached after), then runs a document
+    // detection pipeline: grayscale → blur → Canny → find largest 4-sided
+    // contour. Returns 4 corner points in IMAGE-NATURAL coords or null.
+    async _autoDetectCorners(img) {
+      await this._ensureOpenCV();
+      if (!window.cv || !window.cv.imread) return null;
+
+      const cv = window.cv;
+
+      // Build a working canvas from the image at full natural resolution
+      const work = document.createElement('canvas');
+      work.width  = img.naturalWidth;
+      work.height = img.naturalHeight;
+      const wctx = work.getContext('2d');
+      wctx.drawImage(img, 0, 0);
+
+      let src = null, gray = null, blurred = null, edges = null,
+          contours = null, hierarchy = null;
+      try {
+        src      = cv.imread(work);
+        gray     = new cv.Mat();
+        blurred  = new cv.Mat();
+        edges    = new cv.Mat();
+        contours = new cv.MatVector();
+        hierarchy = new cv.Mat();
+
+        // Grayscale
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        // Gaussian blur to reduce noise
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+        // Canny edges — tuned thresholds for document scans
+        cv.Canny(blurred, edges, 75, 200);
+        // Dilate to close small gaps in detected edges
+        const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+        cv.dilate(edges, edges, kernel);
+        kernel.delete();
+
+        // Find contours
+        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+        const imageArea = src.cols * src.rows;
+        const minArea   = imageArea * 0.15; // doc must cover >=15% of frame
+        let best = null;
+        let bestArea = 0;
+
+        for (let i = 0; i < contours.size(); i++) {
+          const cnt    = contours.get(i);
+          const peri   = cv.arcLength(cnt, true);
+          const approx = new cv.Mat();
+          cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+
+          // We want exactly 4 corners forming a convex quad large enough
+          if (approx.rows === 4 && cv.isContourConvex(approx)) {
+            const area = cv.contourArea(approx);
+            if (area > minArea && area > bestArea) {
+              bestArea = area;
+              if (best) best.delete();
+              best = approx;
+            } else {
+              approx.delete();
+            }
+          } else {
+            approx.delete();
+          }
+          cnt.delete();
+        }
+
+        if (!best) return null;
+
+        // Extract 4 corners as image-coord points
+        const raw = [];
+        for (let i = 0; i < 4; i++) {
+          raw.push({ x: best.data32S[i * 2], y: best.data32S[i * 2 + 1] });
+        }
+        best.delete();
+
+        // Order them as TL, TR, BR, BL
+        return this._orderCorners(raw);
+
+      } finally {
+        src?.delete(); gray?.delete(); blurred?.delete();
+        edges?.delete(); contours?.delete(); hierarchy?.delete();
+      }
+    }
+
+    _orderCorners(pts) {
+      // Sort by (x + y): smallest = TL, largest = BR
+      // Sort by (x - y): smallest = BL, largest = TR
+      const sums   = pts.map(p => p.x + p.y);
+      const diffs  = pts.map(p => p.x - p.y);
+      const tl = pts[sums.indexOf(Math.min(...sums))];
+      const br = pts[sums.indexOf(Math.max(...sums))];
+      const tr = pts[diffs.indexOf(Math.max(...diffs))];
+      const bl = pts[diffs.indexOf(Math.min(...diffs))];
+      return [tl, tr, br, bl];
+    }
+
+    // Map detected image-coord quad → display-coord crop points and refresh
+    _applyAutoQuad(stage, imageQuad) {
+      const img = stage.querySelector('.bsc-crop-img');
+      const stageRect = stage.getBoundingClientRect();
+      const W = stageRect.width;
+      const H = stageRect.height;
+
+      // The img uses object-fit:contain inside stage → compute rendered rect
+      const natW = img.naturalWidth, natH = img.naturalHeight;
+      const stageAspect = W / H, imgAspect = natW / natH;
+      let rendW, rendH, offX, offY;
+      if (imgAspect > stageAspect) {
+        rendW = W; rendH = W / imgAspect; offX = 0; offY = (H - rendH) / 2;
+      } else {
+        rendH = H; rendW = H * imgAspect; offX = (W - rendW) / 2; offY = 0;
+      }
+
+      // Map each detected point from image coords → stage display coords
+      this._cropPts = imageQuad.map(p => ({
+        x: Math.max(0, Math.min(W, offX + (p.x / natW) * rendW)),
+        y: Math.max(0, Math.min(H, offY + (p.y / natH) * rendH)),
+      }));
+
+      // Reposition the existing handles in the DOM
+      const handles = stage.querySelectorAll('.bsc-crop-handle');
+      this._cropPts.forEach((pt, i) => {
+        if (handles[i]) {
+          handles[i].style.left = pt.x + 'px';
+          handles[i].style.top  = pt.y + 'px';
+        }
+      });
+      this._drawCropOverlay(stage);
+    }
+
+    // Lazy-load OpenCV.js on first use; cached for subsequent calls.
+    _ensureOpenCV() {
+      if (this._opencvReady) return this._opencvReady;
+
+      this._opencvReady = new Promise((resolve, reject) => {
+        if (window.cv && window.cv.imread) { resolve(); return; }
+
+        // OpenCV.js calls a global onRuntimeInitialized hook when ready.
+        // We set it BEFORE inserting the script so it gets picked up.
+        window.Module = window.Module || {};
+        const prevHook = window.Module.onRuntimeInitialized;
+        window.Module.onRuntimeInitialized = () => {
+          if (prevHook) try { prevHook(); } catch(e){}
+          resolve();
+        };
+
+        const s = document.createElement('script');
+        s.src = 'https://docs.opencv.org/4.8.0/opencv.js';
+        s.async = true;
+        s.onerror = () => reject(new Error('Failed to load OpenCV.js'));
+        document.head.appendChild(s);
+
+        // Some builds expose cv synchronously after load and never fire the hook
+        s.onload = () => {
+          if (window.cv && window.cv.imread) resolve();
+          // Otherwise wait for onRuntimeInitialized
+        };
+
+        // Safety timeout (15s) — if OpenCV doesn't load, fall through to manual
+        setTimeout(() => {
+          if (!(window.cv && window.cv.imread)) {
+            reject(new Error('OpenCV.js load timed out'));
+          }
+        }, 15000);
+      });
+
+      return this._opencvReady;
     }
 
     _setupCropHandles(stage, img) {
