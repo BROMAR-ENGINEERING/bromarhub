@@ -268,12 +268,37 @@
       object-fit: cover; background: #ddd; flex-shrink: 0;
     }
     .bsc-queue-info { flex: 1; min-width: 0; }
-    .bsc-queue-name { font-size: 0.85rem; font-weight: 600; truncate: ellipsis; white-space: nowrap; overflow: hidden; }
+    .bsc-queue-name {
+      font-size: 0.85rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 160px;
+    }
     .bsc-queue-meta { font-size: 0.72rem; color: var(--text-secondary, #888); margin-top: 2px; }
+    .bsc-queue-rename-input {
+      font-size: 0.82rem; font-weight: 600;
+      border: 1.5px solid var(--accent, #ea580c);
+      border-radius: 6px; padding: 3px 6px;
+      background: var(--bg-secondary, #fff);
+      color: var(--text-primary, #0a0a0a);
+      font-family: inherit; width: 100%; outline: none;
+    }
+    .bsc-queue-actions-row {
+      display: flex; gap: 4px; margin-top: 4px;
+    }
+    .bsc-queue-action-btn {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 8px;
+      border-radius: 6px; border: 1px solid var(--border, #e5e7eb);
+      background: var(--bg-main, #fafafa); cursor: pointer;
+      color: var(--text-secondary, #666); transition: all 0.2s;
+      font-family: inherit;
+    }
+    .bsc-queue-action-btn:hover { border-color: var(--accent, #ea580c); color: var(--accent, #ea580c); }
+    .bsc-queue-action-btn.danger:hover { border-color: var(--error, #dc2626); color: var(--error, #dc2626); }
     .bsc-queue-remove {
       background: none; border: none; cursor: pointer;
       color: var(--text-secondary, #888); font-size: 1.2rem;
       padding: 4px; border-radius: 6px; transition: all 0.2s;
+      flex-shrink: 0;
     }
     .bsc-queue-remove:hover { color: var(--error, #dc2626); background: var(--error-bg, #fee2e2); }
 
@@ -741,195 +766,193 @@
     }
 
     // ── EDGE / DOCUMENT DETECTION ─────────────────────────────────────────────
-    // Strategy: downsample → grayscale → blur → Sobel magnitude → threshold.
-    // Then run a scanline approach: for each of 8 directions from centre, march
-    // outward along rays spaced 5° apart and find the first strong-edge pixel.
-    // Cluster into 4 corners (TL/TR/BR/BL) by direction. This is much more
-    // robust than simply taking the extremal edge pixel.
+    // Approach: scan rows and columns for the largest luminance jump.
+    // Phone cameras pointing at a document on a desk produce a very clear
+    // bright rectangle on a darker background (or vice-versa). We find the
+    // four inward-most scanlines that cross a strong contrast threshold and
+    // use those as the document boundary. No Sobel needed.
     _startEdgeDetection() {
       const video  = this._el.querySelector('.bsc-video');
       const canvas = this._el.querySelector('.bsc-edge-canvas');
-      const SCALE  = 0.3; // work at 30% res — fast enough at 8fps
+      // Work at ~20% res — enough for boundary detection, fast on mobile
+      const SCALE = 0.18;
 
-      // Smoothed quad for display (exponential smoothing to reduce jitter)
       let smoothQuad = null;
-      const ALPHA = 0.35; // smoothing factor
+      const SMOOTH = 0.3;
+      let stableFrames = 0;
 
       this._edgeDetectTimer = setInterval(() => {
         if (!video.videoWidth) return;
 
         const vw = video.videoWidth, vh = video.videoHeight;
-        const sw = Math.round(vw * SCALE), sh = Math.round(vh * SCALE);
-        const dispW = video.clientWidth  || vw;
-        const dispH = video.clientHeight || vh;
+        const sw = Math.max(60, Math.round(vw * SCALE));
+        const sh = Math.max(80, Math.round(vh * SCALE));
+        const dispW = video.clientWidth  || 300;
+        const dispH = video.clientHeight || 400;
 
         canvas.width  = dispW;
         canvas.height = dispH;
-        // Store dims so capture can use them for coord mapping
         this._lastEdgeCanvasW = dispW;
         this._lastEdgeCanvasH = dispH;
 
-        // ── Step 1: downsample
+        // Downsample
         const off = document.createElement('canvas');
         off.width = sw; off.height = sh;
-        off.getContext('2d').drawImage(video, 0, 0, sw, sh);
-        const imgData = off.getContext('2d').getImageData(0, 0, sw, sh);
-        const d = imgData.data;
+        const octx = off.getContext('2d');
+        octx.drawImage(video, 0, 0, sw, sh);
+        const { data } = octx.getImageData(0, 0, sw, sh);
 
-        // ── Step 2: grayscale
-        const gray = new Float32Array(sw * sh);
+        // Build luminance grid
+        const lum = new Float32Array(sw * sh);
         for (let i = 0; i < sw * sh; i++) {
-          gray[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+          lum[i] = 0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2];
         }
 
-        // ── Step 3: 5×5 box blur for noise suppression
-        const blur = new Float32Array(sw * sh);
-        const R = 2;
-        for (let y = R; y < sh - R; y++) {
-          for (let x = R; x < sw - R; x++) {
-            let s = 0, n = 0;
-            for (let dy = -R; dy <= R; dy++) {
-              for (let dx = -R; dx <= R; dx++) {
-                s += gray[(y+dy)*sw+(x+dx)]; n++;
-              }
-            }
-            blur[y*sw+x] = s / n;
-          }
+        // ── Helper: get median luminance of a strip ──────────────────────────
+        const stripMedian = (vals) => {
+          const s = vals.slice().sort((a,b)=>a-b);
+          return s[Math.floor(s.length/2)];
+        };
+
+        // ── Scan rows for top/bottom boundary ───────────────────────────────
+        // For each row compute mean luminance; find the transition rows where
+        // luminance changes significantly from the global median.
+        const rowMeans = new Float32Array(sh);
+        for (let y = 0; y < sh; y++) {
+          let s = 0;
+          // sample every 2 pixels for speed
+          for (let x = 0; x < sw; x += 2) s += lum[y*sw+x];
+          rowMeans[y] = s / (sw/2);
+        }
+        const colMeans = new Float32Array(sw);
+        for (let x = 0; x < sw; x++) {
+          let s = 0;
+          for (let y = 0; y < sh; y += 2) s += lum[y*sw+x];
+          colMeans[x] = s / (sh/2);
         }
 
-        // ── Step 4: Sobel magnitude
-        const sobelX = [-1,0,1,-2,0,2,-1,0,1];
-        const sobelY = [-1,-2,-1,0,0,0,1,2,1];
-        const mag = new Float32Array(sw * sh);
-        let maxMag = 1;
-        for (let y = 1; y < sh - 1; y++) {
-          for (let x = 1; x < sw - 1; x++) {
-            let gx = 0, gy = 0;
-            for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
-              const p = blur[(y+ky)*sw+(x+kx)];
-              const ki = (ky+1)*3+(kx+1);
-              gx += sobelX[ki]*p; gy += sobelY[ki]*p;
-            }
-            const m = Math.sqrt(gx*gx + gy*gy);
-            mag[y*sw+x] = m;
-            if (m > maxMag) maxMag = m;
-          }
+        const globalMedian = stripMedian(Array.from(rowMeans));
+        // Contrast threshold: at least 18 luminance units difference from global median
+        const CONTRAST = 18;
+
+        // Find bounding rows/cols that differ from the background
+        // We assume background = median of the outer 15% of the frame
+        const outerRows = [...Array.from(rowMeans).slice(0, Math.round(sh*0.12)),
+                           ...Array.from(rowMeans).slice(Math.round(sh*0.88))];
+        const outerCols = [...Array.from(colMeans).slice(0, Math.round(sw*0.12)),
+                           ...Array.from(colMeans).slice(Math.round(sw*0.88))];
+        const bgLum = stripMedian([...outerRows, ...outerCols]);
+
+        // Document is brighter or darker than background
+        const docIsBrighter = globalMedian > bgLum + CONTRAST/2;
+        const threshold = docIsBrighter ? bgLum + CONTRAST : bgLum - CONTRAST;
+
+        const rowTest  = (v) => docIsBrighter ? v > threshold : v < threshold;
+        const colTest  = (v) => docIsBrighter ? v > threshold : v < threshold;
+
+        // Shrink from each edge until we hit the document
+        const skipFrac = 0.05; // ignore outermost 5% (often over-exposed)
+        const skipRows = Math.round(sh * skipFrac);
+        const skipCols = Math.round(sw * skipFrac);
+
+        let top = -1, bottom = -1, left = -1, right = -1;
+
+        for (let y = skipRows; y < sh - skipRows; y++) {
+          if (rowTest(rowMeans[y])) { top = y; break; }
+        }
+        for (let y = sh - skipRows - 1; y >= skipRows; y--) {
+          if (rowTest(rowMeans[y])) { bottom = y; break; }
+        }
+        for (let x = skipCols; x < sw - skipCols; x++) {
+          if (colTest(colMeans[x])) { left = x; break; }
+        }
+        for (let x = sw - skipCols - 1; x >= skipCols; x--) {
+          if (colTest(colMeans[x])) { right = x; break; }
         }
 
-        // ── Step 5: adaptive threshold (30% of max)
-        const thresh = maxMag * 0.30;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, dispW, dispH);
 
-        // ── Step 6: ray-march from centre to find document edges
-        // Cast rays every 5°, march outward; record first edge hit per ray.
-        // Skip the outer 8% border (likely frame/hand) and inner 15% (likely noise).
-        const cx = sw / 2, cy = sh / 2;
-        const maxR = Math.min(sw, sh) * 0.5;
-        const minR = Math.min(sw, sh) * 0.15;
-        const border = 0.08;
-
-        const rayHits = []; // {x, y, angle}
-        for (let deg = 0; deg < 360; deg += 5) {
-          const rad = deg * Math.PI / 180;
-          const cos = Math.cos(rad), sin = Math.sin(rad);
-          for (let r = minR; r < maxR; r += 1.5) {
-            const rx = Math.round(cx + cos * r);
-            const ry = Math.round(cy + sin * r);
-            if (rx < sw*border || rx > sw*(1-border) || ry < sh*border || ry > sh*(1-border)) break;
-            if (mag[ry*sw+rx] > thresh) {
-              rayHits.push({ x: rx, y: ry, angle: rad });
-              break;
-            }
-          }
-        }
-
-        if (rayHits.length < 8) {
-          // Not enough hits — clear overlay and wait
-          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
+        // Validate: document must cover at least 20% of frame in each dimension
+        const minW = sw * 0.20, minH = sh * 0.20;
+        if (top < 0 || bottom < 0 || left < 0 || right < 0
+            || (right - left) < minW || (bottom - top) < minH) {
           smoothQuad = null;
           this._detectedQuad = null;
+          stableFrames = 0;
           return;
         }
 
-        // ── Step 7: cluster hits into 4 corners by angle quadrant
-        // TL = rays pointing upper-left (135°–225°), TR = upper-right (315°–45°)
-        // BR = lower-right (45°–135°),              BL = lower-left  (225°–315°)
-        const corners = { tl: [], tr: [], br: [], bl: [] };
-        rayHits.forEach(h => {
-          const deg = ((h.angle * 180 / Math.PI) + 360) % 360;
-          if (deg >= 315 || deg < 45)  corners.tr.push(h);
-          else if (deg < 135)          corners.br.push(h);
-          else if (deg < 225)          corners.bl.push(h);
-          else                         corners.tl.push(h);
-        });
+        // Map boundary to display coords
+        const sx = dispW / sw, sy = dispH / sh;
+        const rawQuad = [
+          { x: left  * sx, y: top    * sy }, // TL
+          { x: right * sx, y: top    * sy }, // TR
+          { x: right * sx, y: bottom * sy }, // BR
+          { x: left  * sx, y: bottom * sy }, // BL
+        ];
 
-        const centroid = (pts) => pts.length ? {
-          x: pts.reduce((s,p)=>s+p.x,0)/pts.length,
-          y: pts.reduce((s,p)=>s+p.y,0)/pts.length
-        } : null;
-
-        const tl = centroid(corners.tl), tr = centroid(corners.tr);
-        const br = centroid(corners.br), bl = centroid(corners.bl);
-
-        if (!tl || !tr || !br || !bl) {
-          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
-          smoothQuad = null; this._detectedQuad = null; return;
-        }
-
-        // ── Step 8: validate — quad should be reasonably large (>20% of frame area)
-        const scaleX = dispW / sw, scaleY = dispH / sh;
-        const rawQuad = [tl, tr, br, bl].map(p => ({ x: p.x*scaleX, y: p.y*scaleY }));
-
-        const quadArea = Math.abs(
-          (rawQuad[0].x*(rawQuad[1].y-rawQuad[3].y) +
-           rawQuad[1].x*(rawQuad[2].y-rawQuad[0].y) +
-           rawQuad[2].x*(rawQuad[3].y-rawQuad[1].y) +
-           rawQuad[3].x*(rawQuad[0].y-rawQuad[2].y)) / 2
-        );
-        const frameArea = dispW * dispH;
-        if (quadArea < frameArea * 0.12) {
-          canvas.getContext('2d').clearRect(0, 0, dispW, dispH);
-          smoothQuad = null; this._detectedQuad = null; return;
-        }
-
-        // ── Step 9: exponential smoothing to reduce flicker
+        // Exponential smoothing
         if (!smoothQuad) {
           smoothQuad = rawQuad.map(p => ({...p}));
         } else {
           smoothQuad = smoothQuad.map((sp, i) => ({
-            x: sp.x + ALPHA*(rawQuad[i].x - sp.x),
-            y: sp.y + ALPHA*(rawQuad[i].y - sp.y)
+            x: sp.x + SMOOTH*(rawQuad[i].x - sp.x),
+            y: sp.y + SMOOTH*(rawQuad[i].y - sp.y),
           }));
         }
 
-        this._detectedQuad = smoothQuad.map(p => ({...p})); // snapshot for capture
+        stableFrames++;
+        this._detectedQuad = smoothQuad.map(p => ({...p}));
 
-        // ── Step 10: draw overlay
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, dispW, dispH);
-        const pts = smoothQuad;
+        // Draw overlay — green when stable (3+ frames), orange while converging
+        const stable = stableFrames >= 3;
+        const color  = stable ? '#22c55e' : '#ea580c';
+        const pts    = smoothQuad;
 
-        // Semi-transparent green fill
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
         pts.forEach(p => ctx.lineTo(p.x, p.y));
         ctx.closePath();
-        ctx.fillStyle = 'rgba(34,197,94,0.18)';
+        ctx.fillStyle = stable ? 'rgba(34,197,94,0.15)' : 'rgba(234,88,12,0.1)';
         ctx.fill();
-        ctx.strokeStyle = '#22c55e';
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2.5;
-        ctx.setLineDash([]);
         ctx.stroke();
 
-        // Corner markers
-        pts.forEach(p => {
-          ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2);
-          ctx.fillStyle = '#22c55e'; ctx.fill();
-          ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+        // Corner dots + L-shaped brackets
+        pts.forEach((p, i) => {
+          const bracketLen = 14;
+          const dx = (i === 0 || i === 3) ? bracketLen : -bracketLen;
+          const dy = (i === 0 || i === 1) ? bracketLen : -bracketLen;
+          ctx.beginPath();
+          ctx.moveTo(p.x + dx, p.y);
+          ctx.lineTo(p.x, p.y);
+          ctx.lineTo(p.x, p.y + dy);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+          ctx.fillStyle = color;
+          ctx.fill();
         });
 
-      }, 125);
-    }
+        // Show "captured" flash when stable
+        if (stable && stableFrames === 3) {
+          const hint = this._el.querySelector('.bsc-scan-hint');
+          if (hint) {
+            hint.style.color = '#22c55e';
+            hint.textContent = '✓ Document detected — tap shutter to capture';
+            setTimeout(() => {
+              if (hint) { hint.style.color = ''; hint.textContent = 'Position document in frame — edges will be highlighted automatically'; }
+            }, 2500);
+          }
+        }
 
+      }, 120);
+    }
     // ── CAPTURE ────────────────────────────────────────────────────────────────
     _capture() {
       const video = this._el.querySelector('.bsc-video');
@@ -1331,28 +1354,130 @@
 
       if (this._queue.length === 0) {
         list.innerHTML = '<p style="text-align:center;color:var(--text-secondary,#888);font-size:0.85rem;padding:16px 0;">No items — add something above</p>';
+        this._el.querySelector('[data-action="process"]').textContent = 'Convert to PDF & Upload →';
         return;
       }
 
       this._queue.forEach(item => {
         const div = document.createElement('div');
         div.className = 'bsc-queue-item';
-        div.innerHTML = `
-          <img class="bsc-queue-thumb" src="${item.dataUrl}" alt="${item.name}"/>
-          <div class="bsc-queue-info">
-            <div class="bsc-queue-name">${item.name}</div>
-            <div class="bsc-queue-meta">${this._formatSize(item.size)}</div>
-          </div>
-          <button class="bsc-queue-remove" data-id="${item.id}" title="Remove">✕</button>
-        `;
-        div.querySelector('.bsc-queue-remove').addEventListener('click', () => {
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'stretch';
+        div.style.gap = '8px';
+
+        // Top row: thumb + name/meta + remove
+        const topRow = document.createElement('div');
+        topRow.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;';
+
+        const thumb = document.createElement('img');
+        thumb.className = 'bsc-queue-thumb';
+        thumb.src = item.dataUrl;
+        thumb.alt = item.name;
+
+        const info = document.createElement('div');
+        info.className = 'bsc-queue-info';
+        info.style.flex = '1';
+        info.style.minWidth = '0';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'bsc-queue-name';
+        nameEl.textContent = item.name;
+        nameEl.title = item.name;
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'bsc-queue-meta';
+        metaEl.textContent = this._formatSize(item.size);
+
+        // Action buttons row (Rename / Remove)
+        const actionsRow = document.createElement('div');
+        actionsRow.className = 'bsc-queue-actions-row';
+
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'bsc-queue-action-btn';
+        renameBtn.type = 'button';
+        renameBtn.textContent = '✏️ Rename';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'bsc-queue-action-btn danger';
+        removeBtn.type = 'button';
+        removeBtn.textContent = '🗑 Remove';
+
+        actionsRow.appendChild(renameBtn);
+        actionsRow.appendChild(removeBtn);
+
+        info.appendChild(nameEl);
+        info.appendChild(metaEl);
+        info.appendChild(actionsRow);
+
+        topRow.appendChild(thumb);
+        topRow.appendChild(info);
+        div.appendChild(topRow);
+        list.appendChild(div);
+
+        // ── Rename logic ──────────────────────────────────────────────────────
+        renameBtn.addEventListener('click', () => {
+          // Replace name display with inline input
+          nameEl.style.display = 'none';
+          actionsRow.style.display = 'none';
+
+          const ext = item.name.includes('.') ? '.' + item.name.split('.').pop() : '';
+          const baseName = ext ? item.name.slice(0, -ext.length) : item.name;
+
+          const inputWrap = document.createElement('div');
+          inputWrap.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:2px;';
+
+          const inp = document.createElement('input');
+          inp.className = 'bsc-queue-rename-input';
+          inp.type = 'text';
+          inp.value = baseName;
+          inp.placeholder = 'File name';
+
+          const extSpan = document.createElement('span');
+          extSpan.style.cssText = 'font-size:0.78rem;color:var(--text-secondary,#888);flex-shrink:0;';
+          extSpan.textContent = ext;
+
+          const saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'bsc-queue-action-btn';
+          saveBtn.style.flexShrink = '0';
+          saveBtn.textContent = '✓';
+
+          inputWrap.appendChild(inp);
+          if (ext) inputWrap.appendChild(extSpan);
+          inputWrap.appendChild(saveBtn);
+          info.insertBefore(inputWrap, metaEl);
+
+          inp.focus();
+          inp.select();
+
+          const commitRename = () => {
+            const newBase = inp.value.trim() || baseName;
+            item.name = newBase + ext;
+            nameEl.textContent = item.name;
+            nameEl.title = item.name;
+            nameEl.style.display = '';
+            actionsRow.style.display = '';
+            inputWrap.remove();
+          };
+
+          saveBtn.addEventListener('click', commitRename);
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+            if (e.key === 'Escape') {
+              nameEl.style.display = '';
+              actionsRow.style.display = '';
+              inputWrap.remove();
+            }
+          });
+        });
+
+        // ── Remove logic ──────────────────────────────────────────────────────
+        removeBtn.addEventListener('click', () => {
           this._queue = this._queue.filter(q => q.id !== item.id);
           this._renderQueue();
         });
-        list.appendChild(div);
       });
 
-      // Update button label
       const btn = this._el.querySelector('[data-action="process"]');
       btn.textContent = `Convert to PDF & Upload (${this._queue.length}) →`;
     }
