@@ -645,6 +645,23 @@
 
       </div><!-- /postJobSections -->
 
+      <!-- JOB COMPLETION -->
+      <div class="section-label">Job Completion</div>
+      <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+        <label style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: block;">Is this job completed? <span class="required">*</span></label>
+        <div class="job-number-toggle" style="margin-bottom: 0;">
+          <div class="radio-option">
+            <input type="radio" id="job_complete_no" name="job_completed" value="no"/>
+            <label for="job_complete_no">🔄 Still Active</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="job_complete_yes" name="job_completed" value="yes"/>
+            <label for="job_complete_yes">✅ Completed</label>
+          </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">Marking a job as completed will close it from future job sheets.</div>
+      </div>
+
       <!-- SUBMIT -->
       <div class="form-divider"></div>
       <div class="submit-row">
@@ -681,7 +698,7 @@
 </div>
 
 <!-- Revision number (bottom-right, every page) -->
-<div class="revision-number">V1.25</div>
+<div class="revision-number">V1.26</div>
 
 <!-- IN-PERSON SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1712,6 +1729,17 @@
       const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
       if (!tasks.length) throw new Error('Please add at least one task');
 
+      // Job completion answer required
+      const completionAnswer = document.querySelector('input[name="job_completed"]:checked');
+      if (!completionAnswer) {
+        hideLoading();
+        submitBtn.disabled = false;
+        showInfo('Please answer whether this job is completed at the bottom of the form');
+        document.getElementById('job_complete_no').closest('.service-report-toggle, [class*="background"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const jobIsCompleted = completionAnswer.value === 'yes';
+
       // Validate every file has filename + type filled in
       if (uploadedFiles.length > 0) {
         const invalid = uploadedFiles.find(f => {
@@ -1741,6 +1769,14 @@
       currentJobNumber = jobNumber;
 
       if (materials.length) await sb.from('job_sheets').update({ materials }).eq('job_sheet_number', jobSheetNumber);
+
+      // Update job status if marked completed
+      if (jobIsCompleted) {
+        await sb.from('job_number_register').update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        }).eq('job_number', jobNumber);
+      }
 
       // Upload only files not already uploaded by scanner
       const pendingFiles = uploadedFiles.filter(f => !f.alreadyUploaded);
@@ -2030,7 +2066,7 @@
       pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
       pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.25`, pageWidth/2, pageHeight - 5, { align: 'center' });
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.26`, pageWidth/2, pageHeight - 5, { align: 'center' });
     }
     return pdf;
   }
