@@ -1,1 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Job Sheet - Bromar</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    if (typeof window.supabase === 'undefined') {
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>');
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+  <!-- Bromar Document Scanner (shared across all hub pages) -->
+  <script src="../tools/document-scanner.js"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  
+  <style>
+    :root {
+      --bg-main: #fafafa;
+      --bg-secondary: #ffffff;
+      --bg-glass: rgba(255, 255, 255, 0.7);
+      --text-primary: #0a0a0a;
+      --text-secondary: #666666;
+      --accent: #ea580c;
+      --accent-light: #fb923c;
+      --border: rgba(0, 0, 0, 0.08);
+      --shadow: rgba(0, 0, 0, 0.04);
+      --card-hover: rgba(234, 88, 12, 0.03);
+      --error: #dc2626;
+      --error-bg: #fee2e2;
+      --error-border: #fecaca;
+      --success: #15803d;
+      --success-bg: #d1fae5;
+      --success-border: #a7f3d0;
+      --info-bg: #dbeafe;
+      --info-border: #bfdbfe;
+      --info-text: #1e40af;
+    }
+
+    [data-theme="dark"] {
+      --bg-main: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-glass: rgba(20, 20, 20, 0.7);
+      --text-primary: #fafafa;
+      --text-secondary: #999999;
+      --accent: #fb923c;
+      --accent-light: #fdba74;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --card-hover: rgba(251, 146, 60, 0.05);
+      --error: #fca5a5;
+      --error-bg: #7f1d1d;
+      --error-border: #991b1b;
+      --success: #a7f3d0;
+      --success-bg: #064e3b;
+      --success-border: #065f46;
+      --info-bg: rgba(59, 130, 246, 0.1);
+      --info-border: rgba(59, 130, 246, 0.3);
+      --info-text: #93c5fd;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background 0.4s ease, color 0.4s ease;
+      padding-bottom: 80px;
+    }
+
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .header-controls {
+      position: absolute;
+      top: 10px; left: 2rem; right: 2rem;
+      display: flex; justify-content: space-between;
+      z-index: 10;
+    }
+
+    .control-btn {
+      width: 40px; height: 40px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s ease;
+      color: var(--text-primary); text-decoration: none;
+    }
+    .control-btn:hover { background: var(--card-hover); border-color: var(--accent); transform: translateY(-2px); }
+    .control-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .control-btn .sun-icon { display: none; }
+    .control-btn .moon-icon { display: block; }
+    [data-theme="dark"] .control-btn .sun-icon { display: block; }
+    [data-theme="dark"] .control-btn .moon-icon { display: none; }
+
+    /* Centred logo - sits above the buttons, ignores them */
+    .header-content {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .header-content img { pointer-events: auto; }
+
+    .logo-image { max-height: 40px; height: auto; }
+    .light-logo { display: block; }
+    .dark-logo { display: none; }
+    [data-theme="dark"] .light-logo { display: none; }
+    [data-theme="dark"] .dark-logo { display: block; }
+
+    .page-title-wrapper { max-width: 900px; margin: 90px auto 1.5rem; padding: 0 1.5rem; text-align: center; }
+    .page-title-wrapper h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .page-title-wrapper .subtitle { color: var(--text-secondary); font-size: 1rem; font-weight: 300; }
+
+    .page-wrapper { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; }
+
+    .form-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .section-label {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em;
+      color: var(--text-primary); margin: 2rem 0 1.25rem;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::before {
+      content: ''; width: 4px; height: 20px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+      border-radius: 4px;
+    }
+
+    .field-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .field-group { margin-bottom: 1rem; }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    label .required { color: var(--accent); margin-left: 3px; }
+
+    input[type="text"], input[type="email"], input[type="date"],
+    input[type="number"], input[type="tel"], select, textarea {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-family: 'Outfit', sans-serif; font-size: 1rem;
+      color: var(--text-primary); background: var(--bg-main);
+      transition: all 0.3s ease; outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px; appearance: none; cursor: pointer;
+    }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    input[type="date"] { max-width: 100%; min-width: 0; width: 100%; box-sizing: border-box; font-size: 16px; }
+    input:disabled, select:disabled, textarea:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    .job-number-section { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .job-number-toggle { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .radio-option { flex: 1; position: relative; }
+    .radio-option input[type="radio"] { position: absolute; opacity: 0; }
+    .radio-option label { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.875rem 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-secondary); cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 0.875rem; }
+    .radio-option input:checked + label { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
+    .job-number-fields { display: none; }
+    .job-number-fields.active { display: block; }
+
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 8px 24px var(--shadow); }
+    .autocomplete-results.show { display: block; }
+    .autocomplete-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--card-hover); }
+    .autocomplete-item-number { font-weight: 600; color: var(--accent); font-size: 0.95rem; }
+    .autocomplete-item-client { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+
+    .prefix-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-left: 6px; }
+    .prefix-BE { background: #dbeafe; color: #1e40af; }
+    .prefix-BC { background: #fef3c7; color: #92400e; }
+    .prefix-BA { background: #d1fae5; color: #065f46; }
+    .prefix-BS { background: #fce7f3; color: #9f1239; }
+    .prefix-BM { background: #e0e7ff; color: #3730a3; }
+
+    /* New-job created notice */
+    .new-job-created {
+      display: none;
+      align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .new-job-created.show { display: flex; }
+
+    /* ── FILE UPLOAD AREA (scanner-integrated) ── */
+    .file-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.5rem 1rem 1rem;
+      text-align: center;
+      background: var(--bg-main);
+      transition: all 0.3s;
+    }
+    .file-upload-area:hover { border-color: var(--accent); background: var(--card-hover); }
+    .file-upload-area.dragover { border-color: var(--accent); background: var(--card-hover); }
+    .upload-icon { font-size: 2rem; margin-bottom: 0.375rem; }
+    .upload-text { font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .upload-hint { font-size: 0.78rem; color: var(--text-secondary); }
+
+    .file-list { margin-top: 1rem; }
+    .file-item { display: flex; align-items: center; justify-content: space-between; padding: 0.875rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.5rem; }
+    .file-info { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
+    .file-icon { font-size: 1.5rem; }
+    .file-details { flex: 1; }
+    .file-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .file-size { font-size: 0.75rem; color: var(--text-secondary); }
+    .file-tags { display: flex; gap: 6px; margin-top: 0.5rem; flex-wrap: wrap; }
+    .file-tag { padding: 3px 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; }
+    .file-tag:hover { border-color: var(--accent); }
+    .file-tag.selected { background: var(--card-hover); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+    .task-card, .labour-card, .note-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.75rem; transition: all 0.3s ease; }
+    .task-card:hover, .labour-card:hover, .note-card:hover { border-color: var(--accent); }
+    .task-header, .labour-header, .note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.875rem; }
+    .task-title, .labour-title, .note-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .remove-btn { background: none; border: none; color: var(--error); font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: all 0.2s; }
+    .remove-btn:hover { background: var(--error-bg); }
+    [data-theme="dark"] .remove-btn:hover { background: rgba(239, 68, 68, 0.2); }
+
+    .add-btn { width: 100%; padding: 0.875rem; border: 2px dashed var(--border); border-radius: 12px; background: transparent; color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 1.5rem; transition: all 0.3s ease; }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card-hover); }
+
+    .hours-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .service-report-toggle { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .toggle-switch { display: flex; gap: 0.875rem; align-items: center; }
+    .toggle-switch input[type="checkbox"] { width: 50px; height: 26px; appearance: none; background: #cbd5e1; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s; }
+    [data-theme="dark"] .toggle-switch input[type="checkbox"] { background: #475569; }
+    .toggle-switch input[type="checkbox"]:checked { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); }
+    .toggle-switch input[type="checkbox"]::before { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .toggle-switch input[type="checkbox"]:checked::before { left: 27px; }
+    .toggle-label { font-size: 0.95rem; font-weight: 600; }
+    .report-sections { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .report-sections.show { display: block; }
+    .section-checkboxes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    @media (max-width: 620px) { .section-checkboxes { grid-template-columns: 1fr; } }
+    .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+    .checkbox-item:hover { border-color: var(--accent); }
+    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+    .checkbox-item label { margin: 0; cursor: pointer; font-size: 0.875rem; font-weight: 400; }
+
+    .signature-section { display: none; margin-top: 1.5rem; }
+    .signature-section.show { display: block; }
+    .signature-canvas-wrapper { border: 1px solid var(--border); border-radius: 12px; background: white; padding: 1rem; }
+    .signature-canvas { width: 100%; height: 200px; border: 1px solid var(--border); border-radius: 8px; cursor: crosshair; touch-action: none; }
+    .signature-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
+    .signature-name { flex: 1; }
+    .clear-signature-btn { padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.85rem; border-radius: 8px; }
+    .clear-signature-btn:hover { border-color: var(--error); color: var(--error); }
+
+    .success-banner, .info-banner { display: none; align-items: center; gap: 0.625rem; padding: 0.875rem 1.125rem; border-radius: 10px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .success-banner { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .info-banner { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); }
+    .success-banner.show, .info-banner.show { display: flex; }
+
+    .form-divider { height: 1px; background: var(--border); margin: 2rem 0 1.5rem; }
+    .submit-row { display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+    .submit-note { font-size: 0.8rem; color: var(--text-secondary); margin-right: auto; }
+    .btn-secondary { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease; }
+    .btn-secondary:hover { background: var(--card-hover); color: var(--text-primary); border-color: var(--accent); }
+    .submit-btn { font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; padding: 0.875rem 2rem; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; cursor: pointer; transition: all 0.3s ease; letter-spacing: 0.02em; }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .pdf-actions { display: none; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; text-align: center; }
+    .pdf-actions.show { display: block; }
+    .pdf-actions h3 { color: var(--success); margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600; }
+    .pdf-actions-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+    .pdf-btn { padding: 0.625rem 1.25rem; border-radius: 8px; border: 1px solid var(--success-border); background: var(--bg-secondary); color: var(--success); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
+    .pdf-btn:hover { background: var(--card-hover); transform: translateY(-1px); }
+
+    .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; }
+    .loading-overlay.show { display: flex; }
+    .loading-content { background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; text-align: center; max-width: 400px; }
+    .loading-spinner { width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.25rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .loading-subtext { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .form-footer { margin-top: 2rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
+    .footer-disclaimer { border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem 1.125rem; margin-bottom: 1.25rem; background: var(--bg-main); font-style: italic; font-size: 0.8rem; }
+    .footer-title-block {
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+      text-align: center;
+    }
+    .footer-title {
+      font-size: clamp(1rem, 4vw, 1.4rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin: 0 0 0.5rem 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .footer-bug-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .footer-bug-link:hover { opacity: 0.75; text-decoration: underline; }
+
+    /* Revision number — bottom of every page */
+    .revision-number {
+      position: fixed; bottom: 10px; right: 10px;
+      font-size: 0.75rem; color: var(--text-secondary);
+      opacity: 0.5; font-family: 'JetBrains Mono', monospace;
+      pointer-events: none; z-index: 9998;
+    }
+
+    .signoff-method-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.show { display: flex; }
+    .modal-content { background: var(--bg-secondary); border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; }
+    .modal-content h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; }
+    .summary-section { margin-bottom: 1.5rem; }
+    .summary-section h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem; font-weight: 600; }
+    .summary-list { padding-left: 1.5rem; }
+    .summary-list li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .summary-table th, .summary-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .summary-table th { font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
+
+    .signoff-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
+    .signoff-modal.show { display: flex; }
+    .signoff-modal-content { background: var(--bg-secondary); border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .signoff-modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .signoff-modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--accent); }
+    .signoff-close { background: none; border: none; font-size: 1.75rem; color: var(--text-secondary); cursor: pointer; padding: 0; width: 32px; height: 32px; }
+    .signoff-modal-body { padding: 1.5rem 2rem; overflow-y: auto; flex: 1; }
+    .signoff-modal-footer { padding: 1.5rem 2rem; border-top: 1px solid var(--border); background: var(--bg-main); }
+    .signoff-instruction { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6; }
+    .signoff-modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+
+    @media (max-width: 720px) {
+      .field-row { grid-template-columns: 1fr; }
+      .form-card { padding: 1.5rem; }
+      .header-controls { left: 1rem; right: 1rem; }
+      .page-title-wrapper { padding: 0 1rem; margin-top: 80px; }
+      .page-wrapper { padding: 0 1rem; }
+      .page-title-wrapper h1 { font-size: 1.5rem; }
+      .signoff-method-row { grid-template-columns: 1fr; }
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .form-card { animation: fadeIn 0.5s ease backwards; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-controls">
+    <a href="../index.html" class="control-btn" aria-label="Home">
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    </a>
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="../Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
+<div class="page-title-wrapper">
+  <h1>Daily Job Sheet</h1>
+  <p class="subtitle">Quick daily documentation</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+    <form id="jobSheetForm" novalidate autocomplete="off">
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span><span id="successText">Job sheet saved successfully!</span>
+      </div>
+      <div class="info-banner" id="infoBanner">
+        <span>ℹ️</span><span id="infoBannerText"></span>
+      </div>
+
+      <!-- BASIC INFO -->
+      <div class="section-label">Basic Information</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="sheet_date">Date of Works <span class="required">*</span></label>
+          <input type="date" id="sheet_date" name="sheet_date" required/>
+        </div>
+        <div class="field-group">
+          <label for="filled_by">Filled Out By <span class="required">*</span></label>
+          <select id="filled_by" required>
+            <option value="">Loading employees...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- JOB NUMBER -->
+      <div class="section-label">Job Number</div>
+      <div class="job-number-section">
+        <div class="job-number-toggle">
+          <div class="radio-option">
+            <input type="radio" id="existing_job" name="job_type" value="existing" checked/>
+            <label for="existing_job">📋 Use Existing Job</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="new_job" name="job_type" value="new"/>
+            <label for="new_job">✨ Create New Job</label>
+          </div>
+        </div>
+
+        <div id="existing-job-fields" class="job-number-fields active">
+          <div class="field-group autocomplete-wrapper">
+            <label for="existing_job_number">Search by Job Number or Client <span class="required">*</span></label>
+            <input type="text" id="existing_job_number" placeholder="Start typing..." style="text-transform: uppercase;"/>
+            <div class="autocomplete-results" id="autocompleteResults"></div>
+          </div>
+          <div id="job-details-display" style="display: none; padding: 12px; background: var(--bg-main); border-radius: 6px;">
+            <div style="font-size: 0.85rem;">
+              <strong id="detail-client"></strong><br>
+              <span id="detail-site-name" style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;"></span>
+              <span id="detail-address" style="color: var(--text-secondary); font-size: 0.8rem;"></span>
+            </div>
+            <div id="detail-sheet-preview" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+              Job Sheet: <span id="detail-sheet-number" style="font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600;">loading...</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="new-job-fields" class="job-number-fields">
+          <div class="field-row">
+            <div class="field-group full">
+              <label for="new_job_type">Job Type <span class="required">*</span></label>
+              <select id="new_job_type">
+                <option value="">Select job type...</option>
+                <optgroup label="Maintenance — BM">
+                  <option value="BM|Maintenance">Maintenance</option>
+                  <option value="BM|Shift Coverage">Shift Coverage</option>
+                </optgroup>
+                <optgroup label="Service — BS">
+                  <option value="BS|Callout">Callout</option>
+                  <option value="BS|Breakdown">Breakdown</option>
+                </optgroup>
+                <optgroup label="Construction — BC">
+                  <option value="BC|Temporary Wiring">Temporary Wiring</option>
+                  <option value="BC|General Construction">General Construction</option>
+                  <option value="BC|Test & Tag">Test &amp; Tag</option>
+                  <option value="BC|RCD Testing">RCD Testing</option>
+                </optgroup>
+                <optgroup label="Automation — BA">
+                  <option value="BA|Programming">Programming</option>
+                  <option value="BA|CAD Drawings">CAD Drawings</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field-group" style="display:none;">
+              <!-- Hidden prefix field auto-set from job type -->
+              <input type="hidden" id="new_prefix"/>
+            </div>
+            <div class="field-group">
+              <label>Job Number</label>
+              <input type="text" id="next_job_preview" disabled style="font-weight: 700; color: var(--accent);" placeholder="Select job type first..."/>
+            </div>
+          </div>
+          <div class="field-group full">
+            <label for="new_client_name">Client Name <span class="required">*</span></label>
+            <input type="text" id="new_client_name" placeholder="Client or company name"/>
+          </div>
+          <div class="field-group full">
+            <label for="new_site_name">Site Name <span class="required">*</span></label>
+            <input type="text" id="new_site_name" placeholder="e.g. Westmeadows Warehouse, Collins St Office"/>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="new_contact_person">Contact Person</label>
+              <input type="text" id="new_contact_person" placeholder="Primary contact"/>
+            </div>
+            <div class="field-group">
+              <label for="new_contact_phone">Contact Phone</label>
+              <input type="tel" id="new_contact_phone" placeholder="Phone number"/>
+            </div>
+          </div>
+          <div class="field-group full" style="position: relative;">
+            <label for="new_site_address">Site Address <span class="required">*</span></label>
+            <input type="text" id="new_site_address" placeholder="Start typing address..." autocomplete="off"/>
+            <div id="address-results" style="
+              display: none; position: absolute; top: 100%; left: 0; right: 0;
+              background: var(--bg-secondary); border: 1px solid var(--border);
+              border-top: none; border-radius: 0 0 10px 10px;
+              max-height: 220px; overflow-y: auto; z-index: 1000;
+              box-shadow: 0 8px 24px var(--shadow);
+            "></div>
+          </div>
+
+          <div class="new-job-created" id="newJobCreatedNotice">
+            <span>✅</span>
+            <span>Job <strong id="newJobCreatedNumber"></strong> created — you can now add photos, documents and continue filling in the sheet.</span>
+          </div>
+
+          <!-- Manual trigger if auto-create doesn't fire -->
+          <button type="button" id="confirmNewJobBtn" style="
+            display: none; width: 100%; margin-top: 12px;
+            padding: 0.875rem; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white; font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease;
+          ">Create Job & Continue →</button>
+        </div>
+      </div>
+
+      <!-- Placeholder message shown while no job is picked -->
+      <div id="awaitingJobMessage" style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic; border: 2px dashed var(--border); border-radius: 12px; margin-top: 1rem;">
+        👆 Select an existing job or fill in the new job details above to continue
+      </div>
+
+      <!-- ALL SECTIONS BELOW ARE HIDDEN UNTIL A JOB IS PICKED OR CREATED -->
+      <div id="postJobSections" style="display: none;">
+
+      <!-- PHOTOS & DOCUMENTS — clicks open scanner modal -->
+      <div class="section-label">Photos & Documents</div>
+      <div class="file-upload-area" id="fileUploadArea" style="cursor: pointer;">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text"><strong>Add photos or documents</strong></div>
+        <div class="upload-hint">Tap to add — Max 50MB per file</div>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;"/>
+      </div>
+      <div class="file-list" id="fileList"></div>
+
+      <!-- TASKS -->
+      <div class="section-label">Work Performed</div>
+      <div id="tasksContainer"></div>
+      <button type="button" class="add-btn" id="addTaskBtn">+ Add Task</button>
+
+      <!-- LABOUR -->
+      <div class="section-label">Labour</div>
+      <div id="labourContainer"></div>
+      <button type="button" class="add-btn" id="addLabourBtn">+ Add Labour Entry</button>
+
+      <!-- MATERIALS -->
+      <div class="section-label">Materials</div>
+      <div id="materialsContainer"></div>
+      <button type="button" class="add-btn" id="addMaterialBtn">+ Add Material</button>
+
+      <!-- NOTES -->
+      <div class="section-label">Notes & Notifications</div>
+      <div id="notesContainer"></div>
+      <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
+
+      <!-- SERVICE REPORT -->
+      <div class="section-label">Service Report Options</div>
+      <div class="service-report-toggle">
+        <div class="toggle-switch">
+          <input type="checkbox" id="isServiceReport"/>
+          <label for="isServiceReport" class="toggle-label">Generate Client Service Report</label>
+        </div>
+        <div class="report-sections" id="reportSections">
+          <label style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: block;">Select what to include in client report:</label>
+          <div class="section-checkboxes">
+            <div class="checkbox-item"><input type="checkbox" id="include_labour" checked/><label for="include_labour">Labour Hours</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_tasks" checked/><label for="include_tasks">Tasks Completed</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_materials"/><label for="include_materials">Materials Used</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_photos" checked/><label for="include_photos">Photos</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="include_notes"/><label for="include_notes">Notes</label></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLIENT SIGN-OFF -->
+      <div class="signature-section" id="signatureSection">
+        <div class="section-label">Client Sign-Off</div>
+
+        <!-- Email field always required when service report is on -->
+        <div class="field-group" style="margin-bottom: 1rem;">
+          <label for="signoff_email">Client Email Address <span class="required">*</span></label>
+          <input type="email" id="signoff_email" placeholder="client@example.com"/>
+          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">A copy of the report will be sent to this address.</div>
+        </div>
+
+        <div class="job-number-toggle" style="margin-bottom: 0;">
+          <div class="radio-option">
+            <input type="radio" id="signoff_none" name="signoff_method" value="none" checked/>
+            <label for="signoff_none">⏭️ Skip Sign-Off<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Email PDF only</span></label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="signoff_inperson" name="signoff_method" value="in_person"/>
+            <label for="signoff_inperson">✍️ Sign Now<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Sign in person now</span></label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="signoff_remote" name="signoff_method" value="remote"/>
+            <label for="signoff_remote">📧 Email Link<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Client signs remotely</span></label>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /postJobSections -->
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <span id="submitSheetNumber" style="display:none; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-right: auto;"></span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
+      </div>
+
+      <div class="pdf-actions" id="pdfActions">
+        <h3>✅ Service Report Saved!</h3>
+        <p>Your service report is ready. What would you like to do?</p>
+        <div class="pdf-actions-buttons">
+          <button type="button" class="pdf-btn" id="downloadPdfBtn">📥 Download PDF</button>
+          <button type="button" class="pdf-btn" id="copyLinkBtn">🔗 Copy Share Link</button>
+          <button type="button" class="pdf-btn" id="emailPdfBtn">📧 Email Client</button>
+          <button type="button" class="pdf-btn" id="newSheetBtn">📝 New Job Sheet</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>💡 Job sheets are saved to your work record. Service reports include client sign-off and PDF export.</em></p>
+      </div>
+      <div class="footer-title-block">
+        <h2 class="footer-title">BROMAR HUB — JOBSHEET SUBMISSION</h2>
+        <a href="../employee-resources/suggestions-feedback.html" class="footer-bug-link">
+          <span>🐞</span> Report a bug or suggest an improvement
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Revision number (bottom-right, every page) -->
+<div class="revision-number">V1.23</div>
+
+<!-- IN-PERSON SIGN-OFF MODAL -->
+<div class="signoff-modal" id="signoffModal">
+  <div class="signoff-modal-content">
+    <div class="signoff-modal-header">
+      <h2>Service Report Preview</h2>
+      <button type="button" class="signoff-close" id="signoffClose">&times;</button>
+    </div>
+    <div class="signoff-modal-body" id="signoffSummary"></div>
+    <div class="signoff-modal-footer">
+      <div class="signoff-instruction">
+        <strong>Please review the report above.</strong> By signing below you confirm the work described has been completed satisfactorily.
+      </div>
+      <div class="signature-canvas-wrapper" style="margin: 16px 0;">
+        <label>Client Signature <span class="required">*</span></label>
+        <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        <div class="signature-actions">
+          <div class="signature-name">
+            <input type="text" id="clientSignatureName" placeholder="Client Full Name *"/>
+          </div>
+          <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
+        </div>
+      </div>
+      <div class="signoff-modal-actions">
+        <button type="button" class="btn-secondary" id="signoffCancel">Back to Edit</button>
+        <button type="button" class="submit-btn" id="signoffConfirm">Confirm & Sign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Processing...</div>
+    <div class="loading-subtext" id="loadingSubtext">Please wait</div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // SUPABASE
+  // ============================================================
+  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    alert('A required library failed to load. Check your internet connection or browser tracking-prevention settings, then refresh.');
+    throw new Error('Supabase library not loaded');
+  }
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let EMPLOYEES = [];
+  let currentUser = null;
+  let selectedJobData = null;
+  let uploadedFiles = [];
+  let currentJobSheetNumber = null;
+  let currentJobNumber = null;
+
+  // ============================================================
+  // DOCUMENT SCANNER SETUP — gated by job selection
+  // ============================================================
+  let bromarScanner = null;
+
+  function initScanner() {
+    const uploadArea = document.getElementById('fileUploadArea');
+    const fileInputEl = document.getElementById('fileInput');
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                  || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+
+    const requireJob = () => {
+      if (!selectedJobData) {
+        showInfo('Please pick or create a job number first');
+        const jobType = document.querySelector('input[name="job_type"]:checked').value;
+        if (jobType === 'existing') document.getElementById('existing_job_number').focus();
+        else document.getElementById('new_prefix').focus();
+        return false;
+      }
+      return true;
+    };
+
+    // Build scanner instance (mobile only)
+    if (isMobile && typeof BromarScanner !== 'undefined') {
+      bromarScanner = new BromarScanner({
+        supabase: sb,
+        bucket: 'job-sheet-files',
+        pathPrefix: 'scans',
+        outputFormat: 'pdf'
+      });
+    }
+
+    uploadArea.addEventListener('click', (e) => {
+      if (e.target.closest('.file-item')) return;
+      if (!requireJob()) return;
+
+      if (isMobile && bromarScanner) {
+        // Mobile: open the scanner's own bottom-sheet picker
+        bromarScanner._onComplete = handleScannerComplete;
+        bromarScanner._show();
+      } else {
+        // Desktop: just open native file picker (no scan/camera needed)
+        fileInputEl.click();
+      }
+    });
+  }
+
+  function handleScannerComplete(files) {
+    files.forEach(f => {
+      const isPdf = f.type === 'application/pdf';
+      uploadedFiles.push({
+        id: Date.now() + Math.random(),
+        file: f.blob,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        tags: isPdf ? ['scanned'] : [],
+        description: '',
+        supabasePath: f.path || null,
+        supabaseUrl: f.url || null,
+        alreadyUploaded: !!f.path
+      });
+    });
+    renderFileList();
+  }
+
+  // ============================================================
+  // DRAG AND DROP (fallback for desktop)
+  // ============================================================
+  const fileUploadArea = document.getElementById('fileUploadArea');
+  const fileInput = document.getElementById('fileInput');
+
+  fileUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); fileUploadArea.classList.add('dragover'); });
+  fileUploadArea.addEventListener('dragleave', () => fileUploadArea.classList.remove('dragover'));
+  fileUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+    if (!selectedJobData) { showInfo('Please pick or create a job number first'); return; }
+    handleLocalFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', (e) => handleLocalFiles(e.target.files));
+
+  function handleLocalFiles(files) {
+    Array.from(files).forEach(file => {
+      if (file.size > 50 * 1024 * 1024) { showInfo(`${file.name} is too large (max 50MB)`); return; }
+      uploadedFiles.push({ id: Date.now() + Math.random(), file, name: file.name, size: file.size, type: file.type, tags: [], description: '', alreadyUploaded: false });
+    });
+    renderFileList();
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = uploadedFiles.map(f => {
+      const icon = f.type.startsWith('image/') ? '🖼️' : f.type === 'application/pdf' ? '📑' : '📄';
+      const sizeKB = (f.size / 1024).toFixed(1);
+      const presetTags = ['progress', 'before', 'after', 'electrical', 'safety', 'scanned'];
+      const customTags = (f.tags || []).filter(t => !presetTags.includes(t));
+      const isScanned = (f.tags || []).includes('scanned');
+
+      const dotIdx = f.name.lastIndexOf('.');
+      const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+      const baseName = dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name;
+      const renameValid = (f.renameBase ?? baseName).trim().length > 0;
+      const typeValid = (f.fileTypeLabel || '').trim().length > 0;
+
+      return `
+        <div class="file-item" style="flex-direction: column; align-items: stretch;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
+            <div class="file-info">
+              <div class="file-icon">${icon}</div>
+              <div class="file-details">
+                <div class="file-name" style="word-break: break-all;">${escapeHtml(f.name)}</div>
+                <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}${isScanned ? ' · <span style="color:var(--accent)">📄 Scanned</span>' : ''}</div>
+              </div>
+            </div>
+            <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
+          </div>
+
+          ${isScanned ? '' : `
+          <!-- Rename + Type — only for non-scanned files -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+            <div>
+              <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Filename <span style="color: var(--accent);">*</span></label>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <input type="text"
+                       value="${escapeHtml(f.renameBase ?? baseName)}"
+                       oninput="updateFileRename(${f.id}, this.value)"
+                       placeholder="e.g. site-plan"
+                       style="flex: 1; padding: 7px 10px; font-size: 0.85rem; min-width: 0;${renameValid ? '' : 'border-color: var(--error);'}"/>
+                <span style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">${escapeHtml(ext)}</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Type <span style="color: var(--accent);">*</span></label>
+              <input type="text"
+                     value="${escapeHtml(f.fileTypeLabel || '')}"
+                     oninput="updateFileType(${f.id}, this.value)"
+                     placeholder="e.g. SWMS, Invoice"
+                     style="width: 100%; padding: 7px 10px; font-size: 0.85rem;${typeValid ? '' : 'border-color: var(--error);'}"/>
+            </div>
+          </div>
+          `}
+
+          <!-- Description — all files -->
+          <div style="margin-top: 8px;">
+            <input type="text" placeholder="Description (optional)" value="${escapeHtml(f.description || '')}"
+                   oninput="updateFileDescription(${f.id}, this.value)"
+                   style="width: 100%; padding: 7px 10px; font-size: 0.85rem;"/>
+          </div>
+
+          ${isScanned ? '' : `
+          <!-- Tags — only for non-scanned files -->
+          <div class="file-tags" style="margin-top: 10px;">
+            ${presetTags.filter(t => t !== 'scanned').map(t => `<span class="file-tag ${f.tags.includes(t) ? 'selected' : ''}" onclick="toggleTag(${f.id}, '${t}')">${t.charAt(0).toUpperCase() + t.slice(1)}</span>`).join('')}
+            ${customTags.map(t => `<span class="file-tag selected" onclick="toggleTag(${f.id}, '${escapeHtml(t)}')" title="Click to remove">${escapeHtml(t)} ×</span>`).join('')}
+            <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">+ Custom</span>
+          </div>
+          `}
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.updateFileRename = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.renameBase = value;
+    // Don't re-render - would lose focus
+  };
+  window.updateFileType = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.fileTypeLabel = value;
+  };
+
+  window.toggleTag = function(fileId, tag) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const idx = file.tags.indexOf(tag);
+    if (idx > -1) file.tags.splice(idx, 1); else file.tags.push(tag);
+    renderFileList();
+  };
+  window.updateFileDescription = function(fileId, value) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file) file.description = value;
+  };
+  window.addCustomTag = function(fileId) {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file) return;
+    const tag = prompt('Enter custom tag:');
+    if (!tag) return;
+    const clean = tag.trim().toLowerCase();
+    if (clean && !file.tags.includes(clean)) file.tags.push(clean);
+    renderFileList();
+  };
+  window.removeFile = function(fileId) {
+    uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+    renderFileList();
+  };
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('sheet_date').valueAsDate = new Date();
+    document.getElementById('sheet_date').addEventListener('change', applyDateRulesToAllLabour);
+    await loadEmployees();
+    addTask();
+    addLabour();
+    setupSignatureCanvas();
+    initTheme();
+    initScanner();
+    setPostJobSectionsVisible(false);
+  });
+
+  async function loadEmployees() {
+    try {
+      const { data, error } = await sb.from('employees').select('full_name, email').order('full_name');
+      if (error) { console.error(error); showInfo('Could not load employees: ' + error.message); return; }
+      EMPLOYEES = data || [];
+      const select = document.getElementById('filled_by');
+      select.innerHTML = '<option value="">Select your name...</option>' +
+        EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
+      await autoSelectLoggedInUser();
+    } catch (err) { console.error(err); }
+  }
+
+  async function autoSelectLoggedInUser() {
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user?.email) return;
+      const match = EMPLOYEES.find(e => e.email?.toLowerCase() === user.email.toLowerCase());
+      if (!match) return;
+      const select = document.getElementById('filled_by');
+      select.value = match.full_name;
+      select.disabled = true;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Add 🔒 Logged in badge next to the label
+      const label = document.querySelector('label[for="filled_by"]');
+      if (label && !label.querySelector('.logged-in-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'logged-in-badge';
+        badge.style.cssText = 'color: var(--success); font-size: 0.75rem; font-weight: 600; margin-left: 6px;';
+        badge.textContent = '🔒 Logged in';
+        label.appendChild(badge);
+      }
+    } catch (err) { /* auth not active */ }
+  }
+
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'filled_by') {
+      const opt = e.target.selectedOptions[0];
+      currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email } : null;
+    }
+  });
+
+  // ============================================================
+  // THEME
+  // ============================================================
+  function initTheme() {
+    const html = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    function getTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    html.setAttribute('data-theme', getTheme());
+    toggle.addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (!localStorage.getItem('theme')) html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    });
+  }
+
+  // ============================================================
+  // JOB NUMBER MODE TOGGLE — with warning when switching after auto-create
+  // ============================================================
+  document.querySelectorAll('input[name="job_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      // Warn if user switches AWAY from "Create New Job" after a job was auto-created
+      if (this.value === 'existing' && selectedJobData && selectedJobData.justCreated) {
+        const confirmed = confirm(
+          `Job ${selectedJobData.job_number} was just created and will remain in the register (empty). Continue switching to an existing job?`
+        );
+        if (!confirmed) {
+          // Revert the radio selection
+          document.getElementById('new_job').checked = true;
+          document.getElementById('existing-job-fields').classList.remove('active');
+          document.getElementById('new-job-fields').classList.add('active');
+          return;
+        }
+        // User confirmed - clear the new-job state so they start fresh on existing
+        selectedJobData = null;
+        document.getElementById('newJobCreatedNotice').classList.remove('show');
+        // Unlock the new-job fields in case they swap back
+        document.getElementById('new_prefix').disabled = false;
+        document.getElementById('new_job_type').disabled = false;
+        document.getElementById('new_client_name').disabled = false;
+        document.getElementById('new_site_name').disabled = false;
+        document.getElementById('new_site_address').disabled = false;
+        // Update scanner path back to default
+        if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
+        setPostJobSectionsVisible(false);
+        document.getElementById('confirmNewJobBtn').style.display = 'none';
+      }
+
+      // Toggle field visibility
+      document.getElementById('existing-job-fields').classList.toggle('active', this.value === 'existing');
+      document.getElementById('new-job-fields').classList.toggle('active', this.value === 'new');
+    });
+  });
+
+  // ============================================================
+  // EXISTING JOB AUTOCOMPLETE
+  // ============================================================
+  let searchTimeout;
+  document.getElementById('existing_job_number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchJobs(this.value), 300);
+  });
+
+  async function searchJobs(query) {
+    const results = document.getElementById('autocompleteResults');
+    if (query.length < 2) { results.classList.remove('show'); return; }
+    try {
+      const { data, error } = await sb.from('job_number_register').select('job_number, client_name, site_name, site_address, prefix')
+        .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`).limit(10);
+      if (error) throw new Error(error.message);
+      if (data?.length > 0) {
+        results.innerHTML = data.map(job => `
+          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item-number">${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span></div>
+            <div class="autocomplete-item-client">${job.client_name}${job.site_name ? ` · ${job.site_name}` : ''}</div>
+          </div>`).join('');
+        results.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'"))));
+        });
+        results.classList.add('show');
+      } else {
+        results.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+        results.classList.add('show');
+      }
+    } catch (err) { showInfo('Search failed: ' + err.message); }
+  }
+
+  function selectJob(job) {
+    selectedJobData = job;
+    document.getElementById('existing_job_number').value = job.job_number;
+    document.getElementById('detail-client').textContent = job.client_name;
+    document.getElementById('detail-site-name').textContent = job.site_name ? job.site_name + ' · ' : '';
+    document.getElementById('detail-address').textContent = job.site_address || '';
+    document.getElementById('job-details-display').style.display = 'block';
+    document.getElementById('detail-sheet-number').textContent = 'loading...';
+    document.getElementById('autocompleteResults').classList.remove('show');
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
+    setPostJobSectionsVisible(true);
+
+    // Look up next sheet number for this job
+    sb.from('job_sheet_counters')
+      .select('last_sequence')
+      .eq('job_number', job.job_number)
+      .maybeSingle()
+      .then(({ data }) => {
+        const next = data ? data.last_sequence + 1 : 1;
+        const padded = String(next).padStart(3, '0');
+        const sheetNum = `${job.job_number}-JS${padded}`;
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').style.display = 'inline';
+        document.getElementById('submit-note') && (document.getElementById('submit-note').style.display = 'none');
+      })
+      .catch(() => {
+        const sheetNum = `${job.job_number}-JS001`;
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').textContent = sheetNum;
+        document.getElementById('submitSheetNumber').style.display = 'inline';
+      });
+  }
+
+  function setPostJobSectionsVisible(visible) {
+    document.getElementById('postJobSections').style.display = visible ? 'block' : 'none';
+    document.querySelector('.form-divider').style.display = visible ? 'block' : 'none';
+    document.querySelector('.submit-row').style.display = visible ? 'flex' : 'none';
+    document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) document.getElementById('autocompleteResults').classList.remove('show');
+  });
+
+  // ============================================================
+  // NEW JOB — auto-create as soon as required fields filled
+  // ============================================================
+  document.getElementById('new_job_type').addEventListener('change', async function() {
+    const preview = document.getElementById('next_job_preview');
+    if (!this.value) {
+      preview.value = 'Select job type first...';
+      document.getElementById('new_prefix').value = '';
+      return;
+    }
+    const [prefix, jobTypeLabel] = this.value.split('|');
+    document.getElementById('new_prefix').value = prefix;
+    preview.value = 'Loading...';
+    try {
+      const { data, error } = await sb.from('job_number_counters').select('last_sequence').eq('prefix', prefix).single();
+      if (error) throw error;
+      preview.value = `${prefix}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
+    } catch (err) { preview.value = 'Error'; }
+    checkAndCreateNewJob();
+  });
+
+  // Trigger check whenever any new-job required field changes/blurs
+  // Show "Create Job & Continue" button when all required new-job fields are filled
+  function updateConfirmJobBtn() {
+    const jobType = document.querySelector('input[name="job_type"]:checked').value;
+    if (jobType !== 'new' || selectedJobData) {
+      document.getElementById('confirmNewJobBtn').style.display = 'none';
+      return;
+    }
+    const prefix = document.getElementById('new_prefix').value;
+    const clientName = document.getElementById('new_client_name').value.trim();
+    const siteName = document.getElementById('new_site_name').value.trim();
+    const siteAddress = document.getElementById('new_site_address').value.trim();
+    document.getElementById('confirmNewJobBtn').style.display =
+      (prefix && clientName && siteName && siteAddress) ? 'block' : 'none';
+  }
+
+  document.getElementById('confirmNewJobBtn').addEventListener('click', async () => {
+    // Force-clear selectedJobData in case a previous attempt left it in a bad state
+    if (selectedJobData && !selectedJobData.job_number) selectedJobData = null;
+    if (selectedJobData) return; // already created successfully
+
+    const jobTypeVal = document.getElementById('new_job_type').value;
+    const prefix = document.getElementById('new_prefix').value;
+    const clientName = document.getElementById('new_client_name').value.trim();
+    const siteName = document.getElementById('new_site_name').value.trim();
+    const siteAddress = document.getElementById('new_site_address').value.trim();
+
+    if (!prefix || !clientName || !siteName || !siteAddress) {
+      showInfo('Please fill in all required fields: Job Type, Client Name, Site Name and Site Address');
+      return;
+    }
+    const jobTypeLabel = jobTypeVal.split('|')[1] || '';
+    await createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel);
+  });
+
+  // Trigger button visibility check on all relevant field changes
+  ['new_client_name', 'new_site_name', 'new_site_address'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateConfirmJobBtn);
+    document.getElementById(id).addEventListener('blur', () => {
+      updateConfirmJobBtn();
+      checkAndCreateNewJob();
+    });
+  });
+  document.getElementById('new_job_type').addEventListener('change', updateConfirmJobBtn);
+  function checkAndCreateNewJob() {
+    const jobType = document.querySelector('input[name="job_type"]:checked').value;
+    if (jobType !== 'new') return;
+    if (selectedJobData) return;
+
+    const jobTypeVal = document.getElementById('new_job_type').value;
+    const prefix = document.getElementById('new_prefix').value;
+    const clientName = document.getElementById('new_client_name').value.trim();
+    const siteName = document.getElementById('new_site_name').value.trim();
+    const siteAddress = document.getElementById('new_site_address').value.trim();
+    if (!prefix || !clientName || !siteName || !siteAddress) return;
+
+    const jobTypeLabel = jobTypeVal.split('|')[1] || '';
+    createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel);
+  }
+
+  async function createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel) {
+    try {
+      const contactPerson = document.getElementById('new_contact_person').value.trim();
+      const contactPhone = document.getElementById('new_contact_phone').value.trim();
+
+      const { data: newJobNum, error } = await sb.rpc('create_new_job', {
+        p_prefix: prefix,
+        p_client_name: clientName,
+        p_contact_person: contactPerson,
+        p_contact_phone: contactPhone,
+        p_site_name: siteName,
+        p_site_address: siteAddress
+      });
+      if (error) throw error;
+
+      selectedJobData = {
+        job_number: newJobNum,
+        client_name: clientName,
+        site_name: siteName,
+        site_address: siteAddress,
+        contact_person: contactPerson,
+        prefix: prefix,
+        justCreated: true
+      };
+
+      if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
+
+      document.getElementById('new_prefix').disabled = true;
+      document.getElementById('new_job_type').disabled = true;
+      document.getElementById('new_client_name').disabled = true;
+      document.getElementById('new_site_name').disabled = true;
+      document.getElementById('new_site_address').disabled = true;
+
+      // Show notice
+      document.getElementById('newJobCreatedNumber').textContent = newJobNum;
+      document.getElementById('newJobCreatedNotice').classList.add('show');
+      document.getElementById('confirmNewJobBtn').style.display = 'none';
+
+      // Show this job sheet number (always JS001 for a brand new job)
+      const sheetNum = `${newJobNum}-JS001`;
+      const sheetPreview = document.getElementById('detail-sheet-preview');
+      if (sheetPreview) {
+        sheetPreview.style.display = 'block';
+        document.getElementById('detail-sheet-number').textContent = sheetNum;
+      }
+      document.getElementById('submitSheetNumber').textContent = sheetNum;
+      document.getElementById('submitSheetNumber').style.display = 'inline';
+
+      // Reveal the rest of the form
+      setPostJobSectionsVisible(true);
+    } catch (err) {
+      showInfo('Could not create job: ' + err.message);
+      document.getElementById('confirmNewJobBtn').style.display = 'block';
+    }
+  }
+
+  // ============================================================
+  // SERVICE REPORT TOGGLE
+  // ============================================================
+  document.getElementById('isServiceReport').addEventListener('change', function() {
+    document.getElementById('reportSections').classList.toggle('show', this.checked);
+    document.getElementById('signatureSection').classList.toggle('show', this.checked);
+  });
+
+  // ============================================================
+  // SIGNATURE PAD
+  // ============================================================
+  function setupSignatureCanvas() {
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false, lastX = 0, lastY = 0;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      const dpr = window.devicePixelRatio || 1;
+      const prev = canvas.toDataURL();
+      canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (prev && prev !== 'data:,') { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height); img.src = prev; }
+    }
+    resize(); setTimeout(resize, 100); window.addEventListener('resize', resize);
+
+    function getPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); [lastX, lastY] = [p.x, p.y]; if (e.pointerId !== undefined && canvas.setPointerCapture) try { canvas.setPointerCapture(e.pointerId); } catch(err) {} }
+    function draw(e) { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke(); [lastX, lastY] = [p.x, p.y]; }
+    function stop(e) { drawing = false; if (e?.pointerId !== undefined && canvas.releasePointerCapture) try { canvas.releasePointerCapture(e.pointerId); } catch(err) {} }
+
+    canvas.addEventListener('pointerdown', start);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+
+    document.getElementById('clearSignatureBtn').addEventListener('click', () => {
+      const r = canvas.getBoundingClientRect(); ctx.clearRect(0, 0, r.width, r.height);
+    });
+  }
+
+  function getSignatureData() { return document.getElementById('signatureCanvas').toDataURL('image/png'); }
+  function isSignatureEmpty() {
+    const canvas = document.getElementById('signatureCanvas');
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 0) return false;
+    return true;
+  }
+
+  // ============================================================
+  // SIGN-OFF MODAL
+  // ============================================================
+  let pendingSignoffEmail = null;
+
+  async function openSignoffModal(jobSheetNumber, jobNumber, clientEmail) {
+    pendingSignoffEmail = clientEmail || null;
+    document.getElementById('signoffSummary').innerHTML = buildSummaryHTML(jobSheetNumber, jobNumber);
+    document.getElementById('signoffModal').classList.add('show');
+    setTimeout(() => { const c = document.getElementById('signatureCanvas'); const r = c.getBoundingClientRect(); c.width = r.width; c.height = r.height; }, 50);
+  }
+
+  function buildSummaryHTML(jobSheetNumber, jobNumber) {
+    const sections = { labour: document.getElementById('include_labour').checked, tasks: document.getElementById('include_tasks').checked, photos: document.getElementById('include_photos').checked, notes: document.getElementById('include_notes').checked };
+    let html = `<div class="summary-section"><h3>Job Details</h3>
+      <table class="summary-table"><tbody>
+        <tr><td><strong>Report #</strong></td><td>${jobSheetNumber}</td></tr>
+        <tr><td><strong>Job #</strong></td><td>${jobNumber}</td></tr>
+        <tr><td><strong>Date</strong></td><td>${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</td></tr>
+        ${selectedJobData ? `<tr><td><strong>Client</strong></td><td>${selectedJobData.client_name}</td></tr>` : ''}
+        <tr><td><strong>Prepared by</strong></td><td>${currentUser?.name || ''}</td></tr>
+      </tbody></table></div>`;
+    if (sections.tasks) {
+      const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
+      if (tasks.length) html += `<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ol></div>`;
+    }
+    if (sections.labour) {
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normal: parseFloat(c.querySelector('.labour-normal').value) || 0, ot: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
+      if (labour.length) {
+        const tN = labour.reduce((s,l)=>s+l.normal,0), tO = labour.reduce((s,l)=>s+l.ot,0);
+        html += `<div class="summary-section"><h3>Labour</h3><table class="summary-table"><thead><tr><th>Employee</th><th>Normal</th><th>OT</th></tr></thead><tbody>${labour.map(l=>`<tr><td>${escapeHtml(l.employee)}</td><td>${l.normal}h</td><td>${l.ot}h</td></tr>`).join('')}</tbody><tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${tN}h</strong></td><td><strong>${tO}h</strong></td></tr></tfoot></table></div>`;
+      }
+    }
+    return html;
+  }
+
+  document.getElementById('signoffClose').addEventListener('click', () => document.getElementById('signoffModal').classList.remove('show'));
+  document.getElementById('signoffCancel').addEventListener('click', () => document.getElementById('signoffModal').classList.remove('show'));
+
+  document.getElementById('signoffConfirm').addEventListener('click', async () => {
+    const sigName = document.getElementById('clientSignatureName').value.trim();
+    if (!sigName) { alert('Please enter the client name'); return; }
+    if (isSignatureEmpty()) { alert('Please capture the client signature'); return; }
+    showLoading('Saving signature...', 'Recording client sign-off');
+    try {
+      const { error } = await sb.from('job_sheets').update({ client_signature_data: getSignatureData(), client_signature_name: sigName, client_signature_date: new Date().toISOString(), signing_status: 'signed', signing_method: 'in_person' }).eq('job_sheet_number', currentJobSheetNumber);
+      if (error) throw error;
+      document.getElementById('signoffModal').classList.remove('show');
+
+      if (pendingSignoffEmail) {
+        showLoading('Generating signed PDF...', 'Preparing report');
+        const pdf = await generatePDF();
+        const pdfPath = `${currentJobNumber}/service-reports/signed-${currentJobSheetNumber}.pdf`;
+        await sb.storage.from('job-sheet-files').upload(pdfPath, pdf.output('blob'), { contentType: 'application/pdf', upsert: true });
+        showLoading('Emailing signed report...', pendingSignoffEmail);
+        const pdfBase64 = pdf.output('datauristring').split(',')[1];
+        const { error: emailErr } = await sb.functions.invoke('send-signed-report', { body: { recipientEmail: pendingSignoffEmail, jobSheetNumber: currentJobSheetNumber, clientName: selectedJobData?.client_name || '', signedByName: sigName, pdfBase64 } });
+        hideLoading();
+        if (emailErr) {
+          showInfo(`Signature saved — but email failed: ${emailErr.message}`);
+        } else {
+          showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
+        }
+      } else {
+        hideLoading();
+        showSuccess('Service report signed and saved');
+      }
+      document.getElementById('pdfActions').classList.add('show');
+      document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
+  });
+
+  // ============================================================
+  // TASKS / LABOUR / MATERIALS / NOTES
+  // ============================================================
+  let taskCount = 0, labourCount = 0, noteCount = 0, materialCount = 0;
+  document.getElementById('addTaskBtn').addEventListener('click', addTask);
+  document.getElementById('addLabourBtn').addEventListener('click', addLabour);
+  document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
+  document.getElementById('addNoteBtn').addEventListener('click', addNote);
+
+  function addTask() {
+    taskCount++;
+    const id = taskCount;
+    const div = document.createElement('div');
+    div.className = 'task-card'; div.dataset.taskId = id;
+    div.innerHTML = `<div class="task-header"><span class="task-title">Task ${id}</span>${id > 1 ? `<button type="button" class="remove-btn" onclick="removeTask(${id})">Remove</button>` : ''}</div><textarea class="task-description" placeholder="Describe the work performed..."></textarea>`;
+    document.getElementById('tasksContainer').appendChild(div);
+  }
+  window.removeTask = id => document.querySelector(`[data-task-id="${id}"]`)?.remove();
+
+  function addLabour() {
+    labourCount++;
+    const id = labourCount;
+    const div = document.createElement('div');
+    div.className = 'labour-card'; div.dataset.labourId = id;
+    const opts = EMPLOYEES.map(e => `<option value="${e.full_name}">${e.full_name}</option>`).join('');
+    div.innerHTML = `<div class="labour-header"><span class="labour-title">Labour Entry ${id}</span>${id > 1 ? `<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>` : ''}</div>
+      <div class="field-group"><label>Employee <span class="required">*</span></label><select class="labour-employee"><option value="">Select employee...</option>${opts}</select></div>
+      <div class="hours-inputs">
+        <div class="field-group" style="margin-bottom:0"><label class="labour-normal-label">Normal Hours</label><input type="number" class="labour-normal" min="0" max="8" step="0.25" value="0"/></div>
+        <div class="field-group" style="margin-bottom:0"><label>Overtime Hours</label><input type="number" class="labour-overtime" min="0" step="0.25" value="0"/></div>
+      </div>
+      <div class="weekend-notice" style="display:none; margin-top:10px; font-size:0.75rem; color:var(--accent); font-style:italic;">⚠️ Weekend — all hours count as overtime</div>`;
+    document.getElementById('labourContainer').appendChild(div);
+    applyDateRulesToLabour(div);
+  }
+  window.removeLabour = id => document.querySelector(`[data-labour-id="${id}"]`)?.remove();
+
+  function applyDateRulesToLabour(card) {
+    const dateStr = document.getElementById('sheet_date').value;
+    if (!dateStr) return;
+    const day = new Date(dateStr).getDay(); // 0=Sun, 6=Sat
+    const isWeekend = (day === 0 || day === 6);
+    const holiday = getPublicHoliday(dateStr);
+    const isHoliday = !!holiday;
+    const overtimeOnly = isWeekend || isHoliday;
+
+    const normalInput = card.querySelector('.labour-normal');
+    const overtimeInput = card.querySelector('.labour-overtime');
+    const notice = card.querySelector('.weekend-notice');
+    const normalLabel = card.querySelector('.labour-normal-label');
+
+    if (overtimeOnly) {
+      normalInput.value = 0;
+      normalInput.disabled = true;
+      normalInput.style.opacity = '0.5';
+      if (isHoliday) {
+        normalLabel.textContent = 'Normal Hours (N/A on public holidays)';
+        notice.textContent = `⚠️ ${holiday} (public holiday) — all hours count as overtime`;
+      } else {
+        normalLabel.textContent = 'Normal Hours (N/A on weekends)';
+        notice.textContent = '⚠️ Weekend — all hours count as overtime';
+      }
+      notice.style.display = 'block';
+    } else {
+      normalInput.disabled = false;
+      normalInput.style.opacity = '1';
+      normalInput.max = 8;
+      normalLabel.textContent = 'Normal Hours (max 8)';
+      notice.style.display = 'none';
+
+      // Clamp on input
+      normalInput.addEventListener('input', () => {
+        const v = parseFloat(normalInput.value) || 0;
+        if (v > 8) normalInput.value = 8;
+        if (v < 0) normalInput.value = 0;
+      }, { once: false });
+    }
+  }
+
+  // ============================================================
+  // ADDRESS LOOKUP — OpenStreetMap Nominatim (AU biased)
+  // ============================================================
+  let addressTimeout;
+
+  document.getElementById('new_site_address').addEventListener('input', function() {
+    clearTimeout(addressTimeout);
+    const q = this.value.trim();
+    const results = document.getElementById('address-results');
+    if (q.length < 4) { results.style.display = 'none'; return; }
+    results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">Searching...</div>';
+    results.style.display = 'block';
+    addressTimeout = setTimeout(() => searchAddress(q), 400);
+  });
+
+  document.getElementById('new_site_address').addEventListener('blur', () => {
+    setTimeout(() => { document.getElementById('address-results').style.display = 'none'; }, 200);
+  });
+
+  async function searchAddress(query) {
+    const results = document.getElementById('address-results');
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?` + new URLSearchParams({
+        q: query,
+        format: 'json',
+        addressdetails: 1,
+        limit: 6,
+        countrycodes: 'au',
+        'accept-language': 'en'
+      });
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('Search failed');
+      const data = await resp.json();
+
+      if (!data.length) {
+        results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">No results found</div>';
+        return;
+      }
+
+      results.innerHTML = data.map((item, i) => {
+        // Build a clean display address
+        const a = item.address;
+        const parts = [
+          a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road,
+          a.suburb || a.city_district || a.neighbourhood,
+          a.state,
+          a.postcode
+        ].filter(Boolean);
+        const display = parts.join(', ');
+        const full = item.display_name;
+
+        return `<div class="address-result-item" style="
+          padding: 10px 14px; cursor: pointer;
+          border-bottom: 1px solid var(--border); font-size: 0.875rem;
+          transition: background 0.15s;
+        " onmouseenter="this.style.background='var(--card-hover)'"
+           onmouseleave="this.style.background=''"
+           onclick="selectAddress('${escapeHtml(display).replace(/'/g, "&#39;")}')">
+          <div style="font-weight: 500; color: var(--text-primary);">${escapeHtml(display)}</div>
+          ${a.state ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(a.state)}${a.country ? ', ' + escapeHtml(a.country) : ''}</div>` : ''}
+        </div>`;
+      }).join('');
+
+    } catch (err) {
+      results.innerHTML = '<div style="padding: 10px 14px; font-size: 0.85rem; color: var(--text-secondary);">Search unavailable — enter address manually</div>';
+    }
+  }
+
+  window.selectAddress = function(address) {
+    const input = document.getElementById('new_site_address');
+    input.value = address;
+    document.getElementById('address-results').style.display = 'none';
+    input.dispatchEvent(new Event('blur'));
+    checkAndCreateNewJob();
+  };
+  // Source: business.vic.gov.au · Last verified May 2026
+  // ============================================================
+  const VIC_PUBLIC_HOLIDAYS = {
+    // 2026
+    '2026-01-01': 'New Year\u2019s Day',
+    '2026-01-26': 'Australia Day',
+    '2026-03-09': 'Labour Day',
+    '2026-04-03': 'Good Friday',
+    '2026-04-04': 'Saturday before Easter Sunday',
+    '2026-04-05': 'Easter Sunday',
+    '2026-04-06': 'Easter Monday',
+    '2026-04-25': 'ANZAC Day',
+    '2026-06-08': 'King\u2019s Birthday',
+    '2026-09-25': 'Friday before AFL Grand Final',
+    '2026-11-03': 'Melbourne Cup Day',
+    '2026-12-25': 'Christmas Day',
+    '2026-12-26': 'Boxing Day',
+    '2026-12-28': 'Boxing Day (observed)',  // 26th is Saturday
+    // 2027
+    '2027-01-01': 'New Year\u2019s Day',
+    '2027-01-26': 'Australia Day',
+    '2027-03-08': 'Labour Day',
+    '2027-03-26': 'Good Friday',
+    '2027-03-27': 'Saturday before Easter Sunday',
+    '2027-03-28': 'Easter Sunday',
+    '2027-03-29': 'Easter Monday',
+    '2027-04-25': 'ANZAC Day',
+    '2027-06-14': 'King\u2019s Birthday',
+    '2027-09-24': 'Friday before AFL Grand Final',
+    '2027-11-02': 'Melbourne Cup Day',
+    '2027-12-25': 'Christmas Day',
+    '2027-12-27': 'Christmas Day (observed)',  // 25th is Saturday
+    '2027-12-28': 'Boxing Day (observed)'      // 26th is Sunday
+  };
+
+  function getPublicHoliday(dateStr) {
+    return VIC_PUBLIC_HOLIDAYS[dateStr] || null;
+  }
+
+  function applyDateRulesToAllLabour() {
+    document.querySelectorAll('[data-labour-id]').forEach(card => applyDateRulesToLabour(card));
+  }
+
+  function addMaterial() {
+    materialCount++;
+    const id = materialCount;
+    const div = document.createElement('div');
+    div.className = 'labour-card'; div.dataset.materialId = id;
+    div.innerHTML = `<div class="labour-header"><span class="labour-title">Material ${id}</span><button type="button" class="remove-btn" onclick="removeMaterial(${id})">Remove</button></div>
+      <div class="field-group"><label>Material / Description</label><input type="text" class="material-name" placeholder="e.g. 2.5mm TPS cable"/></div>
+      <div class="hours-inputs">
+        <div class="field-group" style="margin-bottom:0"><label>Quantity</label><input type="number" class="material-qty" min="0" step="0.01" value="0"/></div>
+        <div class="field-group" style="margin-bottom:0"><label>Unit</label><select class="material-unit"><option value="ea">each</option><option value="m">metres</option><option value="kg">kg</option><option value="L">litres</option><option value="pkt">packet</option><option value="box">box</option><option value="roll">roll</option><option value="set">set</option><option value="hr">hour</option></select></div>
+      </div>`;
+    document.getElementById('materialsContainer').appendChild(div);
+  }
+  window.removeMaterial = id => document.querySelector(`[data-material-id="${id}"]`)?.remove();
+
+  function addNote() {
+    noteCount++;
+    const id = noteCount;
+    const div = document.createElement('div');
+    div.className = 'note-card'; div.dataset.noteId = id;
+    const opts = EMPLOYEES.map(e => `<option value="${e.full_name}" data-email="${e.email || ''}">${e.full_name}</option>`).join('');
+    div.innerHTML = `
+      <div class="note-header">
+        <span class="note-title">Note ${id}</span>
+        <button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button>
+      </div>
+      <div class="field-group" style="margin-bottom: 0.75rem;">
+        <label>Note</label>
+        <textarea class="note-text" placeholder="Note details..." style="margin-bottom: 0;"></textarea>
+      </div>
+      <div class="field-group" style="margin-bottom: 0;">
+        <label>Notify Staff <span style="font-weight:400; color: var(--text-secondary);">(optional — select multiple)</span></label>
+        <div class="note-employee-list" id="note-employees-${id}" style="
+          max-height: 180px; overflow-y: auto;
+          border: 1px solid var(--border); border-radius: 10px;
+          background: var(--bg-main); padding: 6px;
+          display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+        ">
+          ${EMPLOYEES.map(e => `
+            <label style="
+              display: flex; align-items: center; gap: 8px;
+              padding: 6px 10px; border-radius: 8px; cursor: pointer;
+              font-size: 0.85rem; font-weight: 400;
+              border: 1px solid transparent; transition: all 0.15s;
+            " class="note-emp-label">
+              <input type="checkbox" class="note-notify-cb" value="${escapeHtml(e.full_name)}" data-email="${escapeHtml(e.email || '')}"
+                     onchange="highlightNoteEmp(this)"
+                     style="accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer;"/>
+              ${escapeHtml(e.full_name)}
+            </label>
+          `).join('')}
+        </div>
+        <div id="note-selected-${id}" style="margin-top: 6px; font-size: 0.75rem; color: var(--text-secondary);"></div>
+      </div>`;
+    document.getElementById('notesContainer').appendChild(div);
+  }
+  window.removeNote = id => document.querySelector(`[data-note-id="${id}"]`)?.remove();
+
+  window.highlightNoteEmp = function(cb) {
+    const label = cb.closest('label');
+    if (cb.checked) {
+      label.style.background = 'var(--card-hover)';
+      label.style.borderColor = 'var(--accent)';
+      label.style.color = 'var(--accent)';
+      label.style.fontWeight = '600';
+    } else {
+      label.style.background = '';
+      label.style.borderColor = 'transparent';
+      label.style.color = '';
+      label.style.fontWeight = '400';
+    }
+    // Update summary text
+    const card = cb.closest('[data-note-id]');
+    const id = card.dataset.noteId;
+    const selected = Array.from(card.querySelectorAll('.note-notify-cb:checked')).map(c => c.value);
+    const summary = document.getElementById(`note-selected-${id}`);
+    summary.textContent = selected.length ? `Notifying: ${selected.join(', ')}` : '';
+  };
+
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
+  document.getElementById('jobSheetForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    showLoading('Saving job sheet...', 'Processing your data');
+
+    try {
+      if (!currentUser) throw new Error('Please select who is filling out the form');
+
+      // Job number always comes from selectedJobData now (existing OR auto-created new)
+      if (!selectedJobData) throw new Error('Please complete the job details first');
+      const jobNumber = selectedJobData.job_number;
+
+      const tasks = Array.from(document.querySelectorAll('.task-description')).map(t => t.value.trim()).filter(t => t);
+      if (!tasks.length) throw new Error('Please add at least one task');
+
+      // Validate every file has filename + type filled in
+      if (uploadedFiles.length > 0) {
+        const invalid = uploadedFiles.find(f => {
+          if ((f.tags || []).includes('scanned')) return false; // scanner handles naming
+          const dotIdx = f.name.lastIndexOf('.');
+          const baseName = (f.renameBase ?? (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+          return !baseName || !(f.fileTypeLabel || '').trim();
+        });
+        if (invalid) throw new Error('Every file needs a filename and a type before uploading');
+      }
+
+      const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({ employee: c.querySelector('.labour-employee').value, normalHours: parseFloat(c.querySelector('.labour-normal').value) || 0, overtimeHours: parseFloat(c.querySelector('.labour-overtime').value) || 0 })).filter(l => l.employee);
+      const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({ name: c.querySelector('.material-name').value.trim(), quantity: parseFloat(c.querySelector('.material-qty').value) || 0, unit: c.querySelector('.material-unit').value })).filter(m => m.name);
+      const notes = Array.from(document.querySelectorAll('.note-card')).map(c => {
+        const text = c.querySelector('.note-text').value.trim();
+        const notifyPeople = Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb => ({
+          name: cb.value,
+          email: cb.dataset.email || ''
+        }));
+        return { text, notifyPeople };
+      }).filter(n => n.text);
+
+      const { data: jobSheetNumber, error: sheetErr } = await sb.rpc('create_job_sheet', { p_job_number: jobNumber, p_sheet_date: document.getElementById('sheet_date').value, p_tasks: tasks, p_labour: labour, p_notes: notes, p_created_by: currentUser.name });
+      if (sheetErr) throw sheetErr;
+
+      currentJobSheetNumber = jobSheetNumber;
+      currentJobNumber = jobNumber;
+
+      if (materials.length) await sb.from('job_sheets').update({ materials }).eq('job_sheet_number', jobSheetNumber);
+
+      // Upload only files not already uploaded by scanner
+      const pendingFiles = uploadedFiles.filter(f => !f.alreadyUploaded);
+      if (pendingFiles.length) {
+        showLoading('Uploading files...', `${pendingFiles.length} file(s)`);
+        await uploadFilesToSupabase(jobSheetNumber, jobNumber, pendingFiles);
+      }
+
+      // Record scanner-uploaded files in DB (already in storage; just save metadata + user rename)
+      const alreadyUploaded = uploadedFiles.filter(f => f.alreadyUploaded && f.supabasePath);
+      for (const f of alreadyUploaded) {
+        const dotIdx = f.name.lastIndexOf('.');
+        const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+        const baseName = (f.renameBase || (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+        const displayName = baseName.replace(/[^\w\-.\s]/g, '_') + ext;
+        await sb.from('job_sheet_files').insert({
+          job_sheet_number: jobSheetNumber,
+          job_number: jobNumber,
+          file_name: displayName,
+          file_path: f.supabasePath,
+          file_type: f.type,
+          file_size: f.size,
+          file_category: f.type.startsWith('image/') ? 'photo' : 'document',
+          tags: f.tags,
+          description: f.description || null,
+          type_label: (f.fileTypeLabel || '').trim() || null,
+          uploaded_by: currentUser?.name || 'Unknown'
+        });
+      }
+
+      const isServiceReport = document.getElementById('isServiceReport').checked;
+      if (isServiceReport) {
+        const reportSections = { labour: document.getElementById('include_labour').checked, tasks: document.getElementById('include_tasks').checked, materials: document.getElementById('include_materials').checked, photos: document.getElementById('include_photos').checked, notes: document.getElementById('include_notes').checked };
+        const signoffMethod = document.querySelector('input[name="signoff_method"]:checked').value;
+        const clientEmail = document.getElementById('signoff_email').value.trim();
+
+        // Email always required — prompt and focus rather than generic error
+        if (!clientEmail || !clientEmail.includes('@')) {
+          hideLoading();
+          submitBtn.disabled = false;
+          document.getElementById('signoff_email').focus();
+          document.getElementById('signoff_email').style.borderColor = 'var(--error)';
+          document.getElementById('signoff_email').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          showInfo('Please enter the client email address before saving the service report');
+          return;
+        }
+        document.getElementById('signoff_email').style.borderColor = '';
+
+        await sb.from('job_sheets').update({ is_service_report: true, report_sections: reportSections }).eq('job_sheet_number', jobSheetNumber);
+
+        if (signoffMethod === 'in_person') {
+          hideLoading();
+          await openSignoffModal(jobSheetNumber, jobNumber, clientEmail);
+          // pdfActions shown by signoffConfirm handler after signing
+          return;
+        }
+
+        if (signoffMethod === 'remote') {
+          showLoading('Generating signing link...', 'Please wait');
+          let token, tokenErr;
+          ({ data: token, error: tokenErr } = await sb.rpc('generate_signing_token', { p_job_sheet_number: jobSheetNumber, p_recipient_email: clientEmail, p_expires_days: 30 }));
+          if (tokenErr) throw new Error('Token error: ' + tokenErr.message);
+          if (!token) throw new Error('Signing token was empty — check generate_signing_token in Supabase');
+          const signUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, 'sign-report.html')}?token=${token}`;
+          showLoading('Sending signing link...', clientEmail);
+          const { error: linkErr } = await sb.functions.invoke('send-signing-link', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signUrl, preparedBy: currentUser?.name || '' } });
+          hideLoading();
+          if (linkErr) {
+            showInfo(`Link generated — but email failed: ${linkErr.message}`);
+          } else {
+            showSuccess(`Signing link sent to ${clientEmail}`);
+          }
+        }
+
+        if (signoffMethod === 'none') {
+          showLoading('Generating PDF...', 'Building report');
+          const pdf = await generatePDF();
+          const pdfPath = `${jobNumber}/service-reports/${jobSheetNumber}.pdf`;
+          await sb.storage.from('job-sheet-files').upload(pdfPath, pdf.output('blob'), { contentType: 'application/pdf', upsert: true });
+          showLoading('Emailing report...', clientEmail);
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          const { data: emailData, error: emailErr } = await sb.functions.invoke('send-signed-report', { body: { recipientEmail: clientEmail, jobSheetNumber, clientName: selectedJobData?.client_name || '', signedByName: '(No signature required)', pdfBase64 } });
+          hideLoading();
+          if (emailErr) {
+            showInfo(`Report saved — but email failed: ${emailErr.message}`);
+          } else {
+            showSuccess(`Report emailed to ${clientEmail}`);
+          }
+        }
+
+        document.getElementById('pdfActions').classList.add('show');
+        document.getElementById('pdfActions').scrollIntoView({ behavior: 'smooth' });
+
+      } else {
+        hideLoading();
+        showSuccess(`Job sheet saved: ${jobSheetNumber}`);
+      }
+    } catch (err) {
+      hideLoading();
+      showInfo('Error: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  async function uploadFilesToSupabase(jobSheetNumber, jobNumber, files) {
+    for (const f of files) {
+      // Apply rename: base + original extension
+      const dotIdx = f.name.lastIndexOf('.');
+      const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
+      const baseName = (f.renameBase || (dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name)).trim();
+      const safeName = baseName.replace(/[^\w\-.\s]/g, '_') + ext;
+      const finalName = safeName;
+
+      const filePath = `${jobNumber}/${jobSheetNumber}/${Date.now()}-${finalName}`;
+      const { error: uploadErr } = await sb.storage.from('job-sheet-files').upload(filePath, f.file, { cacheControl: '3600', upsert: false });
+      if (uploadErr) throw uploadErr;
+      await sb.from('job_sheet_files').insert({
+        job_sheet_number: jobSheetNumber,
+        job_number: jobNumber,
+        file_name: finalName,
+        file_path: filePath,
+        file_type: f.type,
+        file_size: f.size,
+        file_category: f.type.startsWith('image/') ? 'photo' : 'document',
+        tags: f.tags,
+        description: f.description || null,
+        type_label: (f.fileTypeLabel || '').trim() || null,
+        uploaded_by: currentUser?.name || 'Unknown'
+      });
+    }
+  }
+
+  // ============================================================
+  // PDF GENERATION
+  // ============================================================
+  document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+    showLoading('Generating PDF...', 'Building service report');
+    try { await generateAndDownloadPDF(); hideLoading(); showSuccess('PDF downloaded!'); }
+    catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
+  });
+  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+    showLoading('Generating shareable link...', 'Uploading PDF');
+    try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); hideLoading(); showSuccess('Link copied!'); }
+    catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
+  });
+  document.getElementById('emailPdfBtn').addEventListener('click', async () => {
+    const email = prompt('Enter client email address:');
+    if (!email) return;
+    showLoading('Preparing email...', 'Generating PDF');
+    try {
+      const url = await generateAndUploadPDF(); hideLoading();
+      const subject = encodeURIComponent(`Service Report - ${currentJobSheetNumber}`);
+      const body = encodeURIComponent(`Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nReport #: ${currentJobSheetNumber}\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`);
+      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    } catch (err) { hideLoading(); showInfo('Error: ' + err.message); }
+  });
+  document.getElementById('newSheetBtn').addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
+
+  async function fetchReportData() {
+    const { data: jobSheet, error } = await sb.from('job_sheets').select('*, job_number_register(*)').eq('job_sheet_number', currentJobSheetNumber).single();
+    if (error) throw error;
+    let files = [];
+    if (jobSheet.report_sections?.photos) {
+      const { data: filesData } = await sb.from('job_sheet_files').select('*').eq('job_sheet_number', currentJobSheetNumber).eq('file_category', 'photo');
+      if (filesData) {
+        for (const f of filesData) { const { data: urlData } = await sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600); if (urlData) f.signedUrl = urlData.signedUrl; }
+        files = filesData;
+      }
+    }
+    return { jobSheet, files };
+  }
+
+  async function generatePDF() {
+    const { jobSheet, files } = await fetchReportData();
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let y = margin;
+
+    pdf.setFillColor(194, 68, 14);
+    pdf.rect(0, 0, pageWidth, 4, 'F');
+    try {
+      const logoImg = await loadImage('../Bromar-Primary-Logo-Full-Colour.png');
+      const logoH = 18, logoW = (logoImg.width / logoImg.height) * logoH;
+      pdf.addImage(logoImg, 'PNG', margin, 10, logoW, logoH);
+    } catch(e) {}
+    pdf.setFontSize(8); pdf.setTextColor(80, 80, 80); pdf.setFont(undefined, 'bold');
+    pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD', pageWidth - margin, 12, { align: 'right' });
+    pdf.setFont(undefined, 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(100, 100, 100);
+    pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049', pageWidth - margin, 16, { align: 'right' });
+    pdf.text('Ph: +61 3 9335 5344  |  admin@bromar.com.au  |  bromar.com.au', pageWidth - margin, 20, { align: 'right' });
+    pdf.text('ABN: 45 634 835 939  |  REC: 30340', pageWidth - margin, 24, { align: 'right' });
+    y = 36;
+    pdf.setDrawColor(194, 68, 14); pdf.setLineWidth(0.5); pdf.line(margin, y, pageWidth - margin, y); pdf.setLineWidth(0.2); y += 10;
+
+    pdf.setFontSize(22); pdf.setTextColor(194, 68, 14); pdf.setFont(undefined, 'bold');
+    pdf.text('SERVICE REPORT', margin, y);
+    pdf.setFontSize(9); pdf.setFont(undefined, 'normal'); pdf.setTextColor(80, 80, 80);
+    pdf.text(`Report #:  ${currentJobSheetNumber}`, pageWidth - margin, y - 4, { align: 'right' });
+    pdf.text(`Date:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`, pageWidth - margin, y, { align: 'right' });
+    if (jobSheet.created_by) pdf.text(`Prepared by:  ${jobSheet.created_by}`, pageWidth - margin, y + 4, { align: 'right' });
+    y += 14;
+
+    const sectionHeader = (title) => {
+      pdf.setFillColor(255, 243, 238);
+      pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(10); pdf.setTextColor(194, 68, 14); pdf.setFont(undefined, 'bold');
+      pdf.text(title.toUpperCase(), margin + 2, y);
+      y += 8; pdf.setTextColor(40, 40, 40); pdf.setFontSize(10); pdf.setFont(undefined, 'normal');
+    };
+
+    sectionHeader('Client Information'); y += 2;
+    const client = jobSheet.job_number_register;
+    const drawField = (label, value) => {
+      if (!value) return;
+      pdf.setFont(undefined, 'bold'); pdf.setTextColor(80, 80, 80); pdf.text(label, margin, y);
+      pdf.setFont(undefined, 'normal'); pdf.setTextColor(40, 40, 40);
+      const lines = pdf.splitTextToSize(String(value), pageWidth - margin - 50);
+      lines.forEach((line, i) => { pdf.text(line, margin + 32, y); if (i < lines.length - 1) y += 5; }); y += 6;
+    };
+    drawField('Client:', client.client_name); drawField('Job Number:', jobSheet.job_number);
+    drawField('Site:', client.site_address); drawField('Contact:', client.contact_person); y += 4;
+
+    if (jobSheet.report_sections?.tasks && jobSheet.tasks?.length) {
+      if (y > pageHeight - 50) { pdf.addPage(); y = margin; }
+      sectionHeader('Work Performed');
+      jobSheet.tasks.forEach((task, i) => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        pdf.splitTextToSize(`${i + 1}. ${task}`, pageWidth - 2 * margin).forEach(l => { pdf.text(l, margin, y); y += 5; }); y += 2;
+      }); y += 8;
+    }
+
+    if (jobSheet.report_sections?.labour && jobSheet.labour?.length) {
+      if (y > pageHeight - 60) { pdf.addPage(); y = margin; }
+      sectionHeader('Labour Hours');
+      pdf.setFillColor(243, 246, 255); pdf.rect(margin, y - 5, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(9); pdf.text('Employee', margin + 2, y); pdf.text('Normal', pageWidth - margin - 50, y); pdf.text('Overtime', pageWidth - margin - 25, y); y += 6;
+      pdf.setFont(undefined, 'normal'); pdf.setTextColor(60, 60, 60);
+      let tN = 0, tO = 0;
+      jobSheet.labour.forEach(l => {
+        if (y > pageHeight - 20) { pdf.addPage(); y = margin; }
+        pdf.text(l.employee, margin + 2, y); pdf.text(`${l.normalHours || 0}h`, pageWidth - margin - 50, y); pdf.text(`${l.overtimeHours || 0}h`, pageWidth - margin - 25, y);
+        tN += parseFloat(l.normalHours || 0); tO += parseFloat(l.overtimeHours || 0); y += 6;
+      });
+      y += 2; pdf.setDrawColor(200,200,200); pdf.line(margin, y, pageWidth - margin, y); y += 5;
+      pdf.setFont(undefined, 'bold'); pdf.setTextColor(0,0,0);
+      pdf.text('TOTAL', margin + 2, y); pdf.text(`${tN}h`, pageWidth - margin - 50, y); pdf.text(`${tO}h`, pageWidth - margin - 25, y); y += 10;
+    }
+
+    if (jobSheet.report_sections?.photos && files.length) {
+      pdf.addPage(); y = margin; sectionHeader('Photos'); y += 4;
+      for (const file of files) {
+        if (!file.signedUrl) continue;
+        try {
+          const img = await loadImage(file.signedUrl);
+          const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth || img.width; canvas.height = img.naturalHeight || img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          const maxW = pageWidth - 2 * margin, maxH = 110;
+          let w = maxW, h = (canvas.height / canvas.width) * w;
+          if (h > maxH) { h = maxH; w = (canvas.width / canvas.height) * h; }
+          if (y + h > pageHeight - margin) { pdf.addPage(); y = margin; }
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', margin, y, w, h); y += h + 4;
+          if (file.description) { pdf.setFontSize(9); pdf.setTextColor(40,40,40); pdf.splitTextToSize(file.description, pageWidth - 2*margin).forEach(l => { if (y > pageHeight-20) { pdf.addPage(); y=margin; } pdf.text(l, margin, y); y += 4.5; }); y += 2; }
+          if (file.tags?.length) { pdf.setFontSize(8); pdf.setTextColor(100,100,100); pdf.text(`Tags: ${file.tags.join(', ')}`, margin, y); y += 8; } else { y += 4; }
+        } catch(err) { console.error(err); }
+      }
+    }
+
+    if (jobSheet.client_signature_name) {
+      if (y > pageHeight - 70) { pdf.addPage(); y = margin; }
+      y += 6; sectionHeader('Client Sign-Off'); y += 4;
+      if (jobSheet.client_signature_data) { try { pdf.addImage(jobSheet.client_signature_data, 'PNG', margin, y, 80, 30); y += 35; } catch(e) {} }
+      pdf.setFontSize(10); pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
+      pdf.text(`Signed by: ${jobSheet.client_signature_name}`, margin, y); y += 5;
+      pdf.text(`Date: ${new Date(jobSheet.client_signature_date).toLocaleDateString('en-AU')}`, margin, y);
+    }
+
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFillColor(194, 68, 14); pdf.rect(0, pageHeight - 14, pageWidth, 0.5, 'F');
+      pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
+      pdf.text('Bromar', margin, pageHeight - 9);
+      pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au', pageWidth/2, pageHeight - 9, { align: 'center' });
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 9, { align: 'right' });
+      pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
+      pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.23`, pageWidth/2, pageHeight - 5, { align: 'center' });
+    }
+    return pdf;
+  }
+
+  function loadImage(url) { return new Promise((res, rej) => { const img = new Image(); img.crossOrigin = 'Anonymous'; img.onload = () => res(img); img.onerror = rej; img.src = url; }); }
+  async function generateAndDownloadPDF() { const pdf = await generatePDF(); pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`); }
+  async function generateAndUploadPDF() {
+    const pdf = await generatePDF();
+    const pdfBlob = pdf.output('blob');
+    // Service reports now sit inside the job's own folder
+    const fileName = `${currentJobNumber}/service-reports/${currentJobSheetNumber}.pdf`;
+    const { error } = await sb.storage.from('job-sheet-files').upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
+    if (error) throw error;
+    const { data: urlData, error: urlErr } = await sb.storage.from('job-sheet-files').createSignedUrl(fileName, 60*60*24*30);
+    if (urlErr) throw urlErr;
+    return urlData.signedUrl;
+  }
+
+  // ============================================================
+  // UI HELPERS
+  // ============================================================
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function showLoading(text, subtext) { document.getElementById('loadingText').textContent = text; document.getElementById('loadingSubtext').textContent = subtext || ''; document.getElementById('loadingOverlay').classList.add('show'); }
+  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+  function showSuccess(text) { const b = document.getElementById('successBanner'); document.getElementById('successText').textContent = text; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 5000); }
+  function showInfo(text) { const b = document.getElementById('infoBanner'); document.getElementById('infoBannerText').textContent = text; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 5000); }
+</script>
+</body>
+</html>
