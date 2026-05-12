@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Purchase Order</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    .po-number-display {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 18px;
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+      border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      border: 1.5px solid var(--brand-orange);
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 0;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .mode-toggle-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .mode-toggle-btn.active {
+      background: var(--brand-orange);
+      color: white;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+
+    .job-lookup { display: flex; gap: 10px; }
+    .job-lookup input { flex: 1; }
+    .lookup-btn {
+      padding: 0 20px;
+      border: 1.5px solid var(--brand-primary);
+      background: var(--brand-primary);
+      color: white;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .lookup-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .lookup-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .client-info-card {
+      display: none;
+      background: var(--brand-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+    }
+    .client-info-card.show { display: block; animation: slideIn 0.3s ease; }
+    .client-info-card h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin-bottom: 8px;
+    }
+    .client-info-card p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 2px 0;
+    }
+    .client-info-card strong { color: var(--text-primary); }
+
+    .delivery-type-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .delivery-radio { flex: 1; position: relative; }
+    .delivery-radio input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .delivery-radio label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      margin-bottom: 0;
+    }
+    .delivery-radio input:checked + label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+    }
+
+    .line-items { margin: 16px 0; }
+    .line-item {
+      background: var(--row-bg, var(--input-bg));
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+    .line-item:hover {
+      border-color: var(--brand-primary);
+      box-shadow: 0 2px 8px rgba(26, 86, 219, 0.08);
+    }
+    .line-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .line-number-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .line-total-display {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--brand-primary);
+      background: var(--brand-light);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .remove-line {
+      background: none;
+      border: none;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      margin-left: 8px;
+    }
+    .remove-line:hover { background: rgba(239, 68, 68, 0.1); }
+
+    .line-item-fields {
+      display: grid;
+      grid-template-columns: 80px 1fr 1fr 120px;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 720px) {
+      .line-item-fields { grid-template-columns: 1fr 1fr; }
+    }
+    .line-field { display: flex; flex-direction: column; gap: 4px; }
+    .line-field.full { grid-column: 1 / -1; }
+    .line-field label { font-size: 0.75rem; margin-bottom: 2px; }
+    .line-field input, .line-field textarea {
+      font-size: 0.85rem;
+      padding: 8px 11px;
+    }
+
+    .add-line-btn {
+      width: 100%;
+      padding: 10px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .add-line-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+
+    .totals-card {
+      background: var(--brand-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 18px 22px;
+      margin-top: 16px;
+    }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .totals-row.grand {
+      border-top: 1.5px solid var(--input-border);
+      margin-top: 8px;
+      padding-top: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .totals-row .amount {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .totals-row.grand .amount { color: var(--brand-orange); }
+
+    .verbal-mode-section { display: none; }
+    .verbal-mode-section.active { display: block; }
+    .standard-mode-section { display: block; }
+    .standard-mode-section.hidden { display: none; }
+
+    .revision-number {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 1px;
+      z-index: 100;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-wrapper">
+
+  <div style="text-align: center; margin-bottom: 16px;">
+    <div class="po-number-display" id="poNumberDisplay">PO: ——</div>
+  </div>
+
+  <div class="form-card">
+    <form id="poForm" name="purchase-order" novalidate autocomplete="off">
+
+      <p style="display: none;">
+        <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+      </p>
+
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle">
+        <button type="button" class="mode-toggle-btn active" data-mode="verbal">📞 Verbal / Walk-In</button>
+        <button type="button" class="mode-toggle-btn" data-mode="standard">📋 Standard PO</button>
+      </div>
+
+      <!-- JOB DETAILS -->
+      <div class="section-label">Job Details</div>
+
+      <div class="field-group" id="group-job">
+        <label for="job_number">Job Number <span class="required">*</span></label>
+        <div class="job-lookup">
+          <input type="text" id="job_number" name="job_number" placeholder="e.g. BE5600, BM1234, BS0042" style="text-transform: uppercase;" maxlength="6"/>
+          <button type="button" class="lookup-btn" id="lookupBtn">🔍 Lookup</button>
+        </div>
+        <span class="error-msg">Please enter a valid job number (BE/BM/BS/BC/BA followed by 4 digits)</span>
+      </div>
+
+      <div class="client-info-card" id="clientInfoCard">
+        <h4>Client Details</h4>
+        <p><strong>Client:</strong> <span id="clientName">—</span></p>
+        <p><strong>Site:</strong> <span id="clientSite">—</span></p>
+        <p><strong>Contact:</strong> <span id="clientContact">—</span></p>
+      </div>
+
+      <!-- REQUESTOR -->
+      <div class="section-label">Requestor</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-requestor">
+          <label for="filled_by">Requested By <span class="required">*</span></label>
+          <select id="filled_by" name="filled_by">
+            <option value="" disabled selected>Loading employees…</option>
+          </select>
+          <span class="error-msg">Please select who is filling out the form</span>
+        </div>
+      </div>
+
+      <!-- SUPPLIER -->
+      <div class="section-label">Supplier</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-supplier">
+          <label for="supplier">Supplier <span class="required">*</span></label>
+          <select id="supplier" name="supplier">
+            <option value="" disabled selected>Select supplier</option>
+            <option value="Lawrence & Hanson">Lawrence & Hanson</option>
+            <option value="MM Electrical">MM Electrical</option>
+            <option value="CNW Electrical">CNW Electrical</option>
+            <option value="Rexel">Rexel</option>
+            <option value="Middys">Middys</option>
+            <option value="Haymans">Haymans</option>
+            <option value="Bunnings">Bunnings</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="error-msg">Please select a supplier</span>
+        </div>
+        <div class="field-group">
+          <label for="supplier_branch">Branch / Location</label>
+          <input type="text" id="supplier_branch" name="supplier_branch" placeholder="e.g. Tullamarine, Campbellfield"/>
+        </div>
+      </div>
+
+      <div class="field-group" id="supplierOtherGroup" style="display: none;">
+        <label for="supplier_other">Specify Supplier</label>
+        <input type="text" id="supplier_other" name="supplier_other" placeholder="Supplier name"/>
+      </div>
+
+      <!-- VERBAL / WALK-IN MODE -->
+      <div class="verbal-mode-section active">
+        <div class="section-label">Parts Description</div>
+        <div class="field-group full">
+          <label for="verbal_description">Brief Description of Parts <span class="required">*</span></label>
+          <textarea id="verbal_description" name="verbal_description" rows="4" placeholder="Brief description of parts being ordered (e.g. 'Misc cable, conduit & fittings for site fitout')"></textarea>
+          <span class="error-msg">Please enter a description</span>
+        </div>
+        <div class="field-group">
+          <label for="verbal_estimated">Estimated Total ($)</label>
+          <input type="number" id="verbal_estimated" name="verbal_estimated" min="0" step="0.01" placeholder="0.00"/>
+        </div>
+      </div>
+
+      <!-- STANDARD MODE -->
+      <div class="standard-mode-section hidden">
+
+        <div class="section-label">Delivery</div>
+
+        <div class="field-group">
+          <label for="required_by">Required By Date</label>
+          <input type="date" id="required_by" name="required_by"/>
+        </div>
+
+        <div class="delivery-type-group">
+          <div class="delivery-radio">
+            <input type="radio" id="delivery_deliver" name="delivery_type" value="Deliver" checked/>
+            <label for="delivery_deliver">🚚 Deliver to Address</label>
+          </div>
+          <div class="delivery-radio">
+            <input type="radio" id="delivery_pickup" name="delivery_type" value="Pickup"/>
+            <label for="delivery_pickup">📦 Pickup from Supplier</label>
+          </div>
+        </div>
+
+        <div id="deliverySection">
+          <div class="field-group full">
+            <label for="delivery_address">Delivery Address <span class="required">*</span></label>
+            <textarea id="delivery_address" name="delivery_address" rows="2" placeholder="Full delivery address including suburb and postcode"></textarea>
+            <span class="error-msg">Please enter delivery address</span>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="delivery_contact_name">Site Contact Name</label>
+              <input type="text" id="delivery_contact_name" name="delivery_contact_name" placeholder="On-site contact"/>
+            </div>
+            <div class="field-group">
+              <label for="delivery_contact_phone">Site Contact Phone</label>
+              <input type="tel" id="delivery_contact_phone" name="delivery_contact_phone" placeholder="04XX XXX XXX"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-label">Line Items</div>
+
+        <div class="line-items" id="lineItems"></div>
+
+        <button type="button" class="add-line-btn" id="addLineBtn">+ Add Line Item</button>
+
+        <div class="totals-card">
+          <div class="totals-row">
+            <span>Subtotal (ex GST)</span>
+            <span class="amount" id="subtotalDisplay">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>GST (10%)</span>
+            <span class="amount" id="gstDisplay">$0.00</span>
+          </div>
+          <div class="totals-row grand">
+            <span>Total (inc GST)</span>
+            <span class="amount" id="totalDisplay">$0.00</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="section-label">Additional Notes</div>
+      <div class="field-group full">
+        <label for="general_notes">Notes / Special Instructions</label>
+        <textarea id="general_notes" name="general_notes" rows="3" placeholder="Any additional information, delivery instructions, or special requirements..."></textarea>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="button" class="btn-secondary" id="printBtn">🖨️ Print</button>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit PO</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<div class="revision-number">V1.03</div>
+
+<script>
+  const DOC_VERSION = 'V1.03';
+
+  // Job number prefix validation: BE / BM / BS / BC / BA + 4 digits
+  const JOB_NUMBER_REGEX = /^B[EMSCA]\d{4}$/;
+
+  let currentUser = null;
+  let EMPLOYEES = [];
+  let currentJob = null; // Loaded job record from Supabase
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async function() {
+    try {
+      EMPLOYEES = await BromarHub.loadEmployees('filled_by');
+      await BromarHub.autoSelectLoggedInUser('filled_by');
+
+      const filledBy = document.getElementById('filled_by');
+      if (filledBy.value) {
+        const opt = filledBy.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+      filledBy.addEventListener('change', function() {
+        const opt = this.selectedOptions[0];
+        currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+      });
+    } catch (err) {
+      console.error('Error loading employees:', err);
+    }
+  });
+
+  // ============================================================
+  // MODE TOGGLE
+  // ============================================================
+  let currentMode = 'verbal';
+  const modeButtons = document.querySelectorAll('.mode-toggle-btn');
+  const standardSection = document.querySelector('.standard-mode-section');
+  const verbalSection = document.querySelector('.verbal-mode-section');
+
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+
+      if (currentMode === 'verbal') {
+        standardSection.classList.add('hidden');
+        verbalSection.classList.add('active');
+      } else {
+        standardSection.classList.remove('hidden');
+        verbalSection.classList.remove('active');
+      }
+
+      // Re-preview PO number for the new mode
+      previewPoNumber();
+    });
+  });
+
+  // ============================================================
+  // JOB LOOKUP (Supabase)
+  // ============================================================
+  const jobInput = document.getElementById('job_number');
+  const lookupBtn = document.getElementById('lookupBtn');
+  const clientCard = document.getElementById('clientInfoCard');
+  const poDisplay = document.getElementById('poNumberDisplay');
+
+  jobInput.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+
+  async function performLookup() {
+    const jobNum = jobInput.value.trim().toUpperCase();
+    if (!jobNum) {
+      BromarHub.showInfo('Please enter a job number');
+      return;
+    }
+    if (!JOB_NUMBER_REGEX.test(jobNum)) {
+      BromarHub.showInfo('Invalid format. Use BE, BM, BS, BC or BA followed by 4 digits (e.g. BE5600)');
+      return;
+    }
+
+    lookupBtn.disabled = true;
+    lookupBtn.textContent = 'Looking up…';
+
+    try {
+      // Fetch job details from `jobs` table
+      const { data: job, error } = await window.sb
+        .from('jobs')
+        .select('job_number, client_name, site_address, contact_name, contact_phone')
+        .eq('job_number', jobNum)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!job) {
+        BromarHub.showInfo(`Job number "${jobNum}" not found in database`);
+        clientCard.classList.remove('show');
+        poDisplay.textContent = 'PO: ——';
+        currentJob = null;
+        return;
+      }
+
+      currentJob = job;
+
+      // Populate client card
+      document.getElementById('clientName').textContent = job.client_name || '—';
+      document.getElementById('clientSite').textContent = job.site_address || '—';
+      const contact = [job.contact_name, job.contact_phone].filter(Boolean).join(' — ');
+      document.getElementById('clientContact').textContent = contact || '—';
+      clientCard.classList.add('show');
+
+      // Preview next PO number
+      await previewPoNumber();
+
+      // Pre-fill delivery address with site
+      const deliveryAddress = document.getElementById('delivery_address');
+      if (deliveryAddress && !deliveryAddress.value && job.site_address) {
+        deliveryAddress.value = job.site_address;
+      }
+    } catch (err) {
+      console.error('Lookup error:', err);
+      BromarHub.showInfo('Error looking up job: ' + err.message);
+    } finally {
+      lookupBtn.disabled = false;
+      lookupBtn.textContent = '🔍 Lookup';
+    }
+  }
+
+  async function previewPoNumber() {
+    if (!currentJob) return;
+    try {
+      // Use the database function for next sequence
+      const { data, error } = await window.sb.rpc('next_po_sequence', {
+        p_job_number: currentJob.job_number
+      });
+      if (error) throw error;
+      const seq = String(data).padStart(4, '0');
+      poDisplay.textContent = `PO: ${currentJob.job_number}-P${seq}`;
+    } catch (err) {
+      console.error('PO sequence error:', err);
+      poDisplay.textContent = `PO: ${currentJob.job_number}-P????`;
+    }
+  }
+
+  lookupBtn.addEventListener('click', performLookup);
+  jobInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performLookup();
+    }
+  });
+
+  // ============================================================
+  // SUPPLIER OTHER
+  // ============================================================
+  document.getElementById('supplier').addEventListener('change', function() {
+    document.getElementById('supplierOtherGroup').style.display =
+      this.value === 'Other' ? 'block' : 'none';
+  });
+
+  // ============================================================
+  // DELIVERY TYPE
+  // ============================================================
+  const deliveryRadios = document.querySelectorAll('input[name="delivery_type"]');
+  const deliverySection = document.getElementById('deliverySection');
+
+  deliveryRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      deliverySection.style.display =
+        radio.value === 'Deliver' && radio.checked ? 'block' :
+        radio.value === 'Pickup' && radio.checked ? 'none' :
+        deliverySection.style.display;
+    });
+  });
+
+  // ============================================================
+  // LINE ITEMS
+  // ============================================================
+  const lineItemsContainer = document.getElementById('lineItems');
+  const addLineBtn = document.getElementById('addLineBtn');
+  let lineCounter = 0;
+
+  function addLineItem() {
+    const lineId = `line-${lineCounter++}`;
+    const lineNum = lineItemsContainer.querySelectorAll('.line-item').length + 1;
+
+    const line = document.createElement('div');
+    line.className = 'line-item';
+    line.dataset.lineId = lineId;
+
+    line.innerHTML = `
+      <div class="line-item-header">
+        <span class="line-number-badge">ITEM ${lineNum}</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="line-total-display">$0.00</span>
+          ${lineNum > 1 ? '<button type="button" class="remove-line">Remove</button>' : ''}
+        </div>
+      </div>
+      <div class="line-item-fields">
+        <div class="line-field">
+          <label>Qty <span class="required">*</span></label>
+          <input type="number" name="${lineId}_qty" class="line-qty" min="1" step="1" placeholder="1"/>
+        </div>
+        <div class="line-field">
+          <label>Part Number</label>
+          <input type="text" name="${lineId}_part" class="line-part" placeholder="e.g. ABC-123"/>
+        </div>
+        <div class="line-field">
+          <label>Description <span class="required">*</span></label>
+          <input type="text" name="${lineId}_desc" class="line-desc" placeholder="Item description"/>
+        </div>
+        <div class="line-field">
+          <label>Price ea ($) <span class="required">*</span></label>
+          <input type="number" name="${lineId}_price" class="line-price" min="0" step="0.01" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="line-field full">
+        <label style="font-size: 0.75rem;">Item Notes</label>
+        <textarea name="${lineId}_notes" class="line-notes" rows="1" placeholder="Optional notes for this item..." style="min-height: 40px;"></textarea>
+      </div>
+    `;
+
+    lineItemsContainer.appendChild(line);
+
+    const qtyInput = line.querySelector('.line-qty');
+    const priceInput = line.querySelector('.line-price');
+    [qtyInput, priceInput].forEach(input => {
+      input.addEventListener('input', () => {
+        updateLineTotal(line);
+        updateGrandTotal();
+      });
+    });
+
+    const removeBtn = line.querySelector('.remove-line');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        line.remove();
+        renumberLines();
+        updateGrandTotal();
+      });
+    }
+  }
+
+  function updateLineTotal(line) {
+    const qty = parseFloat(line.querySelector('.line-qty').value) || 0;
+    const price = parseFloat(line.querySelector('.line-price').value) || 0;
+    line.querySelector('.line-total-display').textContent = '$' + (qty * price).toFixed(2);
+  }
+
+  function updateGrandTotal() {
+    let subtotal = 0;
+    lineItemsContainer.querySelectorAll('.line-item').forEach(line => {
+      const qty = parseFloat(line.querySelector('.line-qty').value) || 0;
+      const price = parseFloat(line.querySelector('.line-price').value) || 0;
+      subtotal += qty * price;
+    });
+    const gst = subtotal * 0.10;
+    const total = subtotal + gst;
+
+    document.getElementById('subtotalDisplay').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('gstDisplay').textContent = '$' + gst.toFixed(2);
+    document.getElementById('totalDisplay').textContent = '$' + total.toFixed(2);
+  }
+
+  function renumberLines() {
+    lineItemsContainer.querySelectorAll('.line-item').forEach((line, idx) => {
+      line.querySelector('.line-number-badge').textContent = `ITEM ${idx + 1}`;
+    });
+  }
+
+  function collectLineItems() {
+    const items = [];
+    lineItemsContainer.querySelectorAll('.line-item').forEach((line, idx) => {
+      const qty = parseFloat(line.querySelector('.line-qty').value);
+      const desc = line.querySelector('.line-desc').value.trim();
+      const price = parseFloat(line.querySelector('.line-price').value);
+      if (qty && desc && !isNaN(price)) {
+        items.push({
+          line_number: idx + 1,
+          qty: qty,
+          part_number: line.querySelector('.line-part').value.trim() || null,
+          description: desc,
+          price_each: price,
+          item_notes: line.querySelector('.line-notes').value.trim() || null
+        });
+      }
+    });
+    return items;
+  }
+
+  addLineBtn.addEventListener('click', addLineItem);
+  addLineItem();
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const jobOk = currentJob && JOB_NUMBER_REGEX.test(currentJob.job_number);
+    check('group-job', jobOk);
+
+    check('group-supplier', !!document.getElementById('supplier').value);
+    check('group-requestor', !!document.getElementById('filled_by').value);
+
+    if (currentMode === 'verbal') {
+      const desc = document.getElementById('verbal_description').value.trim();
+      if (!desc) {
+        document.getElementById('verbal_description').classList.add('error');
+        valid = false;
+      }
+    } else {
+      const items = collectLineItems();
+      if (items.length === 0) {
+        BromarHub.showInfo('Please add at least one complete line item (qty, description, price)');
+        valid = false;
+      }
+
+      const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+      if (deliveryType === 'Deliver') {
+        const addr = document.getElementById('delivery_address').value.trim();
+        if (!addr) {
+          document.getElementById('delivery_address').classList.add('error');
+          valid = false;
+        }
+      }
+    }
+
+    return valid;
+  }
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
+  const poForm = document.getElementById('poForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  poForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+    if (!validateForm()) return;
+
+    // currentUser fallback
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) {
+        const opt = sel.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+    }
+    if (!currentUser) {
+      BromarHub.showInfo('Please select who is filling out the form');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+    BromarHub.showLoading('Submitting purchase order…', 'Please wait');
+
+    try {
+      const supplierVal = document.getElementById('supplier').value;
+      const supplierOther = document.getElementById('supplier_other').value.trim();
+
+      // Build header record
+      const poHeader = {
+        job_number: currentJob.job_number,
+        po_type: currentMode,
+        client_name: currentJob.client_name || null,
+        client_site: currentJob.site_address || null,
+        client_contact: [currentJob.contact_name, currentJob.contact_phone].filter(Boolean).join(' — ') || null,
+        requestor_name: currentUser.name,
+        requestor_email: currentUser.email || null,
+        supplier: supplierVal,
+        supplier_other: supplierVal === 'Other' ? supplierOther : null,
+        supplier_branch: document.getElementById('supplier_branch').value.trim() || null,
+        general_notes: document.getElementById('general_notes').value.trim() || null,
+        revision: DOC_VERSION,
+        status: 'submitted'
+      };
+
+      if (currentMode === 'verbal') {
+        poHeader.verbal_description = document.getElementById('verbal_description').value.trim();
+        const est = parseFloat(document.getElementById('verbal_estimated').value);
+        poHeader.verbal_estimated = isNaN(est) ? null : est;
+      } else {
+        const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+        poHeader.delivery_type = deliveryType;
+        poHeader.required_by = document.getElementById('required_by').value || null;
+        if (deliveryType === 'Deliver') {
+          poHeader.delivery_address = document.getElementById('delivery_address').value.trim();
+          poHeader.delivery_contact_name = document.getElementById('delivery_contact_name').value.trim() || null;
+          poHeader.delivery_contact_phone = document.getElementById('delivery_contact_phone').value.trim() || null;
+        }
+      }
+
+      // Insert header (DB trigger auto-generates po_number + po_sequence)
+      const { data: inserted, error: insertErr } = await window.sb
+        .from('purchase_orders')
+        .insert(poHeader)
+        .select()
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      // Insert line items if standard mode
+      if (currentMode === 'standard') {
+        const items = collectLineItems().map(i => ({ ...i, po_id: inserted.id }));
+        if (items.length > 0) {
+          const { error: itemsErr } = await window.sb
+            .from('purchase_order_items')
+            .insert(items);
+          if (itemsErr) throw itemsErr;
+        }
+      }
+
+      BromarHub.hideLoading();
+      BromarHub.showSuccess(`Purchase order ${inserted.po_number} submitted successfully.`);
+
+      // Reset form
+      poForm.reset();
+      lineItemsContainer.innerHTML = '';
+      addLineItem();
+      updateGrandTotal();
+      clientCard.classList.remove('show');
+      poDisplay.textContent = 'PO: ——';
+      currentJob = null;
+
+      // Re-select logged-in user
+      if (currentUser?.name) {
+        const sel = document.getElementById('filled_by');
+        for (const opt of sel.options) {
+          if (opt.value === currentUser.name) { opt.selected = true; break; }
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Submission failed: ' + (err.message || err));
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit PO';
+    }
+  });
+
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+      e.target.classList.remove('error');
+    }
+  });
+
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+</script>
+
+</body>
+</html>
