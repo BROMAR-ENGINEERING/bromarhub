@@ -214,17 +214,6 @@
       background: #fff3ee;
       border-color: #c2440e;
     }
-    @media (prefers-color-scheme: dark) {
-      .anonymous-toggle.active {
-        background: rgba(240, 114, 63, 0.25);
-        border-color: #f0723f;
-      }
-    }
-    html.light-mode .anonymous-toggle.active {
-      background: #fff3ee;
-      border-color: #c2440e;
-    }
-
     .anonymous-toggle .checkbox-label {
       padding: 0;
       border: none;
@@ -238,11 +227,6 @@
       color: #c2440e;
       font-weight: 700;
     }
-    @media (prefers-color-scheme: dark) {
-      .anonymous-toggle.active .checkbox-label .checkbox-text { color: #ffb088; }
-    }
-    html.light-mode .anonymous-toggle.active .checkbox-label .checkbox-text { color: #c2440e; }
-
     .anonymous-note {
       display: none;
       font-size: 0.82rem;
@@ -253,14 +237,19 @@
       line-height: 1.55;
     }
     .anonymous-toggle.active .anonymous-note { display: block; }
-    .anonymous-note strong { color: #c2440e; font-weight: 700; }
+    .anonymous-note strong { font-weight: 700; }
 
+    /* Dark mode (system preference, only if no html.light-mode class) */
     @media (prefers-color-scheme: dark) {
-      .anonymous-note { color: #ffffff; }
-      .anonymous-note strong { color: #ffb088; }
+      html:not(.light-mode) .anonymous-toggle.active {
+        background: rgba(240, 114, 63, 0.25);
+        border-color: #f0723f;
+      }
+      html:not(.light-mode) .anonymous-toggle.active .checkbox-label .checkbox-text {
+        color: #ffb088;
+      }
+      html:not(.light-mode) .anonymous-note { color: #ffffff; }
     }
-    html.light-mode .anonymous-note { color: #1f2937; }
-    html.light-mode .anonymous-note strong { color: #c2440e; }
 
     /* Hide reporter fields when anonymous */
     .reporter-fields.hidden { display: none; }
@@ -492,13 +481,13 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.08</div>
+      <div class="card-footer-version">Version V1.09</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.08';
+  const REVISION = 'V1.09';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
