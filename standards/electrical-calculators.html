@@ -15,7 +15,7 @@
 .pw{max-width:940px;margin:0 auto;padding:0 16px 60px;position:relative;}
 
 /* Tabs */
-.tabs-wrap{position:relative;background:var(--bg-secondary);border-left:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.tabs-wrap{position:relative;background:var(--bg-secondary);border-bottom:1px solid var(--border);}
 .tabs-arrow{position:absolute;top:0;bottom:0;width:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;background:linear-gradient(to right,var(--bg-secondary),transparent);border:none;color:var(--text-secondary);transition:color 0.2s,opacity 0.25s;padding:0;opacity:1;}
 .tabs-arrow.right{right:0;background:linear-gradient(to left,var(--bg-secondary),transparent);}
 .tabs-arrow:hover{color:var(--accent);}
@@ -27,8 +27,8 @@
 .tab-btn:hover{color:var(--text-primary);}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
 
-/* Calculator card */
-.cc{background:var(--bg-secondary);border:1px solid var(--border);border-top:none;border-radius:0 0 16px 16px;box-shadow:0 4px 12px var(--shadow);padding:24px 28px;}
+/* Calculator card — sits inside form-card, no extra border needed */
+.cc{padding:24px 28px;}
 .tp{display:none;}
 .tp.active{display:block;}
 
@@ -163,9 +163,11 @@
 </div>
 
 <div class="pw">
+  <div class="form-card" style="padding:0;overflow:hidden;">
+    <div style="height:4px;background:linear-gradient(90deg,#1a56db,#0e9f6e,var(--accent));"></div>
 
-  <!-- TABS with scroll arrows -->
-  <div class="tabs-wrap">
+    <!-- TABS with scroll arrows -->
+    <div class="tabs-wrap">
     <button class="tabs-arrow" id="tabLeft" onclick="scrollTabs(-120)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
@@ -668,7 +670,8 @@
       </table>
     </div>
 
-  </div><!-- /calc-card -->
+  </div><!-- /calc-card cc -->
+  </div><!-- /form-card -->
 
   <div class="ff">
     <p>2/98-108 Western Ave, Westmeadows VIC 3049 &nbsp;|&nbsp; +61 3 9335 5344 &nbsp;|&nbsp; admin@bromar.com.au</p>
