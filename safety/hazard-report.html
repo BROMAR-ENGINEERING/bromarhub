@@ -156,48 +156,89 @@
       .page-wrapper { margin-top: 80px; }
     }
 
-    /* Page footer */
-    .page-footer {
-      max-width: 680px;
-      margin: 32px auto 60px;
-      padding: 0 16px;
+    /* In-card footer (matches timesheet style) */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider, #e5e7eb);
       text-align: center;
     }
-    .page-footer-title {
+    .card-footer-title {
       font-weight: 700;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
       white-space: nowrap;
     }
-    @media (max-width: 380px) {
-      .page-footer-title { font-size: 0.75rem; }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
     }
-    .page-footer-link {
+    .card-footer-link {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.8rem;
-      color: var(--brand-primary, #1a56db);
+      font-size: 0.85rem;
+      color: var(--brand-orange, #c2440e);
       text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded, #9ca3af);
       font-weight: 500;
     }
-    .page-footer-link:hover { text-decoration: underline; }
 
-    .revision-number {
-      position: fixed;
-      bottom: 12px;
-      right: 16px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-faded, #9ca3af);
-      letter-spacing: 0.5px;
-      opacity: 0.6;
-      z-index: 10;
-      pointer-events: none;
-      user-select: none;
+    .revision-number,
+    .header-card { text-align: center; }
+    .header-card .header-title,
+    .header-card .header-subtitle { text-align: center; }
+    .header-card .header-subtitle {
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
     }
+
+    /* Anonymous toggle banner */
+    .anonymous-toggle {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm, 8px);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      transition: all 0.2s;
+    }
+    .anonymous-toggle.active {
+      background: var(--brand-orange-soft, #fff3ee);
+      border-color: var(--brand-orange, #c2440e);
+    }
+    .anonymous-toggle .checkbox-label {
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+    .anonymous-toggle .checkbox-label:hover {
+      background: transparent;
+      border: none;
+    }
+    .anonymous-note {
+      display: none;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--input-border);
+      line-height: 1.5;
+    }
+    .anonymous-toggle.active .anonymous-note { display: block; }
+
+    /* Hide reporter fields when anonymous */
+    .reporter-fields.hidden { display: none; }
+
+    /* Likelihood + Consequence matrix (kept for future, currently single rating) */
+
   </style>
 </head>
 <body>
@@ -206,7 +247,7 @@
 
 <div class="page-wrapper">
 
-  <div class="header-card">
+  <div class="header-card" style="text-align: center;">
     <h1 class="header-title">Hazard Report</h1>
     <p class="header-subtitle">Report a hazard or unsafe condition — a confirmation will be sent to your email</p>
   </div>
@@ -216,24 +257,52 @@
 
       <div class="section-label">Reporter Details</div>
 
-      <div class="field-row">
-        <div class="field-group" id="group-filled_by">
-          <label for="filled_by">Full Name <span class="required">*</span></label>
-          <select id="filled_by" name="filled_by">
-            <option value="">Loading employees…</option>
-          </select>
-          <span class="error-msg">Please select your name</span>
-        </div>
-        <div class="field-group" id="group-phone">
-          <label for="reporter_phone">Phone Number <span class="required">*</span></label>
-          <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
-          <span class="error-msg">Please enter your phone number</span>
+      <div class="anonymous-toggle" id="anonymousToggle">
+        <label class="checkbox-label">
+          <input type="checkbox" id="anonymous_report"/>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">Submit this report anonymously</span>
+        </label>
+        <div class="anonymous-note">
+          Your name, email and phone number will <strong>not</strong> be recorded or sent with this report. The submission cannot be traced back to you. Use this if you'd prefer not to be identified — but bear in mind we can't follow up with you directly for more details.
         </div>
       </div>
 
-      <div class="field-group full">
-        <label for="reporter_role">Role / Position</label>
-        <input type="text" id="reporter_role" name="reporter_role" placeholder="e.g. Site Supervisor"/>
+      <div class="reporter-fields" id="reporterFields">
+        <div class="field-row">
+          <div class="field-group" id="group-filled_by">
+            <label for="filled_by">Full Name <span class="required">*</span></label>
+            <select id="filled_by" name="filled_by">
+              <option value="">Loading employees…</option>
+            </select>
+            <span class="error-msg">Please select your name</span>
+          </div>
+          <div class="field-group" id="group-phone">
+            <label for="reporter_phone">Phone Number <span class="required">*</span></label>
+            <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
+            <span class="error-msg">Please enter your phone number</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" id="group-reporter-type">
+            <label for="reporter_type">I am a <span class="required">*</span></label>
+            <select id="reporter_type" name="reporter_type">
+              <option value="">Select…</option>
+              <option value="Worker">Worker / Employee</option>
+              <option value="Supervisor">Supervisor / Manager</option>
+              <option value="Contractor">Contractor</option>
+              <option value="Visitor">Visitor</option>
+              <option value="Member of public">Member of public</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-msg">Please select your role type</span>
+          </div>
+          <div class="field-group">
+            <label for="reporter_role">Job Title / Role</label>
+            <input type="text" id="reporter_role" name="reporter_role" placeholder="e.g. Site Supervisor"/>
+          </div>
+        </div>
       </div>
 
       <div class="section-label">Hazard Details</div>
@@ -254,6 +323,56 @@
         <label for="hazard_location">Location <span class="required">*</span></label>
         <input type="text" id="hazard_location" name="hazard_location" placeholder="e.g. Warehouse loading bay, Job site address, Office kitchen"/>
         <span class="error-msg">Please enter the hazard location</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="job_number">Job / Project Number</label>
+          <input type="text" id="job_number" name="job_number" placeholder="e.g. J-12345 (if applicable)"/>
+        </div>
+        <div class="field-group" id="group-affected">
+          <label for="affected_persons">Who is at risk? <span class="required">*</span></label>
+          <select id="affected_persons" name="affected_persons">
+            <option value="">Select…</option>
+            <option value="Workers / Employees">Workers / Employees</option>
+            <option value="Contractors">Contractors</option>
+            <option value="Visitors">Visitors</option>
+            <option value="Members of the public">Members of the public</option>
+            <option value="Multiple groups">Multiple groups</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+          <span class="error-msg">Please select who is at risk</span>
+        </div>
+      </div>
+
+      <div class="field-group full">
+        <label for="witnesses">Witnesses / Others Present</label>
+        <input type="text" id="witnesses" name="witnesses" placeholder="Names of anyone else who saw the hazard (optional)"/>
+        <span class="field-hint">Helps with follow-up investigation if needed.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="previously_reported">Reported before?</label>
+          <select id="previously_reported" name="previously_reported">
+            <option value="No">No</option>
+            <option value="Yes">Yes — this has been reported previously</option>
+            <option value="Unsure">Unsure</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="supervisor_notified">Supervisor notified?</label>
+          <select id="supervisor_notified" name="supervisor_notified">
+            <option value="No">No — not yet</option>
+            <option value="Yes">Yes — already notified</option>
+            <option value="N/A">N/A</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group full" id="supervisor-name-wrapper" style="display: none;">
+        <label for="supervisor_name">Supervisor / Manager Notified</label>
+        <input type="text" id="supervisor_name" name="supervisor_name" placeholder="Name of supervisor and when they were notified"/>
       </div>
 
       <div class="field-group" id="group-hazard-type">
@@ -340,18 +459,17 @@
       </div>
 
     </form>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.03</div>
+    </div>
   </div>
 </div>
 
-<div class="page-footer">
-  <div class="page-footer-title">BROMAR HUB — HAZARD REPORT</div>
-  <a class="page-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-</div>
-
-<div class="revision-number">V1.02</div>
-
 <script>
-  const REVISION = 'V1.02';
+  const REVISION = 'V1.03';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
@@ -382,6 +500,31 @@
       if (el.value === 'High' || el.value === 'Critical') riskWarning.classList.add('show');
       else riskWarning.classList.remove('show');
     });
+  });
+
+  // ANONYMOUS TOGGLE
+  const anonymousCheckbox = document.getElementById('anonymous_report');
+  const anonymousToggle = document.getElementById('anonymousToggle');
+  const reporterFields = document.getElementById('reporterFields');
+
+  anonymousCheckbox.addEventListener('change', () => {
+    if (anonymousCheckbox.checked) {
+      anonymousToggle.classList.add('active');
+      reporterFields.classList.add('hidden');
+      // Clear any error states on now-hidden fields
+      reporterFields.querySelectorAll('.has-error').forEach(g => g.classList.remove('has-error'));
+      reporterFields.querySelectorAll('.error').forEach(i => i.classList.remove('error'));
+    } else {
+      anonymousToggle.classList.remove('active');
+      reporterFields.classList.remove('hidden');
+    }
+  });
+
+  // SUPERVISOR NAME SHOW/HIDE
+  const supervisorNotified = document.getElementById('supervisor_notified');
+  const supervisorNameWrapper = document.getElementById('supervisor-name-wrapper');
+  supervisorNotified.addEventListener('change', () => {
+    supervisorNameWrapper.style.display = supervisorNotified.value === 'Yes' ? 'block' : 'none';
   });
 
   // PHOTO UPLOAD
@@ -480,10 +623,15 @@
         if (inp) inp.classList.remove('error');
       }
     }
-    check('group-filled_by',    !!document.getElementById('filled_by').value);
-    check('group-phone',        document.getElementById('reporter_phone').value.trim().length > 5);
+    const isAnonymous = anonymousCheckbox.checked;
+    if (!isAnonymous) {
+      check('group-filled_by',     !!document.getElementById('filled_by').value);
+      check('group-phone',         document.getElementById('reporter_phone').value.trim().length > 5);
+      check('group-reporter-type', !!document.getElementById('reporter_type').value);
+    }
     check('group-date',         !!document.getElementById('hazard_date').value);
     check('group-location',     document.getElementById('hazard_location').value.trim().length > 1);
+    check('group-affected',     !!document.getElementById('affected_persons').value);
     check('group-hazard-type',  getHazardTypes().length > 0);
     check('group-description',  document.getElementById('hazard_description').value.trim().length > 5);
     check('group-risk',         getRiskRating().length > 0);
@@ -562,15 +710,32 @@
     y += 8;
 
     section('Reporter Details');
-    field('Name:', data.reporter_name);
-    field('Email:', data.reporter_email);
-    field('Phone:', data.reporter_phone);
-    field('Role:', data.reporter_role);
+    if (data.is_anonymous) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text('Submitted anonymously — reporter details not recorded.', margin, y);
+      y += 8;
+    } else {
+      field('Name:', data.reporter_name);
+      field('Email:', data.reporter_email);
+      field('Phone:', data.reporter_phone);
+      field('Reporter Type:', data.reporter_type);
+      field('Job Title / Role:', data.reporter_role);
+    }
 
     section('Hazard Details');
     field('Date Observed:', data.hazard_date);
     field('Time Observed:', data.hazard_time);
     field('Location:', data.hazard_location);
+    field('Job / Project No.:', data.job_number);
+    field('Who is at risk:', data.affected_persons);
+    field('Witnesses:', data.witnesses);
+    field('Reported before:', data.previously_reported);
+    field('Supervisor notified:', data.supervisor_notified);
+    if (data.supervisor_notified === 'Yes' && data.supervisor_name) {
+      field('Supervisor name:', data.supervisor_name);
+    }
     field('Hazard Type:', Array.isArray(data.hazard_type) ? data.hazard_type.join(', ') : data.hazard_type, true);
     field('Description:', data.hazard_description, true);
 
@@ -662,13 +827,29 @@
     await BromarHub.autoSelectLoggedInUser('filled_by');
 
     const filledBy = document.getElementById('filled_by');
+    const phoneInput = document.getElementById('reporter_phone');
+
+    function applyEmployeePhone(opt) {
+      if (!opt) return;
+      const phone = opt.dataset.phone || opt.dataset.mobile || '';
+      if (phone && !phoneInput.value.trim()) {
+        phoneInput.value = phone;
+        phoneInput.classList.remove('error');
+        document.getElementById('group-phone').classList.remove('has-error');
+      }
+    }
+
     if (filledBy.value) {
       const opt = filledBy.selectedOptions[0];
       currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      applyEmployeePhone(opt);
     }
     filledBy.addEventListener('change', function() {
       const opt = this.selectedOptions[0];
       currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+      // Clear any previous auto-fill if changing employee, then re-populate
+      phoneInput.value = '';
+      applyEmployeePhone(opt);
     });
   });
 
@@ -683,16 +864,20 @@
     if (submitBtn.disabled) return;
     if (!validateForm()) return;
 
-    if (!currentUser) {
-      const sel = document.getElementById('filled_by');
-      if (sel.value) {
-        const opt = sel.selectedOptions[0];
-        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+    const isAnonymous = anonymousCheckbox.checked;
+
+    if (!isAnonymous) {
+      if (!currentUser) {
+        const sel = document.getElementById('filled_by');
+        if (sel.value) {
+          const opt = sel.selectedOptions[0];
+          currentUser = { name: opt.value, email: opt.dataset.email || '' };
+        }
       }
-    }
-    if (!currentUser) {
-      BromarHub.showInfo('Please select who is filling out the form');
-      return;
+      if (!currentUser) {
+        BromarHub.showInfo('Please select who is filling out the form');
+        return;
+      }
     }
 
     submitBtn.disabled = true;
@@ -703,14 +888,22 @@
     const reportBase = `${STORAGE_FOLDER}/${dateFolder}/${timestamp}`;
 
     const data = {
-      reporter_name:      currentUser.name,
-      reporter_email:     currentUser.email,
-      reporter_phone:     document.getElementById('reporter_phone').value.trim(),
-      reporter_role:      document.getElementById('reporter_role').value.trim() || 'Not specified',
+      is_anonymous:       isAnonymous,
+      reporter_name:      isAnonymous ? null : currentUser.name,
+      reporter_email:     isAnonymous ? null : currentUser.email,
+      reporter_phone:     isAnonymous ? null : document.getElementById('reporter_phone').value.trim(),
+      reporter_type:      isAnonymous ? null : document.getElementById('reporter_type').value,
+      reporter_role:      isAnonymous ? null : (document.getElementById('reporter_role').value.trim() || 'Not specified'),
       hazard_date:        formatDateLong(document.getElementById('hazard_date').value),
       hazard_date_iso:    document.getElementById('hazard_date').value,
       hazard_time:        document.getElementById('hazard_time').value || 'Not specified',
       hazard_location:    document.getElementById('hazard_location').value.trim(),
+      job_number:         document.getElementById('job_number').value.trim() || 'N/A',
+      affected_persons:   document.getElementById('affected_persons').value,
+      witnesses:          document.getElementById('witnesses').value.trim() || 'None recorded',
+      previously_reported: document.getElementById('previously_reported').value,
+      supervisor_notified: document.getElementById('supervisor_notified').value,
+      supervisor_name:    document.getElementById('supervisor_name').value.trim() || null,
       hazard_type:        getHazardTypes(),
       hazard_description: document.getElementById('hazard_description').value.trim(),
       risk_rating:        getRiskRating(),
@@ -747,25 +940,33 @@
       // Insert into table
       BromarHub.showLoading('Saving to database', 'Please wait…');
       const { error: dbError } = await window.sb.from(DB_TABLE).insert({
-        reporter_name:      data.reporter_name,
-        reporter_email:     data.reporter_email,
-        reporter_phone:     data.reporter_phone,
-        reporter_role:      data.reporter_role,
-        hazard_date:        data.hazard_date_iso,
-        hazard_time:        document.getElementById('hazard_time').value || null,
-        hazard_location:    data.hazard_location,
-        hazard_type:        data.hazard_type,
-        hazard_description: data.hazard_description,
-        risk_rating:        data.risk_rating,
-        immediate_action:   data.immediate_action,
-        suggested_action:   data.suggested_action,
-        photo_urls:         photoUrls,
-        photo_count:        selectedPhotos.length,
-        pdf_url:            pdfUrl,
-        pdf_path:           pdfPath,
-        storage_folder:     reportBase,
-        revision:           REVISION,
-        status:             'open',
+        is_anonymous:        data.is_anonymous,
+        reporter_name:       data.reporter_name,
+        reporter_email:      data.reporter_email,
+        reporter_phone:      data.reporter_phone,
+        reporter_type:       data.reporter_type,
+        reporter_role:       data.reporter_role,
+        hazard_date:         data.hazard_date_iso,
+        hazard_time:         document.getElementById('hazard_time').value || null,
+        hazard_location:     data.hazard_location,
+        job_number:          document.getElementById('job_number').value.trim() || null,
+        affected_persons:    data.affected_persons,
+        witnesses:           document.getElementById('witnesses').value.trim() || null,
+        previously_reported: data.previously_reported,
+        supervisor_notified: data.supervisor_notified,
+        supervisor_name:     data.supervisor_name,
+        hazard_type:         data.hazard_type,
+        hazard_description:  data.hazard_description,
+        risk_rating:         data.risk_rating,
+        immediate_action:    data.immediate_action,
+        suggested_action:    data.suggested_action,
+        photo_urls:          photoUrls,
+        photo_count:         selectedPhotos.length,
+        pdf_url:             pdfUrl,
+        pdf_path:            pdfPath,
+        storage_folder:      reportBase,
+        revision:            REVISION,
+        status:              'open',
       });
       if (dbError) throw dbError;
 
@@ -778,7 +979,7 @@
         pdf_url:        pdfUrl,
         revision:       REVISION,
         admin_emails:   CONFIG.adminEmails.join(', '),
-        to_email:       currentUser.email,
+        to_email:       isAnonymous ? CONFIG.adminEmails[0] : currentUser.email,
       });
 
       BromarHub.hideLoading();
@@ -787,6 +988,9 @@
       selectedPhotos = [];
       renderPhotoPreviews();
       riskWarning.classList.remove('show');
+      anonymousToggle.classList.remove('active');
+      reporterFields.classList.remove('hidden');
+      supervisorNameWrapper.style.display = 'none';
       dateInput.value = todayIso;
       await BromarHub.autoSelectLoggedInUser('filled_by');
       const sel = document.getElementById('filled_by');
