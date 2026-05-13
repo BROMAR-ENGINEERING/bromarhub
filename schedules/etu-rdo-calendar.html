@@ -69,13 +69,20 @@
       text-transform: uppercase;
       font-size: 0.85rem !important;
       letter-spacing: 0.5px;
+      color: white !important;
       box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25) !important;
     }
     .fc-button:hover {
       background: #a3380b !important;
+      color: white !important;
       transform: translateY(-1px);
     }
-    .fc-button-active { background: #1a56db !important; }
+    .fc-button-active,
+    .fc-button-primary:not(:disabled).fc-button-active,
+    .fc-button-primary:not(:disabled):active {
+      background: #1a56db !important;
+      color: white !important;
+    }
     .fc-daygrid-day:hover { background: var(--input-bg); }
     .fc-day-today { background: var(--brand-light) !important; }
     .fc-day-today .fc-daygrid-day-number {
@@ -90,14 +97,18 @@
       font-weight: 700;
     }
     .fc-col-header-cell {
-      background: var(--brand-dark);
-      color: var(--brand-white);
+      background: #111827;
       padding: 1rem 0.5rem;
       font-weight: 600;
       text-transform: uppercase;
       font-size: 0.85rem;
       letter-spacing: 0.5px;
       border: none !important;
+    }
+    .fc-col-header-cell a,
+    .fc-col-header-cell-cushion {
+      color: #ffffff !important;
+      text-decoration: none !important;
     }
     .fc-daygrid-day { border-color: var(--input-border) !important; }
     .fc-event {
