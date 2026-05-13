@@ -12,13 +12,7 @@
 /* ── PAGE-SPECIFIC STYLES ONLY ─────────────────────────── */
 
 /* Page layout — sits below the 60px fixed hub header */
-.pw{max-width:940px;margin:80px auto 0;padding:0 16px 60px;position:relative;}
-
-/* Page header card */
-.hd{background:var(--bg-secondary);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:24px 32px 18px;text-align:center;position:relative;overflow:hidden;margin-bottom:0;}
-.hd::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#1a56db,#0e9f6e,var(--accent));}
-.ht{font-size:1.8rem;font-weight:700;letter-spacing:-0.02em;color:var(--text-primary);margin-bottom:4px;}
-.hs{font-size:0.85rem;color:var(--text-secondary);line-height:1.6;max-width:620px;margin:0 auto;}
+.pw{max-width:940px;margin:0 auto;padding:0 16px 60px;position:relative;}
 
 /* Tabs */
 .tabs-wrap{position:relative;background:var(--bg-secondary);border-left:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
@@ -141,8 +135,7 @@
 
 /* Mobile */
 @media(max-width:640px){
-  .pw{padding:0 8px 60px;margin-top:72px;}
-  .hd{padding:18px 14px 14px;}
+  .pw{padding:0 8px 60px;}
   .cc{padding:16px 12px;}
   .ig{grid-template-columns:1fr 1fr;}
   .g2{grid-template-columns:1fr 1fr;}
@@ -164,11 +157,12 @@
   </div>
 </div>
 
+<div class="page-title-wrapper">
+  <h1>Electrical Calculators</h1>
+  <p class="subtitle">Education &amp; engineering reference &mdash; Ohm's Law &middot; 3-Phase Power &middot; Star Point &middot; Motor &middot; Power Factor &middot; Transformer &middot; Capacitor &middot; Fault Level &middot; Battery Sizing</p>
+</div>
+
 <div class="pw">
-  <div class="hd">
-    <h1 class="ht">Electrical Calculators</h1>
-    <p class="hs">Education &amp; engineering reference &mdash; Ohm's Law &middot; 3-Phase Power &middot; Star Point &middot; Motor &middot; Power Factor &middot; Transformer &middot; Capacitor &middot; Fault Level &middot; Battery Sizing</p>
-  </div>
 
   <!-- TABS with scroll arrows -->
   <div class="tabs-wrap">
