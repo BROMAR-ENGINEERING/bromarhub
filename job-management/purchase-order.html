@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Purchase Order</title>
+  <title>Purchase Order - Bromar</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
@@ -50,22 +50,60 @@
       box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
     }
 
-    .job-lookup { display: flex; gap: 10px; }
-    .job-lookup input { flex: 1; }
-    .lookup-btn {
-      padding: 0 20px;
-      border: 1.5px solid var(--brand-primary);
-      background: var(--brand-primary);
-      color: white;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-      white-space: nowrap;
+    /* Autocomplete job lookup */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-results {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary, var(--input-bg));
+      border: 1px solid var(--border, var(--input-border));
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 24px var(--shadow, rgba(0,0,0,0.1));
     }
-    .lookup-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    .lookup-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .autocomplete-results.show { display: block; }
+    .autocomplete-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border, var(--input-border));
+      transition: background 0.15s;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--card-hover, var(--brand-light)); }
+    .autocomplete-item-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--brand-orange);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .autocomplete-item-client {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+    .autocomplete-item-site {
+      font-size: 0.78rem;
+      color: var(--text-secondary, var(--text-muted));
+      margin-top: 1px;
+    }
+    .prefix-badge {
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 0.5px;
+    }
 
     .client-info-card {
       display: none;
@@ -73,7 +111,7 @@
       border: 1.5px solid var(--input-border);
       border-radius: var(--radius-sm);
       padding: 14px 18px;
-      margin-bottom: 18px;
+      margin: 12px 0 18px;
     }
     .client-info-card.show { display: block; animation: slideIn 0.3s ease; }
     .client-info-card h4 {
@@ -90,6 +128,28 @@
       margin: 2px 0;
     }
     .client-info-card strong { color: var(--text-primary); }
+    .client-info-card .po-preview {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .client-info-card .po-preview span {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--brand-orange);
+      font-weight: 700;
+    }
+
+    /* Awaiting job message */
+    .awaiting-job-message {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-style: italic;
+      border: 2px dashed var(--input-border);
+      border-radius: 12px;
+      margin-top: 1rem;
+    }
 
     .delivery-type-group {
       display: flex;
@@ -263,12 +323,12 @@
 
 <div id="bromar-header"></div>
 
+<div class="page-title-wrapper">
+  <h1>Purchase Order</h1>
+  <p class="subtitle">Create a PO against a job</p>
+</div>
+
 <div class="page-wrapper">
-
-  <div style="text-align: center; margin-bottom: 16px;">
-    <div class="po-number-display" id="poNumberDisplay">PO: ——</div>
-  </div>
-
   <div class="form-card">
     <form id="poForm" name="purchase-order" novalidate autocomplete="off">
 
@@ -276,184 +336,197 @@
         <label>Don't fill this out if you're human: <input name="bot-field" /></label>
       </p>
 
+      <!-- PO NUMBER DISPLAY (in-body) -->
+      <div style="text-align: center; margin-bottom: 18px;">
+        <div class="po-number-display" id="poNumberDisplay">PO: ——</div>
+      </div>
+
       <!-- MODE TOGGLE -->
       <div class="mode-toggle">
         <button type="button" class="mode-toggle-btn active" data-mode="verbal">📞 Verbal / Walk-In</button>
         <button type="button" class="mode-toggle-btn" data-mode="standard">📋 Standard PO</button>
       </div>
 
-      <!-- JOB DETAILS -->
-      <div class="section-label">Job Details</div>
+      <!-- JOB LOOKUP -->
+      <div class="section-label">Job Number</div>
 
-      <div class="field-group" id="group-job">
-        <label for="job_number">Job Number <span class="required">*</span></label>
-        <div class="job-lookup">
-          <input type="text" id="job_number" name="job_number" placeholder="e.g. BE5600, BM1234, BS0042" style="text-transform: uppercase;" maxlength="6"/>
-          <button type="button" class="lookup-btn" id="lookupBtn">🔍 Lookup</button>
-        </div>
-        <span class="error-msg">Please enter a valid job number (BE/BM/BS/BC/BA followed by 4 digits)</span>
+      <div class="field-group autocomplete-wrapper" id="group-job">
+        <label for="job_search">Search by Job Number or Client <span class="required">*</span></label>
+        <input type="text" id="job_search" placeholder="Start typing job number or client name..." style="text-transform: uppercase;" autocomplete="off"/>
+        <div class="autocomplete-results" id="autocompleteResults"></div>
+        <span class="error-msg">Please select a job</span>
       </div>
 
       <div class="client-info-card" id="clientInfoCard">
         <h4>Client Details</h4>
-        <p><strong>Client:</strong> <span id="clientName">—</span></p>
-        <p><strong>Site:</strong> <span id="clientSite">—</span></p>
-        <p><strong>Contact:</strong> <span id="clientContact">—</span></p>
+        <p><strong id="clientName">—</strong></p>
+        <p id="clientSiteName" style="font-weight: 600; color: var(--text-secondary);"></p>
+        <p id="clientSite">—</p>
+        <p id="clientContact">—</p>
+        <div class="po-preview">PO Number: <span id="poPreviewInline">loading…</span></div>
       </div>
 
-      <!-- REQUESTOR -->
-      <div class="section-label">Requestor</div>
-
-      <div class="field-row">
-        <div class="field-group" id="group-requestor">
-          <label for="filled_by">Requested By <span class="required">*</span></label>
-          <select id="filled_by" name="filled_by">
-            <option value="" disabled selected>Loading employees…</option>
-          </select>
-          <span class="error-msg">Please select who is filling out the form</span>
-        </div>
+      <!-- AWAITING JOB -->
+      <div id="awaitingJobMessage" class="awaiting-job-message">
+        👆 Search and select a job number above to continue
       </div>
 
-      <!-- SUPPLIER -->
-      <div class="section-label">Supplier</div>
+      <!-- POST-JOB SECTIONS -->
+      <div id="postJobSections" style="display: none;">
 
-      <div class="field-row">
-        <div class="field-group" id="group-supplier">
-          <label for="supplier">Supplier <span class="required">*</span></label>
-          <select id="supplier" name="supplier">
-            <option value="" disabled selected>Select supplier</option>
-            <option value="Lawrence & Hanson">Lawrence & Hanson</option>
-            <option value="MM Electrical">MM Electrical</option>
-            <option value="CNW Electrical">CNW Electrical</option>
-            <option value="Rexel">Rexel</option>
-            <option value="Middys">Middys</option>
-            <option value="Haymans">Haymans</option>
-            <option value="Bunnings">Bunnings</option>
-            <option value="Other">Other</option>
-          </select>
-          <span class="error-msg">Please select a supplier</span>
-        </div>
-        <div class="field-group">
-          <label for="supplier_branch">Branch / Location</label>
-          <input type="text" id="supplier_branch" name="supplier_branch" placeholder="e.g. Tullamarine, Campbellfield"/>
-        </div>
-      </div>
-
-      <div class="field-group" id="supplierOtherGroup" style="display: none;">
-        <label for="supplier_other">Specify Supplier</label>
-        <input type="text" id="supplier_other" name="supplier_other" placeholder="Supplier name"/>
-      </div>
-
-      <!-- VERBAL / WALK-IN MODE -->
-      <div class="verbal-mode-section active">
-        <div class="section-label">Parts Description</div>
-        <div class="field-group full">
-          <label for="verbal_description">Brief Description of Parts <span class="required">*</span></label>
-          <textarea id="verbal_description" name="verbal_description" rows="4" placeholder="Brief description of parts being ordered (e.g. 'Misc cable, conduit & fittings for site fitout')"></textarea>
-          <span class="error-msg">Please enter a description</span>
-        </div>
-        <div class="field-group">
-          <label for="verbal_estimated">Estimated Total ($)</label>
-          <input type="number" id="verbal_estimated" name="verbal_estimated" min="0" step="0.01" placeholder="0.00"/>
-        </div>
-      </div>
-
-      <!-- STANDARD MODE -->
-      <div class="standard-mode-section hidden">
-
-        <div class="section-label">Delivery</div>
-
-        <div class="field-group">
-          <label for="required_by">Required By Date</label>
-          <input type="date" id="required_by" name="required_by"/>
-        </div>
-
-        <div class="delivery-type-group">
-          <div class="delivery-radio">
-            <input type="radio" id="delivery_deliver" name="delivery_type" value="Deliver" checked/>
-            <label for="delivery_deliver">🚚 Deliver to Address</label>
-          </div>
-          <div class="delivery-radio">
-            <input type="radio" id="delivery_pickup" name="delivery_type" value="Pickup"/>
-            <label for="delivery_pickup">📦 Pickup from Supplier</label>
+        <!-- ORDERED BY -->
+        <div class="section-label">Ordered By</div>
+        <div class="field-row">
+          <div class="field-group" id="group-ordered-by">
+            <label for="filled_by">Ordered By <span class="required">*</span></label>
+            <select id="filled_by" name="filled_by">
+              <option value="" disabled selected>Loading employees…</option>
+            </select>
+            <span class="error-msg">Please select who is ordering</span>
           </div>
         </div>
 
-        <div id="deliverySection">
+        <!-- SUPPLIER -->
+        <div class="section-label">Supplier</div>
+
+        <div class="field-row">
+          <div class="field-group" id="group-supplier">
+            <label for="supplier">Supplier <span class="required">*</span></label>
+            <select id="supplier" name="supplier">
+              <option value="" disabled selected>Select supplier</option>
+              <option value="Lawrence & Hanson">Lawrence & Hanson</option>
+              <option value="MM Electrical">MM Electrical</option>
+              <option value="CNW Electrical">CNW Electrical</option>
+              <option value="Rexel">Rexel</option>
+              <option value="Middys">Middys</option>
+              <option value="Haymans">Haymans</option>
+              <option value="Bunnings">Bunnings</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-msg">Please select a supplier</span>
+          </div>
+          <div class="field-group">
+            <label for="supplier_branch">Branch / Location</label>
+            <input type="text" id="supplier_branch" name="supplier_branch" placeholder="e.g. Tullamarine, Campbellfield"/>
+          </div>
+        </div>
+
+        <div class="field-group" id="supplierOtherGroup" style="display: none;">
+          <label for="supplier_other">Specify Supplier</label>
+          <input type="text" id="supplier_other" name="supplier_other" placeholder="Supplier name"/>
+        </div>
+
+        <!-- VERBAL / WALK-IN MODE -->
+        <div class="verbal-mode-section active">
+          <div class="section-label">Parts Description</div>
           <div class="field-group full">
-            <label for="delivery_address">Delivery Address <span class="required">*</span></label>
-            <textarea id="delivery_address" name="delivery_address" rows="2" placeholder="Full delivery address including suburb and postcode"></textarea>
-            <span class="error-msg">Please enter delivery address</span>
+            <label for="verbal_description">Brief Description of Parts <span class="required">*</span></label>
+            <textarea id="verbal_description" name="verbal_description" rows="4" placeholder="Brief description of parts being ordered (e.g. 'Misc cable, conduit & fittings for site fitout')"></textarea>
+            <span class="error-msg">Please enter a description</span>
           </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label for="delivery_contact_name">Site Contact Name</label>
-              <input type="text" id="delivery_contact_name" name="delivery_contact_name" placeholder="On-site contact"/>
-            </div>
-            <div class="field-group">
-              <label for="delivery_contact_phone">Site Contact Phone</label>
-              <input type="tel" id="delivery_contact_phone" name="delivery_contact_phone" placeholder="04XX XXX XXX"/>
-            </div>
+          <div class="field-group">
+            <label for="verbal_estimated">Estimated Total ($)</label>
+            <input type="number" id="verbal_estimated" name="verbal_estimated" min="0" step="0.01" placeholder="0.00"/>
           </div>
         </div>
 
-        <div class="section-label">Line Items</div>
+        <!-- STANDARD MODE -->
+        <div class="standard-mode-section hidden">
 
-        <div class="line-items" id="lineItems"></div>
+          <div class="section-label">Delivery</div>
 
-        <button type="button" class="add-line-btn" id="addLineBtn">+ Add Line Item</button>
+          <div class="field-group">
+            <label for="required_by">Required By Date</label>
+            <input type="date" id="required_by" name="required_by"/>
+          </div>
 
-        <div class="totals-card">
-          <div class="totals-row">
-            <span>Subtotal (ex GST)</span>
-            <span class="amount" id="subtotalDisplay">$0.00</span>
+          <div class="delivery-type-group">
+            <div class="delivery-radio">
+              <input type="radio" id="delivery_deliver" name="delivery_type" value="Deliver" checked/>
+              <label for="delivery_deliver">🚚 Deliver to Address</label>
+            </div>
+            <div class="delivery-radio">
+              <input type="radio" id="delivery_pickup" name="delivery_type" value="Pickup"/>
+              <label for="delivery_pickup">📦 Pickup from Supplier</label>
+            </div>
           </div>
-          <div class="totals-row">
-            <span>GST (10%)</span>
-            <span class="amount" id="gstDisplay">$0.00</span>
+
+          <div id="deliverySection">
+            <div class="field-group full">
+              <label for="delivery_address">Delivery Address <span class="required">*</span></label>
+              <textarea id="delivery_address" name="delivery_address" rows="2" placeholder="Full delivery address including suburb and postcode"></textarea>
+              <span class="error-msg">Please enter delivery address</span>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="delivery_contact_name">Site Contact Name</label>
+                <input type="text" id="delivery_contact_name" name="delivery_contact_name" placeholder="On-site contact"/>
+              </div>
+              <div class="field-group">
+                <label for="delivery_contact_phone">Site Contact Phone</label>
+                <input type="tel" id="delivery_contact_phone" name="delivery_contact_phone" placeholder="04XX XXX XXX"/>
+              </div>
+            </div>
           </div>
-          <div class="totals-row grand">
-            <span>Total (inc GST)</span>
-            <span class="amount" id="totalDisplay">$0.00</span>
+
+          <div class="section-label">Line Items</div>
+
+          <div class="line-items" id="lineItems"></div>
+
+          <button type="button" class="add-line-btn" id="addLineBtn">+ Add Line Item</button>
+
+          <div class="totals-card">
+            <div class="totals-row">
+              <span>Subtotal (ex GST)</span>
+              <span class="amount" id="subtotalDisplay">$0.00</span>
+            </div>
+            <div class="totals-row">
+              <span>GST (10%)</span>
+              <span class="amount" id="gstDisplay">$0.00</span>
+            </div>
+            <div class="totals-row grand">
+              <span>Total (inc GST)</span>
+              <span class="amount" id="totalDisplay">$0.00</span>
+            </div>
           </div>
+
         </div>
 
-      </div>
+        <div class="section-label">Additional Notes</div>
+        <div class="field-group full">
+          <label for="general_notes">Notes / Special Instructions</label>
+          <textarea id="general_notes" name="general_notes" rows="3" placeholder="Any additional information, delivery instructions, or special requirements..."></textarea>
+        </div>
 
-      <div class="section-label">Additional Notes</div>
-      <div class="field-group full">
-        <label for="general_notes">Notes / Special Instructions</label>
-        <textarea id="general_notes" name="general_notes" rows="3" placeholder="Any additional information, delivery instructions, or special requirements..."></textarea>
-      </div>
+        <div class="form-divider"></div>
+        <div class="submit-row">
+          <span class="submit-note">* Required fields</span>
+          <button type="button" class="btn-secondary" id="printBtn">🖨️ Print</button>
+          <button type="reset" class="btn-secondary">Clear</button>
+          <button type="submit" class="submit-btn" id="submitBtn">Submit PO</button>
+        </div>
 
-      <div class="form-divider"></div>
-      <div class="submit-row">
-        <span class="submit-note">* Required fields</span>
-        <button type="button" class="btn-secondary" id="printBtn">🖨️ Print</button>
-        <button type="reset" class="btn-secondary">Clear</button>
-        <button type="submit" class="submit-btn" id="submitBtn">Submit PO</button>
-      </div>
+      </div><!-- /postJobSections -->
 
     </form>
   </div>
 </div>
 
-<div class="revision-number">V1.03</div>
+<div class="revision-number">V1.05</div>
 
 <script>
-  const DOC_VERSION = 'V1.03';
-
-  // Job number prefix validation: BE / BM / BS / BC / BA + 4 digits
-  const JOB_NUMBER_REGEX = /^B[EMSCA]\d{4}$/;
+  const DOC_VERSION = 'V1.05';
 
   let currentUser = null;
   let EMPLOYEES = [];
-  let currentJob = null; // Loaded job record from Supabase
+  let selectedJobData = null;
 
   // ============================================================
   // INIT
   // ============================================================
   document.addEventListener('DOMContentLoaded', async function() {
+    if (!window.sb) { alert('Supabase failed to load — check connection and refresh.'); return; }
+
     try {
       EMPLOYEES = await BromarHub.loadEmployees('filled_by');
       await BromarHub.autoSelectLoggedInUser('filled_by');
@@ -470,7 +543,115 @@
     } catch (err) {
       console.error('Error loading employees:', err);
     }
+
+    setPostJobSectionsVisible(false);
+    addLineItem();
   });
+
+  function setPostJobSectionsVisible(visible) {
+    document.getElementById('postJobSections').style.display = visible ? 'block' : 'none';
+    document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
+  }
+
+  // ============================================================
+  // JOB SEARCH (autocomplete on job_number_register)
+  // ============================================================
+  const jobSearch = document.getElementById('job_search');
+  const acResults = document.getElementById('autocompleteResults');
+  const clientCard = document.getElementById('clientInfoCard');
+  const poDisplay = document.getElementById('poNumberDisplay');
+  let searchTimeout;
+
+  jobSearch.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchJobs(this.value), 300);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+      acResults.classList.remove('show');
+    }
+  });
+
+  async function searchJobs(query) {
+    if (query.length < 2) { acResults.classList.remove('show'); return; }
+    try {
+      const { data, error } = await window.sb
+        .from('job_number_register')
+        .select('job_number, client_name, site_name, site_address, contact_person, contact_phone, prefix')
+        .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
+        .order('job_number', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      if (data?.length > 0) {
+        acResults.innerHTML = data.map(job => `
+          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item-number">
+              ${BromarHub.escapeHtml(job.job_number)}
+              <span class="prefix-badge">${BromarHub.escapeHtml(job.prefix || '')}</span>
+            </div>
+            <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}</div>
+            ${job.site_name ? `<div class="autocomplete-item-site">📍 ${BromarHub.escapeHtml(job.site_name)}</div>` : ''}
+          </div>
+        `).join('');
+        acResults.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'")));
+          });
+        });
+        acResults.classList.add('show');
+      } else {
+        acResults.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+        acResults.classList.add('show');
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
+      BromarHub.showInfo('Search failed: ' + err.message);
+    }
+  }
+
+  async function selectJob(job) {
+    selectedJobData = job;
+    jobSearch.value = job.job_number;
+    acResults.classList.remove('show');
+
+    document.getElementById('clientName').textContent = job.client_name || '—';
+    document.getElementById('clientSiteName').textContent = job.site_name || '';
+    document.getElementById('clientSite').textContent = job.site_address || '—';
+    const contact = [job.contact_person, job.contact_phone].filter(Boolean).join(' — ');
+    document.getElementById('clientContact').textContent = contact || '';
+    clientCard.classList.add('show');
+
+    await previewPoNumber();
+
+    const deliveryAddress = document.getElementById('delivery_address');
+    if (deliveryAddress && !deliveryAddress.value && job.site_address) {
+      deliveryAddress.value = job.site_address;
+    }
+
+    setPostJobSectionsVisible(true);
+  }
+
+  async function previewPoNumber() {
+    if (!selectedJobData) return;
+    try {
+      const { data, error } = await window.sb.rpc('next_po_sequence', {
+        p_job_number: selectedJobData.job_number
+      });
+      if (error) throw error;
+      const seq = String(data).padStart(4, '0');
+      const poNum = `${selectedJobData.job_number}-P${seq}`;
+      poDisplay.textContent = `PO: ${poNum}`;
+      document.getElementById('poPreviewInline').textContent = poNum;
+    } catch (err) {
+      console.error('PO sequence error:', err);
+      poDisplay.textContent = `PO: ${selectedJobData.job_number}-P????`;
+      document.getElementById('poPreviewInline').textContent = `${selectedJobData.job_number}-P????`;
+    }
+  }
 
   // ============================================================
   // MODE TOGGLE
@@ -493,104 +674,7 @@
         standardSection.classList.remove('hidden');
         verbalSection.classList.remove('active');
       }
-
-      // Re-preview PO number for the new mode
-      previewPoNumber();
     });
-  });
-
-  // ============================================================
-  // JOB LOOKUP (Supabase)
-  // ============================================================
-  const jobInput = document.getElementById('job_number');
-  const lookupBtn = document.getElementById('lookupBtn');
-  const clientCard = document.getElementById('clientInfoCard');
-  const poDisplay = document.getElementById('poNumberDisplay');
-
-  jobInput.addEventListener('input', function() {
-    this.value = this.value.toUpperCase();
-  });
-
-  async function performLookup() {
-    const jobNum = jobInput.value.trim().toUpperCase();
-    if (!jobNum) {
-      BromarHub.showInfo('Please enter a job number');
-      return;
-    }
-    if (!JOB_NUMBER_REGEX.test(jobNum)) {
-      BromarHub.showInfo('Invalid format. Use BE, BM, BS, BC or BA followed by 4 digits (e.g. BE5600)');
-      return;
-    }
-
-    lookupBtn.disabled = true;
-    lookupBtn.textContent = 'Looking up…';
-
-    try {
-      // Fetch job details from `jobs` table
-      const { data: job, error } = await window.sb
-        .from('jobs')
-        .select('job_number, client_name, site_address, contact_name, contact_phone')
-        .eq('job_number', jobNum)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!job) {
-        BromarHub.showInfo(`Job number "${jobNum}" not found in database`);
-        clientCard.classList.remove('show');
-        poDisplay.textContent = 'PO: ——';
-        currentJob = null;
-        return;
-      }
-
-      currentJob = job;
-
-      // Populate client card
-      document.getElementById('clientName').textContent = job.client_name || '—';
-      document.getElementById('clientSite').textContent = job.site_address || '—';
-      const contact = [job.contact_name, job.contact_phone].filter(Boolean).join(' — ');
-      document.getElementById('clientContact').textContent = contact || '—';
-      clientCard.classList.add('show');
-
-      // Preview next PO number
-      await previewPoNumber();
-
-      // Pre-fill delivery address with site
-      const deliveryAddress = document.getElementById('delivery_address');
-      if (deliveryAddress && !deliveryAddress.value && job.site_address) {
-        deliveryAddress.value = job.site_address;
-      }
-    } catch (err) {
-      console.error('Lookup error:', err);
-      BromarHub.showInfo('Error looking up job: ' + err.message);
-    } finally {
-      lookupBtn.disabled = false;
-      lookupBtn.textContent = '🔍 Lookup';
-    }
-  }
-
-  async function previewPoNumber() {
-    if (!currentJob) return;
-    try {
-      // Use the database function for next sequence
-      const { data, error } = await window.sb.rpc('next_po_sequence', {
-        p_job_number: currentJob.job_number
-      });
-      if (error) throw error;
-      const seq = String(data).padStart(4, '0');
-      poDisplay.textContent = `PO: ${currentJob.job_number}-P${seq}`;
-    } catch (err) {
-      console.error('PO sequence error:', err);
-      poDisplay.textContent = `PO: ${currentJob.job_number}-P????`;
-    }
-  }
-
-  lookupBtn.addEventListener('click', performLookup);
-  jobInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      performLookup();
-    }
   });
 
   // ============================================================
@@ -609,10 +693,9 @@
 
   deliveryRadios.forEach(radio => {
     radio.addEventListener('change', () => {
-      deliverySection.style.display =
-        radio.value === 'Deliver' && radio.checked ? 'block' :
-        radio.value === 'Pickup' && radio.checked ? 'none' :
-        deliverySection.style.display;
+      if (radio.checked) {
+        deliverySection.style.display = radio.value === 'Deliver' ? 'block' : 'none';
+      }
     });
   });
 
@@ -732,7 +815,6 @@
   }
 
   addLineBtn.addEventListener('click', addLineItem);
-  addLineItem();
 
   // ============================================================
   // VALIDATION
@@ -753,11 +835,9 @@
       }
     }
 
-    const jobOk = currentJob && JOB_NUMBER_REGEX.test(currentJob.job_number);
-    check('group-job', jobOk);
-
+    check('group-job', !!selectedJobData);
     check('group-supplier', !!document.getElementById('supplier').value);
-    check('group-requestor', !!document.getElementById('filled_by').value);
+    check('group-ordered-by', !!document.getElementById('filled_by').value);
 
     if (currentMode === 'verbal') {
       const desc = document.getElementById('verbal_description').value.trim();
@@ -805,7 +885,7 @@
       }
     }
     if (!currentUser) {
-      BromarHub.showInfo('Please select who is filling out the form');
+      BromarHub.showInfo('Please select who is ordering');
       return;
     }
 
@@ -817,15 +897,16 @@
       const supplierVal = document.getElementById('supplier').value;
       const supplierOther = document.getElementById('supplier_other').value.trim();
 
-      // Build header record
       const poHeader = {
-        job_number: currentJob.job_number,
+        job_number: selectedJobData.job_number,
         po_type: currentMode,
-        client_name: currentJob.client_name || null,
-        client_site: currentJob.site_address || null,
-        client_contact: [currentJob.contact_name, currentJob.contact_phone].filter(Boolean).join(' — ') || null,
-        requestor_name: currentUser.name,
-        requestor_email: currentUser.email || null,
+        client_name: selectedJobData.client_name || null,
+        client_site: selectedJobData.site_name
+          ? `${selectedJobData.site_name} — ${selectedJobData.site_address || ''}`.trim()
+          : (selectedJobData.site_address || null),
+        client_contact: [selectedJobData.contact_person, selectedJobData.contact_phone].filter(Boolean).join(' — ') || null,
+        ordered_by_name: currentUser.name,
+        ordered_by_email: currentUser.email || null,
         supplier: supplierVal,
         supplier_other: supplierVal === 'Other' ? supplierOther : null,
         supplier_branch: document.getElementById('supplier_branch').value.trim() || null,
@@ -849,7 +930,6 @@
         }
       }
 
-      // Insert header (DB trigger auto-generates po_number + po_sequence)
       const { data: inserted, error: insertErr } = await window.sb
         .from('purchase_orders')
         .insert(poHeader)
@@ -858,7 +938,6 @@
 
       if (insertErr) throw insertErr;
 
-      // Insert line items if standard mode
       if (currentMode === 'standard') {
         const items = collectLineItems().map(i => ({ ...i, po_id: inserted.id }));
         if (items.length > 0) {
@@ -872,16 +951,16 @@
       BromarHub.hideLoading();
       BromarHub.showSuccess(`Purchase order ${inserted.po_number} submitted successfully.`);
 
-      // Reset form
       poForm.reset();
       lineItemsContainer.innerHTML = '';
       addLineItem();
       updateGrandTotal();
       clientCard.classList.remove('show');
       poDisplay.textContent = 'PO: ——';
-      currentJob = null;
+      selectedJobData = null;
+      jobSearch.value = '';
+      setPostJobSectionsVisible(false);
 
-      // Re-select logged-in user
       if (currentUser?.name) {
         const sel = document.getElementById('filled_by');
         for (const opt of sel.options) {
