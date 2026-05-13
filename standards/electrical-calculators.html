@@ -423,9 +423,9 @@
       </div>
       <div class="sbh">Phase Resistances <i class="ii" onclick="showInfo('star-r')">i</i></div>
       <div class="ig">
-        <div class="fd"><label>Phase A — R1</label><div class="iw"><input type="number" id="stR1" placeholder="e.g. 10" min="0.001" step="any"/><div class="un">&Omega;</div></div></div>
-        <div class="fd"><label>Phase B — R2</label><div class="iw"><input type="number" id="stR2" placeholder="e.g. 15" min="0.001" step="any"/><div class="un">&Omega;</div></div></div>
-        <div class="fd"><label>Phase C — R3</label><div class="iw"><input type="number" id="stR3" placeholder="e.g. 20" min="0.001" step="any"/><div class="un">&Omega;</div></div></div>
+        <div class="fd"><label>Phase A — R1 <i class="ii" onclick="showInfo('star-r')">i</i></label><div class="iw"><input type="number" id="stR1" placeholder="e.g. 10" min="0" step="any"/><div class="un">&Omega;</div></div><div class="fn">0 = short circuit &nbsp;|&nbsp; leave blank = open circuit</div></div>
+        <div class="fd"><label>Phase B — R2 <i class="ii" onclick="showInfo('star-r')">i</i></label><div class="iw"><input type="number" id="stR2" placeholder="e.g. 15" min="0" step="any"/><div class="un">&Omega;</div></div><div class="fn">0 = short circuit &nbsp;|&nbsp; leave blank = open circuit</div></div>
+        <div class="fd"><label>Phase C — R3 <i class="ii" onclick="showInfo('star-r')">i</i></label><div class="iw"><input type="number" id="stR3" placeholder="e.g. 20" min="0" step="any"/><div class="un">&Omega;</div></div><div class="fn">0 = short circuit &nbsp;|&nbsp; leave blank = open circuit</div></div>
       </div>
       <div class="er" id="star-err"></div>
       <div class="rb" id="star-res">
@@ -437,13 +437,15 @@
       <div class="sd"></div>
       <div class="st">Formula Reference</div>
       <table class="ft">
-        <tr><th>Quantity</th><th>Formula</th></tr>
+        <tr><th>Quantity</th><th>Formula / Condition</th></tr>
         <tr><td>Phase Voltage V<sub>ph</sub></td><td><span class="fc">V<sub>ph</sub> = V<sub>LL</sub> &divide; &radic;3</span> &nbsp;(e.g. 415 &divide; 1.732 = 240 V)</td></tr>
         <tr><td>Phase Current I<sub>n</sub></td><td><span class="fc">I<sub>n</sub> = V<sub>ph</sub> &divide; R<sub>n</sub></span></td></tr>
         <tr><td>Phase Power P<sub>n</sub></td><td><span class="fc">P<sub>n</sub> = V<sub>ph</sub>&sup2; &divide; R<sub>n</sub> = I<sub>n</sub>&sup2; &times; R<sub>n</sub></span></td></tr>
+        <tr><td>Open circuit (R = &infin;)</td><td>I = 0 A, P = 0 W — element failed/disconnected, no current flows</td></tr>
+        <tr><td>Short circuit (R = 0)</td><td>I = fault current — limited by supply impedance only ⚡</td></tr>
         <tr><td>Neutral Current I<sub>N</sub></td><td><span class="fc">I<sub>N</sub> = |I&#x2081;&ang;0&deg; + I&#x2082;&ang;&minus;120&deg; + I&#x2083;&ang;+120&deg;|</span> (phasor sum)</td></tr>
         <tr><td>Total Power P<sub>total</sub></td><td><span class="fc">P<sub>total</sub> = P&#x2081; + P&#x2082; + P&#x2083;</span></td></tr>
-        <tr><td>Balanced condition</td><td>R&#x2081; = R&#x2082; = R&#x2083; &rarr; I<sub>N</sub> = 0, no neutral current flows</td></tr>
+        <tr><td>Balanced condition</td><td>R&#x2081; = R&#x2082; = R&#x2083; &rarr; I<sub>N</sub> = 0, no neutral current</td></tr>
       </table>
     </div>
 
@@ -716,7 +718,7 @@ const INFO={
   p3:{t:"3-Phase Power",b:"<p>Three-phase AC uses three voltages 120&deg; apart, enabling efficient power delivery. The &radic;3 factor (1.732) accounts for the phase relationship.</p><table><tr><th>Symbol</th><th>Meaning</th></tr><tr><td>V<sub>LL</sub></td><td>Line-to-line voltage (415V AU)</td></tr><tr><td>V<sub>LN</sub></td><td>Phase voltage = V<sub>LL</sub>/&radic;3 &asymp; 240V</td></tr><tr><td>PF</td><td>Power factor = cos&phi; = P/S</td></tr></table>"},
   star:{t:"Star (Wye) Connection",b:"<p>Each load connects between a phase terminal and the neutral star point.</p><ul><li>V<sub>phase</sub> = V<sub>LL</sub> / &radic;3</li><li>Line current = phase current</li><li>Balanced loads: neutral current = 0</li><li>Unbalanced loads: neutral carries phasor sum of phase currents</li></ul><p>Phasor arithmetic is used to correctly calculate neutral current.</p>"},
   'star-v':{t:"Line-to-Line Voltage",b:"<p>Enter the line-to-line (phase-to-phase) supply voltage. In Australia: <strong>415 V</strong> (3-phase LV). Phase-to-neutral = 415 / &radic;3 = <strong>240 V</strong>.</p>"},
-  'star-r':{t:"Phase Resistances",b:"<p>Enter the resistance of each phase load in ohms (&Omega;).</p><ul><li><strong>Equal values</strong> = balanced load, neutral current = 0</li><li><strong>Different values</strong> = unbalanced load, neutral current &gt; 0</li></ul><p>For purely resistive loads, current is in phase with voltage (PF = 1.0).</p>"},
+  'star-r':{t:"Phase Resistances",b:"<p>Enter the resistance of each phase load in ohms (&Omega;). Three conditions are supported:</p><table><tr><th>Input</th><th>Condition</th><th>Real-world example</th></tr><tr><td><strong>Value &gt; 0</strong></td><td>Normal resistive load</td><td>Heating element, resistor bank at rated value</td></tr><tr><td><strong>Blank / empty</strong></td><td>Open circuit</td><td>Failed element (burnt out), broken wire, disconnected phase — no current flows on that phase</td></tr><tr><td><strong>0 (zero)</strong></td><td>Short circuit</td><td>Bolted fault, failed element shorted — fault current is supply-impedance limited</td></tr></table><p>For purely resistive loads current is in phase with voltage (PF = 1.0). Unequal values produce neutral current.</p>"},
   motor:{t:"Motor Full-Load Current",b:"<p>FLC is the current at rated shaft output. Key factors:</p><ul><li><strong>Efficiency &eta;</strong>: shaft output &divide; electrical input. A 90% efficient motor needs 10% more input power.</li><li><strong>Power factor</strong>: motors are inductive; PF typically 0.80&ndash;0.92 at full load.</li><li><strong>DOL start</strong>: typically 6&ndash;8&times; FLC.</li></ul>"},
   'motor-v':{t:"Motor Voltage",b:"<p>Line-to-line supply voltage. Common values: 415V (AU 3-phase), 400V (NZ), 230V (1-phase), 3.3kV/6.6kV/11kV (MV).</p>"},
   'motor-eff':{t:"Motor Efficiency",b:"<table><tr><th>Motor Size</th><th>Typical &eta;</th></tr><tr><td>&lt;1 kW</td><td>60&ndash;75%</td></tr><tr><td>1&ndash;10 kW</td><td>80&ndash;88%</td></tr><tr><td>10&ndash;100 kW</td><td>88&ndash;94%</td></tr><tr><td>&gt;100 kW</td><td>93&ndash;97%</td></tr></table><p>If unknown, use 90% for medium motors.</p>"},
@@ -824,27 +826,100 @@ function calcP3(){
 // ── STAR POINT ────────────────────────────────────────────
 function calcStar(){
   clearErr('star');
-  const Vll=gn('stVll')||415,R1=gn('stR1'),R2=gn('stR2'),R3=gn('stR3');
-  if(!R1||!R2||!R3){showErr('star','Enter all three phase resistances.');return;}
+  const Vll=gn('stVll')||415;
+
+  // Read each resistance field:
+  //   blank / empty = open circuit (failed element, infinite resistance, I = 0)
+  //   0             = short circuit (bolted fault, I = limited only by source impedance — flagged as fault)
+  //   > 0           = normal resistive load
+  function readR(id){
+    const el=document.getElementById(id);
+    if(!el) return {val:null,mode:'invalid'};
+    const raw=el.value.trim();
+    if(raw==='') return {val:Infinity,mode:'open'};   // blank = open circuit
+    const v=parseFloat(raw);
+    if(isNaN(v)||v<0) return {val:null,mode:'invalid'};
+    if(v===0)  return {val:0,mode:'short'};            // 0 = short circuit fault
+    return {val:v,mode:'normal'};
+  }
+
+  const A=readR('stR1'), B=readR('stR2'), C=readR('stR3');
+  if(A.val===null||B.val===null||C.val===null){
+    showErr('star','Resistance cannot be negative. Use 0 for short circuit or leave blank for open circuit.');return;
+  }
+  if(A.mode==='open'&&B.mode==='open'&&C.mode==='open'){
+    showErr('star','All three phases are open — no circuit to calculate.');return;
+  }
+
   const Vph=Vll/SQ3;
-  const I1=Vph/R1,I2=Vph/R2,I3=Vph/R3;
-  const P1=Vph*Vph/R1,P2=Vph*Vph/R2,P3=Vph*Vph/R3,Pt=P1+P2+P3;
-  const re=I1+I2*Math.cos(-2*Math.PI/3)+I3*Math.cos(2*Math.PI/3);
-  const im=I2*Math.sin(-2*Math.PI/3)+I3*Math.sin(2*Math.PI/3);
+
+  // Per-phase current, power, label
+  function phCalc(r){
+    if(r.mode==='open')  return {I:0,    P:0,    Ilabel:'0 A (open)',   Plabel:'0 W'};
+    if(r.mode==='short') return {I:null, P:null, Ilabel:'Fault ⚡',     Plabel:'—'};
+    const I=Vph/r.val, P=Vph*Vph/r.val;
+    return {I, P, Ilabel:f(I,3)+' A', Plabel:f(P,1)+' W'};
+  }
+
+  const phA=phCalc(A), phB=phCalc(B), phC=phCalc(C);
+
+  // Total power (skip faulted phases — they're undefined, not zero)
+  const Pt=(phA.P||0)+(phB.P||0)+(phC.P||0);
+
+  // Phasor sum for neutral current (open = 0 current, short = flag, treat as 0 for phasor sum)
+  const iA=phA.I||0, iB=phB.I||0, iC=phC.I||0;
+  const re=iA+iB*Math.cos(-2*Math.PI/3)+iC*Math.cos(2*Math.PI/3);
+  const im=iB*Math.sin(-2*Math.PI/3)+iC*Math.sin(2*Math.PI/3);
   const IN=Math.sqrt(re*re+im*im);
-  const bal=Math.abs(R1-R2)<0.001&&Math.abs(R2-R3)<0.001;
+  const hasFault=A.mode==='short'||B.mode==='short'||C.mode==='short';
+  const allNormal=A.mode==='normal'&&B.mode==='normal'&&C.mode==='normal';
+  const bal=allNormal&&Math.abs(A.val-B.val)<0.001&&Math.abs(B.val-C.val)<0.001;
+
+  // Phase status badge
+  function badge(r){
+    if(r.mode==='open')  return '<span style="color:#d69e2e;font-size:0.7rem;font-weight:700;">⚠ OPEN CIRCUIT</span>';
+    if(r.mode==='short') return '<span style="color:#e53e3e;font-size:0.7rem;font-weight:700;">⚡ SHORT CIRCUIT</span>';
+    return '';
+  }
+
   document.getElementById('star-pg').innerHTML=`
-    <div class="pc"><div class="pcl">Phase A (L1)</div><div class="pcv">${f(I1,3)} A</div><div class="pcs">${f(P1/1000,3)} kW &nbsp;|&nbsp; ${f(R1,2)} &Omega;</div></div>
-    <div class="pc"><div class="pcl">Phase B (L2)</div><div class="pcv">${f(I2,3)} A</div><div class="pcs">${f(P2/1000,3)} kW &nbsp;|&nbsp; ${f(R2,2)} &Omega;</div></div>
-    <div class="pc"><div class="pcl">Phase C (L3)</div><div class="pcv">${f(I3,3)} A</div><div class="pcs">${f(P3/1000,3)} kW &nbsp;|&nbsp; ${f(R3,2)} &Omega;</div></div>`;
+    <div class="pc">
+      <div class="pcl">Phase A (L1)</div>
+      <div class="pcv">${phA.Ilabel}</div>
+      <div class="pcs">${A.mode==='normal'?f(A.val,2)+' &Omega; &nbsp;|&nbsp; '+phA.Plabel:''}</div>
+      ${badge(A)}
+    </div>
+    <div class="pc">
+      <div class="pcl">Phase B (L2)</div>
+      <div class="pcv">${phB.Ilabel}</div>
+      <div class="pcs">${B.mode==='normal'?f(B.val,2)+' &Omega; &nbsp;|&nbsp; '+phB.Plabel:''}</div>
+      ${badge(B)}
+    </div>
+    <div class="pc">
+      <div class="pcl">Phase C (L3)</div>
+      <div class="pcv">${phC.Ilabel}</div>
+      <div class="pcs">${C.mode==='normal'?f(C.val,2)+' &Omega; &nbsp;|&nbsp; '+phC.Plabel:''}</div>
+      ${badge(C)}
+    </div>`;
+
   const steps=[
     'V<sub>ph</sub> = '+f(Vll,0)+' &divide; &radic;3 = '+f(Vph,3)+' V',
-    'I&#x2081; = '+f(Vph,3)+' &divide; '+R1+' = '+f(I1,3)+' A &nbsp; P&#x2081; = '+f(P1,1)+' W',
-    'I&#x2082; = '+f(Vph,3)+' &divide; '+R2+' = '+f(I2,3)+' A &nbsp; P&#x2082; = '+f(P2,1)+' W',
-    'I&#x2083; = '+f(Vph,3)+' &divide; '+R3+' = '+f(I3,3)+' A &nbsp; P&#x2083; = '+f(P3,1)+' W',
-    'Neutral I<sub>N</sub> (phasor sum) = '+f(IN,3)+' A '+(bal?'&nbsp;&#x2713; Balanced &rarr; 0 A':'&nbsp;&#x26A0; Unbalanced'),
+    'Phase A: '+( A.mode==='open'?'Open circuit &rarr; I&#x2081; = 0 A, no current flows' : A.mode==='short'?'Short circuit &rarr; fault condition ⚡' : 'I&#x2081; = '+f(Vph,3)+' &divide; '+A.val+' = '+f(phA.I,3)+' A,  P&#x2081; = '+f(phA.P,1)+' W'),
+    'Phase B: '+( B.mode==='open'?'Open circuit &rarr; I&#x2082; = 0 A, no current flows' : B.mode==='short'?'Short circuit &rarr; fault condition ⚡' : 'I&#x2082; = '+f(Vph,3)+' &divide; '+B.val+' = '+f(phB.I,3)+' A,  P&#x2082; = '+f(phB.P,1)+' W'),
+    'Phase C: '+( C.mode==='open'?'Open circuit &rarr; I&#x2083; = 0 A, no current flows' : C.mode==='short'?'Short circuit &rarr; fault condition ⚡' : 'I&#x2083; = '+f(Vph,3)+' &divide; '+C.val+' = '+f(phC.I,3)+' A,  P&#x2083; = '+f(phC.P,1)+' W'),
+    hasFault
+      ? 'Neutral current: contains faulted phase — short circuit current is supply-impedance limited'
+      : 'Neutral I<sub>N</sub> (phasor sum) = '+f(IN,3)+' A '+(bal?'&nbsp;&#x2713; Balanced &rarr; 0 A':'&nbsp;&#x26A0; Unbalanced'),
   ];
-  showResult('star',[{l:'Phase Voltage',v:f(Vph,2),u:'V'},{l:'Total Power',v:f(Pt/1000,3),u:'kW'},{l:'Neutral Current',v:f(IN,3),u:'A'},{l:'Load State',v:bal?'Balanced':'Unbalanced',u:''}],steps);
+
+  const loadState = hasFault ? 'Fault ⚡' : bal ? 'Balanced' : 'Unbalanced';
+
+  showResult('star',[
+    {l:'Phase Voltage',  v:f(Vph,2),                                      u:'V'},
+    {l:'Total Power',    v:f(Pt/1000,3),                                   u:'kW'},
+    {l:'Neutral Current',v:hasFault?'See note':f(IN,3),                   u:hasFault?'':' A'},
+    {l:'Load State',     v:loadState,                                      u:''},
+  ],steps);
 }
 
 // ── MOTOR ─────────────────────────────────────────────────
