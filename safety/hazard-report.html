@@ -223,16 +223,25 @@
       background: transparent;
       border: none;
     }
+    .anonymous-toggle.active .checkbox-label .checkbox-text {
+      color: var(--brand-orange, #c2440e);
+      font-weight: 700;
+    }
     .anonymous-note {
       display: none;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
+      font-size: 0.82rem;
+      color: var(--text-primary);
       margin-top: 10px;
       padding-top: 10px;
       border-top: 1px dashed var(--input-border);
-      line-height: 1.5;
+      line-height: 1.55;
     }
-    .anonymous-toggle.active .anonymous-note { display: block; }
+    .anonymous-toggle.active .anonymous-note {
+      display: block;
+      border-top-color: var(--brand-orange, #c2440e);
+      opacity: 0.95;
+    }
+    .anonymous-note strong { color: var(--brand-orange, #c2440e); }
 
     /* Hide reporter fields when anonymous */
     .reporter-fields.hidden { display: none; }
@@ -255,6 +264,8 @@
   <div class="form-card">
     <form id="hazardForm" novalidate>
 
+      <div class="section-label">Reporter Details</div>
+
       <div class="anonymous-toggle" id="anonymousToggle">
         <label class="checkbox-label">
           <input type="checkbox" id="anonymous_report"/>
@@ -267,8 +278,6 @@
       </div>
 
       <div class="reporter-fields" id="reporterFields">
-        <div class="section-label">Reporter Details</div>
-
         <div class="field-row">
           <div class="field-group" id="group-filled_by">
             <label for="filled_by">Full Name <span class="required">*</span></label>
@@ -464,13 +473,13 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.04</div>
+      <div class="card-footer-version">Version V1.06</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.04';
+  const REVISION = 'V1.06';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
@@ -844,7 +853,7 @@
       if (!opt) return;
       const emp = lookupEmployee(opt.value);
       const email = emp?.email || opt.dataset.email || '';
-      const phone = emp?.phone || emp?.mobile || emp?.phone_number || opt.dataset.phone || opt.dataset.mobile || '';
+      const phone = emp?.mobile || opt.dataset.mobile || emp?.phone || emp?.phone_number || opt.dataset.phone || '';
       if (email) {
         emailInput.value = email;
         emailInput.classList.remove('error');
