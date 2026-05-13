@@ -30,7 +30,21 @@
 </div>
 
 <div class="page-wrapper">
-  <div class="form-card">
+  <!-- Draft resume banner -->
+<div id="draftBanner" style="display:none; margin-bottom:1rem; background:var(--info-bg); border:1px solid var(--info-border); border-radius:12px; padding:1rem 1.25rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:600; color:var(--info-text); margin-bottom:2px;">📋 You have an unfinished job sheet</div>
+      <div id="draftBannerDetail" style="font-size:0.82rem; color:var(--text-secondary);"></div>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+      <button type="button" id="draftDiscardBtn" class="btn-secondary" style="padding:0.5rem 1rem; font-size:0.85rem;">Discard</button>
+      <button type="button" id="draftResumeBtn" class="submit-btn"    style="padding:0.5rem 1rem; font-size:0.85rem;">Resume</button>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
     <form id="jobSheetForm" novalidate autocomplete="off">
 
       <div class="success-banner" id="successBanner"><span>✅</span><span id="successText">Job sheet saved successfully!</span></div>
@@ -251,6 +265,7 @@
       <div class="submit-row">
         <span class="submit-note">* Required fields</span>
         <span id="submitSheetNumber" style="display:none; font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--accent); font-weight:600; margin-right:auto;"></span>
+        <button type="button" class="btn-secondary" id="saveDraftBtn" style="display:none;">💾 Save Draft</button>
         <button type="reset"  class="btn-secondary">Clear</button>
         <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
       </div>
@@ -281,7 +296,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.33</div>
+<div class="revision-number">V1.36</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -348,10 +363,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   filledBy.addEventListener('change', function() {
     const opt = this.selectedOptions[0];
     currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+    if (currentUser) checkForDraft();
   });
 
   addTask(); addLabour(); setupSignatureCanvas(); initScanner();
   setPostJobSectionsVisible(false);
+
+  // ── DRAFT ─────────────────────────────────────────────────
+  if (currentUser) await checkForDraft();
+  document.getElementById('saveDraftBtn').addEventListener('click', () => saveDraft(false));
+  document.getElementById('draftResumeBtn').addEventListener('click', resumeDraft);
+  document.getElementById('draftDiscardBtn').addEventListener('click', discardDraft);
+  setInterval(() => { if (selectedJobData && currentUser) saveDraft(true); }, 30000);
 
   // Job type toggle
   document.querySelectorAll('input[name="job_type"]').forEach(radio => {
@@ -488,6 +511,194 @@ function setPostJobSectionsVisible(visible) {
   document.querySelector('.form-divider').style.display    = visible ? 'block' : 'none';
   document.querySelector('.submit-row').style.display      = visible ? 'flex'  : 'none';
   document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
+  document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
+}
+
+// ── DRAFT SAVE / RESTORE ─────────────────────────────────────
+function collectDraftData() {
+  return {
+    sheet_date: document.getElementById('sheet_date').value,
+    job_type: document.querySelector('input[name="job_type"]:checked')?.value,
+    selectedJobData,
+    tasks: Array.from(document.querySelectorAll('.task-description')).map(t => t.value),
+    labour: Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({
+      employee: c.querySelector('.labour-employee').value,
+      normalHours: c.querySelector('.labour-normal').value,
+      overtimeHours: c.querySelector('.labour-overtime').value
+    })),
+    materials: Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({
+      name: c.querySelector('.material-name').value,
+      quantity: c.querySelector('.material-qty').value,
+      unit: c.querySelector('.material-unit').value
+    })),
+    notes: Array.from(document.querySelectorAll('.note-card')).map(c => ({
+      text: c.querySelector('.note-text').value,
+      notifyPeople: Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb => cb.value)
+    })),
+    isServiceReport: document.getElementById('isServiceReport').checked,
+    reportSections: {
+      labour: document.getElementById('include_labour').checked,
+      tasks: document.getElementById('include_tasks').checked,
+      materials: document.getElementById('include_materials').checked,
+      photos: document.getElementById('include_photos').checked,
+      notes: document.getElementById('include_notes').checked
+    },
+    signoffMethod: document.querySelector('input[name="signoff_method"]:checked')?.value,
+    signoffEmail: document.getElementById('signoff_email').value,
+    jobCompleted: document.querySelector('input[name="job_completed"]:checked')?.value
+  };
+}
+
+let storedDraft = null;
+
+async function saveDraft(silent = false) {
+  if (!currentUser || !selectedJobData) return;
+  try {
+    const draftData = collectDraftData();
+    await window.sb.from('job_sheet_drafts').upsert({
+      user_name: currentUser.name,
+      job_number: selectedJobData.job_number,
+      client_name: selectedJobData.client_name,
+      draft_data: draftData,
+      saved_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    }, { onConflict: 'user_name' });
+    if (!silent) BromarHub.showSuccess('Draft saved');
+  } catch (err) {
+    if (!silent) BromarHub.showInfo('Could not save draft: ' + err.message);
+  }
+}
+
+async function checkForDraft() {
+  if (!currentUser) return;
+  try {
+    const { data } = await window.sb.from('job_sheet_drafts')
+      .select('*').eq('user_name', currentUser.name)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    if (!data) return;
+    storedDraft = data;
+    const savedAt = new Date(data.saved_at);
+    const timeAgo = formatTimeAgo(savedAt);
+    const detail = `${data.job_number ? data.job_number + ' — ' : ''}${data.client_name || 'Unknown job'}, saved ${timeAgo}`;
+    document.getElementById('draftBannerDetail').textContent = detail;
+    document.getElementById('draftBanner').style.display = 'block';
+  } catch {}
+}
+
+async function resumeDraft() {
+  if (!storedDraft) return;
+  document.getElementById('draftBanner').style.display = 'none';
+  const d = storedDraft.draft_data;
+
+  // Restore date
+  if (d.sheet_date) document.getElementById('sheet_date').value = d.sheet_date;
+  applyDateRulesToAllLabour();
+
+  // Restore job selection
+  if (d.selectedJobData) {
+    selectedJobData = d.selectedJobData;
+    if (d.job_type === 'existing') {
+      document.getElementById('existing_job').checked = true;
+      document.getElementById('existing-job-fields').classList.add('active');
+      document.getElementById('new-job-fields').classList.remove('active');
+      document.getElementById('existing_job_number').value = d.selectedJobData.job_number;
+      document.getElementById('detail-client').textContent = d.selectedJobData.client_name;
+      document.getElementById('detail-site-name').textContent = d.selectedJobData.site_name ? d.selectedJobData.site_name + ' · ' : '';
+      document.getElementById('detail-address').textContent = d.selectedJobData.site_address || '';
+      document.getElementById('job-details-display').style.display = 'block';
+    }
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${d.selectedJobData.job_number}/scans`;
+    setPostJobSectionsVisible(true);
+  }
+
+  // Restore tasks
+  document.getElementById('tasksContainer').innerHTML = '';
+  taskCount = 0;
+  (d.tasks || ['']).forEach(text => { addTask(); document.querySelectorAll('.task-description')[taskCount - 1].value = text; });
+
+  // Restore labour
+  document.getElementById('labourContainer').innerHTML = '';
+  labourCount = 0;
+  (d.labour || [{}]).forEach(l => {
+    addLabour();
+    const card = document.querySelectorAll('[data-labour-id]')[labourCount - 1];
+    if (l.employee) card.querySelector('.labour-employee').value = l.employee;
+    card.querySelector('.labour-normal').value = l.normalHours || 0;
+    card.querySelector('.labour-overtime').value = l.overtimeHours || 0;
+  });
+
+  // Restore materials
+  document.getElementById('materialsContainer').innerHTML = '';
+  materialCount = 0;
+  (d.materials || []).forEach(m => {
+    addMaterial();
+    const card = document.querySelectorAll('[data-material-id]')[materialCount - 1];
+    card.querySelector('.material-name').value = m.name || '';
+    card.querySelector('.material-qty').value  = m.quantity || 0;
+    card.querySelector('.material-unit').value = m.unit || 'ea';
+  });
+
+  // Restore notes
+  document.getElementById('notesContainer').innerHTML = '';
+  noteCount = 0;
+  (d.notes || []).forEach(n => {
+    addNote();
+    const card = document.querySelectorAll('.note-card')[noteCount - 1];
+    card.querySelector('.note-text').value = n.text || '';
+    (n.notifyPeople || []).forEach(name => {
+      const cb = Array.from(card.querySelectorAll('.note-notify-cb')).find(c => c.value === name);
+      if (cb) { cb.checked = true; highlightNoteEmp(cb); }
+    });
+  });
+
+  // Restore service report options
+  if (d.isServiceReport) {
+    document.getElementById('isServiceReport').checked = true;
+    document.getElementById('reportSections').classList.add('show');
+    document.getElementById('signatureSection').classList.add('show');
+    if (d.reportSections) {
+      Object.entries(d.reportSections).forEach(([k, v]) => {
+        const el = document.getElementById(`include_${k}`); if (el) el.checked = v;
+      });
+    }
+    if (d.signoffMethod) {
+      const radio = document.getElementById(`signoff_${d.signoffMethod}`);
+      if (radio) radio.checked = true;
+    }
+    if (d.signoffEmail) document.getElementById('signoff_email').value = d.signoffEmail;
+  }
+
+  if (d.jobCompleted) {
+    const radio = document.getElementById(`job_complete_${d.jobCompleted}`);
+    if (radio) radio.checked = true;
+  }
+
+  BromarHub.showSuccess('Draft restored');
+}
+
+async function discardDraft() {
+  document.getElementById('draftBanner').style.display = 'none';
+  storedDraft = null;
+  if (!currentUser) return;
+  try {
+    await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name);
+  } catch {}
+}
+
+async function deleteDraftAfterSubmit() {
+  if (!currentUser) return;
+  try { await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name); } catch {}
+}
+
+function formatTimeAgo(date) {
+  const mins = Math.round((Date.now() - date) / 60000);
+  if (mins < 2)  return 'just now';
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24)  return `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
 // ── SCANNER ───────────────────────────────────────────────────
@@ -548,39 +759,44 @@ function renderFileList() {
     const presetTags = ['progress','before','after','electrical','safety','scanned'];
     const customTags = (f.tags||[]).filter(t => !presetTags.includes(t));
     const isScanned = (f.tags||[]).includes('scanned');
-    const dotIdx = f.name.lastIndexOf('.');
-    const ext = dotIdx > 0 ? f.name.slice(dotIdx) : '';
-    const baseName = dotIdx > 0 ? f.name.slice(0, dotIdx) : f.name;
-    const renameValid = (f.renameBase ?? baseName).trim().length > 0;
-    const typeValid = (f.fileTypeLabel||'').trim().length > 0;
+    const labelValid = (f.fileTypeLabel||'').trim().length > 0;
+
     return `
       <div class="file-item" style="flex-direction:column; align-items:stretch;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;">
           <div class="file-info">
             <div class="file-icon">${icon}</div>
             <div class="file-details">
-              <div class="file-name" style="word-break:break-all;">${esc(f.name)}</div>
+              <div class="file-name" style="word-break:break-all; font-size:0.8rem; color:var(--text-secondary);">${esc(f.name)}</div>
               <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}${isScanned ? ' · <span style="color:var(--accent)">📄 Scanned</span>' : ''}</div>
             </div>
           </div>
           <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
         </div>
-        ${isScanned ? '' : `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
-          <div>
-            <label style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Filename <span style="color:var(--accent);">*</span></label>
-            <div style="display:flex; align-items:center; gap:4px;">
-              <input type="text" value="${esc(f.renameBase??baseName)}" oninput="updateFileRename(${f.id},this.value)" placeholder="e.g. site-plan" style="flex:1; padding:7px 10px; font-size:0.85rem; min-width:0;${renameValid?'':'border-color:var(--error);'}"/>
-              <span style="font-size:0.8rem; color:var(--text-secondary); white-space:nowrap;">${esc(ext)}</span>
-            </div>
-          </div>
-          <div>
-            <label style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Type <span style="color:var(--accent);">*</span></label>
-            <input type="text" value="${esc(f.fileTypeLabel||'')}" oninput="updateFileType(${f.id},this.value)" placeholder="e.g. SWMS, Invoice" style="width:100%; padding:7px 10px; font-size:0.85rem;${typeValid?'':'border-color:var(--error);'}"/>
-          </div>
+
+        <!-- Label field — only for files not already renamed by scanner -->
+        ${f.alreadyUploaded ? '' : `
+        <div style="margin-top:10px;">
+          <label style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:block;">
+            Label <span style="color:var(--accent);">*</span>
+            <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-secondary);"> — saved as <code style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">{label}-${selectedJobData?.job_number || 'JOBNO'}.ext</code></span>
+          </label>
+          <input type="text"
+                 value="${esc(f.fileTypeLabel || '')}"
+                 oninput="updateFileType(${f.id}, this.value)"
+                 placeholder="e.g. SWMS, Invoice, Site-Plan"
+                 style="width:100%; padding:7px 10px; font-size:0.85rem;${labelValid ? '' : 'border-color:var(--error);'}"/>
         </div>`}
-        <div style="margin-top:8px;"><input type="text" placeholder="Description (optional)" value="${esc(f.description||'')}" oninput="updateFileDescription(${f.id},this.value)" style="width:100%; padding:7px 10px; font-size:0.85rem;"/></div>
-        ${isScanned ? '' : `
+
+        <!-- Description -->
+        <div style="margin-top:8px;">
+          <input type="text" placeholder="Description (optional)" value="${esc(f.description||'')}"
+                 oninput="updateFileDescription(${f.id},this.value)"
+                 style="width:100%; padding:7px 10px; font-size:0.85rem;"/>
+        </div>
+
+        ${isScanned || f.alreadyUploaded ? '' : `
+        <!-- Tags -->
         <div class="file-tags" style="margin-top:10px;">
           ${presetTags.filter(t => t!=='scanned').map(t=>`<span class="file-tag ${f.tags.includes(t)?'selected':''}" onclick="toggleTag(${f.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</span>`).join('')}
           ${customTags.map(t=>`<span class="file-tag selected" onclick="toggleTag(${f.id},'${esc(t)}')" title="Click to remove">${esc(t)} ×</span>`).join('')}
@@ -870,8 +1086,8 @@ async function handleFormSubmit(e){
     if(!completionAnswer){BromarHub.hideLoading();submitBtn.disabled=false;BromarHub.showInfo('Please answer whether this job is completed at the bottom of the form');return;}
     const jobIsCompleted=completionAnswer.value==='yes';
     if(uploadedFiles.length>0){
-      const invalid=uploadedFiles.find(f=>{if((f.tags||[]).includes('scanned'))return false;const dotIdx=f.name.lastIndexOf('.');const baseName=(f.renameBase??(dotIdx>0?f.name.slice(0,dotIdx):f.name)).trim();return!baseName||!(f.fileTypeLabel||'').trim();});
-      if(invalid)throw new Error('Every file needs a filename and a type before uploading');
+      const invalid=uploadedFiles.find(f => !f.alreadyUploaded && !(f.fileTypeLabel||'').trim());
+      if(invalid)throw new Error('Every file needs a label before uploading');
     }
     const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normalHours:parseFloat(c.querySelector('.labour-normal').value)||0,overtimeHours:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);
     const materials=Array.from(document.querySelectorAll('[data-material-id]')).map(c=>({name:c.querySelector('.material-name').value.trim(),quantity:parseFloat(c.querySelector('.material-qty').value)||0,unit:c.querySelector('.material-unit').value})).filter(m=>m.name);
@@ -884,8 +1100,14 @@ async function handleFormSubmit(e){
     const pendingFiles=uploadedFiles.filter(f=>!f.alreadyUploaded);
     if(pendingFiles.length){BromarHub.showLoading('Uploading files...',`${pendingFiles.length} file(s)`);await uploadFilesToSupabase(jobSheetNumber,jobNumber,pendingFiles);}
     const alreadyUploaded=uploadedFiles.filter(f=>f.alreadyUploaded&&f.supabasePath);
-    for(const f of alreadyUploaded){const dotIdx=f.name.lastIndexOf('.'),ext=dotIdx>0?f.name.slice(dotIdx):'';const baseName=(f.renameBase||(dotIdx>0?f.name.slice(0,dotIdx):f.name)).trim();await window.sb.from('job_sheet_files').insert({job_sheet_number:jobSheetNumber,job_number:jobNumber,file_name:baseName.replace(/[^\w\-.\s]/g,'_')+ext,file_path:f.supabasePath,file_type:f.type,file_size:f.size,file_category:f.type.startsWith('image/')?'photo':'document',tags:f.tags,description:f.description||null,type_label:(f.fileTypeLabel||'').trim()||null,uploaded_by:currentUser?.name||'Unknown'});}
+    for(const f of alreadyUploaded){
+      const dotIdx=f.name.lastIndexOf('.'), ext=dotIdx>0?f.name.slice(dotIdx):'';
+      const label=(f.fileTypeLabel||'').trim().replace(/[^\w\-\s]/g,'').replace(/\s+/g,'-') || 'scan';
+      const displayName=`${label}-${jobNumber}${ext}`;
+      await window.sb.from('job_sheet_files').insert({job_sheet_number:jobSheetNumber,job_number:jobNumber,file_name:displayName,file_path:f.supabasePath,file_type:f.type,file_size:f.size,file_category:f.type.startsWith('image/')?'photo':'document',tags:f.tags,description:f.description||null,type_label:(f.fileTypeLabel||'').trim()||null,uploaded_by:currentUser?.name||'Unknown'});
+    }
     const isServiceReport=document.getElementById('isServiceReport').checked;
+    await deleteDraftAfterSubmit();
     if(isServiceReport){
       const reportSections={labour:document.getElementById('include_labour').checked,tasks:document.getElementById('include_tasks').checked,materials:document.getElementById('include_materials').checked,photos:document.getElementById('include_photos').checked,notes:document.getElementById('include_notes').checked};
       const signoffMethod=document.querySelector('input[name="signoff_method"]:checked').value;
@@ -932,9 +1154,9 @@ async function handleFormSubmit(e){
 // ── FILE UPLOAD ───────────────────────────────────────────────
 async function uploadFilesToSupabase(jobSheetNumber,jobNumber,files){
   for(const f of files){
-    const dotIdx=f.name.lastIndexOf('.'),ext=dotIdx>0?f.name.slice(dotIdx):'';
-    const baseName=(f.renameBase||(dotIdx>0?f.name.slice(0,dotIdx):f.name)).trim();
-    const finalName=baseName.replace(/[^\w\-.\s]/g,'_')+ext;
+    const dotIdx=f.name.lastIndexOf('.'), ext=dotIdx>0?f.name.slice(dotIdx):'';
+    const label=(f.fileTypeLabel||'').trim().replace(/[^\w\-\s]/g,'').replace(/\s+/g,'-') || 'file';
+    const finalName=`${label}-${jobNumber}${ext}`;
     const filePath=`${jobNumber}/${jobSheetNumber}/${Date.now()}-${finalName}`;
     const{error:uploadErr}=await window.sb.storage.from('job-sheet-files').upload(filePath,f.file,{cacheControl:'3600',upsert:false});
     if(uploadErr)throw uploadErr;
@@ -1017,7 +1239,7 @@ async function generatePDF(){
     pdf.setPage(i);pdf.setFillColor(194,68,14);pdf.rect(0,ph-14,pw,0.5,'F');
     pdf.setFontSize(7);pdf.setTextColor(120,120,120);pdf.setFont(undefined,'normal');
     pdf.text('Bromar',m,ph-9);pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
-    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.33`,pw/2,ph-5,{align:'center'});
+    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.36`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
