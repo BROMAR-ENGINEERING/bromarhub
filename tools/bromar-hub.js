@@ -13,6 +13,7 @@
      - window.currentUser — { name, email } of logged-in user
      - BromarHub.initTheme()
      - BromarHub.initHeader()
+     - BromarHub.initFavicon()
      - BromarHub.loadEmployees()
      - BromarHub.autoSelectLoggedInUser()
      - BromarHub.showSuccess(text, duration?)
@@ -35,6 +36,17 @@
 
   window.EMPLOYEES   = [];
   window.currentUser = null;
+
+  // ── FAVICON ───────────────────────────────────────────────
+  function initFavicon() {
+    // Skip if favicon already exists
+    if (document.querySelector('link[rel="icon"]')) return;
+    const link = document.createElement('link');
+    link.rel  = 'icon';
+    link.type = 'image/png';
+    link.href = '/favicon.png';
+    document.head.appendChild(link);
+  }
 
   // ── THEME ─────────────────────────────────────────────────
   function initTheme() {
@@ -188,8 +200,9 @@
   // ── AUTO-INIT ─────────────────────────────────────────────
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    initHeader();   // inject header HTML (if placeholder present)
-    initTheme();    // apply saved theme + wire toggle
+    initFavicon();        // inject favicon link
+    initHeader();         // inject header HTML (if placeholder present)
+    initTheme();          // apply saved theme + wire toggle
     initLoadingOverlay(); // inject loading overlay if not already in HTML
   });
 
@@ -197,6 +210,7 @@
   window.BromarHub = {
     initTheme,
     initHeader,
+    initFavicon,
     loadEmployees,
     autoSelectLoggedInUser,
     showSuccess,
