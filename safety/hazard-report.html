@@ -150,8 +150,40 @@
     }
 
     .page-wrapper {
-      margin-top: 24px;
+      margin-top: 90px;
     }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
+    }
+
+    /* Page footer */
+    .page-footer {
+      max-width: 680px;
+      margin: 32px auto 60px;
+      padding: 0 16px;
+      text-align: center;
+    }
+    .page-footer-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+    @media (max-width: 380px) {
+      .page-footer-title { font-size: 0.75rem; }
+    }
+    .page-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--brand-primary, #1a56db);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .page-footer-link:hover { text-decoration: underline; }
 
     .revision-number {
       position: fixed;
@@ -309,6 +341,11 @@
 
     </form>
   </div>
+</div>
+
+<div class="page-footer">
+  <div class="page-footer-title">BROMAR HUB — HAZARD REPORT</div>
+  <a class="page-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
 </div>
 
 <div class="revision-number">V1.02</div>
