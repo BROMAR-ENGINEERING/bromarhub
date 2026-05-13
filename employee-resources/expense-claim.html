@@ -164,20 +164,47 @@
       display: none;
     }
 
-    /* Revision number */
-    .revision-number {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      font-size: 0.7rem;
-      color: var(--text-faded);
-      background: var(--brand-white);
-      padding: 4px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--input-border);
+    /* Card footer */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--brand-orange);
+      text-decoration: none;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      z-index: 100;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded);
+      font-weight: 500;
+    }
+
+    /* Page wrapper spacing for fixed header */
+    .page-wrapper { 
+      margin-top: 90px; 
+    }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
     }
   </style>
 </head>
@@ -186,6 +213,13 @@
 <div id="bromar-header"></div>
 
 <div class="page-wrapper">
+  
+  <!-- HEADER TITLE -->
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">Employee Expense Claim</h1>
+    <p class="header-subtitle">Submit your expense claims with supporting invoices and receipts for timely reimbursement processing</p>
+  </div>
+
   <!-- FORM CARD -->
   <div class="form-card">
     <form id="expenseForm" novalidate autocomplete="off">
@@ -261,23 +295,14 @@
 
     </form>
 
-    <div class="form-footer">
-      <div class="footer-disclaimer">
-        <p><em>Please ensure all expense claims are accurate and include supporting invoices/receipts. Claims should be submitted promptly for timely reimbursement.</em></p>
-        <p><em>For any questions or issues, please contact the admin team at admin@bromar.com.au</em></p>
-      </div>
-      <div class="footer-details">
-        <div class="footer-left">
-          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
-          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>
-          <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939 &nbsp;&nbsp; REC: 30340</p>
-        </div>
-      </div>
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — EXPENSE CLAIM</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
+
   </div>
 </div>
-
-<div class="revision-number">V1.01</div>
 
 <script>
   // ============================================================
