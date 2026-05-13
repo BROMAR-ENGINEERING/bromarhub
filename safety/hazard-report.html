@@ -255,8 +255,6 @@
   <div class="form-card">
     <form id="hazardForm" novalidate>
 
-      <div class="section-label">Reporter Details</div>
-
       <div class="anonymous-toggle" id="anonymousToggle">
         <label class="checkbox-label">
           <input type="checkbox" id="anonymous_report"/>
@@ -269,6 +267,8 @@
       </div>
 
       <div class="reporter-fields" id="reporterFields">
+        <div class="section-label">Reporter Details</div>
+
         <div class="field-row">
           <div class="field-group" id="group-filled_by">
             <label for="filled_by">Full Name <span class="required">*</span></label>
@@ -277,35 +277,36 @@
             </select>
             <span class="error-msg">Please select your name</span>
           </div>
-          <div class="field-group" id="group-phone">
-            <label for="reporter_phone">Phone Number <span class="required">*</span></label>
-            <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
-            <span class="error-msg">Please enter your phone number</span>
+          <div class="field-group" id="group-reporter-type">
+            <label for="reporter_type">Employee Type <span class="required">*</span></label>
+            <select id="reporter_type" name="reporter_type">
+              <option value="">Select…</option>
+              <option value="Manager">Manager</option>
+              <option value="Electrician">Electrician</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Apprentice">Apprentice</option>
+              <option value="Engineer">Engineer</option>
+              <option value="Admin">Admin</option>
+            </select>
+            <span class="error-msg">Please select your employee type</span>
           </div>
         </div>
 
         <div class="field-row">
-          <div class="field-group" id="group-reporter-type">
-            <label for="reporter_type">I am a <span class="required">*</span></label>
-            <select id="reporter_type" name="reporter_type">
-              <option value="">Select…</option>
-              <option value="Worker">Worker / Employee</option>
-              <option value="Supervisor">Supervisor / Manager</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Visitor">Visitor</option>
-              <option value="Member of public">Member of public</option>
-              <option value="Other">Other</option>
-            </select>
-            <span class="error-msg">Please select your role type</span>
+          <div class="field-group" id="group-email">
+            <label for="reporter_email">Email Address <span class="required">*</span></label>
+            <input type="email" id="reporter_email" name="reporter_email" placeholder="auto-filled from your account" autocomplete="email" readonly/>
+            <span class="error-msg">Email is required</span>
           </div>
-          <div class="field-group">
-            <label for="reporter_role">Job Title / Role</label>
-            <input type="text" id="reporter_role" name="reporter_role" placeholder="e.g. Site Supervisor"/>
+          <div class="field-group" id="group-phone">
+            <label for="reporter_phone">Phone Number <span class="required">*</span></label>
+            <input type="text" id="reporter_phone" name="reporter_phone" placeholder="auto-filled from your account" autocomplete="tel"/>
+            <span class="error-msg">Please enter your phone number</span>
           </div>
         </div>
       </div>
 
-      <div class="section-label">Hazard Details</div>
+      <div class="section-label" id="hazardDetailsLabel">Hazard Details</div>
 
       <div class="field-row">
         <div class="field-group" id="group-date">
@@ -463,13 +464,13 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.03</div>
+      <div class="card-footer-version">Version V1.04</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.03';
+  const REVISION = 'V1.04';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
@@ -626,6 +627,7 @@
     const isAnonymous = anonymousCheckbox.checked;
     if (!isAnonymous) {
       check('group-filled_by',     !!document.getElementById('filled_by').value);
+      check('group-email',         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('reporter_email').value.trim()));
       check('group-phone',         document.getElementById('reporter_phone').value.trim().length > 5);
       check('group-reporter-type', !!document.getElementById('reporter_type').value);
     }
@@ -720,8 +722,7 @@
       field('Name:', data.reporter_name);
       field('Email:', data.reporter_email);
       field('Phone:', data.reporter_phone);
-      field('Reporter Type:', data.reporter_type);
-      field('Job Title / Role:', data.reporter_role);
+      field('Employee Type:', data.reporter_type);
     }
 
     section('Hazard Details');
@@ -827,12 +828,30 @@
     await BromarHub.autoSelectLoggedInUser('filled_by');
 
     const filledBy = document.getElementById('filled_by');
+    const emailInput = document.getElementById('reporter_email');
     const phoneInput = document.getElementById('reporter_phone');
 
-    function applyEmployeePhone(opt) {
+    function lookupEmployee(name) {
+      if (!name || !Array.isArray(EMPLOYEES)) return null;
+      return EMPLOYEES.find(e =>
+        (e.name && e.name === name) ||
+        (e.full_name && e.full_name === name) ||
+        (e.display_name && e.display_name === name)
+      );
+    }
+
+    function applyEmployeeContact(opt) {
       if (!opt) return;
-      const phone = opt.dataset.phone || opt.dataset.mobile || '';
-      if (phone && !phoneInput.value.trim()) {
+      const emp = lookupEmployee(opt.value);
+      const email = emp?.email || opt.dataset.email || '';
+      const phone = emp?.phone || emp?.mobile || emp?.phone_number || opt.dataset.phone || opt.dataset.mobile || '';
+      if (email) {
+        emailInput.value = email;
+        emailInput.classList.remove('error');
+        const grpEmail = document.getElementById('group-email');
+        if (grpEmail) grpEmail.classList.remove('has-error');
+      }
+      if (phone) {
         phoneInput.value = phone;
         phoneInput.classList.remove('error');
         document.getElementById('group-phone').classList.remove('has-error');
@@ -842,14 +861,15 @@
     if (filledBy.value) {
       const opt = filledBy.selectedOptions[0];
       currentUser = { name: opt.value, email: opt.dataset.email || '' };
-      applyEmployeePhone(opt);
+      applyEmployeeContact(opt);
     }
     filledBy.addEventListener('change', function() {
       const opt = this.selectedOptions[0];
       currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
-      // Clear any previous auto-fill if changing employee, then re-populate
+      // Clear and re-populate
+      emailInput.value = '';
       phoneInput.value = '';
-      applyEmployeePhone(opt);
+      applyEmployeeContact(opt);
     });
   });
 
@@ -890,10 +910,9 @@
     const data = {
       is_anonymous:       isAnonymous,
       reporter_name:      isAnonymous ? null : currentUser.name,
-      reporter_email:     isAnonymous ? null : currentUser.email,
+      reporter_email:     isAnonymous ? null : document.getElementById('reporter_email').value.trim(),
       reporter_phone:     isAnonymous ? null : document.getElementById('reporter_phone').value.trim(),
       reporter_type:      isAnonymous ? null : document.getElementById('reporter_type').value,
-      reporter_role:      isAnonymous ? null : (document.getElementById('reporter_role').value.trim() || 'Not specified'),
       hazard_date:        formatDateLong(document.getElementById('hazard_date').value),
       hazard_date_iso:    document.getElementById('hazard_date').value,
       hazard_time:        document.getElementById('hazard_time').value || 'Not specified',
@@ -945,7 +964,6 @@
         reporter_email:      data.reporter_email,
         reporter_phone:      data.reporter_phone,
         reporter_type:       data.reporter_type,
-        reporter_role:       data.reporter_role,
         hazard_date:         data.hazard_date_iso,
         hazard_time:         document.getElementById('hazard_time').value || null,
         hazard_location:     data.hazard_location,
