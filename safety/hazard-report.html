@@ -211,9 +211,20 @@
       transition: all 0.2s;
     }
     .anonymous-toggle.active {
-      background: var(--brand-orange-soft, #fff3ee);
-      border-color: var(--brand-orange, #c2440e);
+      background: #fff3ee;
+      border-color: #c2440e;
     }
+    @media (prefers-color-scheme: dark) {
+      .anonymous-toggle.active {
+        background: rgba(240, 114, 63, 0.25);
+        border-color: #f0723f;
+      }
+    }
+    html.light-mode .anonymous-toggle.active {
+      background: #fff3ee;
+      border-color: #c2440e;
+    }
+
     .anonymous-toggle .checkbox-label {
       padding: 0;
       border: none;
@@ -224,29 +235,32 @@
       border: none;
     }
     .anonymous-toggle.active .checkbox-label .checkbox-text {
-      color: var(--brand-orange, #c2440e);
+      color: #c2440e;
       font-weight: 700;
     }
+    @media (prefers-color-scheme: dark) {
+      .anonymous-toggle.active .checkbox-label .checkbox-text { color: #ffb088; }
+    }
+    html.light-mode .anonymous-toggle.active .checkbox-label .checkbox-text { color: #c2440e; }
+
     .anonymous-note {
       display: none;
       font-size: 0.82rem;
       color: #1f2937;
       margin-top: 10px;
       padding-top: 10px;
-      border-top: 1px dashed var(--input-border);
+      border-top: 1px dashed rgba(194, 68, 14, 0.4);
       line-height: 1.55;
     }
-    .anonymous-toggle.active .anonymous-note {
-      display: block;
-      border-top-color: var(--brand-orange, #c2440e);
-    }
-    .anonymous-note strong { color: var(--brand-orange, #c2440e); font-weight: 700; }
+    .anonymous-toggle.active .anonymous-note { display: block; }
+    .anonymous-note strong { color: #c2440e; font-weight: 700; }
 
-    /* Dark mode override — light text on dark orange-tinted background */
     @media (prefers-color-scheme: dark) {
-      .anonymous-note { color: #f4f4f5; }
+      .anonymous-note { color: #ffffff; }
+      .anonymous-note strong { color: #ffb088; }
     }
     html.light-mode .anonymous-note { color: #1f2937; }
+    html.light-mode .anonymous-note strong { color: #c2440e; }
 
     /* Hide reporter fields when anonymous */
     .reporter-fields.hidden { display: none; }
@@ -330,7 +344,7 @@
         </div>
         <div class="field-group">
           <label for="hazard_time">Time Observed</label>
-          <input type="time" id="hazard_time" name="hazard_time"/>
+          <input type="text" id="hazard_time" name="hazard_time" placeholder="e.g. 14:30 or 2:30pm" pattern="[0-9:apmAPM\s]*" maxlength="10"/>
         </div>
       </div>
 
@@ -478,13 +492,13 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.07</div>
+      <div class="card-footer-version">Version V1.08</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.07';
+  const REVISION = 'V1.08';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
