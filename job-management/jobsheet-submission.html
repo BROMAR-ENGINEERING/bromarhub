@@ -56,6 +56,7 @@
         <div class="field-group">
           <label for="sheet_date">Date of Works <span class="required">*</span></label>
           <input type="date" id="sheet_date" name="sheet_date" required/>
+          <div id="sheet_date_day" style="font-size:0.8rem; color:var(--accent); font-weight:600; margin-top:4px; padding-left:2px;"></div>
         </div>
         <div class="field-group">
           <label for="filled_by">Filled Out By <span class="required">*</span></label>
@@ -296,7 +297,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.36</div>
+<div class="revision-number">V1.38</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -348,7 +349,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!window.sb) { alert('Supabase failed to load — check connection and refresh.'); return; }
 
   document.getElementById('sheet_date').valueAsDate = new Date();
-  document.getElementById('sheet_date').addEventListener('change', applyDateRulesToAllLabour);
+  const updateDayDisplay = () => {
+    const val = document.getElementById('sheet_date').value;
+    const dayEl = document.getElementById('sheet_date_day');
+    if (!val) { dayEl.textContent = ''; return; }
+    const d = new Date(val + 'T12:00:00'); // noon avoids timezone edge cases
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const holiday = getPublicHoliday(val);
+    dayEl.textContent = days[d.getDay()] + (holiday ? ` — ${holiday} 🎉` : '');
+  };
+  document.getElementById('sheet_date').addEventListener('change', () => { applyDateRulesToAllLabour(); updateDayDisplay(); });
+  updateDayDisplay();
 
   EMPLOYEES = await BromarHub.loadEmployees('filled_by');
   await BromarHub.autoSelectLoggedInUser('filled_by');
@@ -818,14 +829,17 @@ async function searchJobs(query) {
   if (query.length < 2) { results.classList.remove('show'); return; }
   try {
     const { data, error } = await window.sb.from('job_number_register')
-      .select('job_number, client_name, site_name, site_address, prefix')
+      .select('job_number, client_name, site_name, site_address, prefix, status')
       .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
       .order('job_number', { ascending: false }).limit(10);
     if (error) throw error;
     if (data?.length > 0) {
       results.innerHTML = data.map(job => `
         <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
-          <div class="autocomplete-item-number">${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span></div>
+          <div class="autocomplete-item-number">
+            ${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span>
+            ${job.status === 'completed' ? '<span style="font-size:0.65rem; font-weight:700; background:#064e3b; color:#a7f3d0; padding:2px 7px; border-radius:4px; margin-left:6px;">COMPLETED</span>' : ''}
+          </div>
           <div class="autocomplete-item-client">${job.client_name}</div>
           ${job.site_name ? `<div style="font-size:0.8rem; color:var(--accent); margin-top:1px;">📍 ${job.site_name}</div>` : ''}
         </div>`).join('');
@@ -841,6 +855,50 @@ async function searchJobs(query) {
 }
 
 function selectJob(job) {
+  // Warn if job is marked completed
+  if (job.status === 'completed') {
+    showCompletedJobWarning(job);
+    return;
+  }
+  applyJobSelection(job);
+}
+
+function showCompletedJobWarning(job) {
+  // Inject warning modal if not already present
+  if (!document.getElementById('completedJobModal')) {
+    const modal = document.createElement('div');
+    modal.id = 'completedJobModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9500; align-items:center; justify-content:center; padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--bg-secondary); border-radius:16px; max-width:440px; width:100%; padding:2rem; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-size:2.5rem; margin-bottom:0.75rem;">⚠️</div>
+        <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-primary); margin-bottom:0.5rem;">Job Marked as Completed</h2>
+        <p id="completedJobModalDetail" style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; margin-bottom:1.5rem;"></p>
+        <div style="display:flex; gap:0.75rem; justify-content:center;">
+          <button id="completedJobCancel" class="btn-secondary" style="flex:1;">Cancel</button>
+          <button id="completedJobProceed" class="submit-btn" style="flex:1;">Continue Anyway</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  const modal = document.getElementById('completedJobModal');
+  document.getElementById('completedJobModalDetail').textContent =
+    `${job.job_number} — ${job.client_name} has been declared finished. Adding a new job sheet will reopen it. Do you want to continue?`;
+
+  modal.style.display = 'flex';
+
+  document.getElementById('completedJobCancel').onclick = () => {
+    modal.style.display = 'none';
+    document.getElementById('existing_job_number').value = '';
+  };
+  document.getElementById('completedJobProceed').onclick = () => {
+    modal.style.display = 'none';
+    applyJobSelection(job);
+  };
+}
+
+function applyJobSelection(job) {
   selectedJobData = job;
   document.getElementById('existing_job_number').value = job.job_number;
   document.getElementById('detail-client').textContent    = job.client_name;
@@ -1069,25 +1127,43 @@ async function handleFormSubmit(e){
   const submitBtn=document.getElementById('submitBtn');
   submitBtn.disabled=true;
   BromarHub.showLoading('Saving job sheet...','Processing your data');
+
+  // Helper: show error, scroll to element, re-enable submit
+  const fail = (msg, el) => {
+    BromarHub.hideLoading();
+    submitBtn.disabled = false;
+    BromarHub.showInfo(msg);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => { try { el.focus(); } catch {} }, 400);
+    }
+  };
+
   try{
+    // Who is filling this out?
     if (!currentUser) {
       const sel = document.getElementById('filled_by');
-      if (sel.value) {
-        const opt = sel.selectedOptions[0];
-        currentUser = { name: opt.value, email: opt.dataset.email || '' };
-      }
+      if (sel.value) { const opt = sel.selectedOptions[0]; currentUser = { name: opt.value, email: opt.dataset.email || '' }; }
     }
-    if (!currentUser) throw new Error('Please select who is filling out the form');
-    if(!selectedJobData)throw new Error('Please complete the job details first');
-    const jobNumber=selectedJobData.job_number;
-    const tasks=Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);
-    if(!tasks.length)throw new Error('Please add at least one task');
-    const completionAnswer=document.querySelector('input[name="job_completed"]:checked');
-    if(!completionAnswer){BromarHub.hideLoading();submitBtn.disabled=false;BromarHub.showInfo('Please answer whether this job is completed at the bottom of the form');return;}
-    const jobIsCompleted=completionAnswer.value==='yes';
-    if(uploadedFiles.length>0){
-      const invalid=uploadedFiles.find(f => !f.alreadyUploaded && !(f.fileTypeLabel||'').trim());
-      if(invalid)throw new Error('Every file needs a label before uploading');
+    if (!currentUser) { fail('Please select who is filling out this form', document.getElementById('filled_by')); return; }
+
+    // Job number selected?
+    if (!selectedJobData) { fail('Please select an existing job or complete the new job details', document.getElementById('existing_job_number')); return; }
+    const jobNumber = selectedJobData.job_number;
+
+    // At least one task?
+    const tasks = Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);
+    if (!tasks.length) { fail('Please describe at least one task in the Work Performed section', document.querySelector('.task-description')); return; }
+
+    // Job completion answered?
+    const completionAnswer = document.querySelector('input[name="job_completed"]:checked');
+    if (!completionAnswer) { fail('Please answer whether this job is completed — see the Job Completion section at the bottom', document.getElementById('job_complete_no')); return; }
+    const jobIsCompleted = completionAnswer.value === 'yes';
+
+    // Files all labelled?
+    if (uploadedFiles.length > 0) {
+      const invalid = uploadedFiles.find(f => !f.alreadyUploaded && !(f.fileTypeLabel||'').trim());
+      if (invalid) { fail('One or more files are missing a label — please add a label to every uploaded file', document.getElementById('fileList')); return; }
     }
     const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normalHours:parseFloat(c.querySelector('.labour-normal').value)||0,overtimeHours:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);
     const materials=Array.from(document.querySelectorAll('[data-material-id]')).map(c=>({name:c.querySelector('.material-name').value.trim(),quantity:parseFloat(c.querySelector('.material-qty').value)||0,unit:c.querySelector('.material-unit').value})).filter(m=>m.name);
@@ -1112,7 +1188,7 @@ async function handleFormSubmit(e){
       const reportSections={labour:document.getElementById('include_labour').checked,tasks:document.getElementById('include_tasks').checked,materials:document.getElementById('include_materials').checked,photos:document.getElementById('include_photos').checked,notes:document.getElementById('include_notes').checked};
       const signoffMethod=document.querySelector('input[name="signoff_method"]:checked').value;
       const clientEmail=document.getElementById('signoff_email').value.trim();
-      if(!clientEmail||!clientEmail.includes('@')){BromarHub.hideLoading();submitBtn.disabled=false;document.getElementById('signoff_email').focus();document.getElementById('signoff_email').style.borderColor='var(--error)';document.getElementById('signoff_email').scrollIntoView({behavior:'smooth',block:'center'});BromarHub.showInfo('Please enter the client email address before saving the service report');return;}
+      if(!clientEmail||!clientEmail.includes('@')){ fail('Please enter a valid client email address — required for the service report', document.getElementById('signoff_email')); return; }
       document.getElementById('signoff_email').style.borderColor='';
       await window.sb.from('job_sheets').update({is_service_report:true,report_sections:reportSections}).eq('job_sheet_number',jobSheetNumber);
       if(signoffMethod==='in_person'){BromarHub.hideLoading();await openSignoffModal(jobSheetNumber,jobNumber,clientEmail);return;}
@@ -1170,8 +1246,13 @@ async function fetchReportData(){
   if(error)throw error;
   let files=[];
   if(jobSheet.report_sections?.photos){
-    const{data:filesData}=await window.sb.from('job_sheet_files').select('*').eq('job_sheet_number',currentJobSheetNumber).eq('file_category','photo');
-    if(filesData){for(const f of filesData){const{data:urlData}=await window.sb.storage.from('job-sheet-files').createSignedUrl(f.file_path,3600);if(urlData)f.signedUrl=urlData.signedUrl;}files=filesData;}
+    const{data:filesData}=await window.sb.from('job_sheet_files').select('*').eq('job_sheet_number',currentJobSheetNumber);
+    if(filesData){
+      // Include any file that is an image type, regardless of category label
+      const photoFiles = filesData.filter(f => f.file_type?.startsWith('image/') || f.file_category === 'photo');
+      for(const f of photoFiles){const{data:urlData}=await window.sb.storage.from('job-sheet-files').createSignedUrl(f.file_path,3600);if(urlData)f.signedUrl=urlData.signedUrl;}
+      files=photoFiles;
+    }
   }
   return{jobSheet,files};
 }
@@ -1239,7 +1320,7 @@ async function generatePDF(){
     pdf.setPage(i);pdf.setFillColor(194,68,14);pdf.rect(0,ph-14,pw,0.5,'F');
     pdf.setFontSize(7);pdf.setTextColor(120,120,120);pdf.setFont(undefined,'normal');
     pdf.text('Bromar',m,ph-9);pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
-    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.36`,pw/2,ph-5,{align:'center'});
+    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.38`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
