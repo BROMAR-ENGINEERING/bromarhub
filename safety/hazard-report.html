@@ -8,7 +8,6 @@
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .risk-chips {
@@ -83,6 +82,43 @@
       color: var(--brand-primary, #1a56db);
     }
     .hazard-chip input:checked + label:hover { color: white; }
+
+    /* Affected persons multi-select chips */
+    .multi-hint {
+      font-weight: 400;
+      font-size: 0.72rem;
+      color: var(--text-faded, #9ca3af);
+      letter-spacing: 0;
+      text-transform: none;
+      margin-left: 4px;
+    }
+    .affected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .affected-chip input { display: none; }
+    .affected-chip label {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 13px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--input-bg);
+      margin: 0;
+    }
+    .affected-chip input:checked + label {
+      background: var(--brand-orange, #c2440e);
+      border-color: var(--brand-orange, #c2440e);
+      color: white;
+      box-shadow: 0 3px 8px rgba(194, 68, 14, 0.25);
+    }
+    .affected-chip label:hover {
+      border-color: var(--brand-orange, #c2440e);
+      color: var(--brand-orange, #c2440e);
+    }
+    .affected-chip input:checked + label:hover { color: white; }
 
     .risk-warning-card {
       background: var(--brand-orange-soft, #fff3ee);
@@ -349,16 +385,14 @@
           <input type="text" id="job_number" name="job_number" placeholder="e.g. J-12345 (if applicable)"/>
         </div>
         <div class="field-group" id="group-affected">
-          <label for="affected_persons">Who is at risk? <span class="required">*</span></label>
-          <select id="affected_persons" name="affected_persons">
-            <option value="">Select…</option>
-            <option value="Workers / Employees">Workers / Employees</option>
-            <option value="Contractors">Contractors</option>
-            <option value="Visitors">Visitors</option>
-            <option value="Members of the public">Members of the public</option>
-            <option value="Multiple groups">Multiple groups</option>
-            <option value="Unknown">Unknown</option>
-          </select>
+          <label>Who is at risk? <span class="required">*</span> <span class="multi-hint">(select all that apply)</span></label>
+          <div class="affected-chips">
+            <div class="affected-chip"><input type="checkbox" name="affected_persons" id="af-workers" value="Workers / Employees"/><label for="af-workers">Workers / Employees</label></div>
+            <div class="affected-chip"><input type="checkbox" name="affected_persons" id="af-contractors" value="Contractors"/><label for="af-contractors">Contractors</label></div>
+            <div class="affected-chip"><input type="checkbox" name="affected_persons" id="af-visitors" value="Visitors"/><label for="af-visitors">Visitors</label></div>
+            <div class="affected-chip"><input type="checkbox" name="affected_persons" id="af-public" value="Members of the public"/><label for="af-public">Members of the public</label></div>
+            <div class="affected-chip"><input type="checkbox" name="affected_persons" id="af-unknown" value="Unknown"/><label for="af-unknown">Unknown</label></div>
+          </div>
           <span class="error-msg">Please select who is at risk</span>
         </div>
       </div>
@@ -481,31 +515,42 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.09</div>
+      <div class="card-footer-version">Version V1.10</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.09';
+  const REVISION = 'V1.10';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
-
-  const CONFIG = {
-    emailjs: {
-      publicKey:   "4JW7VbCEAqZt9p4Jj",
-      serviceId:   "BromarEmail",
-      templateId:  "hazard_admin",
-    },
-    adminEmails: ["ashleys@bromar.com.au"]
-  };
-
-  emailjs.init(CONFIG.emailjs.publicKey);
+  const COMMITTEE_TABLE = 'safety_committee';
+  const EDGE_FUNCTION = 'send-hazard-report';
 
   let currentUser = null;
   let EMPLOYEES = [];
   let selectedPhotos = [];
+
+  // Fetch active safety committee email addresses, plus the submitter (if not anonymous)
+  async function getRecipients(submitterEmail) {
+    const list = new Set();
+    try {
+      const { data, error } = await window.sb
+        .from(COMMITTEE_TABLE)
+        .select('email')
+        .eq('active', true)
+        .eq('notify_hazard_reports', true);
+      if (error) throw error;
+      (data || []).forEach(row => {
+        if (row.email) list.add(row.email.trim().toLowerCase());
+      });
+    } catch (err) {
+      console.warn('Could not load safety committee:', err);
+    }
+    if (submitterEmail) list.add(submitterEmail.trim().toLowerCase());
+    return [...list];
+  }
 
   const dateInput = document.getElementById('hazard_date');
   const todayIso = new Date().toISOString().split('T')[0];
@@ -604,6 +649,9 @@
   function getHazardTypes() {
     return [...document.querySelectorAll('input[name="hazard_type"]:checked')].map(el => el.value);
   }
+  function getAffectedPersons() {
+    return [...document.querySelectorAll('input[name="affected_persons"]:checked')].map(el => el.value);
+  }
   function getRiskRating() {
     const checked = document.querySelector('input[name="risk_rating"]:checked');
     return checked ? checked.value : '';
@@ -613,13 +661,33 @@
     const [y, m, d] = val.split('-');
     return new Date(y, m - 1, d).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
-  function getDateFolder() {
-    const d = new Date();
-    return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  // Sanitise a string for use in a Supabase storage path (no whitespace, slashes, quotes)
+  function sanitisePathSegment(s) {
+    if (!s) return '';
+    return String(s).trim().replace(/[\s/\\'"<>]+/g, '_').replace(/[^A-Za-z0-9_\-.]/g, '');
   }
-  function getTimestamp() {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+  // Build the storage folder: YYYY-MM-DD_HH-MM[_jobnumber]
+  function buildReportFolder(hazardDateIso, hazardTimeRaw, jobNumber) {
+    const datePart = hazardDateIso || (new Date()).toISOString().split('T')[0];
+    let timePart = '00-00';
+    if (hazardTimeRaw) {
+      // Accept "14:30", "2:30pm", "230pm" etc — normalise to HH-MM
+      const t = hazardTimeRaw.toLowerCase().replace(/\s+/g, '');
+      const m = t.match(/^(\d{1,2}):?(\d{2})(am|pm)?$/);
+      if (m) {
+        let h = parseInt(m[1], 10);
+        const min = m[2];
+        const ampm = m[3];
+        if (ampm === 'pm' && h < 12) h += 12;
+        if (ampm === 'am' && h === 12) h = 0;
+        timePart = `${String(h).padStart(2,'0')}-${min}`;
+      } else {
+        // fallback - sanitise raw
+        timePart = sanitisePathSegment(hazardTimeRaw).replace(/[:.]/g, '-') || '00-00';
+      }
+    }
+    const job = sanitisePathSegment(jobNumber);
+    return job ? `${datePart}_${timePart}_${job}` : `${datePart}_${timePart}`;
   }
   function getFileExt(filename) {
     const m = filename.match(/\.([a-z0-9]+)$/i);
@@ -650,7 +718,7 @@
     }
     check('group-date',         !!document.getElementById('hazard_date').value);
     check('group-location',     document.getElementById('hazard_location').value.trim().length > 1);
-    check('group-affected',     !!document.getElementById('affected_persons').value);
+    check('group-affected',     getAffectedPersons().length > 0);
     check('group-hazard-type',  getHazardTypes().length > 0);
     check('group-description',  document.getElementById('hazard_description').value.trim().length > 5);
     check('group-risk',         getRiskRating().length > 0);
@@ -747,7 +815,7 @@
     field('Time Observed:', data.hazard_time);
     field('Location:', data.hazard_location);
     field('Job / Project No.:', data.job_number);
-    field('Who is at risk:', data.affected_persons);
+    field('Who is at risk:', Array.isArray(data.affected_persons) ? data.affected_persons.join(', ') : data.affected_persons, true);
     field('Witnesses:', data.witnesses);
     field('Reported before:', data.previously_reported);
     field('Supervisor notified:', data.supervisor_notified);
@@ -920,9 +988,11 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting…';
 
-    const dateFolder = getDateFolder();
-    const timestamp = getTimestamp();
-    const reportBase = `${STORAGE_FOLDER}/${dateFolder}/${timestamp}`;
+    const hazardDateIsoVal = document.getElementById('hazard_date').value;
+    const hazardTimeVal = document.getElementById('hazard_time').value.trim();
+    const jobNumberVal = document.getElementById('job_number').value.trim();
+    const folderName = buildReportFolder(hazardDateIsoVal, hazardTimeVal, jobNumberVal);
+    const reportBase = `${STORAGE_FOLDER}/${folderName}`;
 
     const data = {
       is_anonymous:       isAnonymous,
@@ -930,12 +1000,12 @@
       reporter_email:     isAnonymous ? null : document.getElementById('reporter_email').value.trim(),
       reporter_phone:     isAnonymous ? null : document.getElementById('reporter_phone').value.trim(),
       reporter_type:      isAnonymous ? null : document.getElementById('reporter_type').value,
-      hazard_date:        formatDateLong(document.getElementById('hazard_date').value),
-      hazard_date_iso:    document.getElementById('hazard_date').value,
-      hazard_time:        document.getElementById('hazard_time').value || 'Not specified',
+      hazard_date:        formatDateLong(hazardDateIsoVal),
+      hazard_date_iso:    hazardDateIsoVal,
+      hazard_time:        hazardTimeVal || 'Not specified',
       hazard_location:    document.getElementById('hazard_location').value.trim(),
-      job_number:         document.getElementById('job_number').value.trim() || 'N/A',
-      affected_persons:   document.getElementById('affected_persons').value,
+      job_number:         jobNumberVal || 'N/A',
+      affected_persons:   getAffectedPersons(),
       witnesses:          document.getElementById('witnesses').value.trim() || 'None recorded',
       previously_reported: document.getElementById('previously_reported').value,
       supervisor_notified: document.getElementById('supervisor_notified').value,
@@ -968,23 +1038,27 @@
       // Generate + upload PDF
       BromarHub.showLoading('Generating PDF report', 'Please wait…');
       const pdfBlob = await generatePDF(data, photoDataUrls);
-      const pdfFilename = `hazard-report-${dateFolder}-${timestamp}.pdf`;
+      const pdfFilename = `hazard-report-${folderName}.pdf`;
       const pdfPath = `${reportBase}/${pdfFilename}`;
       await uploadToStorage(pdfPath, pdfBlob, 'application/pdf');
       const pdfUrl = getPublicUrl(pdfPath);
 
+      // Look up safety committee recipients
+      BromarHub.showLoading('Looking up recipients', 'Please wait…');
+      const recipients = await getRecipients(data.reporter_email);
+
       // Insert into table
       BromarHub.showLoading('Saving to database', 'Please wait…');
-      const { error: dbError } = await window.sb.from(DB_TABLE).insert({
+      const { data: insertedRow, error: dbError } = await window.sb.from(DB_TABLE).insert({
         is_anonymous:        data.is_anonymous,
         reporter_name:       data.reporter_name,
         reporter_email:      data.reporter_email,
         reporter_phone:      data.reporter_phone,
         reporter_type:       data.reporter_type,
         hazard_date:         data.hazard_date_iso,
-        hazard_time:         document.getElementById('hazard_time').value || null,
+        hazard_time:         hazardTimeVal || null,
         hazard_location:     data.hazard_location,
-        job_number:          document.getElementById('job_number').value.trim() || null,
+        job_number:          jobNumberVal || null,
         affected_persons:    data.affected_persons,
         witnesses:           document.getElementById('witnesses').value.trim() || null,
         previously_reported: data.previously_reported,
@@ -1002,20 +1076,33 @@
         storage_folder:      reportBase,
         revision:            REVISION,
         status:              'open',
-      });
+        recipients:          recipients,
+      }).select().single();
       if (dbError) throw dbError;
 
-      // Send notification
-      BromarHub.showLoading('Sending notification', 'Please wait…');
-      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
-        ...data,
-        hazard_type:    data.hazard_type.join(', '),
-        photo_count:    selectedPhotos.length,
-        pdf_url:        pdfUrl,
-        revision:       REVISION,
-        admin_emails:   CONFIG.adminEmails.join(', '),
-        to_email:       isAnonymous ? CONFIG.adminEmails[0] : currentUser.email,
+      // Send notification via Edge Function (PDF + photos as attachments)
+      BromarHub.showLoading('Sending notification', 'Emailing recipients…');
+      const { error: fnError } = await window.sb.functions.invoke(EDGE_FUNCTION, {
+        body: {
+          report_id:       insertedRow?.id,
+          recipients:      recipients,
+          report_data:     {
+            ...data,
+            hazard_type:       data.hazard_type.join(', '),
+            affected_persons:  data.affected_persons.join(', '),
+            photo_count:       selectedPhotos.length,
+            revision:          REVISION,
+          },
+          pdf_path:        pdfPath,
+          pdf_url:         pdfUrl,
+          photo_paths:     photoUrls.map((url, i) => `${reportBase}/photo-${i + 1}.${getFileExt(selectedPhotos[i].file.name)}`),
+          subject:         `Hazard Report — ${data.risk_rating} — ${data.hazard_location}`,
+        }
       });
+      if (fnError) {
+        console.error('Edge function error:', fnError);
+        BromarHub.showInfo('Report saved but email delivery failed — please notify admin.');
+      }
 
       BromarHub.hideLoading();
       BromarHub.showSuccess('Hazard report submitted — PDF saved and notification sent.');
@@ -1052,7 +1139,7 @@
       if (grp) grp.classList.remove('has-error');
     });
   });
-  document.querySelectorAll('.hazard-chip input, .risk-chip input').forEach(el => {
+  document.querySelectorAll('.hazard-chip input, .risk-chip input, .affected-chip input').forEach(el => {
     el.addEventListener('change', () => {
       const grp = el.closest('[id^="group-"]');
       if (grp) grp.classList.remove('has-error');
