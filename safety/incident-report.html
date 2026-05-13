@@ -205,7 +205,7 @@
   <!-- Page Title -->
   <div class="header-title-section">
     <h1 class="header-title">Incident Report Form</h1>
-    <p class="header-subtitle">Report workplace incidents, hazards, or near misses immediately. For medical emergencies, call 000. All reports are confidential and reviewed by management — a confirmation will be sent to your email</p>
+    <p class="header-subtitle">Report workplace incidents, hazards, or near misses immediately. All reports are confidential and reviewed by management — a confirmation will be sent to your email</p>
   </div>
 
   <!-- FORM CARD -->
@@ -247,10 +247,6 @@
       </div>
 
       <div class="field-row">
-        <div class="field-group" id="group-phone">
-          <label for="reporter_phone">Your Phone Number</label>
-          <input type="text" id="reporter_phone" name="reporter_phone" placeholder="04xx xxx xxx" autocomplete="tel" readonly/>
-        </div>
         <div class="field-group" id="group-position">
           <label for="reporter_position">Your Position/Role</label>
           <input type="text" id="reporter_position" name="reporter_position" placeholder="e.g., Site Supervisor, Electrician" readonly/>
@@ -456,9 +452,6 @@
     </form>
 
     <div class="form-footer">
-      <div class="footer-disclaimer">
-        <p>💡 <em>To view past incident reports or prepare detailed safety documentation, use the Safety Dashboard.</em></p>
-      </div>
       <div class="footer-details">
         <div class="footer-left" style="text-align: center; width: 100%;">
           <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">BROMAR HUB — INCIDENT REPORT</p>
@@ -495,15 +488,11 @@
         currentUser = { 
           name: opt.value, 
           email: opt.dataset.email || '',
-          phone: opt.dataset.phone || '',
           position: opt.dataset.position || ''
         };
         
         // Auto-fill all fields from employees table
         document.getElementById('reporter_email').value = currentUser.email;
-        if (currentUser.phone) {
-          document.getElementById('reporter_phone').value = currentUser.phone;
-        }
         if (currentUser.position) {
           document.getElementById('reporter_position').value = currentUser.position;
         }
@@ -516,18 +505,15 @@
           currentUser = { 
             name: opt.value, 
             email: opt.dataset.email || '',
-            phone: opt.dataset.phone || '',
             position: opt.dataset.position || ''
           };
           
           // Auto-fill fields
           document.getElementById('reporter_email').value = currentUser.email;
-          document.getElementById('reporter_phone').value = currentUser.phone;
           document.getElementById('reporter_position').value = currentUser.position;
         } else {
           currentUser = null;
           document.getElementById('reporter_email').value = '';
-          document.getElementById('reporter_phone').value = '';
           document.getElementById('reporter_position').value = '';
         }
       });
@@ -683,7 +669,6 @@
 
       addSection('Name:', currentUser.name);
       addSection('Email:', currentUser.email);
-      addSection('Phone:', document.getElementById('reporter_phone').value);
       addSection('Position:', document.getElementById('reporter_position').value);
 
       yPos += 5;
@@ -852,7 +837,6 @@
         currentUser = { 
           name: opt.value, 
           email: opt.dataset.email || '',
-          phone: opt.dataset.phone || '',
           position: opt.dataset.position || ''
         };
       }
@@ -931,7 +915,6 @@
       const incidentData = {
         reporter_name: currentUser.name,
         reporter_email: currentUser.email,
-        reporter_phone: document.getElementById('reporter_phone').value.trim() || null,
         reporter_position: document.getElementById('reporter_position').value.trim() || null,
         incident_type: getIncidentType(),
         severity: getSeverity(),
@@ -980,15 +963,11 @@
         currentUser = { 
           name: opt.value, 
           email: opt.dataset.email || '',
-          phone: opt.dataset.phone || '',
           position: opt.dataset.position || ''
         };
         
         // Restore auto-filled fields after reset
         document.getElementById('reporter_email').value = currentUser.email;
-        if (currentUser.phone) {
-          document.getElementById('reporter_phone').value = currentUser.phone;
-        }
         if (currentUser.position) {
           document.getElementById('reporter_position').value = currentUser.position;
         }
