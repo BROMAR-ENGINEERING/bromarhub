@@ -835,6 +835,20 @@
     pdf.setFillColor(194, 68, 14);
     pdf.rect(0, 0, pageWidth, 4, 'F');
 
+    // Logo top-left
+    try {
+      const logoImg = await new Promise((res, rej) => {
+        const img = new Image(); img.crossOrigin = 'Anonymous';
+        img.onload = () => res(img); img.onerror = rej;
+        img.src = '../Bromar-Primary-Logo-Full-Colour.png';
+      });
+      const lh = 18, lw = (logoImg.width / logoImg.height) * lh;
+      const canvas = document.createElement('canvas');
+      canvas.width = logoImg.width; canvas.height = logoImg.height;
+      canvas.getContext('2d').drawImage(logoImg, 0, 0);
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, 10, lw, lh);
+    } catch (_) {}
+
     // Company block top-right
     pdf.setFontSize(8);
     pdf.setFont(undefined, 'bold');
