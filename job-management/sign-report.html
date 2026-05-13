@@ -240,14 +240,14 @@
       background: white;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 1rem;
+      padding: 0;
       margin-top: 1rem;
+      overflow: hidden;
     }
     canvas#signCanvas {
       width: 100%;
-      height: 200px;
-      border: 1px dashed var(--border);
-      border-radius: 8px;
+      height: 220px;
+      border: none;
       cursor: crosshair;
       touch-action: none;
       display: block;
@@ -681,8 +681,8 @@
       }
     }
     resize();
-    // Resize again after layout settles (handles the "shown after data load" case)
-    setTimeout(resize, 100);
+    // Retry resize at intervals — canvas may be hidden initially and rect.height is 0
+    [100, 300, 600, 1000].forEach(ms => setTimeout(resize, ms));
     window.addEventListener('resize', resize);
 
     function pos(e) {
