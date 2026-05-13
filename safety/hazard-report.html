@@ -230,7 +230,7 @@
     .anonymous-note {
       display: none;
       font-size: 0.82rem;
-      color: var(--text-primary);
+      color: #1f2937;
       margin-top: 10px;
       padding-top: 10px;
       border-top: 1px dashed var(--input-border);
@@ -239,9 +239,14 @@
     .anonymous-toggle.active .anonymous-note {
       display: block;
       border-top-color: var(--brand-orange, #c2440e);
-      opacity: 0.95;
     }
-    .anonymous-note strong { color: var(--brand-orange, #c2440e); }
+    .anonymous-note strong { color: var(--brand-orange, #c2440e); font-weight: 700; }
+
+    /* Dark mode override — light text on dark orange-tinted background */
+    @media (prefers-color-scheme: dark) {
+      .anonymous-note { color: #f4f4f5; }
+    }
+    html.light-mode .anonymous-note { color: #1f2937; }
 
     /* Hide reporter fields when anonymous */
     .reporter-fields.hidden { display: none; }
@@ -473,13 +478,13 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.06</div>
+      <div class="card-footer-version">Version V1.07</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.06';
+  const REVISION = 'V1.07';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
