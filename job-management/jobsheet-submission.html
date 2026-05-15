@@ -109,8 +109,9 @@
                   <option value="BM|Shift Coverage">Shift Coverage</option>
                 </optgroup>
                 <optgroup label="Service — BS">
-                  <option value="BS|Callout">Callout</option>
+                  <option value="BS|After-Hours Callout">After-Hours Callout</option>
                   <option value="BS|Breakdown">Breakdown</option>
+                  <option value="BS|Small Job">Small Job</option>
                 </optgroup>
                 <optgroup label="Construction — BC">
                   <option value="BC|Temporary Wiring">Temporary Wiring</option>
@@ -143,6 +144,18 @@
               <label for="new_contact_person">Contact Person</label>
               <input type="text" id="new_contact_person" placeholder="Primary contact"/>
             </div>
+            <div class="field-group">
+              <label for="new_contact_role">Contact Role</label>
+              <select id="new_contact_role">
+                <option value="">Select role...</option>
+                <option value="Engineer">Engineer</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Manager">Manager</option>
+                <option value="Administration">Administration</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
             <div class="field-group">
               <label for="new_contact_phone">Contact Phone</label>
               <input type="tel" id="new_contact_phone" placeholder="Phone number"/>
@@ -207,7 +220,32 @@
             <label for="isServiceReport" class="toggle-label">Generate Client Service Report</label>
           </div>
           <div class="report-sections" id="reportSections">
-            <label style="font-size:0.8rem; font-weight:600; margin-bottom:12px; display:block;">Select what to include in client report:</label>
+
+            <!-- Single vs Multi-day mode -->
+            <div style="margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+              <label style="font-size:0.8rem; font-weight:600; margin-bottom:10px; display:block;">Report Type</label>
+              <div class="job-number-toggle" style="margin-bottom:0;">
+                <div class="radio-option">
+                  <input type="radio" id="report_single" name="report_mode" value="single" checked/>
+                  <label for="report_single">📄 Single Day<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">This job sheet only</span></label>
+                </div>
+                <div class="radio-option">
+                  <input type="radio" id="report_multi" name="report_mode" value="multi"/>
+                  <label for="report_multi">📅 Multi-Day<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Combine multiple sheets</span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi-day sheet picker (hidden by default) -->
+            <div id="multiDayPicker" style="display:none; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+              <label style="font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">Select Job Sheets to Include <span class="required">*</span></label>
+              <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:10px;">The current sheet is always included. Select additional sheets from the same job.</p>
+              <div id="multiDaySheetList" style="border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg-main);">
+                <div style="padding:1rem; font-size:0.85rem; color:var(--text-secondary);">Select a job number first to see available sheets.</div>
+              </div>
+            </div>
+
+            <label style="font-size:0.8rem; font-weight:600; margin-bottom:12px; display:block;">Include in Report</label>
             <div class="section-checkboxes">
               <div class="checkbox-item"><input type="checkbox" id="include_labour"    checked/><label for="include_labour">Labour Hours</label></div>
               <div class="checkbox-item"><input type="checkbox" id="include_tasks"     checked/><label for="include_tasks">Tasks Completed</label></div>
@@ -297,7 +335,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.38</div>
+<div class="revision-number">V1.40</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -476,6 +514,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('isServiceReport').addEventListener('change', function() {
     document.getElementById('reportSections').classList.toggle('show', this.checked);
     document.getElementById('signatureSection').classList.toggle('show', this.checked);
+  });
+
+  // Multi-day mode toggle
+  document.querySelectorAll('input[name="report_mode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const isMulti = document.getElementById('report_multi').checked;
+      document.getElementById('multiDayPicker').style.display = isMulti ? 'block' : 'none';
+      if (isMulti && selectedJobData) loadMultiDaySheets();
+    });
   });
 
   // Modal buttons
@@ -909,6 +956,8 @@ function applyJobSelection(job) {
   document.getElementById('autocompleteResults').classList.remove('show');
   if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
   setPostJobSectionsVisible(true);
+  // Refresh multi-day picker if it's open
+  if (document.getElementById('report_multi')?.checked) loadMultiDaySheets();
   window.sb.from('job_sheet_counters').select('last_sequence').eq('job_number', job.job_number).maybeSingle()
     .then(({ data }) => {
       const sheetNum = `${job.job_number}-JS${String(data ? data.last_sequence+1 : 1).padStart(3,'0')}`;
@@ -940,7 +989,8 @@ function checkAndCreateNewJob() {
 async function createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel) {
   try {
     const contactPerson=document.getElementById('new_contact_person').value.trim(), contactPhone=document.getElementById('new_contact_phone').value.trim();
-    const rpcParams = { p_prefix:prefix, p_client_name:clientName, p_contact_person:contactPerson, p_contact_phone:contactPhone, p_site_name:siteName, p_site_address:siteAddress };
+    const contactRole=document.getElementById('new_contact_role').value;
+    const rpcParams = { p_prefix:prefix, p_client_name:clientName, p_contact_person:contactPerson, p_contact_phone:contactPhone, p_contact_role:contactRole||null, p_site_name:siteName, p_site_address:siteAddress };
     console.log('[Create Job] Calling RPC with:', rpcParams);
     const { data: newJobNum, error } = await window.sb.rpc('create_new_job', rpcParams);
     console.log('[Create Job] Response:', { newJobNum, error });
@@ -962,6 +1012,79 @@ async function createNewJobNow(prefix, clientName, siteName, siteAddress, jobTyp
     document.getElementById('confirmNewJobBtn').style.display='block';
   }
 }
+
+// ── MULTI-DAY SHEET PICKER ────────────────────────────────────
+let multiDaySelectedSheets = []; // array of job_sheet_numbers to include
+
+async function loadMultiDaySheets() {
+  if (!selectedJobData) return;
+  const container = document.getElementById('multiDaySheetList');
+  container.innerHTML = '<div style="padding:1rem; font-size:0.85rem; color:var(--text-secondary);">Loading sheets...</div>';
+
+  try {
+    // Fetch all sheets for this job
+    const { data: sheets, error } = await window.sb
+      .from('job_sheets')
+      .select('job_sheet_number, sheet_date, created_by, is_service_report, service_report_used_in')
+      .eq('job_number', selectedJobData.job_number)
+      .order('sheet_date', { ascending: true });
+    if (error) throw error;
+    if (!sheets?.length) {
+      container.innerHTML = '<div style="padding:1rem; font-size:0.85rem; color:var(--text-secondary);">No other sheets found for this job.</div>';
+      return;
+    }
+
+    const currentSheet = document.getElementById('submitSheetNumber').textContent;
+
+    container.innerHTML = sheets.map(s => {
+      const isCurrentBeingSaved = s.job_sheet_number === currentSheet;
+      const alreadyUsed = s.service_report_used_in && s.service_report_used_in !== currentSheet;
+      const dateStr = s.sheet_date ? new Date(s.sheet_date + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Unknown date';
+
+      return `
+        <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); cursor:${alreadyUsed ? 'default' : 'pointer'}; opacity:${alreadyUsed ? '0.55' : '1'}; background:${isCurrentBeingSaved ? 'var(--card-hover)' : ''};">
+          <input type="checkbox"
+                 class="multi-day-sheet-cb"
+                 value="${s.job_sheet_number}"
+                 data-already-used="${alreadyUsed ? s.service_report_used_in : ''}"
+                 ${isCurrentBeingSaved ? 'checked disabled' : ''}
+                 ${alreadyUsed ? 'disabled' : ''}
+                 onchange="onMultiDaySheetToggle(this)"
+                 style="accent-color:var(--accent); width:16px; height:16px; flex-shrink:0;"/>
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:0.85rem;">${s.job_sheet_number} <span style="font-weight:400; color:var(--text-secondary);">— ${dateStr}</span></div>
+            <div style="font-size:0.75rem; color:var(--text-secondary);">
+              ${s.created_by || ''}
+              ${isCurrentBeingSaved ? ' <span style="color:var(--accent);">● Current sheet</span>' : ''}
+              ${alreadyUsed ? ` <span style="color:var(--error);">Already used in ${s.service_report_used_in}</span>` : ''}
+            </div>
+          </div>
+        </label>`;
+    }).join('');
+
+    // Pre-select current sheet
+    multiDaySelectedSheets = [currentSheet].filter(Boolean);
+  } catch (err) {
+    container.innerHTML = `<div style="padding:1rem; font-size:0.85rem; color:var(--error);">Could not load sheets: ${err.message}</div>`;
+  }
+}
+
+window.onMultiDaySheetToggle = function(cb) {
+  const sheetNum = cb.value;
+  const alreadyUsed = cb.dataset.alreadyUsed;
+
+  if (alreadyUsed && cb.checked) {
+    // Warn and let user decide
+    const proceed = confirm(`${sheetNum} was already included in service report ${alreadyUsed}. Including it again may duplicate data. Continue?`);
+    if (!proceed) { cb.checked = false; return; }
+  }
+
+  if (cb.checked) {
+    if (!multiDaySelectedSheets.includes(sheetNum)) multiDaySelectedSheets.push(sheetNum);
+  } else {
+    multiDaySelectedSheets = multiDaySelectedSheets.filter(s => s !== sheetNum);
+  }
+};
 
 // ── ADDRESS SEARCH ────────────────────────────────────────────
 async function searchAddress(query) {
@@ -1108,7 +1231,7 @@ async function handleSignoffConfirm(){
     document.getElementById('signoffModal').classList.remove('show');
     if(pendingSignoffEmail){
       BromarHub.showLoading('Generating signed PDF...','Preparing report');
-      const pdf=await generatePDF();
+      const pdf=await generatePDF(getActiveSheetNumbers());
       await window.sb.storage.from('job-sheet-files').upload(`${currentJobNumber}/service-reports/signed-${currentJobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
       BromarHub.showLoading('Emailing signed report...',pendingSignoffEmail);
       const{error:emailErr}=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:pendingSignoffEmail,jobSheetNumber:currentJobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:sigName,pdfBase64:pdf.output('datauristring').split(',')[1]}});
@@ -1191,6 +1314,12 @@ async function handleFormSubmit(e){
       if(!clientEmail||!clientEmail.includes('@')){ fail('Please enter a valid client email address — required for the service report', document.getElementById('signoff_email')); return; }
       document.getElementById('signoff_email').style.borderColor='';
       await window.sb.from('job_sheets').update({is_service_report:true,report_sections:reportSections}).eq('job_sheet_number',jobSheetNumber);
+
+      // Mark all selected sheets as used in this service report
+      const sheetsToMark = getActiveSheetNumbers().filter(s => s !== jobSheetNumber);
+      if (sheetsToMark.length) {
+        await window.sb.from('job_sheets').update({service_report_used_in: jobSheetNumber}).in('job_sheet_number', sheetsToMark);
+      }
       if(signoffMethod==='in_person'){BromarHub.hideLoading();await openSignoffModal(jobSheetNumber,jobNumber,clientEmail);return;}
       if(signoffMethod==='remote'){
         BromarHub.showLoading('Generating signing link...','Please wait');
@@ -1206,7 +1335,7 @@ async function handleFormSubmit(e){
       }
       if(signoffMethod==='none'){
         BromarHub.showLoading('Generating PDF...','Building report');
-        const pdf=await generatePDF();
+        const pdf=await generatePDF(getActiveSheetNumbers());
         await window.sb.storage.from('job-sheet-files').upload(`${jobNumber}/service-reports/${jobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
         BromarHub.showLoading('Emailing report...',clientEmail);
         const pdfBase64=pdf.output('datauristring').split(',')[1];
@@ -1241,92 +1370,241 @@ async function uploadFilesToSupabase(jobSheetNumber,jobNumber,files){
 }
 
 // ── PDF ───────────────────────────────────────────────────────
-async function fetchReportData(){
-  const{data:jobSheet,error}=await window.sb.from('job_sheets').select('*, job_number_register(*)').eq('job_sheet_number',currentJobSheetNumber).single();
-  if(error)throw error;
-  let files=[];
-  if(jobSheet.report_sections?.photos){
-    const{data:filesData}=await window.sb.from('job_sheet_files').select('*').eq('job_sheet_number',currentJobSheetNumber);
-    if(filesData){
-      // Include any file that is an image type, regardless of category label
+async function fetchReportData(sheetNumbers){
+  // Fetch one or multiple sheets
+  const nums = sheetNumbers || [currentJobSheetNumber];
+  const { data: sheets, error } = await window.sb
+    .from('job_sheets').select('*, job_number_register(*)')
+    .in('job_sheet_number', nums)
+    .order('sheet_date', { ascending: true });
+  if (error) throw error;
+
+  const isMulti = nums.length > 1;
+  const reportSections = sheets[0].report_sections || {};
+
+  let files = [];
+  if (reportSections.photos) {
+    const { data: filesData } = await window.sb.from('job_sheet_files').select('*')
+      .in('job_sheet_number', nums);
+    if (filesData) {
       const photoFiles = filesData.filter(f => f.file_type?.startsWith('image/') || f.file_category === 'photo');
-      for(const f of photoFiles){const{data:urlData}=await window.sb.storage.from('job-sheet-files').createSignedUrl(f.file_path,3600);if(urlData)f.signedUrl=urlData.signedUrl;}
-      files=photoFiles;
+      for (const f of photoFiles) {
+        const { data: urlData } = await window.sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600);
+        if (urlData) f.signedUrl = urlData.signedUrl;
+      }
+      files = photoFiles;
     }
   }
-  return{jobSheet,files};
+  return { sheets, primarySheet: sheets[0], files, isMulti };
 }
-function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
 
-async function generatePDF(){
-  const{jobSheet,files}=await fetchReportData();
-  const{jsPDF}=window.jspdf;
-  const pdf=new jsPDF('p','mm','a4');
-  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),m=20;
-  let y=m;
-  pdf.setFillColor(194,68,14);pdf.rect(0,0,pw,4,'F');
-  try{const li=await loadImage('../Bromar-Primary-Logo-Full-Colour.png');const lh=18,lw=(li.width/li.height)*lh;pdf.addImage(li,'PNG',m,10,lw,lh);}catch{}
-  pdf.setFontSize(8);pdf.setTextColor(80,80,80);pdf.setFont(undefined,'bold');pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD',pw-m,12,{align:'right'});
-  pdf.setFont(undefined,'normal');pdf.setFontSize(7.5);pdf.setTextColor(100,100,100);
+async function generatePDF(sheetNumbers){
+  const { sheets, primarySheet, files, isMulti } = await fetchReportData(sheetNumbers);
+  const jobSheet = primarySheet;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 20;
+  let y = m;
+
+  pdf.setFillColor(194,68,14); pdf.rect(0,0,pw,4,'F');
+  try {
+    const li = await loadImage('../Bromar-Primary-Logo-Full-Colour.png');
+    const lh=18, lw=(li.width/li.height)*lh;
+    pdf.addImage(li,'PNG',m,10,lw,lh);
+  } catch {}
+  pdf.setFontSize(8); pdf.setTextColor(80,80,80); pdf.setFont(undefined,'bold');
+  pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD',pw-m,12,{align:'right'});
+  pdf.setFont(undefined,'normal'); pdf.setFontSize(7.5); pdf.setTextColor(100,100,100);
   pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049',pw-m,16,{align:'right'});
   pdf.text('Ph: +61 3 9335 5344  |  admin@bromar.com.au  |  bromar.com.au',pw-m,20,{align:'right'});
   pdf.text('ABN: 45 634 835 939  |  REC: 30340',pw-m,24,{align:'right'});
-  y=36;pdf.setDrawColor(194,68,14);pdf.setLineWidth(0.5);pdf.line(m,y,pw-m,y);pdf.setLineWidth(0.2);y+=10;
-  pdf.setFontSize(22);pdf.setTextColor(194,68,14);pdf.setFont(undefined,'bold');pdf.text('SERVICE REPORT',m,y);
-  pdf.setFontSize(9);pdf.setFont(undefined,'normal');pdf.setTextColor(80,80,80);
-  pdf.text(`Report #:  ${currentJobSheetNumber}`,pw-m,y-4,{align:'right'});
-  pdf.text(`Date:  ${new Date(jobSheet.sheet_date).toLocaleDateString('en-AU')}`,pw-m,y,{align:'right'});
-  if(jobSheet.created_by)pdf.text(`Prepared by:  ${jobSheet.created_by}`,pw-m,y+4,{align:'right'});
+  y=36; pdf.setDrawColor(194,68,14); pdf.setLineWidth(0.5); pdf.line(m,y,pw-m,y); pdf.setLineWidth(0.2); y+=10;
+
+  pdf.setFontSize(22); pdf.setTextColor(194,68,14); pdf.setFont(undefined,'bold');
+  pdf.text('SERVICE REPORT',m,y);
+  pdf.setFontSize(9); pdf.setFont(undefined,'normal'); pdf.setTextColor(80,80,80);
+
+  const reportNum = isMulti ? `${sheets[0].job_sheet_number} + ${sheets.length-1} more` : currentJobSheetNumber;
+  const dateRange = isMulti
+    ? `${new Date(sheets[0].sheet_date+'T12:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'})} – ${new Date(sheets[sheets.length-1].sheet_date+'T12:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}`
+    : new Date(jobSheet.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+  pdf.text(`Report #:  ${reportNum}`,pw-m,y-4,{align:'right'});
+  pdf.text(`Date:  ${dateRange}`,pw-m,y,{align:'right'});
+  if (jobSheet.created_by) pdf.text(`Prepared by:  ${jobSheet.created_by}`,pw-m,y+4,{align:'right'});
   y+=14;
+
   const sh=(title)=>{pdf.setFillColor(255,243,238);pdf.rect(m,y-5,pw-2*m,8,'F');pdf.setFontSize(10);pdf.setTextColor(194,68,14);pdf.setFont(undefined,'bold');pdf.text(title.toUpperCase(),m+2,y);y+=8;pdf.setTextColor(40,40,40);pdf.setFontSize(10);pdf.setFont(undefined,'normal');};
   const df=(label,value)=>{if(!value)return;pdf.setFont(undefined,'bold');pdf.setTextColor(80,80,80);pdf.text(label,m,y);pdf.setFont(undefined,'normal');pdf.setTextColor(40,40,40);const lines=pdf.splitTextToSize(String(value),pw-m-50);lines.forEach((l,i)=>{pdf.text(l,m+32,y);if(i<lines.length-1)y+=5;});y+=6;};
-  const client=jobSheet.job_number_register;
-  sh('Client Information');y+=2;
-  df('Client:',client.client_name);df('Job Number:',jobSheet.job_number);
+
+  const client = jobSheet.job_number_register;
+  sh('Client Information'); y+=2;
+  df('Client:',client.client_name); df('Job Number:',jobSheet.job_number);
   df('Site:',client.site_name?`${client.site_name} — ${client.site_address}`:client.site_address);
-  df('Contact:',client.contact_person);y+=4;
-  if(jobSheet.report_sections?.tasks&&jobSheet.tasks?.length){if(y>ph-50){pdf.addPage();y=m;}sh('Work Performed');jobSheet.tasks.forEach((task,i)=>{if(y>ph-20){pdf.addPage();y=m;}pdf.splitTextToSize(`${i+1}. ${task}`,pw-2*m).forEach(l=>{pdf.text(l,m,y);y+=5;});y+=2;});y+=8;}
-  if(jobSheet.report_sections?.labour&&jobSheet.labour?.length){
-    if(y>ph-60){pdf.addPage();y=m;}sh('Labour Hours');
-    pdf.setFillColor(243,246,255);pdf.rect(m,y-5,pw-2*m,8,'F');pdf.setFontSize(9);pdf.text('Employee',m+2,y);pdf.text('Normal',pw-m-50,y);pdf.text('Overtime',pw-m-25,y);y+=6;
-    pdf.setFont(undefined,'normal');pdf.setTextColor(60,60,60);let tN=0,tO=0;
-    jobSheet.labour.forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l.employee,m+2,y);pdf.text(`${l.normalHours||0}h`,pw-m-50,y);pdf.text(`${l.overtimeHours||0}h`,pw-m-25,y);tN+=parseFloat(l.normalHours||0);tO+=parseFloat(l.overtimeHours||0);y+=6;});
-    y+=2;pdf.setDrawColor(200,200,200);pdf.line(m,y,pw-m,y);y+=5;pdf.setFont(undefined,'bold');pdf.setTextColor(0,0,0);pdf.text('TOTAL',m+2,y);pdf.text(`${tN}h`,pw-m-50,y);pdf.text(`${tO}h`,pw-m-25,y);y+=10;
-  }
-  if(jobSheet.report_sections?.photos&&files.length){
-    pdf.addPage();y=m;sh('Photos');y+=4;
-    for(const file of files){
-      if(!file.signedUrl)continue;
-      try{
-        const img=await loadImage(file.signedUrl);
-        const canvas=document.createElement('canvas');canvas.width=img.naturalWidth||img.width;canvas.height=img.naturalHeight||img.height;canvas.getContext('2d').drawImage(img,0,0);
-        const maxW=pw-2*m,maxH=110;let w=maxW,h=(canvas.height/canvas.width)*w;if(h>maxH){h=maxH;w=(canvas.width/canvas.height)*h;}
-        if(y+h>ph-m){pdf.addPage();y=m;}
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',m,y,w,h);y+=h+4;
-        if(file.description){pdf.setFontSize(9);pdf.setTextColor(40,40,40);pdf.splitTextToSize(file.description,pw-2*m).forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l,m,y);y+=4.5;});y+=2;}
-        if(file.tags?.length){pdf.setFontSize(8);pdf.setTextColor(100,100,100);pdf.text(`Tags: ${file.tags.join(', ')}`,m,y);y+=8;}else{y+=4;}
-      }catch{}
+  df('Contact:',client.contact_person); y+=4;
+
+  // ── TASKS ──
+  if (jobSheet.report_sections?.tasks) {
+    if (isMulti) {
+      // Day-by-day tasks
+      const allTasks = sheets.flatMap(s => (s.tasks||[]).map(t => ({ date: s.sheet_date, task: t })));
+      if (allTasks.length) {
+        if (y > ph-50) { pdf.addPage(); y=m; }
+        sh('Work Performed');
+        let lastDate = '';
+        allTasks.forEach((item, i) => {
+          if (item.date !== lastDate) {
+            lastDate = item.date;
+            const dayLabel = new Date(item.date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
+            pdf.setFont(undefined,'bold'); pdf.setTextColor(var_accent||[194,68,14]); pdf.setFontSize(9);
+            pdf.setFillColor(255,243,238); pdf.rect(m, y-3, pw-2*m, 6,'F');
+            pdf.setTextColor(194,68,14); pdf.text(dayLabel, m+2, y); y+=7;
+            pdf.setFont(undefined,'normal'); pdf.setTextColor(40,40,40); pdf.setFontSize(10);
+          }
+          if (y > ph-20) { pdf.addPage(); y=m; }
+          pdf.splitTextToSize(`  • ${item.task}`, pw-2*m).forEach(l => { pdf.text(l,m,y); y+=5; });
+        });
+        y+=8;
+      }
+    } else {
+      const tasks = jobSheet.tasks || [];
+      if (tasks.length) {
+        if (y > ph-50) { pdf.addPage(); y=m; } sh('Work Performed');
+        tasks.forEach((task,i)=>{ if(y>ph-20){pdf.addPage();y=m;} pdf.splitTextToSize(`${i+1}. ${task}`,pw-2*m).forEach(l=>{pdf.text(l,m,y);y+=5;}); y+=2; }); y+=8;
+      }
     }
   }
-  if(jobSheet.client_signature_name){
-    if(y>ph-70){pdf.addPage();y=m;}y+=6;sh('Client Sign-Off');y+=4;
+
+  // ── LABOUR ──
+  if (jobSheet.report_sections?.labour) {
+    if (isMulti) {
+      // Build employee × day matrix
+      const days = sheets.map(s => ({
+        date: s.sheet_date,
+        label: new Date(s.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}),
+        labour: s.labour || []
+      }));
+
+      // Collect all unique employee names
+      const employees = [...new Set(days.flatMap(d => d.labour.map(l => l.employee)))].filter(Boolean);
+
+      if (employees.length) {
+        if (y > ph-60) { pdf.addPage(); y=m; }
+        sh('Labour Hours');
+
+        const colWidth = Math.min(28, (pw - 2*m - 40) / days.length);
+        const empColW = pw - 2*m - (colWidth * days.length) - 20;
+
+        // Header row
+        pdf.setFillColor(243,246,255); pdf.rect(m, y-5, pw-2*m, 8, 'F');
+        pdf.setFontSize(7.5); pdf.setFont(undefined,'bold'); pdf.setTextColor(80,80,80);
+        pdf.text('Employee', m+2, y);
+        days.forEach((d, i) => { pdf.text(d.label, m + empColW + i * colWidth + 2, y, { maxWidth: colWidth - 2 }); });
+        pdf.text('Total', pw-m-18, y);
+        y += 7;
+
+        pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60); pdf.setFontSize(8);
+        let grandN=0, grandO=0;
+
+        employees.forEach(emp => {
+          if (y > ph-20) { pdf.addPage(); y=m; }
+          let totalN=0, totalO=0;
+          pdf.text(emp, m+2, y, { maxWidth: empColW - 4 });
+          days.forEach((d, i) => {
+            const entry = d.labour.find(l => l.employee === emp);
+            const n = parseFloat(entry?.normalHours||0), o = parseFloat(entry?.overtimeHours||0);
+            totalN += n; totalO += o;
+            const cell = entry ? `${n}/${o}` : '—';
+            pdf.text(cell, m + empColW + i * colWidth + 2, y);
+          });
+          pdf.setFont(undefined,'bold');
+          pdf.text(`${totalN}/${totalO}`, pw-m-18, y);
+          pdf.setFont(undefined,'normal');
+          grandN += totalN; grandO += totalO;
+          y += 6;
+        });
+
+        // Totals row
+        y += 2; pdf.setDrawColor(200,200,200); pdf.line(m, y, pw-m, y); y += 5;
+        pdf.setFont(undefined,'bold'); pdf.setTextColor(0,0,0); pdf.setFontSize(8.5);
+        pdf.text('TOTAL', m+2, y);
+        pdf.text(`${grandN}/${grandO}`, pw-m-18, y);
+        pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
+        pdf.text('(Normal h / Overtime h per cell)', m+2, y+4);
+        y += 14;
+      }
+    } else {
+      const labour = jobSheet.labour || [];
+      if (labour.length) {
+        if (y > ph-60) { pdf.addPage(); y=m; } sh('Labour Hours');
+        pdf.setFillColor(243,246,255); pdf.rect(m,y-5,pw-2*m,8,'F');
+        pdf.setFontSize(9); pdf.text('Employee',m+2,y); pdf.text('Normal',pw-m-50,y); pdf.text('Overtime',pw-m-25,y); y+=6;
+        pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
+        let tN=0,tO=0;
+        labour.forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l.employee,m+2,y);pdf.text(`${l.normalHours||0}h`,pw-m-50,y);pdf.text(`${l.overtimeHours||0}h`,pw-m-25,y);tN+=parseFloat(l.normalHours||0);tO+=parseFloat(l.overtimeHours||0);y+=6;});
+        y+=2; pdf.setDrawColor(200,200,200); pdf.line(m,y,pw-m,y); y+=5;
+        pdf.setFont(undefined,'bold'); pdf.setTextColor(0,0,0);
+        pdf.text('TOTAL',m+2,y); pdf.text(`${tN}h`,pw-m-50,y); pdf.text(`${tO}h`,pw-m-25,y); y+=10;
+      }
+    }
+  }
+
+  // ── PHOTOS ──
+  if (jobSheet.report_sections?.photos && files.length) {
+    pdf.addPage(); y=m; sh('Photos'); y+=4;
+    for (const file of files) {
+      if (!file.signedUrl) continue;
+      try {
+        const img = await loadImage(file.signedUrl);
+        const canvas = document.createElement('canvas'); canvas.width=img.naturalWidth||img.width; canvas.height=img.naturalHeight||img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        const maxW=pw-2*m, maxH=110; let w=maxW, h=(canvas.height/canvas.width)*w;
+        if(h>maxH){h=maxH;w=(canvas.width/canvas.height)*h;}
+        if(y+h>ph-m){pdf.addPage();y=m;}
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',m,y,w,h); y+=h+4;
+        if(file.description){pdf.setFontSize(9);pdf.setTextColor(40,40,40);pdf.splitTextToSize(file.description,pw-2*m).forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l,m,y);y+=4.5;});y+=2;}
+        if(file.tags?.length){pdf.setFontSize(8);pdf.setTextColor(100,100,100);pdf.text(`Tags: ${file.tags.join(', ')}`,m,y);y+=8;}else{y+=4;}
+      } catch {}
+    }
+  }
+
+  // ── SIGNATURE ──
+  if (jobSheet.client_signature_name) {
+    if(y>ph-70){pdf.addPage();y=m;} y+=6; sh('Client Sign-Off'); y+=4;
     if(jobSheet.client_signature_data){try{pdf.addImage(jobSheet.client_signature_data,'PNG',m,y,80,30);y+=35;}catch{}}
-    pdf.setFontSize(10);pdf.setFont(undefined,'normal');pdf.setTextColor(60,60,60);
-    pdf.text(`Signed by: ${jobSheet.client_signature_name}`,m,y);y+=5;
+    pdf.setFontSize(10); pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
+    pdf.text(`Signed by: ${jobSheet.client_signature_name}`,m,y); y+=5;
     pdf.text(`Date: ${new Date(jobSheet.client_signature_date).toLocaleDateString('en-AU')}`,m,y);
   }
-  const pageCount=pdf.internal.getNumberOfPages();
+
+  // ── PAGE FOOTERS ──
+  const pageCount = pdf.internal.getNumberOfPages();
   for(let i=1;i<=pageCount;i++){
-    pdf.setPage(i);pdf.setFillColor(194,68,14);pdf.rect(0,ph-14,pw,0.5,'F');
-    pdf.setFontSize(7);pdf.setTextColor(120,120,120);pdf.setFont(undefined,'normal');
-    pdf.text('Bromar',m,ph-9);pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
-    pdf.setFontSize(6.5);pdf.setTextColor(150,150,150);pdf.text(`Report ${currentJobSheetNumber}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.38`,pw/2,ph-5,{align:'center'});
+    pdf.setPage(i);
+    pdf.setFillColor(194,68,14); pdf.rect(0,ph-14,pw,0.5,'F');
+    pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
+    pdf.text('Bromar',m,ph-9);
+    pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
+    pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
+    pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.40`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
-async function generateAndDownloadPDF(){const pdf=await generatePDF();pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`);}
+function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
+
+function getActiveSheetNumbers() {
+  const isMulti = document.getElementById('report_multi')?.checked;
+  if (isMulti && multiDaySelectedSheets.length) return multiDaySelectedSheets;
+  return [currentJobSheetNumber];
+}
+
+async function generateAndDownloadPDF(){
+  const pdf=await generatePDF(getActiveSheetNumbers());
+  pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`);
+}
 async function generateAndUploadPDF(){
-  const pdf=await generatePDF();
+  const pdf=await generatePDF(getActiveSheetNumbers());
   const fileName=`${currentJobNumber}/service-reports/${currentJobSheetNumber}.pdf`;
   const{error}=await window.sb.storage.from('job-sheet-files').upload(fileName,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
   if(error)throw error;
