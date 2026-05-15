@@ -285,13 +285,13 @@
   <div id="bromar-header"></div>
 
   <!-- PAGE TITLE -->
-  <div class="page-title-wrapper">
+  <div class="page-title-wrapper" id="pageTitleWrapper">
     <h1>Employee Timesheet</h1>
     <p class="subtitle">Submit your weekly timesheet by Tuesday at the latest for pay processing on Wednesday. Consider long weekends, annual leave, and public holidays — a confirmation will be sent to your email</p>
   </div>
 
   <!-- FORM CARD -->
-  <div class="form-card">
+  <div class="form-card" id="formCard">
     <form id="timesheetForm" name="timesheet-submission" novalidate autocomplete="off">
 
       <!-- Hidden field for spam protection -->
@@ -417,9 +417,25 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.09</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.10</p>
       </div>
     </div>
+  </div>
+
+  <!-- SUCCESS SCREEN (shown after successful submit) -->
+  <div class="form-card success-screen" id="successScreen" style="display:none;text-align:center;">
+    <div style="font-size:4rem;margin-bottom:1rem;">✅</div>
+    <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin-bottom:0.75rem;">Timesheet Submitted</h2>
+    <p style="color:var(--text-secondary);margin-bottom:0.5rem;line-height:1.6;">
+      A confirmation has been sent to your email and the admin team has received your submission.
+    </p>
+    <p id="successWeekText" style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:2rem;"></p>
+    <button type="button" class="submit-btn" id="newTimesheetBtn" style="min-width:220px;">
+      + Submit Another Timesheet
+    </button>
+    <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:1.5rem;opacity:0.7;">
+      You can also close this page — your timesheet is safely stored.
+    </p>
   </div>
 </div>
 
@@ -1798,17 +1814,18 @@
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const banner = document.getElementById('successBanner');
-        banner.classList.add('show');
-        timesheetForm.reset();
-        
-        // Clear saved form data after successful submission
-        clearFormData();
-        
-        setWeekStarting(new Date()); // Reset to current week
-        generateWeek(); // Regenerate to reset defaults
+        // Hide form + title, show success screen
+        clearFormData();  // remove auto-saved data
+        document.getElementById('formCard').style.display = 'none';
+        document.getElementById('pageTitleWrapper').style.display = 'none';
+
+        const weekText = document.getElementById('successWeekText');
+        const weekVal = debugData.week_starting;
+        if (weekText && weekVal) {
+          weekText.textContent = `Week starting ${new Date(weekVal).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+        }
+        document.getElementById('successScreen').style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => banner.classList.remove('show'), 8000);
       } else {
         throw new Error(result.error || 'Form submission failed');
       }
@@ -1836,6 +1853,11 @@
       setWeekStarting(new Date());
       generateWeek(); // Regenerate week to reset all defaults
     }, 10);
+  });
+
+  // New Timesheet button — refresh page for a clean form
+  document.getElementById('newTimesheetBtn')?.addEventListener('click', () => {
+    window.location.reload();
   });
 
   // Top Clear button
