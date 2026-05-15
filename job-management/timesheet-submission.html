@@ -20,6 +20,16 @@
     /* ── PAGE LAYOUT ── */
     body { padding-top: 60px; }
 
+    /* Pull page title closer to the fixed header */
+    .page-title-wrapper {
+      margin-top: 1.5rem !important;
+    }
+    @media (max-width: 720px) {
+      .page-title-wrapper {
+        margin-top: 1rem !important;
+      }
+    }
+
     /* ── WEEK SELECTOR ── */
     .week-selector {
       display: flex;
@@ -67,6 +77,2017 @@
       background: var(--bg-main);
       padding: 12px 16px;
       display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .day-name {
+      font-weight: 700; font-size: 1rem;
+      color: var(--text-primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .day-date {
+      font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;
+    }
+    .day-total {
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--accent);
+      background: var(--card-hover);
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .day-body { padding: 1rem; }
+    .day-card.disabled .day-body { opacity: 0.5; pointer-events: none; }
+    .day-card.disabled .day-header { background: var(--bg-main); }
+
+    /* ── WEEKEND TOGGLE ── */
+    .weekend-toggle {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;
+    }
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px; display: inline-block;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border);
+      transition: 0.3s; border-radius: 24px;
+    }
+    .toggle-slider:before {
+      position: absolute; content: "";
+      height: 18px; width: 18px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: 0.3s; border-radius: 50%;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* ── JOB ROWS ── */
+    .job-row {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+    .job-row:hover {
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .job-row-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .job-number-badge {
+      font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.5px; color: var(--text-secondary);
+    }
+    .remove-job {
+      background: none; border: none; color: var(--error);
+      font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; padding: 4px 8px;
+      border-radius: 4px; transition: all 0.2s;
+    }
+    .remove-job:hover { background: var(--error-bg); }
+
+    .job-fields {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 10px;
+    }
+    .job-field { display: flex; flex-direction: column; gap: 4px; }
+    .job-field.full { grid-column: 1 / -1; }
+    .job-field label { font-size: 0.75rem; margin-bottom: 2px; }
+    .job-field input,
+    .job-field select,
+    .job-field textarea {
+      font-size: 0.85rem; padding: 8px 11px;
+    }
+
+    /* ── CHECKBOXES ── */
+    .job-checkboxes,
+    .day-allowances,
+    .day-options {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .checkbox-label {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer;
+      font-size: 0.8rem; font-weight: 500;
+      color: var(--text-secondary);
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"],
+    .checkbox-label input[type="radio"] {
+      width: 16px; height: 16px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    .owncar-km-field,
+    .job-owncar-km { display: none; }
+    .owncar-km-field.show,
+    .job-owncar-km.show { display: inline-flex; align-items: center; gap: 6px; }
+    .owncar-km-input,
+    .job-owncar-km-input {
+      width: 80px; padding: 4px 8px; font-size: 0.8rem;
+    }
+
+    /* ── ADD JOB BUTTON ── */
+    .add-job-btn {
+      width: 100%;
+      padding: 10px;
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .add-job-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--card-hover);
+    }
+    .add-job-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── STANDBY ── */
+    .standby-section {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 1.5rem 0;
+    }
+    .standby-label {
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer;
+      font-size: 0.95rem; font-weight: 600;
+      color: var(--text-primary);
+      user-select: none;
+    }
+    .standby-label input[type="checkbox"] {
+      width: 20px; height: 20px;
+      cursor: pointer; accent-color: var(--accent);
+    }
+
+    /* ── CALLOUT WARNING ── */
+    .callout-break-warning {
+      display: none;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    .callout-break-warning.show { display: block; }
+
+    /* ── ERROR STATES ── */
+    input.error, select.error, textarea.error {
+      border-color: var(--error) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    .error-msg {
+      font-size: 0.76rem; color: var(--error);
+      margin-top: 5px; display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* ── TOTAL HOURS DISPLAY ── */
+    .total-hours {
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: var(--card-hover);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    /* ── FIELD HINT ── */
+    .field-hint {
+      font-size: 0.75rem; color: var(--text-secondary);
+      margin-top: 4px; font-style: italic;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      .job-fields { grid-template-columns: 1fr; }
+      .week-selector { flex-direction: column; align-items: stretch; }
+      .week-selector .field-group { width: 100%; }
+      .week-nav { width: 100%; justify-content: center; }
+      .week-nav button { flex: 1; max-width: 120px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- SHARED HEADER (injected by bromar-hub.js) -->
+  <div id="bromar-header"></div>
+
+  <!-- PAGE TITLE -->
+  <div class="page-title-wrapper" id="pageTitleWrapper">
+    <h1>Employee Timesheet</h1>
+    <p class="subtitle">Submit your weekly timesheet by Tuesday at the latest for pay processing on Wednesday. Consider long weekends, annual leave, and public holidays — a confirmation will be sent to your email</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card" id="formCard">
+    <form id="timesheetForm" name="timesheet-submission" novalidate autocomplete="off">
+
+      <!-- Hidden field for spam protection -->
+      <p style="display: none;">
+        <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+      </p>
+
+      <div class="info-banner" id="autoSaveBanner">
+        <span>💾</span>
+        <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
+      </div>
+
+      <!-- EMPLOYEE DETAILS -->
+      <div class="section-label">Employee Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-name">
+          <label for="employee_name">Full Name <span class="required">*</span></label>
+          <input type="text" id="employee_name" name="employee_name" placeholder="Old Mate" autocomplete="name"/>
+          <span class="error-msg">Please enter your full name</span>
+        </div>
+        <div class="field-group" id="group-email">
+          <label for="employee_email">Email Address <span class="required">*</span></label>
+          <input type="email" id="employee_email" name="employee_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-employee-type">
+          <label for="employee_type">Employee Type <span class="required">*</span></label>
+          <select id="employee_type" name="employee_type" autocomplete="off">
+            <option value="" disabled selected>Select type</option>
+            <option value="Electrician">Electrician</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Apprentice">Apprentice</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="error-msg">Please select employee type</span>
+        </div>
+        <div class="field-group">
+          <label>Weekly Allowances</label>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 8px;">
+            <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+              <input type="checkbox" id="allowance_first_aid" name="allowance_first_aid"/>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">First Aid</span>
+            </label>
+            <label class="checkbox-label" style="padding: 8px 12px; margin: 0; display: none;">
+              <input type="checkbox" id="allowance_construction_wiring" name="allowance_construction_wiring"/>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">Construction Wiring</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEEK SELECTOR -->
+      <div class="section-label">Week Period</div>
+
+      <div class="week-selector">
+        <div class="field-group" id="group-week">
+          <label for="week_starting">Week Starting (Monday) <span class="required">*</span></label>
+          <input type="date" id="week_starting" name="week_starting" autocomplete="off"/>
+          <span class="error-msg">Please select week starting date</span>
+        </div>
+        <div class="week-nav">
+          <button type="button" id="prevWeek" title="Previous Week">←</button>
+          <button type="button" id="nextWeek" title="Next Week">→</button>
+          <button type="button" id="topClearBtn" class="clear-week-btn" title="Clear Form">Clear</button>
+        </div>
+      </div>
+
+      <!-- TIMESHEET DAYS -->
+      <div class="section-label">Daily Timesheet</div>
+
+      <div class="timesheet-days" id="timesheetDays">
+        <!-- Days will be generated here by JavaScript -->
+      </div>
+
+      <!-- GENERAL COMMENTS -->
+      <div class="section-label">Additional Comments</div>
+
+      <div class="field-group full">
+        <label for="general_comments">General Comments / Notes</label>
+        <textarea id="general_comments" name="general_comments" rows="3" placeholder="Add any general notes about this week's timesheet..." autocomplete="off"></textarea>
+        <span class="field-hint">Optional - Add any additional information, clarifications, or notes about your timesheet for this week.</span>
+      </div>
+
+      <!-- ON-CALL STANDBY -->
+      <div class="standby-section">
+        <label class="standby-label">
+          <input type="checkbox" id="standby" name="standby"/>
+          <span>📞 I was on call/afterhours standby this week</span>
+        </label>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0 32px; line-height: 1.5;">
+          <em>Only tick this box if you have been on standby from Monday to Thursday and the previous weekend</em>
+        </p>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Timesheet</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>Please ensure all timesheet entries are accurate and complete. Timesheets should be submitted by the designated deadline each week.</em></p>
+      </div>
+      <div class="footer-title-block">
+        <h2 class="footer-title"><strong>BROMAR HUB — TIMESHEET SUBMISSION</strong></h2>
+        <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
+          🐞 Report a bug or suggest an improvement
+        </a>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.12</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN (shown after successful submit) -->
+  <div class="form-card success-screen" id="successScreen" style="display:none;text-align:center;">
+    <div style="font-size:4rem;margin-bottom:1rem;">✅</div>
+    <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin-bottom:0.75rem;">Timesheet Submitted</h2>
+    <p style="color:var(--text-secondary);margin-bottom:0.5rem;line-height:1.6;">
+      A confirmation has been sent to your email and the admin team has received your submission.
+    </p>
+    <p id="successWeekText" style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:2rem;"></p>
+    <button type="button" class="submit-btn" id="newTimesheetBtn" style="min-width:220px;">
+      + Submit Another Timesheet
+    </button>
+    <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:1.5rem;opacity:0.7;">
+      You can also close this page — your timesheet is safely stored.
+    </p>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION
+  // ============================================================
+  const CONFIG = {
+    maxJobsPerDay: 5
+  };
+
+  // ============================================================
+  // WEEK MANAGEMENT
+  // ============================================================
+  const weekStartingInput = document.getElementById('week_starting');
+  
+  function getWeekStarting(date) {
+    // Get the Monday (week starting) for a given date
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : (1 - day); // Days until Monday (if Sunday, go back 6 days)
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+
+  function setWeekStarting(date) {
+    const weekStart = getWeekStarting(date);
+    weekStartingInput.value = weekStart.toISOString().split('T')[0];
+    generateWeek();
+  }
+
+  // ============================================================
+  // AUTO-SAVE FORM DATA TO LOCAL STORAGE
+  // ============================================================
+  const STORAGE_KEY = 'timesheet_draft';
+
+  // Save form data to localStorage
+  function saveFormData() {
+    const formData = {
+      employee_name: document.getElementById('employee_name').value,
+      employee_email: document.getElementById('employee_email').value,
+      week_starting: weekStartingInput.value,
+      standby: document.getElementById('standby').checked,
+      general_comments: document.getElementById('general_comments').value,
+      days: []
+    };
+
+    // Save data for each day
+    document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
+      const shiftSelect = dayCard.querySelector('.shift-select');
+      const dayData = {
+        disabled: dayCard.classList.contains('disabled'),
+        shift: shiftSelect ? shiftSelect.value : 'Day',
+        laha: dayCard.querySelector('.laha-checkbox')?.checked || false,
+        office: dayCard.querySelector('.office-checkbox')?.checked || false,
+        owncar: dayCard.querySelector('.owncar-checkbox')?.checked || false,
+        owncar_km: dayCard.querySelector('.owncar-km-input')?.value || '',
+        jobs: []
+      };
+
+      const jobRows = dayCard.querySelectorAll('.job-row');
+      jobRows.forEach((jobRow) => {
+        const jobId = jobRow.dataset.jobId;
+        if (!jobId) return;
+
+        const jobData = {
+          type: jobRow.querySelector('.job-type')?.value || '',
+          other_type: jobRow.querySelector('[name$="_other_type"]')?.value || '',
+          normal_hours: jobRow.querySelector('.normal-hours')?.value || '',
+          overtime_hours: jobRow.querySelector('.overtime-hours')?.value || '',
+          job_number: jobRow.querySelector('[name$="_number"]')?.value || '',
+          client: jobRow.querySelector('[name$="_client"]')?.value || '',
+          site_allowance: jobRow.querySelector('[name$="_site_allowance"]')?.checked || false,
+          owncar: jobRow.querySelector('[name$="_owncar"]')?.checked || false,
+          owncar_km: jobRow.querySelector('[name$="_owncar_km"]')?.value || '',
+          comment: jobRow.querySelector('[name$="_comment"]')?.value || ''
+        };
+
+        // Only save if there's any data in this job
+        if (jobData.type || jobData.normal_hours || jobData.overtime_hours) {
+          dayData.jobs.push(jobData);
+        }
+      });
+
+      formData.days.push(dayData);
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+  }
+
+  // Restore form data from localStorage
+  function restoreFormData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (!savedData) {
+      console.log('No saved timesheet data found');
+      return;
+    }
+
+    try {
+      const formData = JSON.parse(savedData);
+      console.log('Restoring saved timesheet data:', formData);
+
+      // Show info banner that saved data was restored
+      const infoBanner = document.getElementById('autoSaveBanner');
+      if (infoBanner) {
+        infoBanner.classList.add('show');
+        setTimeout(() => infoBanner.classList.remove('show'), 6000);
+      }
+
+      // Restore employee details
+      document.getElementById('employee_name').value = formData.employee_name || '';
+      document.getElementById('employee_email').value = formData.employee_email || '';
+      
+      // Restore general comments
+      if (formData.general_comments) {
+        document.getElementById('general_comments').value = formData.general_comments;
+      }
+      
+      // Restore week starting and regenerate days
+      if (formData.week_starting) {
+        weekStartingInput.value = formData.week_starting;
+        generateWeek();
+        
+        // Wait for DOM to update, then restore day data
+        setTimeout(() => {
+          restoreDayData(formData);
+        }, 100);
+      }
+
+      // Restore standby checkbox
+      document.getElementById('standby').checked = formData.standby || false;
+
+    } catch (err) {
+      console.error('Error restoring form data:', err);
+    }
+  }
+
+  // Restore individual day data
+  function restoreDayData(formData) {
+    document.querySelectorAll('.day-card').forEach((dayCard, dayIndex) => {
+      if (!formData.days[dayIndex]) return;
+
+      const dayData = formData.days[dayIndex];
+      const dayBody = dayCard.querySelector('.day-body');
+
+      // Handle disabled state for weekends
+      if (dayData.disabled) {
+        dayCard.classList.add('disabled');
+      } else {
+        dayCard.classList.remove('disabled');
+        
+        // For weekends, toggle the worked switch
+        const weekendToggle = dayCard.querySelector('.weekend-worked');
+        if (weekendToggle && dayData.jobs.length > 0) {
+          weekendToggle.checked = true;
+          weekendToggle.dispatchEvent(new Event('change'));
+        }
+      }
+
+      // Skip if disabled
+      if (dayData.disabled) return;
+
+      // Restore shift selection
+      if (dayData.shift) {
+        const shiftSelect = dayCard.querySelector('.shift-select');
+        if (shiftSelect) {
+          shiftSelect.value = dayData.shift;
+        }
+      }
+
+      // Restore day-level checkboxes
+      const lahaCheckbox = dayCard.querySelector('.laha-checkbox');
+      if (lahaCheckbox && dayData.laha !== undefined) {
+        lahaCheckbox.checked = dayData.laha;
+      }
+      
+      const officeCheckbox = dayCard.querySelector('.office-checkbox');
+      if (officeCheckbox && dayData.office !== undefined) {
+        officeCheckbox.checked = dayData.office;
+      }
+
+      const owncarCheckbox = dayCard.querySelector('.owncar-checkbox');
+      if (owncarCheckbox && dayData.owncar !== undefined) {
+        owncarCheckbox.checked = dayData.owncar;
+        // Trigger change event to show/hide KM field
+        if (dayData.owncar) {
+          const owncarKmField = dayCard.querySelector('.owncar-km-field');
+          if (owncarKmField) owncarKmField.style.display = 'block';
+          const owncarKmInput = dayCard.querySelector('.owncar-km-input');
+          if (owncarKmInput && dayData.owncar_km) {
+            owncarKmInput.value = dayData.owncar_km;
+          }
+        }
+      }
+
+      // Restore jobs for this day
+      const existingJobs = dayBody.querySelectorAll('.job-row');
+      
+      dayData.jobs.forEach((jobData, jobIndex) => {
+        let jobRow;
+
+        // Use existing job row or add new one
+        if (existingJobs[jobIndex]) {
+          jobRow = existingJobs[jobIndex];
+        } else {
+          // Add new job row
+          const addBtn = dayBody.querySelector('.add-job-btn');
+          addBtn.click();
+          jobRow = dayBody.querySelectorAll('.job-row')[jobIndex];
+        }
+
+        if (!jobRow) return;
+
+        // Restore job data
+        const typeSelect = jobRow.querySelector('.job-type');
+        if (typeSelect) {
+          typeSelect.value = jobData.type;
+          typeSelect.dispatchEvent(new Event('change')); // Trigger change to show/hide fields
+        }
+
+        setTimeout(() => {
+          if (jobData.other_type) {
+            const otherTypeInput = jobRow.querySelector('[name$="_other_type"]');
+            if (otherTypeInput) otherTypeInput.value = jobData.other_type;
+          }
+
+          const normalHours = jobRow.querySelector('.normal-hours');
+          if (normalHours) {
+            normalHours.value = jobData.normal_hours;
+            normalHours.dispatchEvent(new Event('input'));
+          }
+
+          const overtimeHours = jobRow.querySelector('.overtime-hours');
+          if (overtimeHours) {
+            overtimeHours.value = jobData.overtime_hours;
+            overtimeHours.dispatchEvent(new Event('input'));
+          }
+
+          const jobNumber = jobRow.querySelector('[name$="_number"]');
+          if (jobNumber) jobNumber.value = jobData.job_number;
+
+          const client = jobRow.querySelector('[name$="_client"]');
+          if (client) client.value = jobData.client;
+
+          const siteAllowance = jobRow.querySelector('[name$="_site_allowance"]');
+          if (siteAllowance) siteAllowance.checked = jobData.site_allowance;
+
+          const owncar = jobRow.querySelector('[name$="_owncar"]');
+          if (owncar && jobData.owncar !== undefined) {
+            owncar.checked = jobData.owncar;
+            // Show KM field if Own Car was checked
+            if (jobData.owncar) {
+              const owncarKmField = jobRow.querySelector('.job-owncar-km');
+              if (owncarKmField) owncarKmField.style.display = 'block';
+              const owncarKmInput = jobRow.querySelector('[name$="_owncar_km"]');
+              if (owncarKmInput && jobData.owncar_km) {
+                owncarKmInput.value = jobData.owncar_km;
+              }
+            }
+          }
+
+          const laha = jobRow.querySelector('[name$="_laha"]');
+          if (laha) laha.checked = jobData.laha;
+
+          const comment = jobRow.querySelector('[name$="_comment"]');
+          if (comment) comment.value = jobData.comment;
+        }, 50);
+      });
+    });
+  }
+
+  // Clear saved form data
+  function clearFormData() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  // Auto-save on any input change (debounced)
+  let saveTimeout;
+  function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveFormData, 500); // Save 500ms after user stops typing
+  }
+
+  // Attach auto-save listeners to the form
+  document.addEventListener('input', (e) => {
+    if (e.target.closest('#timesheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('#timesheetForm')) {
+      debouncedSave();
+    }
+  });
+
+  // Restore form data when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set default to current week's Monday
+    setWeekStarting(new Date());
+    
+    // Then restore saved data if it exists
+    setTimeout(() => {
+      restoreFormData();
+      checkAllCallOutBreaks(); // Check for call-out breaks after restore
+    }, 200);
+  });
+
+  document.getElementById('prevWeek').addEventListener('click', () => {
+    const current = new Date(weekStartingInput.value);
+    current.setDate(current.getDate() - 7);
+    setWeekStarting(current);
+  });
+
+  document.getElementById('nextWeek').addEventListener('click', () => {
+    const current = new Date(weekStartingInput.value);
+    current.setDate(current.getDate() + 7);
+    setWeekStarting(current);
+  });
+
+  weekStartingInput.addEventListener('change', () => {
+    if (weekStartingInput.value) {
+      const selectedDate = new Date(weekStartingInput.value);
+      const dayOfWeek = selectedDate.getDay();
+      
+      // If not a Monday (1), find the nearest Monday
+      if (dayOfWeek !== 1) {
+        const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // If Sunday, next day; otherwise find next Monday
+        selectedDate.setDate(selectedDate.getDate() + daysToMonday);
+        weekStartingInput.value = selectedDate.toISOString().split('T')[0];
+      }
+      
+      setWeekStarting(new Date(weekStartingInput.value));
+    }
+  });
+
+  // Add visual feedback for date picker - show only Mondays are valid
+  weekStartingInput.addEventListener('click', function() {
+    // Add a small helper text
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;font-size:11px;color:var(--text-muted);margin-top:4px;';
+    hint.textContent = 'Please select a Monday';
+    hint.id = 'monday-hint';
+    
+    if (!document.getElementById('monday-hint')) {
+      this.parentElement.appendChild(hint);
+      setTimeout(() => hint.remove(), 3000);
+    }
+  });
+
+  // ============================================================
+  // GENERATE WEEK DAYS
+  // ============================================================
+  const daysContainer = document.getElementById('timesheetDays');
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  function generateWeek() {
+    const weekStart = new Date(weekStartingInput.value);
+    daysContainer.innerHTML = '';
+
+    // Generate 7 days (Monday to Sunday) starting from the selected Monday
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      
+      const dayCard = createDayCard(date, i);
+      daysContainer.appendChild(dayCard);
+    }
+  }
+
+  function createDayCard(date, index) {
+    const dayName = dayNames[index]; // Use index directly since array is Monday-Sunday
+    const dateStr = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    const isWeekend = index >= 5; // Saturday (5) and Sunday (6)
+    
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    if (isWeekend) {
+      card.classList.add('disabled'); // Start weekends as disabled
+    }
+    card.dataset.dayIndex = index;
+    
+    card.innerHTML = `
+      <div class="day-header">
+        <div>
+          <div class="day-name">${dayName}</div>
+          <div class="day-date">${dateStr}</div>
+        </div>
+        ${isWeekend ? `
+          <div class="weekend-toggle">
+            <span class="toggle-label">Worked</span>
+            <label class="toggle-switch">
+              <input type="checkbox" class="weekend-worked" data-day="${index}"/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        ` : `
+          <div class="day-total">
+            <span class="total-hours" data-day="${index}">0.0</span> hrs
+          </div>
+        `}
+      </div>
+      <div class="day-body" data-day="${index}">
+        ${isWeekend ? `
+          <div class="day-options" style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+              <div style="flex: 0 0 auto; min-width: 120px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
+                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
+                  <option value="Day" selected>Day</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Night">Night</option>
+                </select>
+              </div>
+              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">LAHA</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Start/Finish at Office</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Own Car</span>
+                </label>
+              </div>
+            </div>
+            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
+              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
+              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
+            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
+              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
+                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
+              </label>
+              <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
+                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
+                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="day-options" style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px;">
+              <div style="flex: 0 0 auto; min-width: 120px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
+                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
+                  <option value="Day" selected>Day</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Night">Night</option>
+                </select>
+              </div>
+              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">LAHA</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Start/Finish at Office</span>
+                </label>
+                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
+                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">Own Car</span>
+                </label>
+              </div>
+            </div>
+            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
+              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
+              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+            </div>
+            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
+              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
+                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
+              </label>
+              <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
+                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
+                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        `}
+        <!-- Jobs will be added here -->
+      </div>
+    `;
+
+    const dayBody = card.querySelector('.day-body');
+    
+    // Add initial job row
+    addJobRow(dayBody, index);
+    
+    // Add "Add Job" button
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'add-job-btn';
+    addBtn.innerHTML = '+ Add Job';
+    addBtn.addEventListener('click', () => {
+      const jobCount = dayBody.querySelectorAll('.job-row').length;
+      if (jobCount < CONFIG.maxJobsPerDay) {
+        addJobRow(dayBody, index);
+        if (jobCount + 1 >= CONFIG.maxJobsPerDay) {
+          addBtn.disabled = true;
+          addBtn.textContent = `Maximum ${CONFIG.maxJobsPerDay} jobs reached`;
+        }
+      }
+    });
+    dayBody.appendChild(addBtn);
+
+    // Weekend toggle functionality
+    if (isWeekend) {
+      const toggle = card.querySelector('.weekend-worked');
+      toggle.addEventListener('change', function() {
+        if (this.checked) {
+          card.classList.remove('disabled');
+        } else {
+          card.classList.add('disabled');
+          // Clear all job entries for this day
+          const jobRows = dayBody.querySelectorAll('.job-row');
+          jobRows.forEach((row, idx) => {
+            if (idx > 0) row.remove(); // Remove all but first
+          });
+          // Clear first row
+          const firstRow = dayBody.querySelector('.job-row');
+          if (firstRow) {
+            firstRow.querySelectorAll('input, select, textarea').forEach(input => {
+              if (input.type === 'checkbox') {
+                input.checked = false;
+              } else {
+                input.value = '';
+              }
+            });
+          }
+          // Re-enable add button
+          const addButton = dayBody.querySelector('.add-job-btn');
+          addButton.disabled = false;
+          addButton.textContent = '+ Add Job';
+        }
+      });
+    }
+
+    // Own Car checkbox toggle for KM field
+    const ownCarCheckbox = card.querySelector('.owncar-checkbox');
+    const ownCarKmField = card.querySelector('.owncar-km-field');
+    if (ownCarCheckbox && ownCarKmField) {
+      ownCarCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          ownCarKmField.style.display = 'block';
+        } else {
+          ownCarKmField.style.display = 'none';
+          const kmInput = ownCarKmField.querySelector('.owncar-km-input');
+          if (kmInput) kmInput.value = '';
+        }
+      });
+    }
+
+    return card;
+  }
+
+  function addJobRow(dayBody, dayIndex) {
+    const isWeekend = dayIndex >= 5; // Saturday (5) and Sunday (6)
+    // Count existing job rows WITHIN THIS DAY ONLY
+    const existingJobs = dayBody.querySelectorAll('.job-row');
+    const jobCount = existingJobs.length;
+    const jobId = `job-${dayIndex}-${jobCount}`;
+    
+    console.log(`Creating job: ${jobId} (day ${dayIndex}, ${jobCount} existing jobs in this day)`);
+    
+    const jobRow = document.createElement('div');
+    jobRow.className = 'job-row';
+    jobRow.dataset.jobId = jobId;
+    
+    jobRow.innerHTML = `
+      <div class="job-row-header">
+        <span class="job-number-badge">JOB ${jobCount + 1}</span>
+        ${jobCount > 0 ? '<button type="button" class="remove-job">Remove</button>' : ''}
+      </div>
+      <div class="job-fields">
+        <div class="job-field full">
+          <label>Type <span class="required">*</span></label>
+          <select name="${jobId}_type" data-day="${dayIndex}" class="job-type">
+            <option value="">Select type...</option>
+            <option value="Job Number">Job Number</option>
+            <option value="Tender/Quote">Tender/Quote</option>
+            <option value="Call Out">Call Out</option>
+            <option value="Stand Down Time (Callout)">Stand Down Time (Callout)</option>
+            <option value="Stand Down Time (Shift Change)">Stand Down Time (Shift Change)</option>
+            <option value="RDO">RDO</option>
+            <option value="Annual Leave">Annual Leave</option>
+            <option value="Carer's Leave">Carer's Leave</option>
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Unpaid Leave">Unpaid Leave</option>
+            <option value="Trade School">Trade School</option>
+            <option value="TIL (Taken)">TIL (Taken)</option>
+            <option value="Travel (outside 50km radius)">Travel (outside 50km radius)</option>
+            <option value="Long Service Leave">Long Service Leave</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="job-field full other-type-field" style="display: none;">
+          <label>Specify Type</label>
+          <input type="text" name="${jobId}_other_type" placeholder="Enter type..." autocomplete="off"/>
+        </div>
+        ${!isWeekend ? `
+          <div class="job-field normal-hours-field">
+            <label>Normal Hours</label>
+            <input type="number" name="${jobId}_hours" data-day="${dayIndex}" class="job-hours normal-hours" min="0" max="8" step="0.25" placeholder="0.0" autocomplete="off"/>
+          </div>
+        ` : ''}
+        <div class="job-field overtime-hours-field ${!isWeekend ? '' : 'full'}">
+          <label class="overtime-label">Overtime Hours</label>
+          <input type="number" name="${jobId}_overtime" data-day="${dayIndex}" class="job-hours overtime-hours" min="0" max="24" step="0.25" placeholder="0.0" autocomplete="off"/>
+        </div>
+        <div class="job-field travel-time-field" style="display: none;">
+          <label>Travel Time</label>
+          <input type="number" name="${jobId}_travel_time" data-day="${dayIndex}" class="job-hours travel-hours" min="0" max="24" step="0.25" placeholder="0.0" autocomplete="off"/>
+        </div>
+        <div class="job-field job-number-field" style="display: none;">
+          <label>Job Number</label>
+          <input type="text" name="${jobId}_number" placeholder="e.g. J12345" autocomplete="off" style="text-transform: uppercase;"/>
+        </div>
+        <div class="job-field client-field" style="display: none;">
+          <label>Client</label>
+          <input type="text" name="${jobId}_client" placeholder="Client name" autocomplete="off"/>
+        </div>
+        <div class="job-field callout-received-field" style="display: none;">
+          <label>Call-Out Received Time</label>
+          <input type="time" name="${jobId}_callout_received" autocomplete="off"/>
+        </div>
+        <div class="job-field callout-complete-field" style="display: none;">
+          <label>Call-Out Complete Time</label>
+          <input type="time" name="${jobId}_callout_complete" autocomplete="off"/>
+        </div>
+        <div class="job-field full">
+          <label>Comment</label>
+          <textarea name="${jobId}_comment" rows="2" placeholder="Add notes about this job..." autocomplete="off"></textarea>
+        </div>
+      </div>
+      <div class="job-checkboxes allowance-checkboxes" style="display: none;">
+        <label class="checkbox-label">
+          <input type="checkbox" name="${jobId}_site_allowance" value="Yes"/>
+          Site Allowance
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="${jobId}_owncar" value="Yes" class="job-owncar-checkbox"/>
+          Own Car - Additional KM
+        </label>
+      </div>
+      <div class="job-owncar-km" style="display: none; margin-top: 8px; padding: 8px 12px; background: var(--brand-light); border-radius: 6px;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Additional KM in own car for this job</label>
+        <input type="number" name="${jobId}_owncar_km" class="job-owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
+      </div>
+    `;
+
+    // Insert before the "Add Job" button
+    const addBtn = dayBody.querySelector('.add-job-btn');
+    dayBody.insertBefore(jobRow, addBtn);
+
+    // Apply employee type visibility rules to new job row
+    if (typeof updateEmployeeTypeOptions === 'function') {
+      updateEmployeeTypeOptions();
+    }
+
+    // Setup event listeners
+    const typeSelect = jobRow.querySelector('.job-type');
+    const jobNumberField = jobRow.querySelector('.job-number-field');
+    const clientField = jobRow.querySelector('.client-field');
+    const otherTypeField = jobRow.querySelector('.other-type-field');
+    const calloutReceivedField = jobRow.querySelector('.callout-received-field');
+    const calloutCompleteField = jobRow.querySelector('.callout-complete-field');
+    const allowanceCheckboxes = jobRow.querySelector('.allowance-checkboxes');
+    const normalHoursInput = jobRow.querySelector('.normal-hours');
+    
+    typeSelect.addEventListener('change', (e) => {
+      const travelTimeField = jobRow.querySelector('.travel-time-field');
+      const normalHoursField = jobRow.querySelector('.normal-hours-field');
+      const overtimeHoursField = jobRow.querySelector('.overtime-hours-field');
+      
+      if (e.target.value === 'Job Number') {
+        jobNumberField.style.display = 'block';
+        clientField.style.display = 'block';
+        allowanceCheckboxes.style.display = 'flex';
+        otherTypeField.style.display = 'none';
+        calloutReceivedField.style.display = 'none';
+        calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
+      } else if (e.target.value === 'Call Out') {
+        jobNumberField.style.display = 'block';
+        clientField.style.display = 'block';
+        calloutReceivedField.style.display = 'block';
+        calloutCompleteField.style.display = 'block';
+        allowanceCheckboxes.style.display = 'flex';
+        otherTypeField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
+        
+        // Call Out is overtime-only: disable normal hours, default overtime to 4
+        if (normalHoursInput) {
+          normalHoursInput.disabled = true;
+          normalHoursInput.value = '0';
+          normalHoursInput.style.opacity = '0.5';
+          normalHoursInput.style.cursor = 'not-allowed';
+        }
+        if (overtimeHoursInput) {
+          overtimeHoursInput.disabled = false;
+          overtimeHoursInput.style.opacity = '1';
+          overtimeHoursInput.style.cursor = 'text';
+          if (!overtimeHoursInput.value || overtimeHoursInput.value === '0') {
+            overtimeHoursInput.value = '4.0';
+            updateDayTotal(dayIndex);
+          }
+        }
+        
+        // Check if we need to show 10-hour break checkbox on next day
+        checkCallOutBreak(dayIndex);
+      } else if (e.target.value === 'Travel (outside 50km radius)') {
+        // Travel: Hide normal/overtime, show travel time only
+        jobNumberField.style.display = 'none';
+        clientField.style.display = 'none';
+        allowanceCheckboxes.style.display = 'none';
+        otherTypeField.style.display = 'none';
+        calloutReceivedField.style.display = 'none';
+        calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'block';
+        if (normalHoursField) normalHoursField.style.display = 'none';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'none';
+        
+        // Clear normal and overtime when switching to travel
+        if (normalHoursInput) normalHoursInput.value = '0';
+        if (overtimeHoursInput) overtimeHoursInput.value = '0';
+      } else if (e.target.value === 'Other') {
+        jobNumberField.style.display = 'none';
+        clientField.style.display = 'none';
+        allowanceCheckboxes.style.display = 'none';
+        otherTypeField.style.display = 'block';
+        calloutReceivedField.style.display = 'none';
+        calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
+      } else {
+        jobNumberField.style.display = 'none';
+        clientField.style.display = 'none';
+        allowanceCheckboxes.style.display = 'none';
+        otherTypeField.style.display = 'none';
+        calloutReceivedField.style.display = 'none';
+        calloutCompleteField.style.display = 'none';
+        if (travelTimeField) travelTimeField.style.display = 'none';
+        if (normalHoursField) normalHoursField.style.display = 'block';
+        if (overtimeHoursField) overtimeHoursField.style.display = 'block';
+        
+        // Re-enable normal hours when not Call Out
+        if (normalHoursInput) {
+          normalHoursInput.disabled = false;
+          normalHoursInput.style.opacity = '1';
+          normalHoursInput.style.cursor = 'text';
+        }
+      }
+      
+      // Auto-fill hours for leave types - fill remaining hours up to 8
+      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
+      if (normalHoursInput && leaveTypes.includes(e.target.value)) {
+        if (!normalHoursInput.value || normalHoursInput.value === '0') {
+          // Calculate how many hours are already used on this day
+          const dayBody = normalHoursInput.closest('.day-body');
+          const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+          let totalNormal = 0;
+          allNormalInputs.forEach(input => {
+            if (input !== normalHoursInput) { // Don't count the current input
+              totalNormal += parseFloat(input.value) || 0;
+            }
+          });
+          
+          // Fill the remaining hours up to 8
+          const remainingHours = 8 - totalNormal;
+          if (remainingHours > 0) {
+            normalHoursInput.value = remainingHours.toFixed(1);
+            updateDayTotal(dayIndex); // Update the day total
+          }
+        }
+      }
+      
+      // If TIL (Taken) is selected, disable the TIL (Accrued) field
+      if (overtimeHoursInput) {
+        if (e.target.value === 'TIL (Taken)') {
+          overtimeHoursInput.disabled = true;
+          overtimeHoursInput.value = '0';
+          overtimeHoursInput.style.opacity = '0.5';
+          overtimeHoursInput.style.cursor = 'not-allowed';
+        } else {
+          overtimeHoursInput.disabled = false;
+          overtimeHoursInput.style.opacity = '1';
+          overtimeHoursInput.style.cursor = 'text';
+        }
+      }
+    });
+
+    // Hours change - update total (both normal and overtime)
+    const overtimeHoursInput = jobRow.querySelector('.overtime-hours');
+    
+    if (normalHoursInput) {
+      normalHoursInput.addEventListener('input', () => {
+        // Check if total normal hours for the day exceed 8
+        const dayBody = normalHoursInput.closest('.day-body');
+        const allNormalInputs = dayBody.querySelectorAll('.normal-hours');
+        let totalNormal = 0;
+        allNormalInputs.forEach(input => {
+          totalNormal += parseFloat(input.value) || 0;
+        });
+        
+        if (totalNormal > 8) {
+          normalHoursInput.setCustomValidity('Total normal hours for this day cannot exceed 8 hours');
+          normalHoursInput.reportValidity();
+          // Reset to max allowed
+          const currentVal = parseFloat(normalHoursInput.value) || 0;
+          const excess = totalNormal - 8;
+          normalHoursInput.value = (currentVal - excess).toFixed(1);
+        } else {
+          normalHoursInput.setCustomValidity('');
+        }
+        
+        updateDayTotal(dayIndex);
+      });
+    }
+    
+    if (overtimeHoursInput) {
+      overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
+    }
+
+    // Remove button
+    const removeBtn = jobRow.querySelector('.remove-job');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        jobRow.remove();
+        updateDayTotal(dayIndex);
+        renumberJobs(dayBody);
+        
+        // Re-enable add button if we're under the limit
+        const currentCount = dayBody.querySelectorAll('.job-row').length;
+        const addButton = dayBody.querySelector('.add-job-btn');
+        if (currentCount < CONFIG.maxJobsPerDay) {
+          addButton.disabled = false;
+          addButton.textContent = '+ Add Job';
+        }
+      });
+    }
+
+    // Auto-uppercase job number field
+    const jobNumberInput = jobRow.querySelector('[name$="_number"]');
+    if (jobNumberInput) {
+      jobNumberInput.addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
+      });
+    }
+
+    // Call-Out time auto-fill: set complete time to 2 hours after received time
+    const calloutReceivedInput = jobRow.querySelector('[name$="_callout_received"]');
+    const calloutCompleteInput = jobRow.querySelector('[name$="_callout_complete"]');
+    
+    if (calloutReceivedInput && calloutCompleteInput) {
+      calloutReceivedInput.addEventListener('change', function() {
+        if (this.value && !calloutCompleteInput.value) {
+          // Parse the received time
+          const [hours, minutes] = this.value.split(':').map(Number);
+          
+          // Add 2 hours
+          let newHours = hours + 2;
+          let newMinutes = minutes;
+          
+          // Handle day rollover (e.g., 23:00 + 2 hours = 01:00)
+          if (newHours >= 24) {
+            newHours = newHours - 24;
+          }
+          
+          // Format to HH:MM
+          const formattedHours = String(newHours).padStart(2, '0');
+          const formattedMinutes = String(newMinutes).padStart(2, '0');
+          
+          calloutCompleteInput.value = `${formattedHours}:${formattedMinutes}`;
+        }
+      });
+    }
+
+    // Own Car checkbox toggle for additional KM field (job level)
+    const jobOwnCarCheckbox = jobRow.querySelector('.job-owncar-checkbox');
+    const jobOwnCarKmField = jobRow.querySelector('.job-owncar-km');
+    if (jobOwnCarCheckbox && jobOwnCarKmField) {
+      jobOwnCarCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          jobOwnCarKmField.style.display = 'block';
+        } else {
+          jobOwnCarKmField.style.display = 'none';
+          const kmInput = jobOwnCarKmField.querySelector('.job-owncar-km-input');
+          if (kmInput) kmInput.value = '';
+        }
+      });
+    }
+    
+    // Apply employee type restrictions to this newly added job row
+    const employeeType = document.getElementById('employee_type').value;
+    if (employeeType) {
+      updateEmployeeTypeOptions();
+    }
+  }
+
+  function renumberJobs(dayBody) {
+    const jobs = dayBody.querySelectorAll('.job-row');
+    jobs.forEach((job, index) => {
+      const badge = job.querySelector('.job-number-badge');
+      badge.textContent = `JOB ${index + 1}`;
+    });
+  }
+
+  function updateDayTotal(dayIndex) {
+    const dayBody = document.querySelector(`.day-body[data-day="${dayIndex}"]`);
+    const normalInputs = dayBody.querySelectorAll('.normal-hours');
+    const overtimeInputs = dayBody.querySelectorAll('.overtime-hours');
+    let total = 0;
+    normalInputs.forEach(input => {
+      const val = parseFloat(input.value) || 0;
+      total += val;
+    });
+    overtimeInputs.forEach(input => {
+      const val = parseFloat(input.value) || 0;
+      total += val;
+    });
+    const totalDisplay = document.querySelector(`.total-hours[data-day="${dayIndex}"]`);
+    if (totalDisplay) {
+      totalDisplay.textContent = total.toFixed(1);
+    }
+  }
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+    let firstErrorElement = null;
+
+    // Clear all previous errors
+    document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        if (!firstErrorElement) firstErrorElement = grp;
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const name = document.getElementById('employee_name').value.trim();
+    const email = document.getElementById('employee_email').value.trim();
+    const employeeType = document.getElementById('employee_type').value;
+    const weekStarting = weekStartingInput.value;
+
+    check('group-name', name.length > 1);
+    check('group-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    check('group-employee-type', !!employeeType);
+    check('group-week', !!weekStarting);
+
+    // Track which weekdays (0-4 = Mon-Fri) have hours
+    const weekdaysWithHours = new Set();
+    let totalWeeklyNormalHours = 0;
+    const allJobRows = document.querySelectorAll('.job-row');
+    
+    allJobRows.forEach(row => {
+      const typeSelect = row.querySelector('.job-type');
+      const normalHoursInput = row.querySelector('.normal-hours');
+      const overtimeHoursInput = row.querySelector('.overtime-hours');
+      const travelHoursInput = row.querySelector('.travel-hours');
+      
+      // Get the day index from the job row's ID or parent
+      const jobId = row.dataset.jobId || '';
+      const dayMatch = jobId.match(/job-(\d+)-/);
+      if (!dayMatch) return;
+      
+      const dayIndex = parseInt(dayMatch[1]);
+      
+      // Only validate if type is selected or any hours entered
+      const normalValue = normalHoursInput ? normalHoursInput.value : '';
+      const overtimeValue = overtimeHoursInput ? overtimeHoursInput.value : '';
+      const travelValue = travelHoursInput ? travelHoursInput.value : '';
+      const hasData = typeSelect.value || normalValue || overtimeValue || travelValue;
+      
+      if (hasData) {
+        // If type is selected, require hours
+        if (!typeSelect.value) {
+          typeSelect.classList.add('error');
+          if (!firstErrorElement) firstErrorElement = typeSelect;
+          valid = false;
+        }
+        const normalHours = parseFloat(normalValue) || 0;
+        const overtimeHours = parseFloat(overtimeValue) || 0;
+        const travelHours = parseFloat(travelValue) || 0;
+        
+        // Count normal hours for weekly total (excluding Travel)
+        if (typeSelect.value !== 'Travel (outside 50km radius)') {
+          totalWeeklyNormalHours += normalHours;
+        }
+        
+        // For Travel, check travel hours; for others, check normal/overtime
+        if (typeSelect.value === 'Travel (outside 50km radius)') {
+          if (travelHours <= 0) {
+            if (travelHoursInput) {
+              travelHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = travelHoursInput;
+            }
+            valid = false;
+          } else {
+            // Has valid travel hours - mark this day as complete
+            if (dayIndex >= 0 && dayIndex <= 4) {
+              weekdaysWithHours.add(dayIndex);
+            }
+          }
+        } else {
+          if (normalHours <= 0 && overtimeHours <= 0) {
+            if (normalHoursInput) {
+              normalHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = normalHoursInput;
+            }
+            if (overtimeHoursInput) {
+              overtimeHoursInput.classList.add('error');
+              if (!firstErrorElement) firstErrorElement = overtimeHoursInput;
+            }
+            valid = false;
+          } else {
+            // Has valid hours - mark this day as complete
+            if (dayIndex >= 0 && dayIndex <= 4) { // Only weekdays
+              weekdaysWithHours.add(dayIndex);
+            }
+          }
+        }
+      }
+    });
+
+    // Check that ALL 5 weekdays (Mon-Fri, indices 0-4) have hours
+    const missingDays = [];
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    for (let i = 0; i < 5; i++) {
+      if (!weekdaysWithHours.has(i)) {
+        missingDays.push(dayNames[i]);
+      }
+    }
+
+    if (missingDays.length > 0) {
+      alert(`Please enter hours for all weekdays before submitting.\n\nMissing: ${missingDays.join(', ')}`);
+      valid = false;
+      
+      // Scroll to first missing day
+      const firstMissingIndex = dayNames.indexOf(missingDays[0]);
+      const firstMissingCard = document.querySelector(`.day-card:nth-child(${firstMissingIndex + 1})`);
+      if (firstMissingCard && !firstErrorElement) {
+        firstErrorElement = firstMissingCard;
+      }
+    }
+    
+    // Check that weekly normal hours equals 40 (excluding Travel)
+    if (totalWeeklyNormalHours !== 40) {
+      alert(`Total normal hours must equal 40 hours per week.\n\nCurrent total: ${totalWeeklyNormalHours.toFixed(2)} hours\n\n(Note: Travel hours are excluded from this count)`);
+      valid = false;
+      if (!firstErrorElement) {
+        firstErrorElement = document.querySelector('.day-card');
+      }
+    }
+
+    // Scroll to first error
+    if (!valid && firstErrorElement) {
+      firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    return valid;
+  }
+
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
+  const timesheetForm = document.getElementById('timesheetForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  // ============================================================
+  // PDF GENERATION (client-side via jsPDF)
+  // ============================================================
+  async function buildTimesheetPDF(formData) {
+    if (!window.jspdf?.jsPDF) throw new Error('jsPDF not loaded');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const employeeName = formData.employee_name || '';
+    const employeeEmail = formData.employee_email || '';
+    const employeeType = formData.employee_type || '';
+    const weekStarting = formData.week_starting || '';
+    const generalComments = formData.general_comments || '';
+    const standby = formData.standby === 'on';
+    const firstAid = formData.allowance_first_aid === 'on';
+    const constructionWiring = formData.allowance_construction_wiring === 'on';
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    // Try to load logo (orange brand)
+    const logoData = await loadImageAsDataURL('../Bromar-Primary-Logo-Full-Colour.png').catch(() => null);
+
+    // Submitted-at timestamp (Melbourne)
+    const submittedAt = new Date();
+    const submittedAtMelb = submittedAt.toLocaleString('en-AU', {
+      timeZone: 'Australia/Melbourne',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+
+    // ── Header ──
+    if (logoData) {
+      // Preserve aspect ratio — fit within 36mm wide × 14mm tall
+      const maxW = 36, maxH = 14;
+      let w = maxW, h = maxW / logoData.aspectRatio;
+      if (h > maxH) { h = maxH; w = maxH * logoData.aspectRatio; }
+      try { doc.addImage(logoData.dataUrl, 'PNG', margin, 10, w, h); } catch (_) {}
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(17, 24, 39);
+    doc.text('Timesheet Submission', pageW - margin, 14, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(employeeName, pageW - margin, 19, { align: 'right' });
+    doc.setFontSize(8);
+    doc.text(`Submitted: ${submittedAtMelb}`, pageW - margin, 24, { align: 'right' });
+
+    // Orange accent bar
+    doc.setFillColor(194, 68, 14);
+    doc.rect(margin, 28, pageW - margin * 2, 1, 'F');
+
+    // ── Employee block ──
+    let y = 36;
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EMPLOYEE', margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(17, 24, 39);
+    doc.text(`Name: ${employeeName}`, margin, y); y += 4.5;
+    doc.text(`Email: ${employeeEmail}`, margin, y); y += 4.5;
+    doc.text(`Type: ${employeeType}`, margin, y); y += 4.5;
+    doc.text(`Week Starting: ${weekStarting ? new Date(weekStarting).toLocaleDateString('en-AU') : ''}`, margin, y); y += 4.5;
+    if (standby) { doc.text('On-Call Standby: Yes', margin, y); y += 4.5; }
+    const weeklyAllowances = [];
+    if (firstAid) weeklyAllowances.push('First Aid');
+    if (constructionWiring) weeklyAllowances.push('Construction Wiring');
+    if (weeklyAllowances.length) { doc.text(`Weekly Allowances: ${weeklyAllowances.join(', ')}`, margin, y); y += 4.5; }
+
+    // ── Parse jobs from formData (same pattern as backend) ──
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const rows = [];
+    let totalNormal = 0, totalOT = 0, totalTravel = 0;
+
+    for (let d = 0; d < 7; d++) {
+      const dayPrefix = `day_${d}`;
+      const shift = formData[`${dayPrefix}_shift`] || '';
+      const laha = formData[`${dayPrefix}_laha`] === 'on';
+      const office = formData[`${dayPrefix}_office`] === 'on';
+      const owncar = formData[`${dayPrefix}_owncar`] === 'on';
+      const owncarKm = formData[`${dayPrefix}_owncar_km`] || '0';
+
+      let j = 0;
+      while (formData[`job-${d}-${j}_type`] !== undefined) {
+        const p = `job-${d}-${j}`;
+        let type = formData[`${p}_type`];
+        const otherType = (formData[`${p}_other_type`] || '').trim();
+        if (type === 'Other' && otherType) type = `Other: ${otherType}`;
+
+        const normal = parseFloat(formData[`${p}_hours`]) || 0;
+        const ot = parseFloat(formData[`${p}_overtime`]) || 0;
+        const travel = parseFloat(formData[`${p}_travel_time`]) || 0;
+
+        if (type && (normal > 0 || ot > 0 || travel > 0)) {
+          const allowances = [];
+          if (formData[`${p}_site_allowance`] === 'on') allowances.push('Site');
+          if (laha) allowances.push('LAHA');
+          if (office) allowances.push('Office');
+          if (owncar) allowances.push(`Own Car (${owncarKm}km)`);
+          if (formData[`${p}_owncar`] === 'on') allowances.push(`+${formData[`${p}_owncar_km`] || 0}km`);
+
+          rows.push([
+            days[d],
+            shift || '-',
+            type,
+            normal ? normal.toFixed(2) : '-',
+            ot ? ot.toFixed(2) : '-',
+            travel ? travel.toFixed(2) : '-',
+            formData[`${p}_number`] || '-',
+            formData[`${p}_client`] || '-',
+            allowances.join(', ') || '-',
+            formData[`${p}_comment`] || '-'
+          ]);
+          totalNormal += normal;
+          totalOT += ot;
+          totalTravel += travel;
+        }
+        j++;
+      }
+    }
+
+    // ── Totals summary boxes ──
+    y += 4;
+    const boxW = (pageW - margin * 2 - 9) / 4;
+    const boxH = 16;
+    const totals = [
+      { label: 'NORMAL', value: totalNormal.toFixed(2), color: [26, 86, 219] },
+      { label: 'OVERTIME', value: totalOT.toFixed(2), color: [245, 158, 11] },
+      { label: 'TRAVEL', value: totalTravel.toFixed(2), color: [147, 51, 234] },
+      { label: 'TOTAL', value: (totalNormal + totalOT + totalTravel).toFixed(2), color: [14, 159, 110] }
+    ];
+    totals.forEach((t, i) => {
+      const x = margin + i * (boxW + 3);
+      doc.setDrawColor(229, 231, 235);
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(x, y, boxW, boxH, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...t.color);
+      doc.text(t.label, x + 2, y + 5);
+      doc.setFontSize(14);
+      doc.setTextColor(17, 24, 39);
+      doc.text(t.value, x + 2, y + 13);
+    });
+    y += boxH + 6;
+
+    // ── Entries table ──
+    doc.autoTable({
+      startY: y,
+      head: [['Day', 'Shift', 'Type', 'Normal', 'OT', 'Travel', 'Job #', 'Client', 'Allowances', 'Comment']],
+      body: rows.length ? rows : [['—', '—', 'No entries', '', '', '', '', '', '', '']],
+      styles: { fontSize: 7.5, cellPadding: 1.8, overflow: 'linebreak' },
+      headStyles: { fillColor: [26, 86, 219], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      columnStyles: {
+        0: { cellWidth: 16 },
+        1: { cellWidth: 11 },
+        3: { cellWidth: 13, halign: 'right' },
+        4: { cellWidth: 11, halign: 'right' },
+        5: { cellWidth: 13, halign: 'right' },
+        6: { cellWidth: 18 }
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    // ── General comments ──
+    let afterTable = doc.lastAutoTable.finalY + 6;
+    if (generalComments && generalComments !== 'No additional comments') {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text('GENERAL COMMENTS', margin, afterTable);
+      afterTable += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(17, 24, 39);
+      const lines = doc.splitTextToSize(generalComments, pageW - margin * 2);
+      doc.text(lines, margin, afterTable);
+    }
+
+    // ── Page footer on every page ──
+    const total = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+      doc.setPage(p);
+      doc.setFontSize(7.5);
+      doc.setTextColor(156, 163, 175);
+      const footerY = doc.internal.pageSize.getHeight() - 8;
+      doc.text(`Bromar Hub — Timesheet Submission`, margin, footerY);
+      doc.text(`Page ${p} of ${total}`, pageW - margin, footerY, { align: 'right' });
+    }
+
+    // Return base64 + filename
+    const datauri = doc.output('datauristring');
+    const base64 = datauri.split(',')[1];
+    const safeName = (employeeName || 'timesheet').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const filename = `timesheet-${safeName}-${weekStarting || 'week'}.pdf`;
+    return { filename, content: base64 };
+  }
+
+  function loadImageAsDataURL(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          resolve({
+            dataUrl: canvas.toDataURL('image/png'),
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            aspectRatio: img.naturalWidth / img.naturalHeight
+          });
+        } catch (e) { reject(e); }
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  timesheetForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+
+    if (!validateForm()) {
+      submitBtn.disabled = false;
+      return;
+    }
+
+    // Show loading overlay (provided by bromar-hub.js)
+    window.BromarHub?.showLoading('Preparing submission…', 'Just a moment');
+
+    try {
+      // Collect all form data
+      const formData = new FormData(timesheetForm);
+      
+      // Debug: Log what we're sending
+      console.log('=== FORM SUBMISSION DEBUG ===');
+      const debugData = {};
+      for (const [key, value] of formData) {
+        debugData[key] = value;
+        if (key.includes('job-') || key.includes('day_')) {
+          console.log(`${key}: ${value}`);
+        }
+      }
+      console.log('Total fields:', Object.keys(debugData).length);
+
+      // Build PDF attachment (client-side)
+      window.BromarHub?.showLoading('Generating PDF…', 'Building your timesheet attachment');
+      let pdfAttachment = null;
+      try {
+        pdfAttachment = await buildTimesheetPDF(debugData);
+        console.log('PDF generated:', pdfAttachment?.filename, 'size:', pdfAttachment?.content?.length, 'chars');
+      } catch (pdfErr) {
+        console.error('PDF generation FAILED — admin will not receive attachment:', pdfErr);
+      }
+
+      window.BromarHub?.showLoading('Saving to database…', 'Sending confirmation email');
+
+      // Build payload — JSON so we can include base64 PDF
+      const payload = {
+        form: debugData,
+        pdf: pdfAttachment  // { filename, content (base64) } or null
+      };
+
+      const response = await fetch('/api/submit-timesheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        window.BromarHub?.hideLoading();
+        // Hide form + title, show success screen
+        clearFormData();  // remove auto-saved data
+        document.getElementById('formCard').style.display = 'none';
+        document.getElementById('pageTitleWrapper').style.display = 'none';
+
+        const weekText = document.getElementById('successWeekText');
+        const weekVal = debugData.week_starting;
+        if (weekText && weekVal) {
+          weekText.textContent = `Week starting ${new Date(weekVal).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+        }
+        document.getElementById('successScreen').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        throw new Error(result.error || 'Form submission failed');
+      }
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      window.BromarHub?.hideLoading();
+      alert('Something went wrong submitting the form. Please try again or contact admin@bromar.com.au directly.\n\nError: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Timesheet';
+      window.BromarHub?.hideLoading();
+    }
+  });
+
+  // Clear error state on input change
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+      e.target.classList.remove('error');
+    }
+  });
+
+  // Clear form reset
+  timesheetForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      clearFormData(); // Clear auto-saved data
+      setWeekStarting(new Date());
+      generateWeek(); // Regenerate week to reset all defaults
+    }, 10);
+  });
+
+  // New Timesheet button — refresh page for a clean form
+  document.getElementById('newTimesheetBtn')?.addEventListener('click', () => {
+    window.location.reload();
+  });
+
+  // Top Clear button
+  document.getElementById('topClearBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear the entire timesheet? This will delete all entered data.')) {
+      timesheetForm.reset();
+      clearFormData(); // Clear auto-saved data
+      setWeekStarting(new Date());
+      // Regenerate week to reset all checkboxes and defaults
+      generateWeek();
+    }
+  });
+
+  // ============================================================
+  // EMPLOYEE TYPE HANDLER - Show/Hide options based on type
+  // ============================================================
+  const employeeTypeSelect = document.getElementById('employee_type');
+  const constructionWiringCheckbox = document.getElementById('allowance_construction_wiring').closest('label');
+  
+  function updateEmployeeTypeOptions() {
+    const employeeType = employeeTypeSelect.value;
+    const isEngineer = employeeType === 'Engineer';
+    const isElectrician = employeeType === 'Electrician';
+    const isApprentice = employeeType === 'Apprentice';
+    const isOther = employeeType === 'Other';
+    
+    // Update Overtime labels to TIL for Engineers
+    const allOvertimeLabels = document.querySelectorAll('.overtime-label');
+    allOvertimeLabels.forEach(label => {
+      label.textContent = isEngineer ? 'Time in Lieu (Accrued)' : 'Overtime Hours';
+    });
+    
+    // Show/hide Construction Wiring based on employee type
+    if (isElectrician) {
+      constructionWiringCheckbox.style.display = 'inline-flex';
+    } else {
+      constructionWiringCheckbox.style.display = 'none';
+      document.getElementById('allowance_construction_wiring').checked = false;
+    }
+    
+    // Update job type dropdowns based on employee type
+    document.querySelectorAll('.job-type').forEach(select => {
+      const tradeSchoolOption = select.querySelector('option[value="Trade School"]');
+      const tilOption = select.querySelector('option[value="TIL (Taken)"]');
+      const rdoOption = select.querySelector('option[value="RDO"]');
+      const longServiceOption = select.querySelector('option[value="Long Service Leave"]');
+      
+      // Electrician: Remove TIL and Trade School
+      if (isElectrician) {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'block';
+      }
+      // Apprentice: Remove TIL and Long Service Leave
+      else if (isApprentice) {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'block';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'none';
+      }
+      // Engineer: Remove RDO
+      else if (isEngineer) {
+        if (tilOption) tilOption.style.display = 'block';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'none';
+        if (longServiceOption) longServiceOption.style.display = 'block';
+      }
+      // Other: All options available
+      else if (isOther) {
+        if (tilOption) tilOption.style.display = 'block';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'block';
+        if (rdoOption) rdoOption.style.display = 'block';
+        if (longServiceOption) longServiceOption.style.display = 'block';
+      }
+      // Default: Hide all special options
+      else {
+        if (tilOption) tilOption.style.display = 'none';
+        if (tradeSchoolOption) tradeSchoolOption.style.display = 'none';
+        if (rdoOption) rdoOption.style.display = 'none';
+        if (longServiceOption) longServiceOption.style.display = 'none';
+      }
+    });
+  }
+  
+  employeeTypeSelect.addEventListener('change', updateEmployeeTypeOptions);
+  
+  // Apply initial visibility on page load
+  updateEmployeeTypeOptions();
+
+  // ============================================================
+  // CALL-OUT BREAK CHECKER
+  // ============================================================
+  function checkCallOutBreak(currentDayIndex) {
+    // Check if previous day had a call-out
+    if (currentDayIndex === 0) return; // Can't check before Monday
+    
+    const allDayCards = document.querySelectorAll('.day-card');
+    const previousDayCard = allDayCards[currentDayIndex - 1];
+    const currentDayCard = allDayCards[currentDayIndex];
+    
+    if (!previousDayCard || !currentDayCard) return;
+    
+    // Check if previous day has any Call Out job type
+    const previousDayJobs = previousDayCard.querySelectorAll('.job-type');
+    let hasCallOut = false;
+    
+    previousDayJobs.forEach(select => {
+      if (select.value === 'Call Out') {
+        hasCallOut = true;
+      }
+    });
+    
+    // Show/hide the 10-hour break warning on current day
+    const breakWarning = currentDayCard.querySelector('.callout-break-warning');
+    if (breakWarning) {
+      breakWarning.style.display = hasCallOut ? 'block' : 'none';
+    }
+  }
+  
+  // Check all days for call-out breaks when form loads or changes
+  function checkAllCallOutBreaks() {
+    const allDayCards = document.querySelectorAll('.day-card');
+    allDayCards.forEach((card, index) => {
+      checkCallOutBreak(index);
+    });
+  }
+
+  // Theme handling is provided by bromar-hub.js
+</script>
+
+<!-- Bromar Hub Auth -->
+<script src="/tools/auth.js"></script>
+
+<!-- Bromar Hub Shared JS -->
+<script src="../tools/bromar-hub.js" defer></script>
+
+<!-- Auto-populate logged-in user -->
+<script defer>
+  (async function autoFillLoggedInUser() {
+    // Wait for Supabase client (provided by bromar-hub.js)
+    let tries = 0;
+    while (!window.sb && tries < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if (!window.sb) return;
+
+    try {
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (!user) return;
+
+      const nameInput  = document.getElementById('employee_name');
+      const emailInput = document.getElementById('employee_email');
+      const nameLabel  = document.querySelector('label[for="employee_name"]');
+
+      // Resolve display name: employees table → user_metadata → email prefix
+      let displayName = '';
+      try {
+        const { data: emp } = await window.sb
+          .from('employees')
+          .select('full_name')
+          .eq('email', user.email)
+          .maybeSingle();
+        if (emp?.full_name) displayName = emp.full_name;
+      } catch (_) { /* table may not exist; fall through */ }
+
+      if (!displayName) {
+        displayName = user.user_metadata?.full_name
+                   || user.user_metadata?.name
+                   || (user.email ? user.email.split('@')[0] : '');
+      }
+
+      // Fill + lock
+      if (nameInput && displayName) {
+        nameInput.value = displayName;
+        nameInput.readOnly = true;
+        nameInput.style.cursor = 'not-allowed';
+        nameInput.style.opacity = '0.85';
+      }
+      if (emailInput && user.email) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+        emailInput.style.cursor = 'not-allowed';
+        emailInput.style.opacity = '0.85';
+      }
+
+      // Logged-in badge next to Full Name label
+      if (nameLabel && !nameLabel.querySelector('.logged-in-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'logged-in-badge';
+        badge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;color:var(--success,#0e9f6e);font-size:0.75rem;font-weight:600;margin-left:8px;';
+        badge.innerHTML = '🔒 <span>Logged in</span>';
+        nameLabel.appendChild(badge);
+      }
+
+      // Persist via global so other code can read it
+      window.currentUser = { name: displayName, email: user.email || '' };
+    } catch (err) {
+      console.warn('[Timesheet] auto-fill failed:', err);
+    }
+  })();
+</script>
+
+</body>
+</html>      display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
