@@ -546,12 +546,13 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="schedules" data-keywords="callout roster on call emergency after hours weekend contact">
-                            <svg class="card-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                            <h3 class="card-title">Callout Roster</h3>
-                            <p class="card-description">View current after-hours callout roster</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="schedules/callout-roster.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="schedules" data-keywords="callout roster on call emergency after hours weekend contact">
+                                <svg class="card-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <h3 class="card-title">Callout Roster</h3>
+                                <p class="card-description">View current after-hours callout roster</p>
+                            </div>
+                        </a>
 
                         <div class="card" data-category="schedules" data-keywords="rdo roster schedule days off planned leave weekly monthly">
                             <svg class="card-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -702,7 +703,7 @@
         </footer>
     </div>
 
-    <div class="revision-number">V3.03</div>
+    <div class="revision-number">V3.05</div>
 
     <script>
         // SUPABASE AUTH
@@ -829,44 +830,127 @@
         const searchResults = document.getElementById('searchResults');
         const searchResultsGrid = document.getElementById('searchResultsGrid');
         const allSections = document.getElementById('allSections');
+        const announcementBanner = document.querySelector('.announcement-banner');
 
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            if (searchTerm === '') {
-                allSections.style.display = 'block';
-                searchResults.classList.remove('active');
-                searchResultsGrid.innerHTML = '';
-                return;
-            }
-            allSections.style.display = 'none';
-            searchResults.classList.add('active');
-            searchResultsGrid.innerHTML = '';
-            let hasResults = false;
+        // Build search index once for performance
+        let searchIndex = [];
+        function buildSearchIndex() {
+            searchIndex = [];
             const sections = document.querySelectorAll('#allSections > section');
-            const addedCards = new Set();
+            const seen = new Set();
+            
             sections.forEach(section => {
                 const sectionTitle = section.querySelector('.section-title')?.textContent.toLowerCase() || '';
                 const grid = section.querySelector('.grid');
                 if (!grid) return;
-                const directChildren = Array.from(grid.children).filter(child => child.nodeType === 1);
-                directChildren.forEach(child => {
-                    let card = child.classList.contains('card') ? child : child.querySelector('.card');
+                
+                Array.from(grid.children).filter(child => child.nodeType === 1).forEach(child => {
+                    const card = child.classList.contains('card') ? child : child.querySelector('.card');
                     if (!card) return;
-                    const title = card.querySelector('.card-title')?.textContent || '';
-                    const description = card.querySelector('.card-description')?.textContent || '';
+                    
+                    const title = (card.querySelector('.card-title')?.textContent || '').trim();
+                    const description = (card.querySelector('.card-description')?.textContent || '').trim();
                     const uniqueId = title + '|' + description;
-                    if (addedCards.has(uniqueId)) return;
-                    const keywords = card.getAttribute('data-keywords')?.toLowerCase() || '';
-                    const category = card.getAttribute('data-category')?.toLowerCase() || '';
-                    if (sectionTitle.includes(searchTerm) || title.toLowerCase().includes(searchTerm) || description.toLowerCase().includes(searchTerm) || keywords.includes(searchTerm) || category.includes(searchTerm)) {
-                        hasResults = true;
-                        addedCards.add(uniqueId);
-                        searchResultsGrid.appendChild(child.cloneNode(true));
-                    }
+                    if (seen.has(uniqueId)) return;
+                    seen.add(uniqueId);
+                    
+                    searchIndex.push({
+                        element: child,
+                        sectionTitle: sectionTitle,
+                        title: title.toLowerCase(),
+                        titleOriginal: title,
+                        description: description.toLowerCase(),
+                        keywords: (card.getAttribute('data-keywords') || '').toLowerCase(),
+                        category: (card.getAttribute('data-category') || '').toLowerCase()
+                    });
                 });
             });
-            if (!hasResults) {
+        }
+
+        // Debounce helper to reduce calls while typing
+        let searchTimeout;
+        function debounceSearch(fn, delay = 150) {
+            return function(...args) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        function performSearch(searchTerm) {
+            searchTerm = searchTerm.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                allSections.style.display = 'block';
+                if (announcementBanner) announcementBanner.style.display = '';
+                searchResults.classList.remove('active');
+                searchResultsGrid.innerHTML = '';
+                return;
+            }
+            
+            // Hide announcement banner during search
+            if (announcementBanner) announcementBanner.style.display = 'none';
+            allSections.style.display = 'none';
+            searchResults.classList.add('active');
+            
+            // Split search term into words for multi-word matching
+            const searchWords = searchTerm.split(/\s+/).filter(w => w.length > 0);
+            
+            // Score each item based on match quality
+            const results = searchIndex.map(item => {
+                let score = 0;
+                
+                searchWords.forEach(word => {
+                    // Title exact match (highest priority)
+                    if (item.title === word) score += 100;
+                    // Title starts with word
+                    else if (item.title.startsWith(word)) score += 50;
+                    // Title contains word
+                    else if (item.title.includes(word)) score += 30;
+                    
+                    // Section title match
+                    if (item.sectionTitle.includes(word)) score += 20;
+                    
+                    // Description match
+                    if (item.description.includes(word)) score += 10;
+                    
+                    // Keywords match
+                    if (item.keywords.includes(word)) score += 15;
+                    
+                    // Category match
+                    if (item.category.includes(word)) score += 5;
+                });
+                
+                return { item, score };
+            })
+            .filter(r => r.score > 0)
+            .sort((a, b) => b.score - a.score);
+            
+            // Render results
+            searchResultsGrid.innerHTML = '';
+            
+            if (results.length === 0) {
                 searchResultsGrid.innerHTML = '<div class="no-results">No results found. Try a different search term.</div>';
+                return;
+            }
+            
+            const fragment = document.createDocumentFragment();
+            results.forEach(r => fragment.appendChild(r.item.element.cloneNode(true)));
+            searchResultsGrid.appendChild(fragment);
+        }
+
+        // Build index on load
+        buildSearchIndex();
+
+        // Debounced search handler
+        searchInput.addEventListener('input', debounceSearch((e) => {
+            performSearch(e.target.value);
+        }, 100));
+
+        // Allow Escape key to clear search
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                performSearch('');
             }
         });
     </script>
