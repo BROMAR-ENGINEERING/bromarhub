@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Call-Out Roster Calendar - Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    .page-wrapper {
+      margin-top: 90px;
+    }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+      outline: none;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--input-bg);
+      border-radius: var(--radius-sm);
+    }
+
+    .month-nav button {
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 6px;
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .month-nav button:hover {
+      border-color: var(--brand-orange);
+      color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+    }
+
+    .month-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: var(--divider);
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .day-header {
+      background: var(--input-bg);
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .day-cell {
+      background: var(--brand-white);
+      min-height: 120px;
+      padding: 8px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .day-cell:hover {
+      background: var(--input-bg);
+    }
+
+    .day-cell.other-month {
+      opacity: 0.4;
+    }
+
+    .day-cell.today {
+      background: var(--brand-orange-soft);
+      border: 2px solid var(--brand-orange);
+    }
+
+    .day-number {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .day-cell.weekend .day-number {
+      color: var(--brand-orange);
+    }
+
+    .event-item {
+      background: var(--brand-orange-soft);
+      border-left: 3px solid var(--brand-orange);
+      padding: 4px 6px;
+      margin-bottom: 3px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event-item.highlight {
+      background: #fef3c7;
+      border-left-color: var(--warning);
+      font-weight: 600;
+    }
+
+    .legend {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--input-bg);
+      border-radius: var(--radius-sm);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .legend-color {
+      width: 24px;
+      height: 16px;
+      border-radius: 3px;
+      border-left: 3px solid;
+    }
+
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider, #e5e7eb);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--brand-orange, #c2440e);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded, #9ca3af);
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .calendar-grid {
+        font-size: 0.8rem;
+      }
+      .day-cell {
+        min-height: 80px;
+        padding: 4px;
+      }
+      .event-item {
+        font-size: 0.65rem;
+        padding: 2px 4px;
+      }
+      .month-title {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <div id="bromar-header"></div>
+
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">Call-Out Roster Calendar</h1>
+    <p class="header-subtitle">View and search the on-call schedule for standby and call-out coverage</p>
+  </div>
+
+  <div class="form-card">
+    <div class="success-banner" id="loadingBanner" style="display: none;">
+      <span>⏳</span>
+      <span>Loading roster from database...</span>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search employee name...">
+      </div>
+    </div>
+
+    <div class="month-nav">
+      <button id="prevMonth">←</button>
+      <div class="month-title" id="monthTitle">January 2025</div>
+      <button id="nextMonth">→</button>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid">
+      <!-- Calendar will be generated here -->
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--brand-orange-soft); border-left-color: var(--brand-orange);"></div>
+        <span>On Call / Standby</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #fef3c7; border-left-color: var(--warning);"></div>
+        <span>Highlighted (Search Match)</span>
+      </div>
+      <div class="legend-item">
+        <div style="width: 16px; height: 16px; background: var(--brand-orange-soft); border: 2px solid var(--brand-orange); border-radius: 3px;"></div>
+        <span>Today</span>
+      </div>
+      <div class="legend-item" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--divider); font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+        Note: Calendar automatically filters events by shift type (Weekend Only shows Sat/Sun only, Weekday Only shows Mon-Fri only)
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.01</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // SUPABASE CONNECTION
+  // ============================================================
+  // Get Supabase credentials from environment/config
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your Supabase URL
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your Supabase anon key
+  
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ============================================================
+  // CALENDAR STATE
+  // ============================================================
+  let currentDate = new Date();
+  let allEvents = [];
+  let searchTerm = '';
+
+  // ============================================================
+  // LOAD ROSTER FROM SUPABASE
+  // ============================================================
+  async function loadRosterFromSupabase() {
+    BromarHub.showLoading('Loading roster...', 'Fetching data from database');
+    
+    try {
+      const { data, error } = await supabase
+        .from('callout_roster')
+        .select('*')
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Convert Supabase data to events format
+      allEvents = data.map(entry => ({
+        start: new Date(entry.start_date),
+        end: new Date(entry.end_date),
+        summary: entry.employee_name,
+        shiftType: entry.shift_type || '',
+        notes: entry.notes || ''
+      }));
+
+      console.log(`Loaded ${allEvents.length} roster entries from Supabase`);
+      renderCalendar();
+      BromarHub.hideLoading();
+      
+    } catch (error) {
+      console.error('Error loading roster:', error);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Failed to load roster data. Please refresh the page or contact support.');
+    }
+  }
+
+  // ============================================================
+  // RENDER CALENDAR
+  // ============================================================
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // Update title
+    document.getElementById('monthTitle').textContent = 
+      currentDate.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay(); // 0 = Sunday
+    const daysInMonth = lastDay.getDate();
+    
+    // Get previous month's last days
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const prevMonthDays = startDay === 0 ? 6 : startDay - 1; // Adjust for Monday start
+    
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    // Day headers (Mon - Sun)
+    const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    dayHeaders.forEach(day => {
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = day;
+      grid.appendChild(header);
+    });
+
+    // Previous month days
+    for (let i = prevMonthDays; i > 0; i--) {
+      const dayNum = prevMonthLastDay - i + 1;
+      const date = new Date(year, month - 1, dayNum);
+      grid.appendChild(createDayCell(date, dayNum, true));
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      grid.appendChild(createDayCell(date, day, false));
+    }
+
+    // Next month days to fill grid
+    const totalCells = prevMonthDays + daysInMonth;
+    const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
+    for (let day = 1; day <= remainingCells; day++) {
+      const date = new Date(year, month + 1, day);
+      grid.appendChild(createDayCell(date, day, true));
+    }
+  }
+
+  function createDayCell(date, dayNum, isOtherMonth) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    
+    if (isOtherMonth) {
+      cell.classList.add('other-month');
+    }
+
+    // Check if weekend
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      cell.classList.add('weekend');
+    }
+
+    // Check if today
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      cell.classList.add('today');
+    }
+
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = dayNum;
+    cell.appendChild(dayNumber);
+
+    // Add events for this day
+    const dayEvents = getEventsForDate(date);
+    dayEvents.forEach(event => {
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item';
+      eventItem.textContent = event.summary || 'On Call';
+      eventItem.title = `${event.summary}\n${event.shiftType}${event.notes ? '\n' + event.notes : ''}`;
+      
+      // Highlight if matches search
+      if (searchTerm && event.summary && 
+          event.summary.toLowerCase().includes(searchTerm.toLowerCase())) {
+        eventItem.classList.add('highlight');
+      }
+      
+      cell.appendChild(eventItem);
+    });
+
+    return cell;
+  }
+
+  function getEventsForDate(date) {
+    const dateStr = date.toDateString();
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const isWeekday = !isWeekend;
+    
+    return allEvents.filter(event => {
+      if (!event.start) return false;
+      
+      const eventStart = new Date(event.start);
+      const eventEnd = event.end ? new Date(event.end) : eventStart;
+      
+      // Check if date falls within event range
+      const eventStartStr = eventStart.toDateString();
+      const eventEndStr = eventEnd.toDateString();
+      
+      const inRange = dateStr >= eventStartStr && dateStr <= eventEndStr;
+      
+      if (!inRange) return false;
+      
+      // Filter based on shift type
+      const shiftType = event.shiftType || '';
+      
+      if (shiftType.includes('Weekend Only')) {
+        return isWeekend; // Only show on Sat/Sun
+      } else if (shiftType.includes('Weekday Only')) {
+        return isWeekday; // Only show Mon-Fri
+      } else if (shiftType.includes('Mon-Thu Only')) {
+        return dayOfWeek >= 1 && dayOfWeek <= 4; // Mon-Thu
+      }
+      
+      // Default: show on all days (Weekday + Weekend)
+      return true;
+    });
+  }
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+  document.getElementById('searchInput').addEventListener('input', function(e) {
+    searchTerm = e.target.value;
+    renderCalendar();
+  });
+
+  // ============================================================
+  // MONTH NAVIGATION
+  // ============================================================
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+  });
+
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  // ============================================================
+  // INITIALIZE
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    loadRosterFromSupabase();
+  });
+</script>
+
+</body>
+</html>
