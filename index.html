@@ -770,7 +770,7 @@
         </footer>
     </div>
 
-    <div class="revision-number">V1.35</div>
+    <div class="revision-number">V1.36</div>
 
     <script>
         // SUPABASE AUTH
@@ -849,7 +849,7 @@
                 errorDiv.style.display = 'none';
                 successDiv.style.display = 'none';
                 const { error } = await supabaseClient.auth.resetPasswordForEmail(email.trim(), {
-                    redirectTo: window.location.origin + '/index.html'
+                    redirectTo: window.location.origin + '/reset-password.html'
                 });
                 if (error) {
                     errorDiv.className = 'error-message';
