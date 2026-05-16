@@ -60,8 +60,11 @@
       letter-spacing: 2px;
       color: var(--text-primary);
     }
-    .fc-button {
-      background: var(--brand-orange) !important;
+    .fc .fc-button,
+    .fc .fc-button-primary,
+    .fc-button-primary {
+      background-color: #c2440e !important;
+      background-image: none !important;
       border: none !important;
       border-radius: 8px !important;
       padding: 0.6rem 1.2rem !important;
@@ -69,19 +72,26 @@
       text-transform: uppercase;
       font-size: 0.85rem !important;
       letter-spacing: 0.5px;
-      color: white !important;
+      color: #ffffff !important;
       box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25) !important;
+      opacity: 1 !important;
     }
-    .fc-button:hover {
-      background: #a3380b !important;
-      color: white !important;
+    .fc .fc-button:hover,
+    .fc .fc-button-primary:hover {
+      background-color: #a3380b !important;
+      color: #ffffff !important;
       transform: translateY(-1px);
     }
-    .fc-button-active,
-    .fc-button-primary:not(:disabled).fc-button-active,
-    .fc-button-primary:not(:disabled):active {
-      background: #1a56db !important;
-      color: white !important;
+    .fc .fc-button-active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+      background-color: #1a56db !important;
+      color: #ffffff !important;
+    }
+    .fc .fc-button:disabled {
+      background-color: #c2440e !important;
+      color: #ffffff !important;
+      opacity: 0.5 !important;
     }
     .fc-daygrid-day:hover { background: var(--input-bg); }
     .fc-day-today { background: var(--brand-light) !important; }
