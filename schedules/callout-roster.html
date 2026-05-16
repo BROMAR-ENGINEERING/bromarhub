@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Call-Out Roster Calendar - Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
@@ -305,16 +306,36 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.03</div>
+      <div class="card-footer-version">Version V1.04</div>
     </div>
   </div>
 </div>
 
 <script>
   // ============================================================
-  // SUPABASE CONNECTION - Use client from auth.js
+  // SUPABASE CONNECTION - Use client from auth.js or create own
   // ============================================================
-  const supabase = window.sb; // auth.js already creates this
+  let supabase;
+  
+  function getSupabaseClient() {
+    // Try to use auth.js client first
+    if (window.sb) {
+      console.log('Using Supabase client from auth.js');
+      return window.sb;
+    }
+    
+    // Fallback: create our own client
+    if (window.supabase && window.supabase.createClient) {
+      console.log('Creating Supabase client from CDN');
+      return window.supabase.createClient(
+        'https://iwtvlpfprxqwveqadlwl.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k'
+      );
+    }
+    
+    console.error('Supabase library not available');
+    return null;
+  }
 
   // ============================================================
   // CALENDAR STATE
@@ -332,6 +353,13 @@
     BromarHub.showLoading('Loading roster...', 'Fetching data from database');
     
     try {
+      // Get Supabase client
+      supabase = getSupabaseClient();
+      
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+      
       console.log('Querying callout_roster table...');
       
       const { data, error } = await supabase
