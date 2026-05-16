@@ -332,33 +332,55 @@
   // LOAD ROSTER FROM SUPABASE
   // ============================================================
   async function loadRosterFromSupabase() {
+    console.log('Connecting to Supabase...');
+    console.log('URL:', SUPABASE_URL);
+    
     BromarHub.showLoading('Loading roster...', 'Fetching data from database');
     
     try {
+      console.log('Querying callout_roster table...');
+      
       const { data, error } = await supabase
         .from('callout_roster')
         .select('*')
         .order('start_date', { ascending: true });
 
-      if (error) throw error;
+      console.log('Supabase response:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('No data returned from Supabase');
+        BromarHub.hideLoading();
+        BromarHub.showInfo('No roster data found in database. Please add roster entries first.');
+        renderCalendar(); // Still render empty calendar
+        return;
+      }
 
       // Convert Supabase data to events format
-      allEvents = data.map(entry => ({
-        start: new Date(entry.start_date),
-        end: new Date(entry.end_date),
-        summary: entry.employee_name,
-        shiftType: entry.shift_type || '',
-        notes: entry.notes || ''
-      }));
+      allEvents = data.map(entry => {
+        console.log('Processing entry:', entry);
+        return {
+          start: new Date(entry.start_date),
+          end: new Date(entry.end_date),
+          summary: entry.employee_name,
+          shiftType: entry.shift_type || '',
+          notes: entry.notes || ''
+        };
+      });
 
-      console.log(`Loaded ${allEvents.length} roster entries from Supabase`);
+      console.log(`Successfully loaded ${allEvents.length} roster entries`);
       renderCalendar();
       BromarHub.hideLoading();
       
     } catch (error) {
       console.error('Error loading roster:', error);
       BromarHub.hideLoading();
-      BromarHub.showInfo('Failed to load roster data. Please refresh the page or contact support.');
+      BromarHub.showInfo(`Failed to load roster: ${error.message}`);
+      renderCalendar(); // Still render empty calendar
     }
   }
 
@@ -522,24 +544,15 @@
   // INITIALIZE
   // ============================================================
   document.addEventListener('DOMContentLoaded', async () => {
-    await loadRosterFromSupabase();
+    // Set to current month
+    currentDate = new Date();
     
-    // Jump to first month with data if current month is empty
-    if (allEvents.length > 0) {
-      const firstEventDate = new Date(allEvents[0].start);
-      const today = new Date();
-      
-      // If no events this month, jump to first event month
-      const hasEventsThisMonth = allEvents.some(event => {
-        const eventDate = new Date(event.start);
-        return eventDate.getMonth() === today.getMonth() && 
-               eventDate.getFullYear() === today.getFullYear();
-      });
-      
-      if (!hasEventsThisMonth) {
-        currentDate = firstEventDate;
-        renderCalendar();
-      }
+    try {
+      await loadRosterFromSupabase();
+      console.log(`Loaded ${allEvents.length} events from Supabase`);
+    } catch (error) {
+      console.error('Failed to load roster:', error);
+      BromarHub.showInfo('Failed to load roster data. Check console for details.');
     }
   });
 </script>
