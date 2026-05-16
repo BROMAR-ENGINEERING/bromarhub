@@ -316,8 +316,8 @@
   // SUPABASE CONNECTION
   // ============================================================
   // Get Supabase credentials from environment/config
-  const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your Supabase URL
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your Supabase anon key
+  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
   
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -521,8 +521,26 @@
   // ============================================================
   // INITIALIZE
   // ============================================================
-  document.addEventListener('DOMContentLoaded', () => {
-    loadRosterFromSupabase();
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadRosterFromSupabase();
+    
+    // Jump to first month with data if current month is empty
+    if (allEvents.length > 0) {
+      const firstEventDate = new Date(allEvents[0].start);
+      const today = new Date();
+      
+      // If no events this month, jump to first event month
+      const hasEventsThisMonth = allEvents.some(event => {
+        const eventDate = new Date(event.start);
+        return eventDate.getMonth() === today.getMonth() && 
+               eventDate.getFullYear() === today.getFullYear();
+      });
+      
+      if (!hasEventsThisMonth) {
+        currentDate = firstEventDate;
+        renderCalendar();
+      }
+    }
   });
 </script>
 
