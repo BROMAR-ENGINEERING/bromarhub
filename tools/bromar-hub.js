@@ -269,10 +269,13 @@
   }
 
   // ── AUTO-INIT ─────────────────────────────────────────────
+  // Run PWA and favicon injection immediately (before DOM ready)
+  // so iOS sees the tags before rendering
+  initFavicon();
+  initPWA();
+  
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    initFavicon();        // inject favicon link
-    initPWA();            // inject PWA manifest + register service worker
     initHeader();         // inject header HTML (if placeholder present)
     initTheme();          // apply saved theme + wire toggle
     initLoadingOverlay(); // inject loading overlay if not already in HTML
