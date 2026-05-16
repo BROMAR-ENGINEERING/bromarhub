@@ -89,10 +89,20 @@
     }
 
     if (!document.querySelector('link[rel="apple-touch-icon"]')) {
-      const appleIcon = document.createElement('link');
-      appleIcon.rel  = 'apple-touch-icon';
-      appleIcon.href = '/icons/icon-192x192.png';
-      document.head.appendChild(appleIcon);
+      // iOS requires multiple sizes for best display
+      const sizes = ['72x72', '96x96', '128x128', '144x144', '152x152', '192x192'];
+      sizes.forEach(size => {
+        const appleIcon = document.createElement('link');
+        appleIcon.rel   = 'apple-touch-icon';
+        appleIcon.sizes = size;
+        appleIcon.href  = `/icons/icon-${size}.png`;
+        document.head.appendChild(appleIcon);
+      });
+      // Default (no size attribute) - iOS picks best
+      const defaultIcon = document.createElement('link');
+      defaultIcon.rel  = 'apple-touch-icon';
+      defaultIcon.href = '/icons/icon-192x192.png';
+      document.head.appendChild(defaultIcon);
     }
 
     // Register service worker
