@@ -48,6 +48,67 @@
     document.head.appendChild(link);
   }
 
+  // ── PWA ───────────────────────────────────────────────────
+  function initPWA() {
+    // Add manifest link
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const manifest = document.createElement('link');
+      manifest.rel  = 'manifest';
+      manifest.href = '/manifest.json';
+      document.head.appendChild(manifest);
+    }
+
+    // Add theme color
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      const themeColor = document.createElement('meta');
+      themeColor.name    = 'theme-color';
+      themeColor.content = '#ea580c';
+      document.head.appendChild(themeColor);
+    }
+
+    // Add Apple-specific meta tags
+    if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) {
+      const appleCapable = document.createElement('meta');
+      appleCapable.name    = 'apple-mobile-web-app-capable';
+      appleCapable.content = 'yes';
+      document.head.appendChild(appleCapable);
+    }
+
+    if (!document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')) {
+      const appleStatusBar = document.createElement('meta');
+      appleStatusBar.name    = 'apple-mobile-web-app-status-bar-style';
+      appleStatusBar.content = 'default';
+      document.head.appendChild(appleStatusBar);
+    }
+
+    if (!document.querySelector('meta[name="apple-mobile-web-app-title"]')) {
+      const appleTitle = document.createElement('meta');
+      appleTitle.name    = 'apple-mobile-web-app-title';
+      appleTitle.content = 'Bromar Hub';
+      document.head.appendChild(appleTitle);
+    }
+
+    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+      const appleIcon = document.createElement('link');
+      appleIcon.rel  = 'apple-touch-icon';
+      appleIcon.href = '/icons/icon-192x192.png';
+      document.head.appendChild(appleIcon);
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then((registration) => {
+            console.log('[PWA] Service Worker registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.error('[PWA] Service Worker registration failed:', error);
+          });
+      });
+    }
+  }
+
   // ── THEME ─────────────────────────────────────────────────
   function initTheme() {
     const html   = document.documentElement;
@@ -201,6 +262,7 @@
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
     initFavicon();        // inject favicon link
+    initPWA();            // inject PWA manifest + register service worker
     initHeader();         // inject header HTML (if placeholder present)
     initTheme();          // apply saved theme + wire toggle
     initLoadingOverlay(); // inject loading overlay if not already in HTML
@@ -211,6 +273,7 @@
     initTheme,
     initHeader,
     initFavicon,
+    initPWA,
     loadEmployees,
     autoSelectLoggedInUser,
     showSuccess,
