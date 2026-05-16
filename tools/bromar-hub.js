@@ -37,6 +37,37 @@
   window.EMPLOYEES   = [];
   window.currentUser = null;
 
+  // ── USER PREFERENCES (Font Size, Density, Zoom) ──────────
+  function applyUserPreferences() {
+    // Font size
+    const fontSize = localStorage.getItem('fontSize') || 'normal';
+    const sizes = { small: '14px', normal: '16px', large: '18px', xlarge: '20px' };
+    document.documentElement.style.fontSize = sizes[fontSize] || sizes.normal;
+    
+    // Density
+    const density = localStorage.getItem('density') || 'normal';
+    document.documentElement.setAttribute('data-density', density);
+
+    // Zoom (default off)
+    const zoom = localStorage.getItem('zoom') || 'off';
+    const viewport = document.querySelector('meta[name="viewport"]');
+    const zoomContent = zoom === 'on' 
+      ? 'width=device-width, initial-scale=1.0'
+      : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+    
+    if (viewport) {
+      viewport.setAttribute('content', zoomContent);
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = zoomContent;
+      document.head.appendChild(meta);
+    }
+  }
+
+  // Apply immediately
+  applyUserPreferences();
+
   // ── FAVICON ───────────────────────────────────────────────
   function initFavicon() {
     // Skip if favicon already exists
