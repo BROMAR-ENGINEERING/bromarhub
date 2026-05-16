@@ -96,6 +96,20 @@
       display: block;
     }
 
+    .logged-in-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+      border: 1px solid var(--brand-orange);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
     .card-footer {
       margin-top: 32px;
       padding-top: 24px;
@@ -151,11 +165,18 @@
 
       <div class="section-label">Your Details</div>
 
+      <div class="logged-in-badge" id="loggedInBadge" style="display: none;">
+        <span>✓</span>
+        <span>Logged in as <span id="loggedInName"></span></span>
+      </div>
+
       <div class="field-row">
         <div class="field-group" id="group-name">
           <label for="user_name">Your Name <span class="required">*</span></label>
-          <input type="text" id="user_name" name="user_name" placeholder="Old Mate" autocomplete="name" readonly style="background: var(--input-bg); cursor: not-allowed;"/>
-          <span class="error-msg">Please enter your name</span>
+          <select id="user_name" name="user_name" required>
+            <option value="">Loading employees...</option>
+          </select>
+          <span class="error-msg">Please select your name</span>
         </div>
         <div class="field-group" id="group-email">
           <label for="user_email">Email Address <span class="required">*</span></label>
@@ -261,6 +282,7 @@
   // AUTHENTICATION CHECK & USER AUTO-POPULATE
   // ============================================================
   let currentUser = null;
+  let EMPLOYEES = [];
 
   async function initializePage() {
     try {
@@ -273,32 +295,47 @@
         return;
       }
 
-      // User is authenticated - get their details from employees table
       const userEmail = session.user.email;
-      
-      const { data: employee, error: empError } = await window.sb
-        .from('employees')
-        .select('name, email')
-        .eq('email', userEmail)
-        .single();
 
-      if (empError || !employee) {
-        console.error('Error fetching employee:', empError);
-        // Fallback to session user email
+      // Load employees into dropdown
+      EMPLOYEES = await BromarHub.loadEmployees('user_name');
+      
+      // Auto-select logged-in user
+      await BromarHub.autoSelectLoggedInUser('user_name');
+      
+      // Get the selected employee's details
+      const nameSelect = document.getElementById('user_name');
+      if (nameSelect.value) {
+        const selectedOption = nameSelect.selectedOptions[0];
         currentUser = {
-          name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-          email: userEmail
+          name: selectedOption.value,
+          email: selectedOption.dataset.email || ''
         };
-      } else {
-        currentUser = {
-          name: employee.name,
-          email: employee.email
-        };
+
+        // Update email field
+        document.getElementById('user_email').value = currentUser.email;
+
+        // Show logged-in badge
+        document.getElementById('loggedInName').textContent = currentUser.name;
+        document.getElementById('loggedInBadge').style.display = 'inline-flex';
       }
 
-      // Populate form fields
-      document.getElementById('user_name').value = currentUser.name;
-      document.getElementById('user_email').value = currentUser.email;
+      // Handle name change to update email
+      nameSelect.addEventListener('change', function() {
+        const selectedOption = this.selectedOptions[0];
+        if (selectedOption && selectedOption.value) {
+          currentUser = {
+            name: selectedOption.value,
+            email: selectedOption.dataset.email || ''
+          };
+          document.getElementById('user_email').value = currentUser.email;
+          document.getElementById('loggedInName').textContent = currentUser.name;
+          document.getElementById('loggedInBadge').style.display = 'inline-flex';
+        } else {
+          document.getElementById('user_email').value = '';
+          document.getElementById('loggedInBadge').style.display = 'none';
+        }
+      });
 
     } catch (err) {
       console.error('Initialization error:', err);
@@ -367,6 +404,18 @@
       }
     }
 
+    // Fallback: update currentUser if not set
+    if (!currentUser) {
+      const nameSelect = document.getElementById('user_name');
+      if (nameSelect.value) {
+        const selectedOption = nameSelect.selectedOptions[0];
+        currentUser = {
+          name: selectedOption.value,
+          email: selectedOption.dataset.email || ''
+        };
+      }
+    }
+
     const name = document.getElementById('user_name').value.trim();
     const email = document.getElementById('user_email').value.trim();
     const subject = document.getElementById('subject').value.trim();
@@ -384,7 +433,7 @@
     }
 
     if (!currentUser) {
-      BromarHub.showInfo('User session not found. Please refresh the page.');
+      BromarHub.showInfo('Please select your name from the dropdown');
       valid = false;
     }
 
@@ -421,8 +470,8 @@
 
     BromarHub.showLoading('Submitting your feedback', 'This will only take a moment...');
 
-    const userName = document.getElementById('user_name').value.trim();
-    const userEmail = document.getElementById('user_email').value.trim();
+    const userName = currentUser.name;
+    const userEmail = currentUser.email;
     const reportType = document.querySelector('input[name="report_type"]:checked').value;
     const subject = document.getElementById('subject').value.trim();
     const description = document.getElementById('description').value.trim();
