@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Settings - Bromar Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/tools/auth.js"></script>
+    <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+    <script src="../tools/bromar-hub.js" defer></script>
+    <style>
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+            gap: 1rem;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .setting-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .setting-control {
+            flex-shrink: 0;
+        }
+
+        /* Segmented control for font size */
+        .segmented-control {
+            display: flex;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .segmented-option {
+            padding: 0.5rem 0.875rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 7px;
+            transition: all 0.2s;
+        }
+
+        .segmented-option.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .segmented-option:not(.active):hover {
+            color: var(--text-primary);
+        }
+
+        /* Action button row */
+        .action-btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+            background: var(--card-hover);
+        }
+
+        .action-btn.danger {
+            color: var(--error);
+            border-color: var(--error-border);
+        }
+
+        .action-btn.danger:hover {
+            background: var(--error-bg);
+            border-color: var(--error);
+        }
+
+        /* User info card */
+        .user-card {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.125rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 520px) {
+            .setting-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .setting-control {
+                width: 100%;
+            }
+
+            .segmented-control {
+                width: 100%;
+            }
+
+            .segmented-option {
+                flex: 1;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (injected by shared JS) -->
+    <div id="bromar-header"></div>
+
+    <!-- Page Title -->
+    <div class="page-title-wrapper">
+        <h1>Settings</h1>
+        <p class="subtitle">Customize your Bromar Hub experience</p>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-wrapper">
+        <div class="form-card">
+            <!-- Success/Error Banners -->
+            <div id="successBanner" class="success-banner">
+                <span id="successText"></span>
+            </div>
+            <div id="infoBanner" class="info-banner">
+                <span id="infoBannerText"></span>
+            </div>
+
+            <!-- User Card -->
+            <div class="user-card">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-email" id="userEmail">Loading...</div>
+                </div>
+            </div>
+
+            <!-- DISPLAY SETTINGS -->
+            <div class="section-label">Display</div>
+            <div class="settings-section">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Font Size</div>
+                        <div class="setting-description">Adjust text size throughout the app</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="segmented-control" id="fontSizeControl">
+                            <button class="segmented-option" data-size="small">Small</button>
+                            <button class="segmented-option active" data-size="normal">Normal</button>
+                            <button class="segmented-option" data-size="large">Large</button>
+                            <button class="segmented-option" data-size="xlarge">XL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Theme</div>
+                        <div class="setting-description">Choose your preferred colour scheme</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="segmented-control" id="themeControl">
+                            <button class="segmented-option" data-theme-pref="auto">Auto</button>
+                            <button class="segmented-option" data-theme-pref="light">Light</button>
+                            <button class="segmented-option" data-theme-pref="dark">Dark</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Compact View</div>
+                        <div class="setting-description">Show more content with smaller spacing</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="segmented-control" id="densityControl">
+                            <button class="segmented-option active" data-density="normal">Normal</button>
+                            <button class="segmented-option" data-density="compact">Compact</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Pinch to Zoom</div>
+                        <div class="setting-description">Allow zooming with pinch gestures (off by default)</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="segmented-control" id="zoomControl">
+                            <button class="segmented-option active" data-zoom="off">Off</button>
+                            <button class="segmented-option" data-zoom="on">On</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT SETTINGS -->
+            <div class="section-label">Account</div>
+            <div class="settings-section">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Change Password</div>
+                        <div class="setting-description">Update your Bromar Hub login password</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn" onclick="window.location.href='change-password.html'">Change Password</button>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Sign Out All Devices</div>
+                        <div class="setting-description">Sign out from all devices where you're logged in</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn danger" id="signOutAllBtn">Sign Out All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DATA & STORAGE -->
+            <div class="section-label">Data & Storage</div>
+            <div class="settings-section">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Clear Cache</div>
+                        <div class="setting-description">Clear cached data to force fresh content load</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn" id="clearCacheBtn">Clear Cache</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="form-footer">
+                <div class="footer-title-block">
+                    <p class="footer-title">BROMAR HUB — SETTINGS</p>
+                    <a class="footer-bug-link" href="suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Version V1.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="revision-number">V1.00</div>
+
+    <script>
+        // Wait for shared JS to load
+        function waitFor(check, callback) {
+            if (check()) callback();
+            else setTimeout(() => waitFor(check, callback), 50);
+        }
+
+        waitFor(() => window.sb && window.BromarHub, async () => {
+            // ============================================
+            // LOAD USER INFO
+            // ============================================
+            try {
+                const { data: { user } } = await window.sb.auth.getUser();
+                if (user?.email) {
+                    document.getElementById('userEmail').textContent = user.email;
+                    
+                    // Get name from employees table
+                    const { data: emp } = await window.sb
+                        .from('employees')
+                        .select('full_name')
+                        .eq('email', user.email)
+                        .single();
+                    
+                    if (emp?.full_name) {
+                        document.getElementById('userName').textContent = emp.full_name;
+                        document.getElementById('userAvatar').textContent = emp.full_name.charAt(0).toUpperCase();
+                    } else {
+                        document.getElementById('userName').textContent = 'Bromar Employee';
+                        document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load user:', err);
+            }
+
+            // ============================================
+            // FONT SIZE
+            // ============================================
+            const savedFontSize = localStorage.getItem('fontSize') || 'normal';
+            document.querySelectorAll('#fontSizeControl .segmented-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.size === savedFontSize);
+                btn.addEventListener('click', () => {
+                    const size = btn.dataset.size;
+                    localStorage.setItem('fontSize', size);
+                    applyFontSize(size);
+                    document.querySelectorAll('#fontSizeControl .segmented-option').forEach(b => 
+                        b.classList.toggle('active', b === btn)
+                    );
+                    BromarHub.showSuccess('Font size updated');
+                });
+            });
+            applyFontSize(savedFontSize);
+
+            function applyFontSize(size) {
+                const sizes = { small: '14px', normal: '16px', large: '18px', xlarge: '20px' };
+                document.documentElement.style.fontSize = sizes[size] || sizes.normal;
+            }
+
+            // ============================================
+            // THEME
+            // ============================================
+            const savedThemePref = localStorage.getItem('themePref') || 'auto';
+            document.querySelectorAll('#themeControl .segmented-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.themePref === savedThemePref);
+                btn.addEventListener('click', () => {
+                    const pref = btn.dataset.themePref;
+                    localStorage.setItem('themePref', pref);
+                    applyTheme(pref);
+                    document.querySelectorAll('#themeControl .segmented-option').forEach(b => 
+                        b.classList.toggle('active', b === btn)
+                    );
+                    BromarHub.showSuccess('Theme updated');
+                });
+            });
+
+            function applyTheme(pref) {
+                let theme;
+                if (pref === 'auto') {
+                    theme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    localStorage.removeItem('theme');
+                } else {
+                    theme = pref;
+                    localStorage.setItem('theme', theme);
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+
+            // ============================================
+            // COMPACT VIEW
+            // ============================================
+            const savedDensity = localStorage.getItem('density') || 'normal';
+            document.querySelectorAll('#densityControl .segmented-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.density === savedDensity);
+                btn.addEventListener('click', () => {
+                    const density = btn.dataset.density;
+                    localStorage.setItem('density', density);
+                    applyDensity(density);
+                    document.querySelectorAll('#densityControl .segmented-option').forEach(b => 
+                        b.classList.toggle('active', b === btn)
+                    );
+                    BromarHub.showSuccess('View updated');
+                });
+            });
+            applyDensity(savedDensity);
+
+            function applyDensity(density) {
+                document.documentElement.setAttribute('data-density', density);
+            }
+
+            // ============================================
+            // ZOOM
+            // ============================================
+            const savedZoom = localStorage.getItem('zoom') || 'off';
+            document.querySelectorAll('#zoomControl .segmented-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.zoom === savedZoom);
+                btn.addEventListener('click', () => {
+                    const zoom = btn.dataset.zoom;
+                    if (zoom === localStorage.getItem('zoom')) return;
+                    
+                    if (!confirm('This will reload the page to apply the zoom setting. Continue?')) return;
+                    
+                    localStorage.setItem('zoom', zoom);
+                    window.location.reload();
+                });
+            });
+
+            // ============================================
+            // SIGN OUT ALL DEVICES
+            // ============================================
+            document.getElementById('signOutAllBtn').addEventListener('click', async () => {
+                if (!confirm('Sign out from all devices? You will need to log in again on every device.')) return;
+                
+                BromarHub.showLoading('Signing out all devices...', 'Please wait');
+                try {
+                    const { error } = await window.sb.auth.signOut({ scope: 'global' });
+                    BromarHub.hideLoading();
+                    
+                    if (error) {
+                        BromarHub.showInfo('Error: ' + error.message);
+                    } else {
+                        BromarHub.showSuccess('Signed out from all devices. Redirecting...');
+                        setTimeout(() => window.location.href = '../index.html', 1500);
+                    }
+                } catch (err) {
+                    BromarHub.hideLoading();
+                    BromarHub.showInfo('An error occurred. Please try again.');
+                }
+            });
+
+            // ============================================
+            // CLEAR CACHE
+            // ============================================
+            document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+                if (!confirm('Clear all cached data? The page will reload.')) return;
+                
+                BromarHub.showLoading('Clearing cache...', 'Please wait');
+                
+                try {
+                    // Save user preferences before clearing
+                    const fontSize = localStorage.getItem('fontSize');
+                    const theme = localStorage.getItem('theme');
+                    const themePref = localStorage.getItem('themePref');
+                    const density = localStorage.getItem('density');
+                    
+                    // Clear caches (service worker)
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    }
+                    
+                    // Clear sessionStorage
+                    sessionStorage.clear();
+                    
+                    // Restore preferences
+                    if (fontSize) localStorage.setItem('fontSize', fontSize);
+                    if (theme) localStorage.setItem('theme', theme);
+                    if (themePref) localStorage.setItem('themePref', themePref);
+                    if (density) localStorage.setItem('density', density);
+                    
+                    BromarHub.showSuccess('Cache cleared. Reloading...');
+                    setTimeout(() => window.location.reload(true), 1000);
+                } catch (err) {
+                    BromarHub.hideLoading();
+                    BromarHub.showInfo('Failed to clear cache: ' + err.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
