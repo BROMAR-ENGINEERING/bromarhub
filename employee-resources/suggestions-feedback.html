@@ -154,12 +154,12 @@
       <div class="field-row">
         <div class="field-group" id="group-name">
           <label for="user_name">Your Name <span class="required">*</span></label>
-          <input type="text" id="user_name" name="user_name" placeholder="Old Mate" autocomplete="name"/>
+          <input type="text" id="user_name" name="user_name" placeholder="Old Mate" autocomplete="name" readonly style="background: var(--input-bg); cursor: not-allowed;"/>
           <span class="error-msg">Please enter your name</span>
         </div>
         <div class="field-group" id="group-email">
           <label for="user_email">Email Address <span class="required">*</span></label>
-          <input type="email" id="user_email" name="user_email" placeholder="oldmate@bromar.com.au" autocomplete="email"/>
+          <input type="email" id="user_email" name="user_email" placeholder="oldmate@bromar.com.au" autocomplete="email" readonly style="background: var(--input-bg); cursor: not-allowed;"/>
           <span class="error-msg">Please enter a valid email</span>
         </div>
       </div>
@@ -257,6 +257,66 @@
 </div>
 
 <script>
+  // ============================================================
+  // AUTHENTICATION CHECK & USER AUTO-POPULATE
+  // ============================================================
+  let currentUser = null;
+
+  async function initializePage() {
+    try {
+      // Check authentication
+      const { data: { session }, error } = await window.sb.auth.getSession();
+      
+      if (error || !session) {
+        // Not logged in - redirect to login page
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // User is authenticated - get their details from employees table
+      const userEmail = session.user.email;
+      
+      const { data: employee, error: empError } = await window.sb
+        .from('employees')
+        .select('name, email')
+        .eq('email', userEmail)
+        .single();
+
+      if (empError || !employee) {
+        console.error('Error fetching employee:', empError);
+        // Fallback to session user email
+        currentUser = {
+          name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+          email: userEmail
+        };
+      } else {
+        currentUser = {
+          name: employee.name,
+          email: employee.email
+        };
+      }
+
+      // Populate form fields
+      document.getElementById('user_name').value = currentUser.name;
+      document.getElementById('user_email').value = currentUser.email;
+
+    } catch (err) {
+      console.error('Initialization error:', err);
+      // Redirect to login on any error
+      window.location.href = '/login.html';
+    }
+  }
+
+  // Wait for auth.js to be ready, then initialize
+  if (window.sb) {
+    initializePage();
+  } else {
+    window.addEventListener('load', initializePage);
+  }
+
+  // ============================================================
+  // TYPE CARD SELECTION
+  // ============================================================
   const typeCards = document.querySelectorAll('.type-card');
   const prioritySection = document.getElementById('prioritySection');
 
@@ -276,6 +336,9 @@
     });
   });
 
+  // ============================================================
+  // PRIORITY BADGE SELECTION
+  // ============================================================
   const priorityBadges = document.querySelectorAll('.priority-badge');
 
   priorityBadges.forEach(badge => {
@@ -285,6 +348,9 @@
     });
   });
 
+  // ============================================================
+  // FORM VALIDATION
+  // ============================================================
   function validateForm() {
     let valid = true;
 
@@ -317,6 +383,11 @@
       valid = false;
     }
 
+    if (!currentUser) {
+      BromarHub.showInfo('User session not found. Please refresh the page.');
+      valid = false;
+    }
+
     return valid;
   }
 
@@ -326,6 +397,9 @@
     }
   });
 
+  // ============================================================
+  // FORM SUBMISSION
+  // ============================================================
   const feedbackForm = document.getElementById('feedbackForm');
   const submitBtn = document.getElementById('submitBtn');
 
@@ -386,8 +460,14 @@
       BromarHub.hideLoading();
       const banner = document.getElementById('successBanner');
       banner.classList.add('show');
-      feedbackForm.reset();
+      
+      // Reset only the feedback fields, not the user details
+      document.getElementById('subject').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('page_url').value = '';
+      document.getElementById('browser').value = '';
       typeCards.forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('input[name="report_type"]').forEach(r => r.checked = false);
       prioritySection.style.display = 'none';
       
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -403,6 +483,9 @@
     }
   });
 
+  // ============================================================
+  // AUTO-DETECT BROWSER
+  // ============================================================
   window.addEventListener('load', () => {
     const browserInput = document.getElementById('browser');
     if (!browserInput.value) {
