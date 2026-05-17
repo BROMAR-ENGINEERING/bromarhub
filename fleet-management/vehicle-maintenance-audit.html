@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vehicle Maintenance Audit</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    /* ── Page layout spacing for fixed header ── */
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* ── Inspection legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .legend-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+    .legend-pill.ok    { background: #f0fdf4; color: #0e9f6e; }
+    .legend-pill.fault { background: #fef2f2; color: #ef4444; }
+    .legend-pill.na    { background: #f3f4f6; color: #6b7280; }
+
+    /* ── Status summary ── */
+    .status-summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-secondary);
+    }
+    .status-pill.has-faults {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* ── Check items ── */
+    .check-item {
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      background: var(--input-bg);
+      margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .check-item.status-ok    { border-color: #0e9f6e; background: #f0fdf4; }
+    .check-item.status-fault { border-color: #ef4444; background: #fef2f2; }
+    .check-item.status-na    { border-color: #6b7280; background: #f3f4f6; opacity: 0.85; }
+
+    .check-item-top {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .check-number {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--brand-orange);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .check-text {
+      flex: 1;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      line-height: 1.45;
+      padding-top: 4px;
+    }
+    .status-buttons {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .status-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1.5px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .status-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+    .status-btn.active.ok    { background: #0e9f6e; border-color: #0e9f6e; color: white; }
+    .status-btn.active.fault { background: #ef4444; border-color: #ef4444; color: white; }
+    .status-btn.active.na    { background: #6b7280; border-color: #6b7280; color: white; }
+
+    .check-comment {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      background: var(--brand-white);
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      resize: vertical;
+      min-height: 38px;
+      display: none;
+    }
+    .check-item.show-comment .check-comment { display: block; }
+
+    @media (max-width: 600px) {
+      .check-item-top { flex-wrap: wrap; }
+      .status-buttons { width: 100%; justify-content: stretch; }
+      .status-btn { flex: 1; }
+    }
+
+    /* ── Vehicle info display ── */
+    .vehicle-info-bar {
+      display: none;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--brand-orange-soft);
+      border: 1px solid var(--brand-orange);
+      border-radius: var(--radius-sm);
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .vehicle-info-bar.show { display: flex; }
+    .vehicle-info-bar strong { color: var(--text-primary); }
+    .vehicle-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Defect box ── */
+    .defect-box {
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      background: var(--input-bg);
+    }
+    .defect-warning {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 6px;
+      color: #ef4444;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 14px;
+    }
+
+    /* ── Signature pad ── */
+    .signature-box {
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      padding: 16px;
+    }
+    .signature-pad-wrapper {
+      position: relative;
+      background: #ffffff;
+      border: 1.5px dashed var(--input-border);
+      border-radius: 6px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .signature-pad-wrapper.has-signature {
+      border-style: solid;
+      border-color: var(--brand-orange);
+    }
+    .signature-pad { display: block; width: 100%; height: 180px; cursor: crosshair; }
+    .signature-placeholder {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.85rem;
+      color: var(--text-faded, #9ca3af);
+      pointer-events: none;
+      user-select: none;
+    }
+    .signature-pad-wrapper.has-signature .signature-placeholder { display: none; }
+    .signature-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .signature-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .signature-meta strong { color: var(--text-secondary); }
+    .btn-clear-sig {
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-clear-sig:hover { color: #ef4444; border-color: #ef4444; }
+    .field-group.has-error .signature-pad-wrapper {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+
+    /* ── Three-col row ── */
+    .field-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 600px) { .field-row.three-col { grid-template-columns: 1fr; } }
+
+    /* ── In-card footer ── */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider, #e5e7eb);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--brand-orange, #c2440e);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded, #9ca3af);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Shared header injected by bromar-hub.js -->
+<div id="bromar-header"></div>
+
+<div class="page-wrapper">
+
+  <div class="header-card" style="text-align:center;">
+    <h1 class="header-title">Vehicle Maintenance Audit</h1>
+    <p class="header-subtitle">Complete the checklist below for the vehicle being audited. Mark each item as OK, Fault, or N/A and add comments where required.</p>
+  </div>
+
+  <div class="form-card">
+    <form id="auditForm" novalidate>
+
+      <!-- OPERATOR DETAILS -->
+      <div class="section-label">Operator Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-filled-by">
+          <label for="filled_by">Filled By <span class="required">*</span></label>
+          <select id="filled_by" name="filled_by">
+            <option value="">Loading employees…</option>
+          </select>
+          <span class="error-msg">Please select who is filling out the form</span>
+        </div>
+        <div class="field-group">
+          <label for="operator_initial">Operator Initial</label>
+          <input type="text" id="operator_initial" name="operator_initial" placeholder="e.g. JD" maxlength="6"/>
+        </div>
+      </div>
+
+      <!-- VEHICLE SELECTION -->
+      <div class="section-label">Vehicle</div>
+
+      <div class="field-group" id="group-vehicle">
+        <label for="vehicle_select">Select Vehicle <span class="required">*</span></label>
+        <select id="vehicle_select" name="vehicle_select">
+          <option value="">Loading vehicles…</option>
+        </select>
+        <span class="error-msg">Please select a vehicle</span>
+      </div>
+
+      <!-- Auto-populated vehicle info -->
+      <div class="vehicle-info-bar" id="vehicleInfoBar">
+        <span class="vehicle-chip">🚗 <strong id="infoMake">—</strong></span>
+        <span class="vehicle-chip">📋 Model: <strong id="infoModel">—</strong></span>
+        <span class="vehicle-chip">🔢 Plant No: <strong id="infoPlantNo">—</strong></span>
+        <span class="vehicle-chip">📝 Rego: <strong id="infoRego">—</strong></span>
+        <span class="vehicle-chip">📅 Year: <strong id="infoYear">—</strong></span>
+      </div>
+
+      <!-- AUDIT DETAILS -->
+      <div class="section-label" style="margin-top:24px;">Audit Details</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-week">
+          <label for="week_commencing">Week Commencing <span class="required">*</span></label>
+          <input type="date" id="week_commencing" name="week_commencing"/>
+          <span class="error-msg">Please select the week commencing date</span>
+        </div>
+        <div class="field-group">
+          <label for="audit_type">Audit Type</label>
+          <input type="text" id="audit_type" name="audit_type" value="Monthly Vehicle Inspection" readonly
+            style="background:var(--input-bg);color:var(--text-muted);cursor:default;"/>
+        </div>
+      </div>
+
+      <!-- SERVICING -->
+      <div class="section-label">Servicing</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="current_km_hours">Current KM / Hours</label>
+          <input type="number" id="current_km_hours" name="current_km_hours" placeholder="e.g. 125000" min="0"/>
+        </div>
+        <div class="field-group">
+          <label for="next_service_km">Next Service KM / Hours</label>
+          <input type="number" id="next_service_km" name="next_service_km" placeholder="e.g. 130000" min="0"/>
+        </div>
+      </div>
+
+      <!-- INSPECTION CHECKS -->
+      <div class="section-label">Inspection Checks</div>
+
+      <div class="legend">
+        <span class="legend-item"><span class="legend-pill ok">OK</span> Item is OK</span>
+        <span class="legend-item"><span class="legend-pill fault">!</span> Fault Identified</span>
+        <span class="legend-item"><span class="legend-pill na">NA</span> Not Applicable</span>
+      </div>
+
+      <div class="status-summary">
+        <span class="status-pill">✅ OK: <strong id="countOk">0</strong></span>
+        <span class="status-pill" id="faultPill">⚠️ Faults: <strong id="countFault">0</strong></span>
+        <span class="status-pill">➖ N/A: <strong id="countNa">0</strong></span>
+        <span class="status-pill">⏳ Pending: <strong id="countPending">8</strong></span>
+      </div>
+
+      <div id="checklistContainer"></div>
+
+      <div class="info-banner" id="checksError">
+        <span>⚠️ Please mark all inspection items before submitting.</span>
+      </div>
+
+      <!-- DEFECT REPORT -->
+      <div class="section-label">Defect Report</div>
+
+      <div class="defect-box">
+        <div class="field-row">
+          <div class="field-group">
+            <label for="defect_reported_by">Reported By</label>
+            <input type="text" id="defect_reported_by" name="defect_reported_by" placeholder="Name of person reporting"/>
+          </div>
+          <div class="field-group">
+            <label for="defect_date">Date</label>
+            <input type="date" id="defect_date" name="defect_date"/>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+          <label for="defect_details">Details of Fault / Defect</label>
+          <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection…"></textarea>
+        </div>
+        <div class="defect-warning">
+          <span>⚠️</span>
+          <span>DO NOT operate machine if unsafe.</span>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="section-label" style="margin-top:24px;">Additional Notes</div>
+      <div class="field-group">
+        <textarea id="notes" name="notes" placeholder="Any additional notes or observations…"></textarea>
+      </div>
+
+      <!-- SIGNATURE -->
+      <div class="section-label">Signature</div>
+
+      <div class="field-group" id="group-signature">
+        <label>Operator's Signature <span class="required">*</span></label>
+        <div class="signature-box">
+          <div class="signature-pad-wrapper" id="sigWrapper">
+            <canvas class="signature-pad" id="signaturePad"></canvas>
+            <span class="signature-placeholder">Sign here using your mouse or finger</span>
+          </div>
+          <div class="signature-controls">
+            <div class="signature-meta"><strong>Signed:</strong> <span id="sigDateDisplay">—</span></div>
+            <button type="button" class="btn-clear-sig" id="clearSigBtn">Clear Signature</button>
+          </div>
+        </div>
+        <span class="error-msg">Please sign before submitting</span>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Audit</button>
+      </div>
+
+    </form>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — VEHICLE MAINTENANCE AUDIT</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.03</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:  '4JW7VbCEAqZt9p4Jj',
+      serviceId:  'BromarEmail',
+      templateId: 'vehicleaudit_admin',
+    },
+    adminEmails: ['ashleys@bromar.com.au'],
+    revision: 'V1.03',
+    auditTypeId: 'monthly_vehicle_inspection',
+  };
+
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let EMPLOYEES = [];
+  let VEHICLES  = [];
+  let currentUser    = null;
+  let selectedVehicle = null;
+
+  const CHECKS = [
+    { id: 'check1', text: 'Brakes, steering, gauges, lights, warning devices, strobe/beacon, reverse squawker' },
+    { id: 'check2', text: 'Visibility — windscreen, wipers, washer, demister, mirrors' },
+    { id: 'check3', text: 'Cabin — access/egress, seating, seatbelts, loose objects' },
+    { id: 'check4', text: 'Wheels — tyres, nuts, damage, wear, pressure' },
+    { id: 'check5', text: 'Guards / exterior — in place, secure, warning lights etc.' },
+    { id: 'check6', text: 'Excessive wear — hooks, chains, pins, pivots, tracks' },
+    { id: 'check7', text: 'Safety — fire extinguisher, first aid kit' },
+    { id: 'check8', text: 'Misc. electrical, CB radio (incl. car and 240V charger)' },
+  ];
+
+  // ============================================================
+  // INIT — wait for BromarHub then load data
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    await waitForBromarHub();
+
+    // Load employees
+    try {
+      EMPLOYEES = await BromarHub.loadEmployees('filled_by');
+      await BromarHub.autoSelectLoggedInUser('filled_by');
+      const filledBy = document.getElementById('filled_by');
+      if (filledBy.value) {
+        const opt = filledBy.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+      filledBy.addEventListener('change', function () {
+        const opt = this.selectedOptions[0];
+        currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+      });
+    } catch (err) {
+      console.error('Failed to load employees:', err);
+    }
+
+    // Load vehicles from Supabase
+    await loadVehicles();
+
+    // Default week commencing to this Monday
+    const weekInput = document.getElementById('week_commencing');
+    if (!weekInput.value) {
+      const d = new Date();
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      weekInput.value = d.toISOString().split('T')[0];
+    }
+
+    renderChecklist();
+    initSignaturePad();
+  });
+
+  function waitForBromarHub() {
+    return new Promise(resolve => {
+      if (typeof BromarHub !== 'undefined') return resolve();
+      const iv = setInterval(() => {
+        if (typeof BromarHub !== 'undefined') { clearInterval(iv); resolve(); }
+      }, 50);
+    });
+  }
+
+  // ============================================================
+  // VEHICLE LOOKUP
+  // ============================================================
+  async function loadVehicles() {
+    const sel = document.getElementById('vehicle_select');
+    try {
+      const { data, error } = await window.sb
+        .from('vehicles')
+        .select('id, plant_no, plant_name, plant_type, rego_no, make, model, year')
+        .eq('status', 'active')
+        .order('plant_no');
+
+      if (error) throw error;
+
+      VEHICLES = data || [];
+      sel.innerHTML = '<option value="">Select vehicle…</option>' +
+        VEHICLES.map(v => {
+          const label = [v.plant_no, v.plant_name, v.rego_no].filter(Boolean).join(' — ');
+          return `<option value="${v.id}">${BromarHub.escapeHtml(label)}</option>`;
+        }).join('');
+    } catch (err) {
+      console.error('Failed to load vehicles:', err);
+      sel.innerHTML = '<option value="">Failed to load vehicles</option>';
+    }
+  }
+
+  document.getElementById('vehicle_select').addEventListener('change', function () {
+    const id = this.value;
+    const vehicle = VEHICLES.find(v => v.id === id);
+    selectedVehicle = vehicle || null;
+
+    const bar = document.getElementById('vehicleInfoBar');
+    if (vehicle) {
+      document.getElementById('infoMake').textContent    = vehicle.make    || '—';
+      document.getElementById('infoModel').textContent   = vehicle.model   || '—';
+      document.getElementById('infoPlantNo').textContent = vehicle.plant_no || '—';
+      document.getElementById('infoRego').textContent    = vehicle.rego_no  || '—';
+      document.getElementById('infoYear').textContent    = vehicle.year     || '—';
+      bar.classList.add('show');
+    } else {
+      bar.classList.remove('show');
+    }
+
+    document.getElementById('group-vehicle').classList.remove('has-error');
+    this.classList.remove('error');
+  });
+
+  // ============================================================
+  // CHECKLIST
+  // ============================================================
+  function renderChecklist() {
+    const container = document.getElementById('checklistContainer');
+    container.innerHTML = '';
+    CHECKS.forEach((check, idx) => {
+      const item = document.createElement('div');
+      item.className = 'check-item';
+      item.dataset.checkId = check.id;
+      item.innerHTML = `
+        <div class="check-item-top">
+          <div class="check-number">${idx + 1}</div>
+          <div class="check-text">${BromarHub.escapeHtml(check.text)}</div>
+          <div class="status-buttons" data-check="${check.id}">
+            <button type="button" class="status-btn" data-status="ok">OK</button>
+            <button type="button" class="status-btn" data-status="fault">Fault</button>
+            <button type="button" class="status-btn" data-status="na">N/A</button>
+          </div>
+        </div>
+        <textarea class="check-comment" data-check-comment="${check.id}" placeholder="Add comment (required for faults)…"></textarea>
+      `;
+      container.appendChild(item);
+    });
+
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.status-btn');
+      if (!btn) return;
+      const group  = btn.closest('.status-buttons');
+      const status = btn.dataset.status;
+      const checkId = group.dataset.check;
+      const item = document.querySelector(`[data-check-id="${checkId}"]`);
+      const wasActive = btn.classList.contains('active');
+
+      group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+      item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment');
+
+      if (!wasActive) {
+        btn.classList.add('active', status);
+        item.classList.add(`status-${status}`);
+        if (status === 'fault') item.classList.add('show-comment');
+      }
+      updateStatusSummary();
+      document.getElementById('checksError').classList.remove('show');
+    });
+  }
+
+  function updateStatusSummary() {
+    let ok = 0, fault = 0, na = 0;
+    document.querySelectorAll('.check-item').forEach(item => {
+      if (item.classList.contains('status-ok'))    ok++;
+      else if (item.classList.contains('status-fault')) fault++;
+      else if (item.classList.contains('status-na'))    na++;
+    });
+    const pending = CHECKS.length - ok - fault - na;
+    document.getElementById('countOk').textContent      = ok;
+    document.getElementById('countFault').textContent   = fault;
+    document.getElementById('countNa').textContent      = na;
+    document.getElementById('countPending').textContent = pending;
+    document.getElementById('faultPill').classList.toggle('has-faults', fault > 0);
+  }
+
+  function getCheckResults() {
+    return CHECKS.map((check, idx) => {
+      const item      = document.querySelector(`[data-check-id="${check.id}"]`);
+      const commentEl = document.querySelector(`[data-check-comment="${check.id}"]`);
+      let status = 'PENDING';
+      if (item.classList.contains('status-ok'))    status = 'OK';
+      else if (item.classList.contains('status-fault')) status = 'FAULT';
+      else if (item.classList.contains('status-na'))    status = 'NA';
+      return { id: check.id, number: idx + 1, text: check.text, status, comment: commentEl?.value.trim() || '' };
+    });
+  }
+
+  // ============================================================
+  // SIGNATURE PAD
+  // ============================================================
+  let sigCanvas, sigWrapper, sigCtx;
+  let sigDrawing = false, sigHasContent = false;
+  let sigLastX = 0, sigLastY = 0, sigSignedAt = null;
+
+  function initSignaturePad() {
+    sigCanvas  = document.getElementById('signaturePad');
+    sigWrapper = document.getElementById('sigWrapper');
+    sigCtx     = sigCanvas.getContext('2d');
+
+    sigCanvas.addEventListener('mousedown',  startSig);
+    sigCanvas.addEventListener('mousemove',  moveSig);
+    sigCanvas.addEventListener('mouseup',    endSig);
+    sigCanvas.addEventListener('mouseleave', endSig);
+    sigCanvas.addEventListener('touchstart', startSig, { passive: false });
+    sigCanvas.addEventListener('touchmove',  moveSig,  { passive: false });
+    sigCanvas.addEventListener('touchend',   endSig);
+    document.getElementById('clearSigBtn').addEventListener('click', clearSignature);
+    window.addEventListener('resize', () => setTimeout(resizeSigCanvas, 50));
+    setTimeout(resizeSigCanvas, 50);
+  }
+
+  function resizeSigCanvas() {
+    const ratio = window.devicePixelRatio || 1;
+    const rect  = sigCanvas.getBoundingClientRect();
+    let saved   = null;
+    if (sigHasContent) saved = sigCanvas.toDataURL();
+    sigCanvas.width  = rect.width  * ratio;
+    sigCanvas.height = rect.height * ratio;
+    sigCtx.scale(ratio, ratio);
+    sigCtx.lineWidth  = 2;
+    sigCtx.lineCap    = 'round';
+    sigCtx.lineJoin   = 'round';
+    sigCtx.strokeStyle = '#111827';
+    if (saved) {
+      const img = new Image();
+      img.onload = () => sigCtx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = saved;
+    }
+  }
+
+  function getSigPos(e) {
+    const rect = sigCanvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: cx - rect.left, y: cy - rect.top };
+  }
+
+  function startSig(e) {
+    e.preventDefault();
+    sigDrawing = true;
+    const pos = getSigPos(e);
+    sigLastX = pos.x; sigLastY = pos.y;
+    if (!sigHasContent) {
+      sigHasContent = true;
+      sigSignedAt   = new Date();
+      sigWrapper.classList.add('has-signature');
+      updateSigDateDisplay();
+      document.getElementById('group-signature').classList.remove('has-error');
+    }
+  }
+
+  function moveSig(e) {
+    if (!sigDrawing) return;
+    e.preventDefault();
+    const pos = getSigPos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(sigLastX, sigLastY);
+    sigCtx.lineTo(pos.x, pos.y);
+    sigCtx.stroke();
+    sigLastX = pos.x; sigLastY = pos.y;
+  }
+
+  function endSig() { sigDrawing = false; }
+
+  function updateSigDateDisplay() {
+    document.getElementById('sigDateDisplay').textContent = sigSignedAt
+      ? sigSignedAt.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+  }
+
+  function clearSignature() {
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    sigHasContent = false;
+    sigSignedAt   = null;
+    sigWrapper.classList.remove('has-signature');
+    updateSigDateDisplay();
+  }
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp?.querySelector('input, select, textarea');
+      if (!condition) {
+        grp?.classList.add('has-error');
+        inp?.classList.add('error');
+        valid = false;
+      } else {
+        grp?.classList.remove('has-error');
+        inp?.classList.remove('error');
+      }
+    }
+
+    check('group-filled-by', document.getElementById('filled_by').value.trim().length > 0);
+    check('group-vehicle',   document.getElementById('vehicle_select').value.length > 0);
+    check('group-week',      document.getElementById('week_commencing').value.length > 0);
+
+    const results = getCheckResults();
+    if (results.some(r => r.status === 'PENDING')) {
+      document.getElementById('checksError').classList.add('show');
+      valid = false;
+    } else {
+      document.getElementById('checksError').classList.remove('show');
+    }
+
+    if (!sigHasContent) {
+      document.getElementById('group-signature').classList.add('has-error');
+      valid = false;
+    } else {
+      document.getElementById('group-signature').classList.remove('has-error');
+    }
+
+    return valid;
+  }
+
+  // ============================================================
+  // FORM SUBMIT
+  // ============================================================
+  document.getElementById('auditForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn.disabled) return;
+
+    if (!validateForm()) {
+      const firstError = document.querySelector('.has-error') || document.getElementById('checksError');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // currentUser fallback
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) {
+        const opt = sel.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+    }
+    if (!currentUser) {
+      BromarHub.showInfo('Please select who is filling out the form');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+    BromarHub.showLoading('Submitting audit…', 'Saving to database and notifying admin…');
+
+    try {
+      const results        = getCheckResults();
+      const okCount        = results.filter(r => r.status === 'OK').length;
+      const faultCount     = results.filter(r => r.status === 'FAULT').length;
+      const naCount        = results.filter(r => r.status === 'NA').length;
+      const weekCommencing = document.getElementById('week_commencing').value;
+      const currentKm      = document.getElementById('current_km_hours').value || null;
+      const nextServiceKm  = document.getElementById('next_service_km').value || null;
+      const operatorInit   = document.getElementById('operator_initial').value.trim() || null;
+      const defectReporter = document.getElementById('defect_reported_by').value.trim() || null;
+      const defectDate     = document.getElementById('defect_date').value || null;
+      const defectDetails  = document.getElementById('defect_details').value.trim() || null;
+      const notes          = document.getElementById('notes').value.trim() || null;
+      const signatureDataUrl = sigCanvas.toDataURL('image/png');
+
+      // ── 1. Insert audit record ──
+      const { data: auditData, error: auditError } = await window.sb
+        .from('vehicle_audits')
+        .insert({
+          vehicle_id:        selectedVehicle.id,
+          audit_type_id:     CONFIG.auditTypeId,
+          operator_name:     currentUser.name,
+          operator_email:    currentUser.email,
+          operator_initial:  operatorInit,
+          week_commencing:   weekCommencing,
+          current_km_hours:  currentKm    ? parseFloat(currentKm)    : null,
+          next_service_km:   nextServiceKm ? parseFloat(nextServiceKm) : null,
+          total_checks:      CHECKS.length,
+          ok_count:          okCount,
+          fault_count:       faultCount,
+          na_count:          naCount,
+          defect_reported_by: defectReporter,
+          defect_date:        defectDate,
+          defect_details:     defectDetails,
+          signature_url:      signatureDataUrl,
+          signature_signed_at: sigSignedAt?.toISOString() || new Date().toISOString(),
+          revision:           CONFIG.revision,
+          notes:              notes,
+        })
+        .select('id')
+        .single();
+
+      if (auditError) throw auditError;
+      const auditId = auditData.id;
+
+      // ── 2. Insert check rows ──
+      const checkRows = results.map((r, idx) => ({
+        audit_id:   auditId,
+        sort_order: idx + 1,
+        item_text:  r.text,
+        status:     r.status === 'NA' ? 'NA' : r.status, // OK | FAULT | NA
+        comment:    r.comment || null,
+      }));
+
+      const { error: checksError } = await window.sb
+        .from('vehicle_audit_checks')
+        .insert(checkRows);
+
+      if (checksError) throw checksError;
+
+      // ── 3. EmailJS notification ──
+      const submitted = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+      const signatureDate = sigSignedAt
+        ? sigSignedAt.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : submitted;
+
+      const checksSummary = results.map(r => {
+        let line = `${r.number}. [${r.status}] ${r.text}`;
+        if (r.comment) line += `\n   Comment: ${r.comment}`;
+        return line;
+      }).join('\n');
+
+      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
+        audit_id:          auditId,
+        week_commencing:   weekCommencing,
+        plant_no:          selectedVehicle.plant_no  || '—',
+        plant_name:        selectedVehicle.plant_name || '—',
+        plant_type:        selectedVehicle.plant_type || '—',
+        rego_no:           selectedVehicle.rego_no    || '—',
+        make:              selectedVehicle.make        || '—',
+        model:             selectedVehicle.model       || '—',
+        current_km_hours:  currentKm    || 'Not recorded',
+        next_service_km:   nextServiceKm || 'Not recorded',
+        operator_name:     currentUser.name,
+        operator_email:    currentUser.email,
+        operator_initial:  operatorInit  || 'N/A',
+        checks_summary:    checksSummary,
+        ok_count:          okCount,
+        fault_count:       faultCount,
+        na_count:          naCount,
+        total_checks:      CHECKS.length,
+        defect_reported_by: defectReporter || 'N/A',
+        defect_date:        defectDate     || 'N/A',
+        defect_details:     defectDetails  || 'No defects reported.',
+        notes:              notes           || 'None',
+        signature_image:   signatureDataUrl,
+        signature_date:    signatureDate,
+        submitted_date:    submitted,
+        revision:          CONFIG.revision,
+        to_email:          currentUser.email,
+        admin_emails:      CONFIG.adminEmails.join(', '),
+      });
+
+      // ── 4. Success ──
+      BromarHub.hideLoading();
+      BromarHub.showSuccess(faultCount > 0
+        ? `Audit submitted — ${faultCount} fault${faultCount > 1 ? 's' : ''} recorded and flagged for review.`
+        : 'Audit submitted successfully — all checks passed.'
+      );
+
+      // Reset form
+      document.getElementById('auditForm').reset();
+      document.querySelectorAll('.check-item').forEach(item =>
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment')
+      );
+      document.querySelectorAll('.status-btn').forEach(b =>
+        b.classList.remove('active', 'ok', 'fault', 'na')
+      );
+      updateStatusSummary();
+      clearSignature();
+      document.getElementById('vehicleInfoBar').classList.remove('show');
+      selectedVehicle = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Re-apply currentUser after reset
+      if (currentUser) {
+        const sel = document.getElementById('filled_by');
+        for (const opt of sel.options) {
+          if (opt.value === currentUser.name) { sel.value = opt.value; break; }
+        }
+      }
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Something went wrong — please try again or contact admin@bromar.com.au');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Audit';
+    }
+  });
+
+  // ── Clear error state on input ──
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.matches('input, select, textarea')) return;
+    el.classList.remove('error');
+    const grp = el.closest('[id^="group-"]');
+    if (grp) grp.classList.remove('has-error');
+  });
+
+  // ── Reset handler ──
+  document.getElementById('auditForm').addEventListener('reset', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.check-item').forEach(item =>
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment')
+      );
+      document.querySelectorAll('.status-btn').forEach(b =>
+        b.classList.remove('active', 'ok', 'fault', 'na')
+      );
+      updateStatusSummary();
+      clearSignature();
+      document.getElementById('vehicleInfoBar').classList.remove('show');
+      selectedVehicle = null;
+    }, 0);
+  });
+</script>
+
+</body>
+</html>
