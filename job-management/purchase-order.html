@@ -336,11 +336,6 @@
         <label>Don't fill this out if you're human: <input name="bot-field" /></label>
       </p>
 
-      <!-- PO NUMBER DISPLAY (in-body) -->
-      <div style="text-align: center; margin-bottom: 18px;">
-        <div class="po-number-display" id="poNumberDisplay">PO: ——</div>
-      </div>
-
       <!-- MODE TOGGLE -->
       <div class="mode-toggle">
         <button type="button" class="mode-toggle-btn active" data-mode="verbal">📞 Verbal / Walk-In</button>
@@ -363,7 +358,6 @@
         <p id="clientSiteName" style="font-weight: 600; color: var(--text-secondary);"></p>
         <p id="clientSite">—</p>
         <p id="clientContact">—</p>
-        <div class="po-preview">PO Number: <span id="poPreviewInline">loading…</span></div>
       </div>
 
       <!-- AWAITING JOB -->
@@ -390,30 +384,18 @@
         <div class="section-label">Supplier</div>
 
         <div class="field-row">
-          <div class="field-group" id="group-supplier">
-            <label for="supplier">Supplier <span class="required">*</span></label>
-            <select id="supplier" name="supplier">
-              <option value="" disabled selected>Select supplier</option>
-              <option value="Lawrence & Hanson">Lawrence & Hanson</option>
-              <option value="MM Electrical">MM Electrical</option>
-              <option value="CNW Electrical">CNW Electrical</option>
-              <option value="Rexel">Rexel</option>
-              <option value="Middys">Middys</option>
-              <option value="Haymans">Haymans</option>
-              <option value="Bunnings">Bunnings</option>
-              <option value="Other">Other</option>
-            </select>
+          <div class="field-group autocomplete-wrapper" id="group-supplier">
+            <label for="supplier_search">Supplier <span class="required">*</span></label>
+            <input type="text" id="supplier_search" placeholder="Start typing supplier name..." autocomplete="off"/>
+            <div class="autocomplete-results" id="supplierResults"></div>
             <span class="error-msg">Please select a supplier</span>
           </div>
           <div class="field-group">
             <label for="supplier_branch">Branch / Location</label>
-            <input type="text" id="supplier_branch" name="supplier_branch" placeholder="e.g. Tullamarine, Campbellfield"/>
+            <select id="supplier_branch" name="supplier_branch" disabled>
+              <option value="">Select supplier first…</option>
+            </select>
           </div>
-        </div>
-
-        <div class="field-group" id="supplierOtherGroup" style="display: none;">
-          <label for="supplier_other">Specify Supplier</label>
-          <input type="text" id="supplier_other" name="supplier_other" placeholder="Supplier name"/>
         </div>
 
         <!-- VERBAL / WALK-IN MODE -->
@@ -423,10 +405,6 @@
             <label for="verbal_description">Brief Description of Parts <span class="required">*</span></label>
             <textarea id="verbal_description" name="verbal_description" rows="4" placeholder="Brief description of parts being ordered (e.g. 'Misc cable, conduit & fittings for site fitout')"></textarea>
             <span class="error-msg">Please enter a description</span>
-          </div>
-          <div class="field-group">
-            <label for="verbal_estimated">Estimated Total ($)</label>
-            <input type="number" id="verbal_estimated" name="verbal_estimated" min="0" step="0.01" placeholder="0.00"/>
           </div>
         </div>
 
@@ -512,14 +490,16 @@
   </div>
 </div>
 
-<div class="revision-number">V1.05</div>
+<div class="revision-number">V1.07</div>
 
 <script>
-  const DOC_VERSION = 'V1.05';
+  const DOC_VERSION = 'V1.07';
 
   let currentUser = null;
   let EMPLOYEES = [];
   let selectedJobData = null;
+  let selectedSupplier = null;
+  let selectedBranch = null;
 
   // ============================================================
   // INIT
@@ -559,7 +539,6 @@
   const jobSearch = document.getElementById('job_search');
   const acResults = document.getElementById('autocompleteResults');
   const clientCard = document.getElementById('clientInfoCard');
-  const poDisplay = document.getElementById('poNumberDisplay');
   let searchTimeout;
 
   jobSearch.addEventListener('input', function() {
@@ -625,32 +604,12 @@
     document.getElementById('clientContact').textContent = contact || '';
     clientCard.classList.add('show');
 
-    await previewPoNumber();
-
     const deliveryAddress = document.getElementById('delivery_address');
     if (deliveryAddress && !deliveryAddress.value && job.site_address) {
       deliveryAddress.value = job.site_address;
     }
 
     setPostJobSectionsVisible(true);
-  }
-
-  async function previewPoNumber() {
-    if (!selectedJobData) return;
-    try {
-      const { data, error } = await window.sb.rpc('next_po_sequence', {
-        p_job_number: selectedJobData.job_number
-      });
-      if (error) throw error;
-      const seq = String(data).padStart(4, '0');
-      const poNum = `${selectedJobData.job_number}-P${seq}`;
-      poDisplay.textContent = `PO: ${poNum}`;
-      document.getElementById('poPreviewInline').textContent = poNum;
-    } catch (err) {
-      console.error('PO sequence error:', err);
-      poDisplay.textContent = `PO: ${selectedJobData.job_number}-P????`;
-      document.getElementById('poPreviewInline').textContent = `${selectedJobData.job_number}-P????`;
-    }
   }
 
   // ============================================================
@@ -678,11 +637,130 @@
   });
 
   // ============================================================
-  // SUPPLIER OTHER
+  // SUPPLIER SEARCH (autocomplete on suppliers table)
   // ============================================================
-  document.getElementById('supplier').addEventListener('change', function() {
-    document.getElementById('supplierOtherGroup').style.display =
-      this.value === 'Other' ? 'block' : 'none';
+  const supplierSearch = document.getElementById('supplier_search');
+  const supplierResults = document.getElementById('supplierResults');
+  let supplierSearchTimeout;
+
+  supplierSearch.addEventListener('input', function() {
+    selectedSupplier = null;
+    selectedBranch = null;
+    resetBranchDropdown();
+    clearTimeout(supplierSearchTimeout);
+    supplierSearchTimeout = setTimeout(() => searchSuppliers(this.value), 250);
+  });
+
+  supplierSearch.addEventListener('focus', function() {
+    if (this.value.trim().length >= 1) {
+      searchSuppliers(this.value);
+    } else {
+      searchSuppliers(''); // show top results on focus
+    }
+  });
+
+  async function searchSuppliers(query) {
+    try {
+      let q = window.sb.from('suppliers')
+        .select('id, name, category')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .limit(15);
+
+      if (query && query.trim().length > 0) {
+        q = q.ilike('name', `%${query.trim()}%`);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      if (data?.length > 0) {
+        supplierResults.innerHTML = data.map(s => `
+          <div class="autocomplete-item" data-supplier='${JSON.stringify(s).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item-client">${BromarHub.escapeHtml(s.name)}</div>
+            ${s.category ? `<div class="autocomplete-item-site">${BromarHub.escapeHtml(s.category)}</div>` : ''}
+          </div>
+        `).join('');
+        supplierResults.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            selectSupplier(JSON.parse(item.dataset.supplier.replace(/&#39;/g, "'")));
+          });
+        });
+        supplierResults.classList.add('show');
+      } else {
+        supplierResults.innerHTML = `<div class="autocomplete-item" style="cursor:default; color:var(--text-muted); font-style:italic;">No suppliers found — admin can add via <a href="../supplier-manager/index.html" style="color:var(--brand-orange);">Supplier Manager</a></div>`;
+        supplierResults.classList.add('show');
+      }
+    } catch (err) {
+      console.error('Supplier search failed:', err);
+    }
+  }
+
+  async function selectSupplier(s) {
+    selectedSupplier = s;
+    selectedBranch = null;
+    supplierSearch.value = s.name;
+    supplierResults.classList.remove('show');
+    await loadBranches(s.id);
+  }
+
+  function resetBranchDropdown() {
+    const sel = document.getElementById('supplier_branch');
+    sel.innerHTML = '<option value="">Select supplier first…</option>';
+    sel.disabled = true;
+  }
+
+  async function loadBranches(supplierId) {
+    const sel = document.getElementById('supplier_branch');
+    sel.innerHTML = '<option value="">Loading branches…</option>';
+    sel.disabled = true;
+
+    try {
+      const { data, error } = await window.sb
+        .from('supplier_branches')
+        .select('id, branch_name, suburb, state, postcode, address, phone, email')
+        .eq('supplier_id', supplierId)
+        .eq('is_active', true)
+        .order('branch_name', { ascending: true });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        sel.innerHTML = '<option value="">No branches listed</option>';
+        sel.disabled = true;
+        return;
+      }
+
+      const opts = ['<option value="">Select a branch…</option>']
+        .concat(data.map(b => {
+          const meta = [b.suburb, b.state].filter(Boolean).join(', ');
+          return `<option value="${b.id}" data-name="${BromarHub.escapeHtml(b.branch_name)}">${BromarHub.escapeHtml(b.branch_name)}${meta ? ' — ' + BromarHub.escapeHtml(meta) : ''}</option>`;
+        }))
+        .join('');
+      sel.innerHTML = opts;
+      sel.disabled = false;
+
+      // If only one branch, auto-select it
+      if (data.length === 1) {
+        sel.value = data[0].id;
+        selectedBranch = data[0];
+      }
+
+      sel.onchange = function() {
+        const branchId = this.value;
+        selectedBranch = branchId ? data.find(b => b.id === branchId) : null;
+      };
+    } catch (err) {
+      console.error('Branch load failed:', err);
+      sel.innerHTML = '<option value="">Failed to load branches</option>';
+      sel.disabled = true;
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#group-supplier')) {
+      supplierResults.classList.remove('show');
+    }
   });
 
   // ============================================================
@@ -836,7 +914,7 @@
     }
 
     check('group-job', !!selectedJobData);
-    check('group-supplier', !!document.getElementById('supplier').value);
+    check('group-supplier', supplierSearch.value.trim().length > 0);
     check('group-ordered-by', !!document.getElementById('filled_by').value);
 
     if (currentMode === 'verbal') {
@@ -894,8 +972,7 @@
     BromarHub.showLoading('Submitting purchase order…', 'Please wait');
 
     try {
-      const supplierVal = document.getElementById('supplier').value;
-      const supplierOther = document.getElementById('supplier_other').value.trim();
+      const supplierName = supplierSearch.value.trim();
 
       const poHeader = {
         job_number: selectedJobData.job_number,
@@ -907,9 +984,10 @@
         client_contact: [selectedJobData.contact_person, selectedJobData.contact_phone].filter(Boolean).join(' — ') || null,
         ordered_by_name: currentUser.name,
         ordered_by_email: currentUser.email || null,
-        supplier: supplierVal,
-        supplier_other: supplierVal === 'Other' ? supplierOther : null,
-        supplier_branch: document.getElementById('supplier_branch').value.trim() || null,
+        supplier: supplierName,
+        supplier_id: selectedSupplier?.id || null,
+        supplier_branch_id: selectedBranch?.id || null,
+        supplier_branch: selectedBranch?.branch_name || null,
         general_notes: document.getElementById('general_notes').value.trim() || null,
         revision: DOC_VERSION,
         status: 'submitted'
@@ -917,8 +995,6 @@
 
       if (currentMode === 'verbal') {
         poHeader.verbal_description = document.getElementById('verbal_description').value.trim();
-        const est = parseFloat(document.getElementById('verbal_estimated').value);
-        poHeader.verbal_estimated = isNaN(est) ? null : est;
       } else {
         const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
         poHeader.delivery_type = deliveryType;
@@ -956,9 +1032,12 @@
       addLineItem();
       updateGrandTotal();
       clientCard.classList.remove('show');
-      poDisplay.textContent = 'PO: ——';
       selectedJobData = null;
+      selectedSupplier = null;
+      selectedBranch = null;
       jobSearch.value = '';
+      supplierSearch.value = '';
+      resetBranchDropdown();
       setPostJobSectionsVisible(false);
 
       if (currentUser?.name) {
