@@ -491,10 +491,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.08</div>
+<div class="revision-number">V1.09</div>
 
 <script>
-  const DOC_VERSION = 'V1.08';
+  const DOC_VERSION = 'V1.09';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -570,10 +570,10 @@
         acResults.innerHTML = data.map(job => {
           const isCompleted = job.status === 'completed';
           const statusBadge = isCompleted
-            ? '<span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: var(--error); font-weight: 700; letter-spacing: 0.5px;">CLOSED</span>'
-            : '<span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; background: rgba(34, 197, 94, 0.12); color: var(--success, #15803d); font-weight: 700; letter-spacing: 0.5px;">OPEN</span>';
+            ? '<span style="font-size: 0.65rem; font-weight: 700; background: #064e3b; color: #a7f3d0; padding: 2px 7px; border-radius: 4px; margin-left: 6px; letter-spacing: 0.5px;">COMPLETED</span>'
+            : '';
           return `
-            <div class="autocomplete-item${isCompleted ? ' job-closed' : ''}" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item${isCompleted ? ' job-completed' : ''}" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
               <div class="autocomplete-item-number">
                 ${BromarHub.escapeHtml(job.job_number)}
                 <span class="prefix-badge">${BromarHub.escapeHtml(job.prefix || '')}</span>
@@ -600,23 +600,50 @@
     }
   }
 
-  async function selectJob(job) {
-    // If job is closed, require explicit confirmation
+  function selectJob(job) {
+    // Warn if job is marked completed
     if (job.status === 'completed') {
-      const completedDate = job.completed_at
-        ? new Date(job.completed_at).toLocaleDateString('en-AU')
-        : 'unknown date';
-      const ok = confirm(
-        `⚠️ Job ${job.job_number} is marked CLOSED (completed ${completedDate}).\n\n` +
-        `Are you sure you want to raise a purchase order against a closed job?\n\n` +
-        `Click OK to continue, or Cancel to pick a different job.`
-      );
-      if (!ok) {
-        acResults.classList.remove('show');
-        return;
-      }
+      showCompletedJobWarning(job);
+      return;
+    }
+    applyJobSelection(job);
+  }
+
+  function showCompletedJobWarning(job) {
+    if (!document.getElementById('completedJobModal')) {
+      const modal = document.createElement('div');
+      modal.id = 'completedJobModal';
+      modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9500; align-items:center; justify-content:center; padding:1rem;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-secondary, var(--brand-white)); border-radius:16px; max-width:440px; width:100%; padding:2rem; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+          <div style="font-size:2.5rem; margin-bottom:0.75rem;">⚠️</div>
+          <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-primary); margin-bottom:0.5rem;">Job Marked as Completed</h2>
+          <p id="completedJobModalDetail" style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; margin-bottom:1.5rem;"></p>
+          <div style="display:flex; gap:0.75rem; justify-content:center;">
+            <button id="completedJobCancel" class="btn-secondary" style="flex:1;">Cancel</button>
+            <button id="completedJobProceed" class="submit-btn" style="flex:1;">Continue Anyway</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
     }
 
+    const modal = document.getElementById('completedJobModal');
+    document.getElementById('completedJobModalDetail').textContent =
+      `${job.job_number} — ${job.client_name} has been declared finished. Raising a purchase order will continue against this completed job. Do you want to continue?`;
+
+    modal.style.display = 'flex';
+
+    document.getElementById('completedJobCancel').onclick = () => {
+      modal.style.display = 'none';
+      acResults.classList.remove('show');
+    };
+    document.getElementById('completedJobProceed').onclick = () => {
+      modal.style.display = 'none';
+      applyJobSelection(job);
+    };
+  }
+
+  async function applyJobSelection(job) {
     selectedJobData = job;
     jobSearch.value = job.job_number;
     acResults.classList.remove('show');
@@ -627,12 +654,15 @@
     const contact = [job.contact_person, job.contact_phone].filter(Boolean).join(' — ');
     document.getElementById('clientContact').textContent = contact || '';
 
-    // Show closed-job warning inside client card
+    // Show completed-job warning inside client card
     const warning = document.getElementById('jobClosedWarning');
     if (job.status === 'completed') {
       const dateStr = job.completed_at ? new Date(job.completed_at).toLocaleDateString('en-AU') : '';
-      warning.innerHTML = `⚠️ <strong>This job is CLOSED</strong>${dateStr ? ` (completed ${dateStr})` : ''} — PO will be raised against a closed job.`;
+      warning.innerHTML = `✅ <strong>This job is marked COMPLETED</strong>${dateStr ? ` (${dateStr})` : ''} — PO will be raised against a completed job.`;
       warning.style.display = 'block';
+      warning.style.background = 'rgba(34, 197, 94, 0.1)';
+      warning.style.borderLeftColor = 'var(--success, #15803d)';
+      warning.style.color = 'var(--success-text, #15803d)';
     } else {
       warning.style.display = 'none';
     }
@@ -1019,7 +1049,7 @@
         client_contact: [selectedJobData.contact_person, selectedJobData.contact_phone].filter(Boolean).join(' — ') || null,
         ordered_by_name: currentUser.name,
         ordered_by_email: currentUser.email || null,
-        job_was_closed: selectedJobData.status === 'completed',
+        job_was_completed: selectedJobData.status === 'completed',
         supplier: supplierName,
         supplier_id: selectedSupplier?.id || null,
         supplier_branch_id: selectedBranch?.id || null,
