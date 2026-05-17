@@ -11,6 +11,85 @@
   <style>
     /* Page-specific styles only */
     
+    /* Autocomplete job lookup */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-results {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary, var(--input-bg));
+      border: 1px solid var(--border, var(--input-border));
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 24px var(--shadow, rgba(0,0,0,0.1));
+    }
+    .autocomplete-results.show { display: block; }
+    .autocomplete-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border, var(--input-border));
+      transition: background 0.15s;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--card-hover, var(--brand-light)); }
+    .autocomplete-item-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--brand-orange);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .autocomplete-item-client {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+    .autocomplete-item-site {
+      font-size: 0.78rem;
+      color: var(--text-secondary, var(--text-muted));
+      margin-top: 1px;
+    }
+    .prefix-badge {
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 0.5px;
+    }
+
+    .client-info-card {
+      display: none;
+      background: var(--brand-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin: 12px 0 18px;
+    }
+    .client-info-card.show { display: block; animation: slideIn 0.3s ease; }
+    .client-info-card h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin-bottom: 8px;
+    }
+    .client-info-card p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 2px 0;
+    }
+    .client-info-card strong { color: var(--text-primary); }
+    
     /* Expense summary boxes */
     .expense-summary {
       display: grid;
@@ -234,12 +313,12 @@
         <span>Your progress is automatically saved — you can safely close this page and return later to continue.</span>
       </div>
 
-      <!-- EMPLOYEE DETAILS -->
-      <div class="section-label">Employee Details</div>
+      <!-- EMPLOYEE & JOB DETAILS -->
+      <div class="section-label">Employee & Job Details</div>
 
       <div class="field-row">
         <div class="field-group" id="group-name">
-          <label for="filled_by">Full Name <span class="required">*</span></label>
+          <label for="filled_by">Employee Name <span class="required">*</span></label>
           <select id="filled_by" name="filled_by" required>
             <option value="">Select employee...</option>
           </select>
@@ -250,6 +329,27 @@
           <input type="date" id="claim_date" name="claim_date" autocomplete="off"/>
           <span class="error-msg">Please select claim date</span>
         </div>
+      </div>
+
+      <!-- JOB LOOKUP -->
+      <div class="field-row">
+        <div class="field-group autocomplete-wrapper">
+          <label for="job_search">Job Number (Optional)</label>
+          <input type="text" id="job_search" placeholder="Start typing job number or client name..." style="text-transform: uppercase;" autocomplete="off"/>
+          <div class="autocomplete-results" id="autocompleteResults"></div>
+        </div>
+        <div class="field-group">
+          <label for="po_number">Purchase Order Number (Optional)</label>
+          <input type="text" id="po_number" name="po_number" placeholder="e.g. J12345-P0001" style="text-transform: uppercase;" autocomplete="off"/>
+        </div>
+      </div>
+
+      <div class="client-info-card" id="clientInfoCard">
+        <h4>Job Details</h4>
+        <p><strong>Job:</strong> <span id="jobNumber">—</span></p>
+        <p><strong>Client:</strong> <span id="clientName">—</span></p>
+        <p id="clientSiteName" style="font-weight: 600; color: var(--text-secondary);"></p>
+        <p id="clientSite">—</p>
       </div>
 
       <!-- EXPENSE SUMMARY -->
@@ -317,6 +417,7 @@
   let EMPLOYEES = [];
   let currentUser = null;
   let expenseCounter = 0;
+  let selectedJobData = null;
 
   // ============================================================
   // INITIALIZATION
@@ -357,13 +458,93 @@
   });
 
   // ============================================================
+  // JOB SEARCH (autocomplete on job_number_register)
+  // ============================================================
+  const jobSearch = document.getElementById('job_search');
+  const acResults = document.getElementById('autocompleteResults');
+  const clientCard = document.getElementById('clientInfoCard');
+  let searchTimeout;
+
+  jobSearch.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchJobs(this.value), 300);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+      acResults.classList.remove('show');
+    }
+  });
+
+  async function searchJobs(query) {
+    if (query.length < 2) { 
+      acResults.classList.remove('show'); 
+      return; 
+    }
+    
+    try {
+      const { data, error } = await window.sb
+        .from('job_number_register')
+        .select('job_number, client_name, site_name, site_address, contact_person, contact_phone, prefix')
+        .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
+        .order('job_number', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      if (data?.length > 0) {
+        acResults.innerHTML = data.map(job => `
+          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+            <div class="autocomplete-item-number">
+              ${BromarHub.escapeHtml(job.job_number)}
+              <span class="prefix-badge">${BromarHub.escapeHtml(job.prefix || '')}</span>
+            </div>
+            <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}</div>
+            ${job.site_name ? `<div class="autocomplete-item-site">📍 ${BromarHub.escapeHtml(job.site_name)}</div>` : ''}
+          </div>
+        `).join('');
+        
+        acResults.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'")));
+          });
+        });
+        acResults.classList.add('show');
+      } else {
+        acResults.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+        acResults.classList.add('show');
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
+      BromarHub.showInfo('Search failed: ' + err.message);
+    }
+  }
+
+  function selectJob(job) {
+    selectedJobData = job;
+    jobSearch.value = job.job_number;
+    acResults.classList.remove('show');
+
+    document.getElementById('jobNumber').textContent = job.job_number || '—';
+    document.getElementById('clientName').textContent = job.client_name || '—';
+    document.getElementById('clientSiteName').textContent = job.site_name || '';
+    document.getElementById('clientSite').textContent = job.site_address || '—';
+    
+    clientCard.classList.add('show');
+  }
+
+  // ============================================================
   // AUTO-SAVE FORM DATA TO LOCAL STORAGE
   // ============================================================
   function saveFormData() {
     const formData = {
       filled_by: document.getElementById('filled_by').value,
       claim_date: document.getElementById('claim_date').value,
+      job_search: document.getElementById('job_search').value,
+      po_number: document.getElementById('po_number').value,
       general_comments: document.getElementById('general_comments').value,
+      selectedJob: selectedJobData,
       expenses: []
     };
 
@@ -402,7 +583,15 @@
 
       document.getElementById('filled_by').value = formData.filled_by || '';
       document.getElementById('claim_date').value = formData.claim_date || '';
+      document.getElementById('job_search').value = formData.job_search || '';
+      document.getElementById('po_number').value = formData.po_number || '';
       document.getElementById('general_comments').value = formData.general_comments || '';
+
+      // Restore selected job
+      if (formData.selectedJob) {
+        selectedJobData = formData.selectedJob;
+        selectJob(selectedJobData);
+      }
 
       setTimeout(() => {
         formData.expenses.forEach((expenseData, index) => {
@@ -843,6 +1032,9 @@
           employee_name: currentUser.name,
           employee_email: currentUser.email,
           claim_date: claimDate,
+          job_number: selectedJobData?.job_number || null,
+          client_name: selectedJobData?.client_name || null,
+          po_number: document.getElementById('po_number').value.trim() || null,
           expenses: expenses,
           total_items: expenses.length,
           total_gst: totalGst.toFixed(2),
@@ -864,6 +1056,11 @@
       expenseContainer.innerHTML = '';
       initializeExpenses();
       updateTotals();
+      
+      // Clear job selection
+      selectedJobData = null;
+      jobSearch.value = '';
+      clientCard.classList.remove('show');
       
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
