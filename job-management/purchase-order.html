@@ -358,6 +358,7 @@
         <p id="clientSiteName" style="font-weight: 600; color: var(--text-secondary);"></p>
         <p id="clientSite">—</p>
         <p id="clientContact">—</p>
+        <div id="jobClosedWarning" style="display: none; margin-top: 10px; padding: 8px 12px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--error); border-radius: 0 6px 6px 0; font-size: 0.8rem; color: var(--error); font-weight: 500;"></div>
       </div>
 
       <!-- AWAITING JOB -->
@@ -490,10 +491,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.07</div>
+<div class="revision-number">V1.08</div>
 
 <script>
-  const DOC_VERSION = 'V1.07';
+  const DOC_VERSION = 'V1.08';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -558,7 +559,7 @@
     try {
       const { data, error } = await window.sb
         .from('job_number_register')
-        .select('job_number, client_name, site_name, site_address, contact_person, contact_phone, prefix')
+        .select('job_number, client_name, site_name, site_address, contact_person, contact_phone, prefix, status, completed_at')
         .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
         .order('job_number', { ascending: false })
         .limit(10);
@@ -566,16 +567,23 @@
       if (error) throw error;
 
       if (data?.length > 0) {
-        acResults.innerHTML = data.map(job => `
-          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
-            <div class="autocomplete-item-number">
-              ${BromarHub.escapeHtml(job.job_number)}
-              <span class="prefix-badge">${BromarHub.escapeHtml(job.prefix || '')}</span>
+        acResults.innerHTML = data.map(job => {
+          const isCompleted = job.status === 'completed';
+          const statusBadge = isCompleted
+            ? '<span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: var(--error); font-weight: 700; letter-spacing: 0.5px;">CLOSED</span>'
+            : '<span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; background: rgba(34, 197, 94, 0.12); color: var(--success, #15803d); font-weight: 700; letter-spacing: 0.5px;">OPEN</span>';
+          return `
+            <div class="autocomplete-item${isCompleted ? ' job-closed' : ''}" data-job='${JSON.stringify(job).replace(/'/g, "&#39;")}'>
+              <div class="autocomplete-item-number">
+                ${BromarHub.escapeHtml(job.job_number)}
+                <span class="prefix-badge">${BromarHub.escapeHtml(job.prefix || '')}</span>
+                ${statusBadge}
+              </div>
+              <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}</div>
+              ${job.site_name ? `<div class="autocomplete-item-site">📍 ${BromarHub.escapeHtml(job.site_name)}</div>` : ''}
             </div>
-            <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}</div>
-            ${job.site_name ? `<div class="autocomplete-item-site">📍 ${BromarHub.escapeHtml(job.site_name)}</div>` : ''}
-          </div>
-        `).join('');
+          `;
+        }).join('');
         acResults.querySelectorAll('.autocomplete-item').forEach(item => {
           item.addEventListener('click', () => {
             selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g, "'")));
@@ -593,6 +601,22 @@
   }
 
   async function selectJob(job) {
+    // If job is closed, require explicit confirmation
+    if (job.status === 'completed') {
+      const completedDate = job.completed_at
+        ? new Date(job.completed_at).toLocaleDateString('en-AU')
+        : 'unknown date';
+      const ok = confirm(
+        `⚠️ Job ${job.job_number} is marked CLOSED (completed ${completedDate}).\n\n` +
+        `Are you sure you want to raise a purchase order against a closed job?\n\n` +
+        `Click OK to continue, or Cancel to pick a different job.`
+      );
+      if (!ok) {
+        acResults.classList.remove('show');
+        return;
+      }
+    }
+
     selectedJobData = job;
     jobSearch.value = job.job_number;
     acResults.classList.remove('show');
@@ -602,6 +626,17 @@
     document.getElementById('clientSite').textContent = job.site_address || '—';
     const contact = [job.contact_person, job.contact_phone].filter(Boolean).join(' — ');
     document.getElementById('clientContact').textContent = contact || '';
+
+    // Show closed-job warning inside client card
+    const warning = document.getElementById('jobClosedWarning');
+    if (job.status === 'completed') {
+      const dateStr = job.completed_at ? new Date(job.completed_at).toLocaleDateString('en-AU') : '';
+      warning.innerHTML = `⚠️ <strong>This job is CLOSED</strong>${dateStr ? ` (completed ${dateStr})` : ''} — PO will be raised against a closed job.`;
+      warning.style.display = 'block';
+    } else {
+      warning.style.display = 'none';
+    }
+
     clientCard.classList.add('show');
 
     const deliveryAddress = document.getElementById('delivery_address');
@@ -984,6 +1019,7 @@
         client_contact: [selectedJobData.contact_person, selectedJobData.contact_phone].filter(Boolean).join(' — ') || null,
         ordered_by_name: currentUser.name,
         ordered_by_email: currentUser.email || null,
+        job_was_closed: selectedJobData.status === 'completed',
         supplier: supplierName,
         supplier_id: selectedSupplier?.id || null,
         supplier_branch_id: selectedBranch?.id || null,
