@@ -369,6 +369,144 @@
             .grid { grid-template-columns: 1fr; }
         }
 
+        /* PIN Lock Modal */
+        .pin-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        .pin-modal.show {
+            display: flex;
+        }
+        .pin-modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 32px var(--shadow);
+            animation: pinSlideIn 0.3s ease;
+        }
+        @keyframes pinSlideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .pin-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .pin-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .pin-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .pin-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .pin-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .pin-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+        }
+        .pin-input.error {
+            border-color: var(--error);
+            animation: shake 0.4s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .pin-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .pin-btn {
+            flex: 1;
+            padding: 0.875rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        .pin-btn-cancel {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .pin-btn-cancel:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+        .pin-btn-submit {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            border-color: transparent;
+        }
+        .pin-btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
+        }
+        .pin-error-msg {
+            color: var(--error);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            min-height: 1.2em;
+        }
+
+        /* Lock badge replacing Coming Soon */
+        .badge.locked {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         /* Compact View - smaller tiles */
         [data-density="compact"] .grid {
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -524,12 +662,14 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="job-management" data-keywords="job manager number register tracker list jobs project numbers management">
-                            <svg class="card-icon" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                            <h3 class="card-title">Job Manager</h3>
-                            <p class="card-description">View and search all active job numbers</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="job-management/job-manager.html" class="locked-link" data-href="job-management/job-manager.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="job-management" data-keywords="job manager number register tracker list jobs project numbers management">
+                                <svg class="card-icon" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                                <h3 class="card-title">Job Manager</h3>
+                                <p class="card-description">View and search all active job numbers</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
 
@@ -553,26 +693,32 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="safety" data-keywords="ppe personal protective equipment uniform request safety gear gloves boots helmet">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            <h3 class="card-title">PPE/Uniform Request</h3>
-                            <p class="card-description">Request personal protective equipment and work uniforms</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="safety/ppe-uniform-request.html" class="locked-link" data-href="safety/ppe-uniform-request.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="safety" data-keywords="ppe personal protective equipment uniform request safety gear gloves boots helmet">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                <h3 class="card-title">PPE/Uniform Request</h3>
+                                <p class="card-description">Request personal protective equipment and work uniforms</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
-                        <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact certified">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                            <h3 class="card-title">First Aiders</h3>
-                            <p class="card-description">Contact list of certified first aiders</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="safety/first-aiders.html" class="locked-link" data-href="safety/first-aiders.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="safety" data-keywords="first aid aider medical emergency injury help contact certified">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                                <h3 class="card-title">First Aiders</h3>
+                                <p class="card-description">Contact list of certified first aiders</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
-                        <div class="card" data-category="safety" data-keywords="toolbox talk discussion safety meeting topic training ohs whs resources templates materials submission">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                            <h3 class="card-title">Toolbox Talks</h3>
-                            <p class="card-description">Access safety topics and submit completed toolbox records</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="safety/toolbox-talks.html" class="locked-link" data-href="safety/toolbox-talks.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="safety" data-keywords="toolbox talk discussion safety meeting topic training ohs whs resources templates materials submission">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                                <h3 class="card-title">Toolbox Talks</h3>
+                                <p class="card-description">Access safety topics and submit completed toolbox records</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
 
@@ -596,19 +742,23 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="schedules" data-keywords="rdo roster schedule days off planned leave weekly monthly">
-                            <svg class="card-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            <h3 class="card-title">RDO Roster</h3>
-                            <p class="card-description">Team rostered days off schedule</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="schedules/rdo-roster.html" class="locked-link" data-href="schedules/rdo-roster.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="schedules" data-keywords="rdo roster schedule days off planned leave weekly monthly">
+                                <svg class="card-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <h3 class="card-title">RDO Roster</h3>
+                                <p class="card-description">Team rostered days off schedule</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
-                        <div class="card" data-category="schedules" data-keywords="callout roster change swap request on call emergency">
-                            <svg class="card-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                            <h3 class="card-title">Callout Roster Change</h3>
-                            <p class="card-description">Request callout roster swap or change</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="schedules/callout-roster-change.html" class="locked-link" data-href="schedules/callout-roster-change.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="schedules" data-keywords="callout roster change swap request on call emergency">
+                                <svg class="card-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                <h3 class="card-title">Callout Roster Change</h3>
+                                <p class="card-description">Request callout roster swap or change</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
 
@@ -616,19 +766,23 @@
                 <section>
                     <h2 class="section-title">Standards & Knowledge</h2>
                     <div class="grid">
-                        <div class="card" data-category="standards" data-keywords="standards australian as3000 as nzs wiring rules electrical regulations collection">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                            <h3 class="card-title">Standards</h3>
-                            <p class="card-description">Collection of Australian standards</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="standards/standards.html" class="locked-link" data-href="standards/standards.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="standards" data-keywords="standards australian as3000 as nzs wiring rules electrical regulations collection">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                                <h3 class="card-title">Standards</h3>
+                                <p class="card-description">Collection of Australian standards</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
-                        <div class="card" data-category="standards" data-keywords="technical resources guides manuals documentation specifications">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                            <h3 class="card-title">Technical Resources</h3>
-                            <p class="card-description">Technical guides and reference materials</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="standards/technical-resources.html" class="locked-link" data-href="standards/technical-resources.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="standards" data-keywords="technical resources guides manuals documentation specifications">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                                <h3 class="card-title">Technical Resources</h3>
+                                <p class="card-description">Technical guides and reference materials</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
                         <a href="standards/electrical-calculators.html" style="text-decoration: none; color: inherit;">
                             <div class="card" data-category="standards" data-keywords="electrical calculators cable size voltage drop current load capacity power ohms law">
@@ -660,12 +814,14 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="employee-resources" data-keywords="company policies procedures rules guidelines handbook manual">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            <h3 class="card-title">Company Policies</h3>
-                            <p class="card-description">Access company policies and procedures</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="employee-resources/company-policies.html" class="locked-link" data-href="employee-resources/company-policies.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="employee-resources" data-keywords="company policies procedures rules guidelines handbook manual">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <h3 class="card-title">Company Policies</h3>
+                                <p class="card-description">Access company policies and procedures</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
 
                         <a href="employee-resources/expense-claim.html" style="text-decoration: none; color: inherit;">
                             <div class="card" data-category="employee-resources" data-keywords="expense claim reimbursement receipt costs travel fuel meals">
@@ -697,12 +853,14 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="fleet-management" data-keywords="vehicle maintenance audit inspection checklist fleet service">
-                            <svg class="card-icon" viewBox="0 0 24 24"><path d="M9 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-4"></path><path d="M9 11V7a3 3 0 0 1 6 0v4"></path><path d="m8 16 2 2 4-4"></path></svg>
-                            <h3 class="card-title">Vehicle Maintenance Audit</h3>
-                            <p class="card-description">Complete vehicle inspection checklist</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="fleet-management/vehicle-maintenance-audit.html" class="locked-link" data-href="fleet-management/vehicle-maintenance-audit.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="fleet-management" data-keywords="vehicle maintenance audit inspection checklist fleet service">
+                                <svg class="card-icon" viewBox="0 0 24 24"><path d="M9 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-4"></path><path d="M9 11V7a3 3 0 0 1 6 0v4"></path><path d="m8 16 2 2 4-4"></path></svg>
+                                <h3 class="card-title">Vehicle Maintenance Audit</h3>
+                                <p class="card-description">Complete vehicle inspection checklist</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
 
@@ -740,12 +898,14 @@
                             </div>
                         </a>
 
-                        <div class="card" data-category="bromar-hub" data-keywords="faq frequently asked questions help support answers">
-                            <svg class="card-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                            <h3 class="card-title">FAQ</h3>
-                            <p class="card-description">Frequently asked questions and answers</p>
-                            <span class="badge">Coming Soon</span>
-                        </div>
+                        <a href="employee-resources/faq.html" class="locked-link" data-href="employee-resources/faq.html" style="text-decoration: none; color: inherit;">
+                            <div class="card" data-category="bromar-hub" data-keywords="faq frequently asked questions help support answers">
+                                <svg class="card-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <h3 class="card-title">FAQ</h3>
+                                <p class="card-description">Frequently asked questions and answers</p>
+                                <span class="badge locked">🔒 In Development</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
             </div>
@@ -763,7 +923,27 @@
         </footer>
     </div>
 
-    <div class="revision-number">V1.37</div>
+    <!-- PIN Lock Modal -->
+    <div id="pinModal" class="pin-modal">
+        <div class="pin-modal-content">
+            <div class="pin-icon">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <div class="pin-title">Page In Development</div>
+            <div class="pin-subtitle">This page is still being built. Enter the developer PIN to preview.</div>
+            <input type="password" id="pinInput" class="pin-input" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+            <div class="pin-error-msg" id="pinError"></div>
+            <div class="pin-buttons">
+                <button class="pin-btn pin-btn-cancel" onclick="closePinModal()">Cancel</button>
+                <button class="pin-btn pin-btn-submit" onclick="submitPin()">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="revision-number">V1.38</div>
 
     <script>
         // SUPABASE AUTH
@@ -1031,6 +1211,71 @@
                 searchInput.value = '';
                 performSearch('');
             }
+        });
+
+        // ============================================
+        // PIN LOCK SYSTEM
+        // ============================================
+        const DEV_PIN = '1987';
+        let pendingUrl = null;
+        const pinModal = document.getElementById('pinModal');
+        const pinInput = document.getElementById('pinInput');
+        const pinError = document.getElementById('pinError');
+
+        // Intercept clicks on locked links
+        document.addEventListener('click', (e) => {
+            const lockedLink = e.target.closest('.locked-link');
+            if (!lockedLink) return;
+            
+            // If already unlocked, allow normal navigation
+            if (sessionStorage.getItem('devUnlocked') === 'true') return;
+            
+            // Otherwise, intercept and show PIN modal
+            e.preventDefault();
+            pendingUrl = lockedLink.dataset.href || lockedLink.href;
+            openPinModal();
+        });
+
+        function openPinModal() {
+            pinModal.classList.add('show');
+            pinError.textContent = '';
+            pinInput.value = '';
+            setTimeout(() => pinInput.focus(), 100);
+        }
+
+        function closePinModal() {
+            pinModal.classList.remove('show');
+            pendingUrl = null;
+        }
+
+        function submitPin() {
+            const entered = pinInput.value.trim();
+            if (entered === DEV_PIN) {
+                sessionStorage.setItem('devUnlocked', 'true');
+                pinModal.classList.remove('show');
+                if (pendingUrl) {
+                    window.location.href = pendingUrl;
+                }
+            } else {
+                pinError.textContent = 'Incorrect PIN. Try again.';
+                pinInput.classList.add('error');
+                pinInput.value = '';
+                setTimeout(() => {
+                    pinInput.classList.remove('error');
+                    pinInput.focus();
+                }, 400);
+            }
+        }
+
+        // Enter key submits PIN
+        pinInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitPin();
+            if (e.key === 'Escape') closePinModal();
+        });
+
+        // Close modal on background click
+        pinModal.addEventListener('click', (e) => {
+            if (e.target === pinModal) closePinModal();
         });
 
         // ============================================
