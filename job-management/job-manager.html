@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Job Manager — Bromar Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/tools/auth.js"></script>
+<link rel="stylesheet" href="../tools/bromar-hub.css"/>
+<script src="../tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── LAYOUT ──────────────────────────────────────────── */
+  .page-wrapper {
+    margin-top: 80px;
+    max-width: 1400px;
+    padding: 0 1.5rem 2rem;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────────── */
+  .sidebar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+  }
+  .sidebar-section { margin-bottom: 1.25rem; }
+  .sidebar-section:last-child { margin-bottom: 0; }
+  .sidebar-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--card-hover); color: var(--accent); }
+  .nav-item.active {
+    background: var(--card-hover);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nav-item .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+  .nav-item .nav-count {
+    margin-left: auto;
+    font-size: 0.72rem;
+    background: var(--bg-main);
+    color: var(--text-secondary);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .nav-item.active .nav-count { background: var(--accent); color: white; }
+
+  /* sidebar toggle button (mobile + collapse) */
+  .sidebar-toggle {
+    display: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .sidebar-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .sidebar-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.4rem;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: none;
+  }
+
+  /* ── MAIN CONTENT ────────────────────────────────────── */
+  .main-content { min-width: 0; }
+
+  .header-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.25rem;
+    text-align: center;
+  }
+  .header-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.25rem;
+  }
+  .header-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 300;
+  }
+
+  /* search + filter bar */
+  .toolbar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
+  .filter-chip {
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-chip.active { background: var(--card-hover); border-color: var(--accent); color: var(--accent); }
+
+  /* ── JOB LIST VIEW ───────────────────────────────────── */
+  .job-grid { display: grid; gap: 0.75rem; }
+  .job-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: center;
+  }
+  .job-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--shadow);
+  }
+  .job-prefix {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--card-hover);
+    padding: 6px 10px;
+    border-radius: 8px;
+    min-width: 88px;
+    text-align: center;
+  }
+  .job-info { min-width: 0; }
+  .job-client { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+  .job-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .job-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .job-status {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 9px;
+    border-radius: 10px;
+  }
+  .status-active { background: var(--success-bg); color: var(--success); }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-complete { background: var(--info-bg); color: var(--info-text); }
+  [data-theme="dark"] .status-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .job-date { font-size: 0.75rem; color: var(--text-secondary); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+  }
+  .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+  .empty-state-text { font-size: 0.95rem; }
+
+  /* ── JOB DETAIL VIEW ─────────────────────────────────── */
+  .detail-header {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1rem;
+  }
+  .back-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .back-btn:hover { color: var(--accent); }
+  .detail-job-prefix {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--card-hover);
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+  }
+  .detail-client {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+  }
+  .detail-desc { color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 0.875rem; }
+  .detail-meta-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+  }
+  .detail-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .detail-meta-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+    font-weight: 700;
+  }
+  .detail-meta-value { font-weight: 600; color: var(--text-primary); }
+
+  /* tabs */
+  .tab-bar {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.1rem;
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* data table */
+  .data-table-wrapper {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .data-table th {
+    background: var(--bg-main);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--card-hover); }
+
+  /* summary stats */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .stat-value.accent { color: var(--accent); }
+
+  /* in-card footer */
+  .card-footer {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .card-footer-title {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.6px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .card-footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* sidebar overlay for mobile */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 90;
+  }
+  .sidebar-overlay.show { display: block; }
+
+  /* ── RESPONSIVE ──────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .page-wrapper {
+      grid-template-columns: 1fr;
+      padding: 0 1rem 2rem;
+    }
+    .sidebar-toggle { display: inline-flex; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      max-height: 100vh;
+      border-radius: 0;
+      z-index: 95;
+      transform: translateX(-100%);
+      padding-top: 1.5rem;
+    }
+    .sidebar.show { transform: translateX(0); }
+    .sidebar-close { display: flex; align-items: center; justify-content: center; }
+    .header-card { padding: 1.25rem 1.25rem; }
+    .header-title { font-size: 1.4rem; }
+    .job-card { grid-template-columns: 1fr; gap: 0.5rem; }
+    .job-meta { flex-direction: row; align-items: center; justify-content: space-between; }
+    .detail-client { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-wrapper">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Job Manager</div>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&times;</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">View</div>
+      <button class="nav-item active" data-view="all">
+        <span class="nav-icon">📋</span><span>All Jobs</span><span class="nav-count" id="count-all">0</span>
+      </button>
+      <button class="nav-item" data-view="active">
+        <span class="nav-icon">🟢</span><span>Active</span><span class="nav-count" id="count-active">0</span>
+      </button>
+      <button class="nav-item" data-view="pending">
+        <span class="nav-icon">🟡</span><span>Pending</span><span class="nav-count" id="count-pending">0</span>
+      </button>
+      <button class="nav-item" data-view="complete">
+        <span class="nav-icon">✅</span><span>Completed</span><span class="nav-count" id="count-complete">0</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Filter by Prefix</div>
+      <button class="nav-item" data-prefix="BE"><span class="nav-icon">⚡</span><span>BE — Electrical</span></button>
+      <button class="nav-item" data-prefix="BC"><span class="nav-icon">🔧</span><span>BC — Communications</span></button>
+      <button class="nav-item" data-prefix="BA"><span class="nav-icon">🌬️</span><span>BA — Air Cond.</span></button>
+      <button class="nav-item" data-prefix="BS"><span class="nav-icon">🛠️</span><span>BS — Service</span></button>
+      <button class="nav-item" data-prefix="BM"><span class="nav-icon">🏗️</span><span>BM — Maintenance</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Tools</div>
+      <button class="nav-item" data-tool="swms"><span class="nav-icon">📄</span><span>SWMS Library</span></button>
+      <button class="nav-item" data-tool="tests"><span class="nav-icon">🧪</span><span>Test Sheets</span></button>
+      <button class="nav-item" data-tool="reports"><span class="nav-icon">📊</span><span>Reports</span></button>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Open menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <div class="header-card">
+      <h1 class="header-title">Job Manager</h1>
+      <p class="header-subtitle">Browse jobs, labour, materials, purchase orders and compliance records</p>
+    </div>
+
+    <div class="success-banner" id="successBanner"><span>✓</span><span id="successText"></span></div>
+    <div class="info-banner" id="infoBanner"><span>ℹ</span><span id="infoBannerText"></span></div>
+
+    <!-- LIST VIEW -->
+    <div id="listView">
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search jobs by number, client or description…"/>
+      </div>
+      <div class="job-grid" id="jobGrid"></div>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div id="detailView" style="display:none;">
+      <button class="back-btn" id="backBtn">&larr; Back to jobs</button>
+
+      <div class="detail-header">
+        <div class="detail-job-prefix" id="detailPrefix"></div>
+        <h2 class="detail-client" id="detailClient"></h2>
+        <p class="detail-desc" id="detailDesc"></p>
+        <div class="detail-meta-row">
+          <div class="detail-meta-item"><span class="detail-meta-label">Status</span><span class="detail-meta-value" id="detailStatus"></span></div>
+          <div class="detail-meta-item"><span class="detail-meta-label">Opened</span><span class="detail-meta-value" id="detailOpened"></span></div>
+          <div class="detail-meta-item"><span class="detail-meta-label">Last Update</span><span class="detail-meta-value" id="detailUpdated"></span></div>
+          <div class="detail-meta-item"><span class="detail-meta-label">Project Manager</span><span class="detail-meta-value" id="detailPM"></span></div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Labour Hours</div><div class="stat-value accent" id="statHours">0</div></div>
+        <div class="stat-card"><div class="stat-label">Materials</div><div class="stat-value" id="statMaterials">$0</div></div>
+        <div class="stat-card"><div class="stat-label">POs Issued</div><div class="stat-value" id="statPOs">0</div></div>
+        <div class="stat-card"><div class="stat-label">Test Sheets</div><div class="stat-value" id="statTests">0</div></div>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab active" data-tab="labour">Labour</button>
+        <button class="tab" data-tab="materials">Materials</button>
+        <button class="tab" data-tab="pos">Purchase Orders</button>
+        <button class="tab" data-tab="swms">SWMS</button>
+        <button class="tab" data-tab="tests">Test Sheets</button>
+        <button class="tab" data-tab="notes">Notes</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-labour">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Employee</th><th>Task</th><th>Hours</th></tr></thead>
+            <tbody id="labourRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-materials">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Cost</th></tr></thead>
+            <tbody id="materialsRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-pos">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>PO #</th><th>Date</th><th>Supplier</th><th>Status</th><th>Total</th></tr></thead>
+            <tbody id="posRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-swms">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Document</th><th>Version</th><th>Reviewed</th><th>Status</th></tr></thead>
+            <tbody id="swmsRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-tests">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Test Type</th><th>Performed By</th><th>Result</th></tr></thead>
+            <tbody id="testsRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-notes">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Author</th><th>Note</th></tr></thead>
+            <tbody id="notesRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — JOB MANAGER</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────
+   JOB MANAGER — page logic
+   ──────────────────────────────────────────────────────── */
+
+// Placeholder data — replace with Supabase queries when ready
+const JOBS = [
+  { id:1, number:'BE-2451', client:'Westfield Plant Room', desc:'Switchboard upgrade — Level 3', status:'active',   opened:'2026-04-12', updated:'2026-05-18', pm:'D. Marshall' },
+  { id:2, number:'BC-1187', client:'St Vincent\'s Hospital', desc:'Comms cabinet relocation', status:'active',   opened:'2026-05-02', updated:'2026-05-17', pm:'A. Bromar' },
+  { id:3, number:'BA-0892', client:'Northland Shopping Centre', desc:'HVAC compressor replacement', status:'pending',  opened:'2026-05-15', updated:'2026-05-15', pm:'D. Marshall' },
+  { id:4, number:'BS-3340', client:'Melbourne Airport T2', desc:'Quarterly UPS service', status:'complete', opened:'2026-03-08', updated:'2026-04-30', pm:'J. Reed' },
+  { id:5, number:'BM-1102', client:'Coles Distribution Centre', desc:'General maintenance — May visit', status:'active', opened:'2026-05-10', updated:'2026-05-18', pm:'A. Bromar' },
+  { id:6, number:'BE-2392', client:'RMIT Building 80', desc:'Emergency lighting compliance', status:'pending', opened:'2026-04-28', updated:'2026-05-11', pm:'J. Reed' },
+];
+
+const SAMPLE_LABOUR = {
+  1: [
+    { date:'2026-05-18', employee:'D. Marshall', task:'Switchboard install', hours:7.5 },
+    { date:'2026-05-17', employee:'M. Tan',      task:'Cable pulling',       hours:8.0 },
+    { date:'2026-05-16', employee:'D. Marshall', task:'Site survey',         hours:4.0 },
+  ],
+  2: [ { date:'2026-05-17', employee:'A. Bromar', task:'Cabinet mounting', hours:6.0 } ],
+};
+const SAMPLE_MATERIALS = {
+  1: [
+    { date:'2026-05-15', item:'Distribution board, 24-way', qty:1, supplier:'Lawrence & Hanson', cost:1240 },
+    { date:'2026-05-15', item:'6mm² cable (per m)',         qty:200, supplier:'MMEM',           cost:540 },
+  ],
+};
+const SAMPLE_POS = {
+  1: [
+    { po:'PO-04821', date:'2026-05-14', supplier:'Lawrence & Hanson', status:'Received', total:1780 },
+    { po:'PO-04835', date:'2026-05-16', supplier:'MMEM',              status:'Pending',  total:620 },
+  ],
+};
+const SAMPLE_SWMS = {
+  1: [
+    { doc:'SWMS — Working at Heights', version:'V2.03', reviewed:'2026-05-12', status:'Current' },
+    { doc:'SWMS — Live Electrical',    version:'V3.01', reviewed:'2026-05-12', status:'Current' },
+  ],
+};
+const SAMPLE_TESTS = {
+  1: [ { date:'2026-05-18', type:'Insulation Resistance', by:'D. Marshall', result:'Pass' } ],
+};
+const SAMPLE_NOTES = {
+  1: [ { date:'2026-05-17', author:'D. Marshall', note:'Client requested earlier finish — coordinating with M. Tan for Saturday.' } ],
+};
+
+let currentFilter = { view: 'all', prefix: null, search: '' };
+
+/* ── RENDERING ─────────────────────────────────────────── */
+function statusBadge(status) {
+  const cls = 'status-' + status;
+  return `<span class="job-status ${cls}">${status}</span>`;
+}
+
+function renderJobList() {
+  const grid = document.getElementById('jobGrid');
+  let jobs = JOBS.slice();
+
+  if (currentFilter.view !== 'all') jobs = jobs.filter(j => j.status === currentFilter.view);
+  if (currentFilter.prefix) jobs = jobs.filter(j => j.number.startsWith(currentFilter.prefix));
+  if (currentFilter.search) {
+    const q = currentFilter.search.toLowerCase();
+    jobs = jobs.filter(j =>
+      j.number.toLowerCase().includes(q) ||
+      j.client.toLowerCase().includes(q) ||
+      j.desc.toLowerCase().includes(q)
+    );
+  }
+
+  if (!jobs.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No jobs match the current filter</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = jobs.map(j => `
+    <div class="job-card" data-job-id="${j.id}">
+      <div class="job-prefix">${j.number}</div>
+      <div class="job-info">
+        <div class="job-client">${escapeHtml(j.client)}</div>
+        <div class="job-desc">${escapeHtml(j.desc)}</div>
+      </div>
+      <div class="job-meta">
+        ${statusBadge(j.status)}
+        <div class="job-date">Updated ${j.updated}</div>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.job-card').forEach(el => {
+    el.addEventListener('click', () => showJobDetail(+el.dataset.jobId));
+  });
+}
+
+function updateCounts() {
+  document.getElementById('count-all').textContent = JOBS.length;
+  document.getElementById('count-active').textContent   = JOBS.filter(j => j.status === 'active').length;
+  document.getElementById('count-pending').textContent  = JOBS.filter(j => j.status === 'pending').length;
+  document.getElementById('count-complete').textContent = JOBS.filter(j => j.status === 'complete').length;
+}
+
+/* ── JOB DETAIL ────────────────────────────────────────── */
+function showJobDetail(id) {
+  const job = JOBS.find(j => j.id === id);
+  if (!job) return;
+
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'block';
+
+  document.getElementById('detailPrefix').textContent = job.number;
+  document.getElementById('detailClient').textContent = job.client;
+  document.getElementById('detailDesc').textContent = job.desc;
+  document.getElementById('detailStatus').innerHTML = statusBadge(job.status);
+  document.getElementById('detailOpened').textContent = job.opened;
+  document.getElementById('detailUpdated').textContent = job.updated;
+  document.getElementById('detailPM').textContent = job.pm;
+
+  const labour = SAMPLE_LABOUR[id] || [];
+  const mats   = SAMPLE_MATERIALS[id] || [];
+  const pos    = SAMPLE_POS[id] || [];
+  const swms   = SAMPLE_SWMS[id] || [];
+  const tests  = SAMPLE_TESTS[id] || [];
+  const notes  = SAMPLE_NOTES[id] || [];
+
+  const totalHours = labour.reduce((s, l) => s + l.hours, 0);
+  const totalMats  = mats.reduce((s, m) => s + m.cost, 0);
+  document.getElementById('statHours').textContent     = totalHours.toFixed(1);
+  document.getElementById('statMaterials').textContent = '$' + totalMats.toLocaleString();
+  document.getElementById('statPOs').textContent       = pos.length;
+  document.getElementById('statTests').textContent     = tests.length;
+
+  renderTable('labourRows', labour, l => `<tr><td>${l.date}</td><td>${escapeHtml(l.employee)}</td><td>${escapeHtml(l.task)}</td><td>${l.hours}</td></tr>`, 4);
+  renderTable('materialsRows', mats, m => `<tr><td>${m.date}</td><td>${escapeHtml(m.item)}</td><td>${m.qty}</td><td>${escapeHtml(m.supplier)}</td><td>$${m.cost.toLocaleString()}</td></tr>`, 5);
+  renderTable('posRows', pos, p => `<tr><td><strong>${p.po}</strong></td><td>${p.date}</td><td>${escapeHtml(p.supplier)}</td><td>${p.status}</td><td>$${p.total.toLocaleString()}</td></tr>`, 5);
+  renderTable('swmsRows', swms, s => `<tr><td>${escapeHtml(s.doc)}</td><td>${s.version}</td><td>${s.reviewed}</td><td><span class="job-status status-active">${s.status}</span></td></tr>`, 4);
+  renderTable('testsRows', tests, t => `<tr><td>${t.date}</td><td>${escapeHtml(t.type)}</td><td>${escapeHtml(t.by)}</td><td><span class="job-status status-active">${t.result}</span></td></tr>`, 4);
+  renderTable('notesRows', notes, n => `<tr><td>${n.date}</td><td>${escapeHtml(n.author)}</td><td>${escapeHtml(n.note)}</td></tr>`, 3);
+
+  // reset to first tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'labour'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-labour'));
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderTable(tbodyId, rows, mapFn, colSpan) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = rows.length
+    ? rows.map(mapFn).join('')
+    : `<tr><td colspan="${colSpan}" style="text-align:center;color:var(--text-secondary);padding:1.5rem;">No records yet</td></tr>`;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ── EVENTS ────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  updateCounts();
+  renderJobList();
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    currentFilter.search = e.target.value;
+    renderJobList();
+  });
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item[data-view]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter.view = btn.dataset.view;
+      currentFilter.prefix = null;
+      document.querySelectorAll('.nav-item[data-prefix]').forEach(b => b.classList.remove('active'));
+      backToList();
+      renderJobList();
+      closeSidebarMobile();
+    });
+  });
+
+  document.querySelectorAll('.nav-item[data-prefix]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isActive = btn.classList.contains('active');
+      document.querySelectorAll('.nav-item[data-prefix]').forEach(b => b.classList.remove('active'));
+      if (!isActive) {
+        btn.classList.add('active');
+        currentFilter.prefix = btn.dataset.prefix;
+      } else {
+        currentFilter.prefix = null;
+      }
+      backToList();
+      renderJobList();
+      closeSidebarMobile();
+    });
+  });
+
+  document.querySelectorAll('.nav-item[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.BromarHub?.showInfo) {
+        BromarHub.showInfo(`${btn.textContent.trim()} — coming soon`);
+      }
+      closeSidebarMobile();
+    });
+  });
+
+  document.getElementById('backBtn').addEventListener('click', backToList);
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab.dataset.tab));
+    });
+  });
+
+  // sidebar mobile toggle
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('show');
+    document.getElementById('sidebarOverlay').classList.add('show');
+  });
+  document.getElementById('sidebarClose').addEventListener('click', closeSidebarMobile);
+  document.getElementById('sidebarOverlay').addEventListener('click', closeSidebarMobile);
+});
+
+function backToList() {
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+}
+
+function closeSidebarMobile() {
+  document.getElementById('sidebar').classList.remove('show');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+</script>
+
+</body>
+</html>
