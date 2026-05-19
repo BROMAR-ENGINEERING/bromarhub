@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toolbox Discussion Point</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --brand-primary: #1a56db;
+      --brand-secondary: #0e9f6e;
+      --brand-accent: #ff6b35;
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --error: #ef4444;
+      --success: #0e9f6e;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand-orange: #f0723f;
+        --brand-orange-soft: rgba(240, 114, 63, 0.12);
+        --brand-dark: #f4f4f5;
+        --brand-mid: #a1a1aa;
+        --brand-light: rgba(240, 114, 63, 0.08);
+        --brand-white: #1a1d21;
+        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
+        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+        --input-bg: #13161a;
+        --input-bg-focus: #1a1d21;
+        --input-border: #2a2d32;
+        --input-focus: #f0723f;
+        --text-primary: #f4f4f5;
+        --text-secondary: #d4d4d8;
+        --text-muted: #a1a1aa;
+        --text-faded: #71717a;
+        --divider: #2a2d32;
+        --footer-bg: #13161a;
+        --success-bg: rgba(34, 197, 94, 0.1);
+        --success-border: rgba(34, 197, 94, 0.3);
+        --success-text: #4ade80;
+      }
+    }
+
+    /* Force light mode when class is added */
+    html.light-mode {
+      --brand-orange: #c2440e;
+      --brand-orange-soft: #fff3ee;
+      --brand-dark: #111827;
+      --brand-mid: #374151;
+      --brand-light: #f3f6ff;
+      --brand-white: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
+      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+      --input-bg: #fafbff;
+      --input-bg-focus: #ffffff;
+      --input-border: #d1d9f0;
+      --input-focus: #1a56db;
+      --text-primary: #111827;
+      --text-secondary: #374151;
+      --text-muted: #6b7280;
+      --text-faded: #9ca3af;
+      --divider: #e5e7eb;
+      --footer-bg: #fafafa;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: var(--brand-dark);
+    }
+
+    /* Animated background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #bfcfff, #e0e8ff);
+      top: -100px; left: -100px;
+      animation: blob1 12s ease-in-out infinite;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
+      bottom: -80px; right: -80px;
+      animation: blob2 15s ease-in-out infinite;
+    }
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
+    @media (prefers-color-scheme: dark) {
+      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
+      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
+    }
+
+    .page-wrapper {
+      max-width: 720px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Home icon button — top left of header */
+    .home-icon {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .home-icon:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .home-icon svg { width: 18px; height: 18px; }
+
+    /* Theme toggle button — top right of header */
+    .theme-toggle {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .theme-toggle:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      transform: translateY(-1px);
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+
+    /* Show/hide icons based on theme */
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    html.light-mode .sun-icon { display: block; }
+    html.light-mode .moon-icon { display: none; }
+
+    /* Header card with logo */
+    .header-card {
+      background: var(--brand-white);
+      color: var(--text-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 36px 40px 28px;
+      text-align: center;
+      border-bottom: 3px solid var(--brand-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
+    }
+
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-height: 80px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 2.5px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Form card */
+    .form-card {
+      background: var(--brand-white);
+      border-radius: 0 0 var(--radius) var(--radius);
+      color: var(--text-primary);
+      padding: 36px 40px 40px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* Section dividers */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--brand-orange);
+      margin: 28px 0 18px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand-orange) 0%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    /* Field groups */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .field-row.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    @media (max-width: 520px) {
+      .field-row, .field-row.three { grid-template-columns: 1fr; }
+      .header-card, .form-card { padding-left: 22px; padding-right: 22px; }
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    label .required {
+      color: var(--brand-accent);
+      margin-left: 3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+      background: var(--input-bg-focus);
+    }
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+    textarea.tall { min-height: 150px; }
+
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--text-faded);
+      margin-top: 5px;
+      display: block;
+      text-align: left;
+    }
+    .error-msg {
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-group.has-error .error-msg { display: block; }
+
+    /* Risk level pills */
+    .risk-pills {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 520px) {
+      .risk-pills { grid-template-columns: repeat(2, 1fr); }
+    }
+    .risk-pill {
+      position: relative;
+      cursor: pointer;
+    }
+    .risk-pill input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .risk-pill-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 8px;
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .risk-pill-label::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .risk-pill[data-level="low"]      .risk-pill-label::before { background: #22c55e; }
+    .risk-pill[data-level="medium"]   .risk-pill-label::before { background: #eab308; }
+    .risk-pill[data-level="high"]     .risk-pill-label::before { background: #f97316; }
+    .risk-pill[data-level="critical"] .risk-pill-label::before { background: #dc2626; }
+
+    .risk-pill input:checked + .risk-pill-label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+      color: var(--brand-orange);
+      box-shadow: 0 4px 12px rgba(194, 68, 14, 0.12);
+    }
+
+    /* Attendees list */
+    .attendees-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .attendee-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 40px;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .attendee-row input {
+      padding: 9px 12px;
+      font-size: 0.88rem;
+    }
+    .remove-attendee {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .remove-attendee:hover {
+      color: var(--error);
+      border-color: var(--error);
+      background: rgba(239, 68, 68, 0.06);
+    }
+    .remove-attendee svg { width: 16px; height: 16px; }
+    .add-attendee-btn {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border: 1.5px dashed var(--input-border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .add-attendee-btn:hover {
+      border-color: var(--brand-orange);
+      color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+    }
+    .add-attendee-btn svg { width: 16px; height: 16px; }
+
+    .attendee-counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--brand-primary), #3b82f6);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-top: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .attendee-counter.visible { opacity: 1; }
+
+    /* Acknowledgement checkbox */
+    .ack-box {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--brand-orange-soft);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .ack-box:hover { border-color: var(--brand-orange); }
+    .ack-box.checked { border-color: var(--brand-orange); }
+    .ack-box input { margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+    .ack-box-text {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .ack-box-text strong { color: var(--text-primary); }
+
+    /* Form divider */
+    .form-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 28px 0 22px;
+    }
+
+    /* Submit row */
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .submit-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--input-bg); color: var(--text-primary); }
+
+    .submit-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--brand-orange);
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25);
+    }
+    .submit-btn:hover {
+      background: #a3380b;
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(194, 68, 14, 0.32);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 520px) {
+      .submit-row { flex-wrap: wrap; }
+      .submit-note { width: 100%; margin-right: 0; margin-bottom: 4px; }
+      .btn-secondary, .submit-btn { flex: 1; }
+    }
+
+    /* Success banner */
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease;
+    }
+    .success-banner.show { display: flex; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Footer note */
+    .form-footer {
+      margin-top: 32px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-details {
+      border-top: 1px solid var(--divider);
+      padding-top: 16px;
+      text-align: center;
+    }
+    .footer-details p { margin-bottom: 4px; color: var(--text-secondary); font-size: 0.78rem; }
+    .footer-details a { color: var(--brand-primary); text-decoration: none; }
+    .footer-details a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <a href="../index.html" class="home-icon" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+      </svg>
+    </a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="logo-container">
+      <picture>
+        <source srcset="../Bromar-Primary-Logo-Reverse-White.png" media="(prefers-color-scheme: dark)" />
+        <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" />
+      </picture>
+    </div>
+    <h1 class="header-title">Toolbox Discussion Point</h1>
+    <p class="header-subtitle">Record a toolbox talk, discussion point, or safety briefing. Capture the topic, attendees, and any actions arising — a confirmation will be sent on submission.</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form id="toolboxForm" novalidate>
+
+      <div class="success-banner" id="successBanner">
+        <span>✅</span>
+        <span>Toolbox discussion submitted — a confirmation has been sent to you and the admin team.</span>
+      </div>
+
+      <!-- MEETING DETAILS -->
+      <div class="section-label">Meeting Details</div>
+
+      <div class="field-row three">
+        <div class="field-group" id="group-date">
+          <label for="meeting_date">Date <span class="required">*</span></label>
+          <input type="date" id="meeting_date" name="meeting_date"/>
+          <span class="error-msg">Please select a date</span>
+        </div>
+        <div class="field-group" id="group-time">
+          <label for="meeting_time">Time <span class="required">*</span></label>
+          <input type="time" id="meeting_time" name="meeting_time"/>
+          <span class="error-msg">Please select a time</span>
+        </div>
+        <div class="field-group" id="group-duration">
+          <label for="meeting_duration">Duration</label>
+          <select id="meeting_duration" name="meeting_duration">
+            <option value="">Select…</option>
+            <option>5 minutes</option>
+            <option>10 minutes</option>
+            <option>15 minutes</option>
+            <option>20 minutes</option>
+            <option>30 minutes</option>
+            <option>45 minutes</option>
+            <option>1 hour</option>
+            <option>More than 1 hour</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-location">
+          <label for="meeting_location">Location <span class="required">*</span></label>
+          <input type="text" id="meeting_location" name="meeting_location" placeholder="e.g. Westmeadows Warehouse"/>
+          <span class="error-msg">Please enter a location</span>
+        </div>
+        <div class="field-group" id="group-presenter">
+          <label for="presenter_name">Presented By <span class="required">*</span></label>
+          <input type="text" id="presenter_name" name="presenter_name" placeholder="Full name of presenter"/>
+          <span class="error-msg">Please enter the presenter's name</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-presenter-email">
+          <label for="presenter_email">Presenter's Email <span class="required">*</span></label>
+          <input type="email" id="presenter_email" name="presenter_email" placeholder="presenter@bromar.com.au" autocomplete="email"/>
+          <span class="error-msg">Please enter a valid email</span>
+        </div>
+        <div class="field-group" id="group-presenter-role">
+          <label for="presenter_role">Presenter's Role / Position</label>
+          <input type="text" id="presenter_role" name="presenter_role" placeholder="e.g. Supervisor, Manager, OHS Rep"/>
+        </div>
+      </div>
+
+      <!-- DISCUSSION TOPIC -->
+      <div class="section-label">Discussion Topic</div>
+
+      <div class="field-row">
+        <div class="field-group" id="group-category">
+          <label for="topic_category">Category <span class="required">*</span></label>
+          <select id="topic_category" name="topic_category">
+            <option value="">Select a category…</option>
+            <option>Safety / Hazard</option>
+            <option>Manual Handling</option>
+            <option>PPE / Equipment</option>
+            <option>Vehicle / Driving</option>
+            <option>Warehouse Operations</option>
+            <option>Quality / Procedure</option>
+            <option>Incident Review</option>
+            <option>Policy Update</option>
+            <option>General / Other</option>
+          </select>
+          <span class="error-msg">Please select a category</span>
+        </div>
+        <div class="field-group" id="group-risk">
+          <label>Risk Level</label>
+          <div class="risk-pills">
+            <label class="risk-pill" data-level="low">
+              <input type="radio" name="risk_level" value="Low"/>
+              <span class="risk-pill-label">Low</span>
+            </label>
+            <label class="risk-pill" data-level="medium">
+              <input type="radio" name="risk_level" value="Medium"/>
+              <span class="risk-pill-label">Medium</span>
+            </label>
+            <label class="risk-pill" data-level="high">
+              <input type="radio" name="risk_level" value="High"/>
+              <span class="risk-pill-label">High</span>
+            </label>
+            <label class="risk-pill" data-level="critical">
+              <input type="radio" name="risk_level" value="Critical"/>
+              <span class="risk-pill-label">Critical</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group full" id="group-topic">
+        <label for="topic_title">Topic / Title <span class="required">*</span></label>
+        <input type="text" id="topic_title" name="topic_title" placeholder="e.g. Safe forklift operation around pedestrians"/>
+        <span class="error-msg">Please enter a topic title</span>
+      </div>
+
+      <div class="field-group full" id="group-points">
+        <label for="discussion_points">Discussion Points <span class="required">*</span></label>
+        <textarea id="discussion_points" name="discussion_points" class="tall" placeholder="List the key points discussed — hazards identified, controls covered, lessons learned, procedures reinforced, etc.&#10;&#10;• Point 1&#10;• Point 2&#10;• Point 3"></textarea>
+        <span class="field-hint">Tip: Use bullet points or numbered lines for clarity.</span>
+        <span class="error-msg">Please describe the discussion points</span>
+      </div>
+
+      <div class="field-group full">
+        <label for="actions">Actions Arising / Follow-Up</label>
+        <textarea id="actions" name="actions" placeholder="Optional — any actions assigned, follow-up tasks, or items to review next time. Include who is responsible and a due date if applicable."></textarea>
+      </div>
+
+      <!-- ATTENDEES -->
+      <div class="section-label">Attendees</div>
+
+      <div class="field-group full" id="group-attendees">
+        <label>Attendee Names &amp; Roles <span class="required">*</span></label>
+        <div class="attendees-list" id="attendeesList">
+          <!-- Rows injected by JS -->
+        </div>
+        <button type="button" class="add-attendee-btn" id="addAttendeeBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add another attendee
+        </button>
+        <div class="attendee-counter" id="attendeeCounter">
+          👥 <span id="attendeeText"></span>
+        </div>
+        <span class="error-msg">Please add at least one attendee</span>
+      </div>
+
+      <!-- ACKNOWLEDGEMENT -->
+      <div class="section-label">Acknowledgement</div>
+
+      <div class="field-group full" id="group-ack">
+        <label class="ack-box" id="ackBox">
+          <input type="checkbox" id="acknowledgement"/>
+          <span class="ack-box-text">
+            <strong>I confirm</strong> that the toolbox discussion was conducted as recorded above, all listed attendees were present, and the discussion points were communicated clearly. All attendees have had the opportunity to ask questions and raise concerns.
+          </span>
+        </label>
+        <span class="error-msg">You must confirm the acknowledgement</span>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Discussion</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-details">
+        <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+        <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322</p>
+        <p>EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a> &nbsp;|&nbsp; REC: 30340</p>
+        <p>ABN: 45 634 835 939 &nbsp;&nbsp; ACN: 634 835 939</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — UPDATE THESE VALUES
+  // ============================================================
+  const CONFIG = {
+    emailjs: {
+      publicKey:   "4JW7VbCEAqZt9p4Jj",
+      serviceId:   "BromarEmail",
+      templateId:  "toolbox_admin",   // <-- create this template in EmailJS
+    },
+    adminEmails: [
+      "ashleys@bromar.com.au",
+    ]
+  };
+  // ============================================================
+
+  // Initialise EmailJS
+  emailjs.init(CONFIG.emailjs.publicKey);
+
+  // Default today's date
+  document.getElementById('meeting_date').valueAsDate = new Date();
+
+  // ---- Attendees ----
+  const attendeesList = document.getElementById('attendeesList');
+  const addAttendeeBtn = document.getElementById('addAttendeeBtn');
+  const attendeeCounter = document.getElementById('attendeeCounter');
+  const attendeeText = document.getElementById('attendeeText');
+
+  function createAttendeeRow(name = '', role = '') {
+    const row = document.createElement('div');
+    row.className = 'attendee-row';
+    row.innerHTML = `
+      <input type="text" class="attendee-name" placeholder="Full name" value="${name}"/>
+      <input type="text" class="attendee-role" placeholder="Role / Position (optional)" value="${role}"/>
+      <button type="button" class="remove-attendee" aria-label="Remove attendee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    `;
+    row.querySelector('.remove-attendee').addEventListener('click', () => {
+      row.remove();
+      updateAttendeeCounter();
+    });
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        inp.classList.remove('error');
+        document.getElementById('group-attendees').classList.remove('has-error');
+        updateAttendeeCounter();
+      });
+    });
+    attendeesList.appendChild(row);
+    updateAttendeeCounter();
+    return row;
+  }
+
+  function getAttendees() {
+    return Array.from(attendeesList.querySelectorAll('.attendee-row'))
+      .map(r => ({
+        name: r.querySelector('.attendee-name').value.trim(),
+        role: r.querySelector('.attendee-role').value.trim(),
+      }))
+      .filter(a => a.name.length > 0);
+  }
+
+  function updateAttendeeCounter() {
+    const list = getAttendees();
+    if (list.length > 0) {
+      attendeeText.textContent = `${list.length} attendee${list.length !== 1 ? 's' : ''} recorded`;
+      attendeeCounter.classList.add('visible');
+    } else {
+      attendeeCounter.classList.remove('visible');
+    }
+  }
+
+  addAttendeeBtn.addEventListener('click', () => createAttendeeRow());
+
+  // Start with two empty rows
+  createAttendeeRow();
+  createAttendeeRow();
+
+  // ---- Acknowledgement visual state ----
+  const ackBox = document.getElementById('ackBox');
+  const ackInput = document.getElementById('acknowledgement');
+  ackInput.addEventListener('change', () => {
+    ackBox.classList.toggle('checked', ackInput.checked);
+    if (ackInput.checked) {
+      document.getElementById('group-ack').classList.remove('has-error');
+    }
+  });
+
+  // ---- Validation ----
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const date     = document.getElementById('meeting_date').value;
+    const time     = document.getElementById('meeting_time').value;
+    const location = document.getElementById('meeting_location').value.trim();
+    const presenter = document.getElementById('presenter_name').value.trim();
+    const presenterEmail = document.getElementById('presenter_email').value.trim();
+    const category = document.getElementById('topic_category').value;
+    const topic    = document.getElementById('topic_title').value.trim();
+    const points   = document.getElementById('discussion_points').value.trim();
+
+    check('group-date',  !!date);
+    check('group-time',  !!time);
+    check('group-location', location.length > 1);
+    check('group-presenter', presenter.length > 1);
+    check('group-presenter-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(presenterEmail));
+    check('group-category', !!category);
+    check('group-topic', topic.length > 2);
+    check('group-points', points.length > 5);
+
+    // Attendees
+    const attendees = getAttendees();
+    if (attendees.length === 0) {
+      document.getElementById('group-attendees').classList.add('has-error');
+      // Mark first empty name field
+      const firstName = attendeesList.querySelector('.attendee-name');
+      if (firstName) firstName.classList.add('error');
+      valid = false;
+    } else {
+      document.getElementById('group-attendees').classList.remove('has-error');
+    }
+
+    // Acknowledgement
+    if (!ackInput.checked) {
+      document.getElementById('group-ack').classList.add('has-error');
+      valid = false;
+    } else {
+      document.getElementById('group-ack').classList.remove('has-error');
+    }
+
+    return valid;
+  }
+
+  // ---- Form submit ----
+  const toolboxForm = document.getElementById('toolboxForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  toolboxForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (submitBtn.disabled) return;
+
+    document.getElementById('successBanner').classList.remove('show');
+
+    if (!validateForm()) {
+      const firstError = document.querySelector('.has-error');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    const meetingDate     = document.getElementById('meeting_date').value;
+    const meetingTime     = document.getElementById('meeting_time').value;
+    const meetingDuration = document.getElementById('meeting_duration').value || 'Not specified';
+    const meetingLocation = document.getElementById('meeting_location').value.trim();
+    const presenterName   = document.getElementById('presenter_name').value.trim();
+    const presenterEmail  = document.getElementById('presenter_email').value.trim();
+    const presenterRole   = document.getElementById('presenter_role').value.trim() || 'Not specified';
+    const topicCategory   = document.getElementById('topic_category').value;
+    const riskLevel       = (document.querySelector('input[name="risk_level"]:checked') || {}).value || 'Not specified';
+    const topicTitle      = document.getElementById('topic_title').value.trim();
+    const discussionPoints = document.getElementById('discussion_points').value.trim();
+    const actions         = document.getElementById('actions').value.trim() || 'No follow-up actions recorded.';
+    const submitted       = new Date().toLocaleString('en-AU', {
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    // Format date nicely
+    const formattedDate = meetingDate
+      ? new Date(meetingDate + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
+
+    const attendees = getAttendees();
+    const attendeesSummary = attendees.map((a, i) =>
+      `${i + 1}. ${a.name}${a.role ? ` — ${a.role}` : ''}`
+    ).join('\n');
+    const attendeesSummaryHtml = attendees.map(a =>
+      `<li><strong>${a.name}</strong>${a.role ? ` — ${a.role}` : ''}</li>`
+    ).join('');
+
+    const templateParams = {
+      meeting_date:        formattedDate,
+      meeting_time:        meetingTime,
+      meeting_duration:    meetingDuration,
+      meeting_location:    meetingLocation,
+      presenter_name:      presenterName,
+      presenter_email:     presenterEmail,
+      presenter_role:      presenterRole,
+      topic_category:      topicCategory,
+      risk_level:          riskLevel,
+      topic_title:         topicTitle,
+      discussion_points:   discussionPoints,
+      actions:             actions,
+      attendees_summary:   attendeesSummary,
+      attendees_summary_html: `<ol>${attendeesSummaryHtml}</ol>`,
+      attendee_count:      attendees.length,
+      submitted_date:      submitted,
+      admin_emails:        CONFIG.adminEmails.join(', '),
+      to_email:            presenterEmail,
+    };
+
+    try {
+      await emailjs.send(
+        CONFIG.emailjs.serviceId,
+        CONFIG.emailjs.templateId,
+        templateParams
+      );
+
+      const banner = document.getElementById('successBanner');
+      banner.classList.add('show');
+      toolboxForm.reset();
+
+      // Reset attendees list to two empty rows
+      attendeesList.innerHTML = '';
+      createAttendeeRow();
+      createAttendeeRow();
+
+      // Reset ack visual state
+      ackBox.classList.remove('checked');
+
+      // Reset date to today
+      document.getElementById('meeting_date').valueAsDate = new Date();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => banner.classList.remove('show'), 8000);
+
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      alert('Something went wrong — please contact management or admin directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Discussion';
+    }
+  });
+
+  // Clear error state on input change
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      el.classList.remove('error');
+      const grp = el.closest('[id^="group-"]');
+      if (grp) grp.classList.remove('has-error');
+    });
+  });
+
+  // Reset handler — restore default state
+  toolboxForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      attendeesList.innerHTML = '';
+      createAttendeeRow();
+      createAttendeeRow();
+      ackBox.classList.remove('checked');
+      document.getElementById('meeting_date').valueAsDate = new Date();
+    }, 0);
+  });
+
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const htmlEl = document.documentElement;
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    htmlEl.classList.add('light-mode');
+  }
+
+  themeToggle.addEventListener('click', () => {
+    htmlEl.classList.toggle('light-mode');
+    if (htmlEl.classList.contains('light-mode')) {
+      localStorage.setItem('theme', 'light');
+    } else {
+      localStorage.removeItem('theme');
+    }
+  });
+</script>
+
+</body>
+</html>
