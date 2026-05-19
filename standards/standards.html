@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Standards Library | Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    /* ── PAGE-SPECIFIC: TOOLBAR ── */
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+    @media (max-width: 640px) {
+      .toolbar { grid-template-columns: 1fr; }
+    }
+    .search-wrapper { position: relative; }
+    .search-wrapper svg {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 18px; height: 18px;
+      color: var(--text-secondary);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      transition: all 0.3s ease;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+    }
+    .results-count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .results-count strong { color: var(--accent); font-weight: 700; }
+
+    /* ── FILTER CHIPS ── */
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 30px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--bg-secondary);
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+    }
+    .chip.active:hover { color: white; }
+    .chip-count { font-size: 0.72rem; opacity: 0.75; font-weight: 600; }
+
+    /* ── STANDARDS LIST ── */
+    .standards-list { display: flex; flex-direction: column; gap: 10px; }
+    .standard-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      transition: all 0.18s;
+      animation: fadeIn 0.3s ease;
+    }
+    .standard-item:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px var(--shadow);
+    }
+    .doc-icon {
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    }
+    .doc-icon.pdf { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    .doc-icon.doc { background: linear-gradient(135deg, #1a56db, #3b82f6); }
+    .doc-icon.xls { background: linear-gradient(135deg, #0e9f6e, #10b981); }
+    .doc-icon.other { background: linear-gradient(135deg, #6b7280, #9ca3af); }
+
+    .standard-info { min-width: 0; }
+    .standard-code {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+    .standard-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.35;
+    }
+    .standard-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      align-items: center;
+    }
+    .standard-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--card-hover);
+      color: var(--accent);
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .standard-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .action-btn {
+      width: 36px; height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-main);
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .action-btn:hover {
+      color: white;
+      border-color: var(--accent);
+      background: var(--accent);
+      transform: translateY(-1px);
+    }
+    .action-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    @media (max-width: 600px) {
+      .standard-item { grid-template-columns: auto 1fr; }
+      .standard-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+      }
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 {
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .empty-state p { font-size: 0.9rem; max-width: 380px; margin: 0 auto; }
+
+    /* ── PREVIEW MODAL ── */
+    .preview-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .preview-modal.show { display: flex; }
+    .preview-modal-content {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 1100px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .preview-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-main);
+    }
+    .preview-modal-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 16px;
+    }
+    .preview-close {
+      width: 34px; height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .preview-close:hover {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .preview-modal-body {
+      flex: 1;
+      overflow: hidden;
+      background: var(--bg-main);
+    }
+    .preview-modal-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* ── CARD FOOTER ── */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      font-weight: 500;
+    }
+
+    /* Initial loading state */
+    .initial-loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .initial-loading .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>Standards Library</h1>
+  <p class="subtitle">Browse, search and access industry and regulatory standards</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+
+    <!-- Search & filter toolbar -->
+    <div class="toolbar">
+      <div class="search-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by code, title, category or keyword..." autocomplete="off"/>
+      </div>
+      <div class="results-count" id="resultsCount"></div>
+    </div>
+
+    <!-- Category filter chips -->
+    <div class="filter-chips" id="filterChips"></div>
+
+    <!-- Standards list -->
+    <div class="standards-list" id="standardsList">
+      <div class="initial-loading">
+        <div class="loading-spinner"></div>
+        <div>Loading standards…</div>
+      </div>
+    </div>
+
+    <!-- In-card footer -->
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — STANDARDS LIBRARY</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Preview modal -->
+<div class="preview-modal" id="previewModal">
+  <div class="preview-modal-content">
+    <div class="preview-modal-header">
+      <div class="preview-modal-title" id="previewTitle"></div>
+      <button class="preview-close" id="previewClose" aria-label="Close">×</button>
+    </div>
+    <div class="preview-modal-body">
+      <iframe id="previewFrame" src="" title="Document preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const BUCKET = 'standards';
+  const TABLE  = 'standards';
+  // ============================================================
+
+  // ---- State ----
+  let STANDARDS    = [];
+  let activeCategory = 'All';
+  let searchTerm   = '';
+
+  // ---- Load standards from Supabase ----
+  async function loadStandards() {
+    try {
+      const { data, error } = await window.sb
+        .from(TABLE)
+        .select('*')
+        .order('code', { ascending: true });
+
+      if (error) throw error;
+      STANDARDS = data || [];
+      renderChips();
+      renderList();
+    } catch (err) {
+      console.error('[Standards] Load failed:', err);
+      document.getElementById('standardsList').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⚠️</div>
+          <h3>Unable to load standards</h3>
+          <p>${BromarHub.escapeHtml(err.message || 'Please check your connection and refresh the page.')}</p>
+        </div>
+      `;
+      document.getElementById('resultsCount').textContent = '';
+    }
+  }
+
+  // ---- Build public URL for a file in the bucket ----
+  function getPublicUrl(filePath) {
+    if (!filePath) return '';
+    const { data } = window.sb.storage.from(BUCKET).getPublicUrl(filePath);
+    return data.publicUrl;
+  }
+
+  // ---- Force-download URL (Supabase Storage transform) ----
+  function getDownloadUrl(filePath, filename) {
+    const url = getPublicUrl(filePath);
+    if (!url) return '';
+    const sep = url.includes('?') ? '&' : '?';
+    const dl  = filename ? encodeURIComponent(filename) : 'true';
+    return `${url}${sep}download=${dl}`;
+  }
+
+  // ---- File extension → icon class ----
+  function getFileType(filePath) {
+    if (!filePath) return 'other';
+    const ext = filePath.split('.').pop().toLowerCase();
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'doc';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'xls';
+    return 'other';
+  }
+
+  // ---- Render filter chips ----
+  function renderChips() {
+    const counts = { All: STANDARDS.length };
+    STANDARDS.forEach(s => {
+      const cat = s.category || 'Uncategorised';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    const categories = ['All', ...Object.keys(counts).filter(c => c !== 'All').sort()];
+    document.getElementById('filterChips').innerHTML = categories.map(cat => `
+      <div class="chip ${cat === activeCategory ? 'active' : ''}" data-cat="${BromarHub.escapeHtml(cat)}">
+        <span>${BromarHub.escapeHtml(cat)}</span>
+        <span class="chip-count">${counts[cat]}</span>
+      </div>
+    `).join('');
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeCategory = chip.dataset.cat;
+        renderChips();
+        renderList();
+      });
+    });
+  }
+
+  // ---- Render list ----
+  function renderList() {
+    const term = searchTerm.toLowerCase().trim();
+    const filtered = STANDARDS.filter(s => {
+      const cat = s.category || 'Uncategorised';
+      const catMatch = activeCategory === 'All' || cat === activeCategory;
+      if (!catMatch) return false;
+      if (!term) return true;
+      const haystack = [
+        s.code, s.title, s.category, s.year,
+        ...(Array.isArray(s.tags) ? s.tags : [])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(term);
+    });
+
+    document.getElementById('resultsCount').innerHTML =
+      `<strong>${filtered.length}</strong> of ${STANDARDS.length} standards`;
+
+    const list = document.getElementById('standardsList');
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📚</div>
+          <h3>No standards found</h3>
+          <p>Try adjusting your search or selecting a different category.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(s => {
+      const fileType = getFileType(s.file_path);
+      const cat      = s.category || 'Uncategorised';
+      const filename = s.file_path ? s.file_path.split('/').pop() : '';
+      return `
+        <div class="standard-item">
+          <div class="doc-icon ${fileType}">${fileType.toUpperCase()}</div>
+          <div class="standard-info">
+            <div class="standard-code">${BromarHub.escapeHtml(s.code || '')}</div>
+            <div class="standard-title">${BromarHub.escapeHtml(s.title || '')}</div>
+            <div class="standard-meta">
+              <span class="standard-tag">${BromarHub.escapeHtml(cat)}</span>
+              ${s.year ? `<span>📅 ${BromarHub.escapeHtml(String(s.year))}</span>` : ''}
+            </div>
+          </div>
+          <div class="standard-actions">
+            <button class="action-btn"
+                    data-action="preview"
+                    data-path="${BromarHub.escapeHtml(s.file_path || '')}"
+                    data-title="${BromarHub.escapeHtml((s.code || '') + ' — ' + (s.title || ''))}"
+                    aria-label="Preview">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <a class="action-btn"
+               href="${getDownloadUrl(s.file_path, filename)}"
+               target="_blank" rel="noopener"
+               aria-label="Download">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll('[data-action="preview"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openPreview(btn.dataset.path, btn.dataset.title);
+      });
+    });
+  }
+
+  // ---- Preview modal ----
+  function openPreview(filePath, title) {
+    const url = getPublicUrl(filePath);
+    if (!url) {
+      BromarHub.showInfo('File not available for preview');
+      return;
+    }
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewFrame').src = url;
+    document.getElementById('previewModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closePreview() {
+    document.getElementById('previewModal').classList.remove('show');
+    document.getElementById('previewFrame').src = '';
+    document.body.style.overflow = '';
+  }
+  document.getElementById('previewClose').addEventListener('click', closePreview);
+  document.getElementById('previewModal').addEventListener('click', (e) => {
+    if (e.target.id === 'previewModal') closePreview();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePreview();
+  });
+
+  // ---- Search ----
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchTerm = e.target.value;
+    renderList();
+  });
+
+  // ---- Init when Supabase client is ready ----
+  function waitForSupabaseAndLoad() {
+    if (window.sb) {
+      loadStandards();
+    } else {
+      setTimeout(waitForSupabaseAndLoad, 50);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', waitForSupabaseAndLoad);
+</script>
+
+</body>
+</html>
