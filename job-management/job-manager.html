@@ -11,94 +11,51 @@
 <script src="../tools/bromar-hub.js" defer></script>
 
 <style>
-  .page-wrapper {
-    margin-top: 80px;
-    max-width: 1400px;
-    padding: 0 1.5rem 2rem;
-  }
+  .page-wrapper { margin-top: 80px; max-width: 1400px; padding: 0 1.5rem 2rem; }
   .page-wrapper.has-sidebar {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 1.5rem;
-    align-items: start;
+    display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: start;
   }
 
   .header-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
-    margin-bottom: 1.25rem;
-    text-align: center;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.5rem 2rem; margin-bottom: 1.25rem; text-align: center;
   }
   .header-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
   .header-subtitle { color: var(--text-secondary); font-size: 0.95rem; font-weight: 300; }
 
   .search-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1.25rem;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.5rem; margin-bottom: 1.25rem;
   }
   .search-label {
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    color: var(--text-secondary);
-    margin-bottom: 0.625rem;
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--text-secondary); margin-bottom: 0.625rem;
   }
   .search-input {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg-main);
-    color: var(--text-primary);
-    font-family: 'Outfit', sans-serif;
-    font-size: 1rem;
-    outline: none;
+    width: 100%; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-main); color: var(--text-primary);
+    font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none;
   }
   .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
 
-  .filter-row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.875rem;
-    align-items: center;
-  }
+  .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.875rem; align-items: center; }
   .filter-divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 0.25rem; }
   .filter-chip {
-    padding: 0.45rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-main);
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+    padding: 0.45rem 0.8rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-main); color: var(--text-secondary);
+    font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
   }
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
   .filter-chip.active { background: var(--card-hover); border-color: var(--accent); color: var(--accent); }
 
   .job-list { display: grid; gap: 0.625rem; margin-top: 1.125rem; }
   .job-row {
-    background: var(--bg-main);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.875rem 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0.875rem;
-    align-items: center;
+    background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.875rem 1rem; cursor: pointer; transition: all 0.2s;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 0.875rem; align-items: center;
   }
   .job-row:hover { border-color: var(--accent); transform: translateX(2px); background: var(--card-hover); }
-  .job-num { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--accent); min-width: 78px; }
+  .job-num { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--accent); min-width: 72px; }
   .job-info { min-width: 0; }
   .job-client { font-size: 0.95rem; font-weight: 600; margin-bottom: 1px; }
   .job-desc { font-size: 0.78rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -106,38 +63,25 @@
     font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
     padding: 3px 8px; border-radius: 10px;
   }
-  .status-active   { background: var(--success-bg); color: var(--success); }
-  .status-pending  { background: #fef3c7; color: #92400e; }
-  .status-complete { background: var(--info-bg); color: var(--info-text); }
-  [data-theme="dark"] .status-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .status-active    { background: var(--success-bg); color: var(--success); }
+  .status-on_hold   { background: #fef3c7; color: #92400e; }
+  .status-completed { background: var(--info-bg); color: var(--info-text); }
+  .status-cancelled { background: var(--error-bg); color: var(--error); }
+  [data-theme="dark"] .status-on_hold { background: rgba(245,158,11,0.15); color: #fbbf24; }
 
   .empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-secondary); }
   .empty-state-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.4; }
   .empty-state-text { font-size: 0.9rem; }
 
-  /* sidebar */
   .sidebar {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.25rem;
-    position: sticky;
-    top: 80px;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.25rem; position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;
   }
-  .sidebar-job {
-    padding-bottom: 0.875rem;
-    margin-bottom: 0.875rem;
-    border-bottom: 1px solid var(--border);
-  }
+  .sidebar-job { padding-bottom: 0.875rem; margin-bottom: 0.875rem; border-bottom: 1px solid var(--border); }
   .sidebar-job-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem; font-weight: 700; color: var(--accent);
-    background: var(--card-hover);
-    padding: 3px 8px; border-radius: 6px;
-    display: inline-block;
-    margin-bottom: 0.5rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--accent);
+    background: var(--card-hover); padding: 3px 8px; border-radius: 6px;
+    display: inline-block; margin-bottom: 0.5rem;
   }
   .sidebar-job-client { font-size: 0.98rem; font-weight: 700; margin-bottom: 2px; line-height: 1.3; }
   .sidebar-job-desc { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; }
@@ -160,8 +104,7 @@
     padding: 0.625rem 0.75rem; border-radius: 8px;
     color: var(--text-primary); font-size: 0.9rem; font-weight: 500;
     cursor: pointer; border: none; background: transparent;
-    width: 100%; text-align: left;
-    transition: all 0.2s; margin-bottom: 2px;
+    width: 100%; text-align: left; transition: all 0.2s; margin-bottom: 2px;
   }
   .nav-item:hover { background: var(--card-hover); color: var(--accent); }
   .nav-item.active { background: var(--card-hover); color: var(--accent); font-weight: 600; }
@@ -169,15 +112,13 @@
   .nav-item .nav-count {
     margin-left: auto; font-size: 0.7rem;
     background: var(--bg-main); color: var(--text-secondary);
-    padding: 1px 7px; border-radius: 10px;
-    font-weight: 600; min-width: 22px; text-align: center;
+    padding: 1px 7px; border-radius: 10px; font-weight: 600; min-width: 22px; text-align: center;
   }
   .nav-item.active .nav-count { background: var(--accent); color: white; }
 
   .sidebar-toggle {
     display: none;
-    background: var(--bg-secondary); border: 1px solid var(--border);
-    color: var(--text-primary);
+    background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
     padding: 0.5rem 0.875rem; border-radius: 10px;
     cursor: pointer; align-items: center; gap: 0.5rem;
     font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
@@ -189,38 +130,28 @@
     cursor: pointer; font-size: 1.4rem; padding: 0; width: 28px; height: 28px;
     display: none; margin-left: auto;
   }
-  .sidebar-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 90;
-  }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
   .sidebar-overlay.show { display: block; }
 
   .main-content { min-width: 0; }
 
   .stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem; margin-bottom: 1.25rem;
   }
   .stat-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px;
     padding: 0.875rem 1.1rem;
   }
   .stat-label {
     font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
-    color: var(--text-secondary); font-weight: 700;
-    margin-bottom: 0.25rem;
+    color: var(--text-secondary); font-weight: 700; margin-bottom: 0.25rem;
   }
   .stat-value { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
   .stat-value.accent { color: var(--accent); }
 
   .tool-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px;
     padding: 1.5rem 1.75rem;
   }
   .tool-card-header {
@@ -232,18 +163,15 @@
   .btn-add {
     padding: 0.55rem 1rem; border: none; border-radius: 8px;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-    color: white;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.82rem; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
+    color: white; font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
   }
   .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(234,88,12,0.3); }
 
   .data-table-wrapper { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; overflow-x: auto; }
   .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 500px; }
   .data-table th {
-    background: var(--bg-main); text-align: left;
-    padding: 0.7rem 0.875rem;
+    background: var(--bg-main); text-align: left; padding: 0.7rem 0.875rem;
     font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
     color: var(--text-secondary); font-weight: 700;
     border-bottom: 1px solid var(--border); white-space: nowrap;
@@ -252,27 +180,43 @@
   .data-table tr:last-child td { border-bottom: none; }
   .data-table tr:hover td { background: var(--card-hover); }
 
-  .doc-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.75rem;
-  }
+  .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
   .doc-tile {
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 0.875rem 1rem;
+    border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem 1rem;
     cursor: pointer; transition: all 0.2s;
-    display: flex; flex-direction: column; gap: 0.5rem;
+    display: flex; flex-direction: column; gap: 0.5rem; text-decoration: none; color: inherit;
   }
   .doc-tile:hover { border-color: var(--accent); background: var(--card-hover); }
   .doc-icon { font-size: 1.5rem; }
-  .doc-name { font-weight: 600; font-size: 0.9rem; line-height: 1.3; }
+  .doc-name { font-weight: 600; font-size: 0.9rem; line-height: 1.3; word-break: break-word; }
   .doc-meta { font-size: 0.72rem; color: var(--text-secondary); }
+  .doc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .doc-tag {
+    font-size: 0.68rem; padding: 2px 6px; border-radius: 4px;
+    background: var(--bg-main); color: var(--text-secondary);
+  }
+
+  .po-expandable { cursor: pointer; }
+  .po-items-row td { background: var(--bg-main); padding: 0 !important; }
+  .po-items-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .po-items-table th {
+    padding: 0.5rem 0.875rem; background: transparent;
+    font-size: 0.65rem; color: var(--text-secondary);
+  }
+  .po-items-table td { padding: 0.45rem 0.875rem; border-bottom: 1px solid var(--border); }
+  .po-items-table tr:last-child td { border-bottom: none; }
+  .caret { display: inline-block; transition: transform 0.2s; margin-right: 4px; color: var(--text-secondary); }
+  .caret.open { transform: rotate(90deg); }
+
+  .loading-inline { text-align: center; padding: 2rem; color: var(--text-secondary); }
+  .loading-inline .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 0.75rem;
+  }
 
   .card-footer {
     margin-top: 24px; padding: 20px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px;
     text-align: center;
   }
   .card-footer-title {
@@ -291,18 +235,12 @@
   }
 
   @media (max-width: 900px) {
-    .page-wrapper, .page-wrapper.has-sidebar {
-      grid-template-columns: 1fr;
-      padding: 0 1rem 2rem;
-    }
+    .page-wrapper, .page-wrapper.has-sidebar { grid-template-columns: 1fr; padding: 0 1rem 2rem; }
     .sidebar-toggle { display: inline-flex; }
     .sidebar {
       position: fixed; top: 0; left: 0; bottom: 0;
       width: 280px; max-height: 100vh; border-radius: 0;
-      z-index: 95;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      padding-top: 1.5rem;
+      z-index: 95; transform: translateX(-100%); transition: transform 0.3s ease; padding-top: 1.5rem;
     }
     .sidebar.show { transform: translateX(0); }
     .sidebar-close { display: flex; align-items: center; justify-content: center; }
@@ -362,13 +300,14 @@
     <div id="searchView">
       <div class="search-card">
         <div class="search-label">Find a job</div>
-        <input type="text" class="search-input" id="jobSearch" placeholder="Search by job number, client, or description..." autocomplete="off"/>
+        <input type="text" class="search-input" id="jobSearch" placeholder="Search by job number, client, or site..." autocomplete="off"/>
 
         <div class="filter-row">
           <button class="filter-chip active" data-status="all">All</button>
           <button class="filter-chip" data-status="active">Active</button>
-          <button class="filter-chip" data-status="pending">Pending</button>
-          <button class="filter-chip" data-status="complete">Completed</button>
+          <button class="filter-chip" data-status="on_hold">On Hold</button>
+          <button class="filter-chip" data-status="completed">Completed</button>
+          <button class="filter-chip" data-status="cancelled">Cancelled</button>
           <span class="filter-divider"></span>
           <button class="filter-chip" data-prefix="BE">BE</button>
           <button class="filter-chip" data-prefix="BC">BC</button>
@@ -377,7 +316,9 @@
           <button class="filter-chip" data-prefix="BM">BM</button>
         </div>
 
-        <div class="job-list" id="jobList"></div>
+        <div id="jobListWrap">
+          <div class="job-list" id="jobList"></div>
+        </div>
       </div>
     </div>
 
@@ -388,83 +329,71 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — JOB MANAGER</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.02</div>
     </div>
 
   </main>
 </div>
 
 <script>
-const JOBS = [
-  { id:1, number:'BE-2451', client:'Westfield Plant Room',         desc:'Switchboard upgrade — Level 3',        status:'active',   opened:'2026-04-12', updated:'2026-05-18', pm:'D. Marshall' },
-  { id:2, number:'BC-1187', client:'St Vincent\'s Hospital',       desc:'Comms cabinet relocation',             status:'active',   opened:'2026-05-02', updated:'2026-05-17', pm:'A. Bromar' },
-  { id:3, number:'BA-0892', client:'Northland Shopping Centre',    desc:'HVAC compressor replacement',          status:'pending',  opened:'2026-05-15', updated:'2026-05-15', pm:'D. Marshall' },
-  { id:4, number:'BS-3340', client:'Melbourne Airport T2',         desc:'Quarterly UPS service',                status:'complete', opened:'2026-03-08', updated:'2026-04-30', pm:'J. Reed' },
-  { id:5, number:'BM-1102', client:'Coles Distribution Centre',    desc:'General maintenance — May visit',      status:'active',   opened:'2026-05-10', updated:'2026-05-18', pm:'A. Bromar' },
-  { id:6, number:'BE-2392', client:'RMIT Building 80',              desc:'Emergency lighting compliance',        status:'pending',  opened:'2026-04-28', updated:'2026-05-11', pm:'J. Reed' },
-];
+/* ────────────────────────────────────────────────────────
+   JOB MANAGER — Supabase wired
+   ──────────────────────────────────────────────────────── */
 
-const JOB_DATA = {
-  1: {
-    labour: [
-      { date:'2026-05-18', employee:'D. Marshall', task:'Switchboard install', hours:7.5 },
-      { date:'2026-05-17', employee:'M. Tan',      task:'Cable pulling',       hours:8.0 },
-      { date:'2026-05-16', employee:'D. Marshall', task:'Site survey',         hours:4.0 },
-    ],
-    materials: [
-      { date:'2026-05-15', item:'Distribution board, 24-way', qty:1,   supplier:'Lawrence & Hanson', cost:1240 },
-      { date:'2026-05-15', item:'6mm² cable (per m)',          qty:200, supplier:'MMEM',              cost:540 },
-    ],
-    pos: [
-      { po:'PO-04821', date:'2026-05-14', supplier:'Lawrence & Hanson', status:'Received', total:1780 },
-      { po:'PO-04835', date:'2026-05-16', supplier:'MMEM',              status:'Pending',  total:620 },
-    ],
-    notes: [
-      { date:'2026-05-17', author:'D. Marshall', note:'Client requested earlier finish — coordinating with M. Tan for Saturday.' },
-    ],
-    documents: [
-      { icon:'📄', name:'Site Plan Rev B',     type:'PDF', updated:'2026-04-12' },
-      { icon:'📐', name:'Single Line Diagram', type:'DWG', updated:'2026-04-15' },
-    ],
-    safety: [
-      { icon:'🦺', name:'SWMS — Working at Heights', type:'V2.03', updated:'2026-05-12' },
-      { icon:'⚡', name:'SWMS — Live Electrical',     type:'V3.01', updated:'2026-05-12' },
-      { icon:'📋', name:'Site Induction Record',     type:'Form',  updated:'2026-04-12' },
-    ],
-    testing: [
-      { date:'2026-05-18', type:'Insulation Resistance', by:'D. Marshall', result:'Pass' },
-    ],
-  },
-  2: {
-    labour: [ { date:'2026-05-17', employee:'A. Bromar', task:'Cabinet mounting', hours:6.0 } ],
-    materials: [], pos: [], notes: [], documents: [], safety: [], testing: [],
-  },
+const BUCKETS = {
+  documents: 'job-documents',
+  safety:    'job-safety',
+  testing:   'job-testing',
 };
+const SIGNED_URL_TTL = 3600; // 1 hour
 
-let selectedJob = null;
+let ALL_JOBS = [];          // job_number_register rows
+let selectedJob = null;     // currently-selected job row
+let jobCache = null;        // cached sheets/pos/files for the selected job
 let activeTool = 'overview';
 let searchFilter = { text:'', status:'all', prefix:null };
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function statusBadge(s) { return `<span class="job-status status-${s}">${s}</span>`; }
-function jobData(jobId) {
-  return JOB_DATA[jobId] || { labour:[], materials:[], pos:[], notes:[], documents:[], safety:[], testing:[] };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-AU', { year:'numeric', month:'short', day:'numeric' }) : '—';
+const fmtMoney = n => '$' + (Number(n) || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const statusBadge = s => `<span class="job-status status-${s || 'active'}">${(s || 'active').replace('_',' ')}</span>`;
+
+const sb = () => window.sb;
+
+/* ── LOAD JOBS LIST ───────────────────────────────────── */
+async function loadJobs() {
+  const wrap = document.getElementById('jobListWrap');
+  wrap.innerHTML = `<div class="loading-inline"><div class="spinner"></div>Loading jobs…</div>`;
+
+  const { data, error } = await sb()
+    .from('job_number_register')
+    .select('job_number, prefix, client_name, site_name, site_address, contact_person, contact_phone, status, job_type, created_at, completed_at, notes')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">${esc(error.message)}</div></div>`;
+    return;
+  }
+
+  ALL_JOBS = data || [];
+  wrap.innerHTML = `<div class="job-list" id="jobList"></div>`;
+  renderJobList();
 }
 
 function renderJobList() {
   const list = document.getElementById('jobList');
-  let jobs = JOBS.slice();
+  if (!list) return;
+  let jobs = ALL_JOBS.slice();
 
   if (searchFilter.status !== 'all') jobs = jobs.filter(j => j.status === searchFilter.status);
-  if (searchFilter.prefix) jobs = jobs.filter(j => j.number.startsWith(searchFilter.prefix));
+  if (searchFilter.prefix) jobs = jobs.filter(j => j.prefix === searchFilter.prefix);
   if (searchFilter.text) {
     const q = searchFilter.text.toLowerCase();
     jobs = jobs.filter(j =>
-      j.number.toLowerCase().includes(q) ||
-      j.client.toLowerCase().includes(q) ||
-      j.desc.toLowerCase().includes(q)
+      (j.job_number   || '').toLowerCase().includes(q) ||
+      (j.client_name  || '').toLowerCase().includes(q) ||
+      (j.site_name    || '').toLowerCase().includes(q) ||
+      (j.site_address || '').toLowerCase().includes(q)
     );
   }
 
@@ -474,25 +403,27 @@ function renderJobList() {
   }
 
   list.innerHTML = jobs.map(j => `
-    <div class="job-row" data-job-id="${j.id}">
-      <div class="job-num">${j.number}</div>
+    <div class="job-row" data-job-number="${esc(j.job_number)}">
+      <div class="job-num">${esc(j.job_number)}</div>
       <div class="job-info">
-        <div class="job-client">${escapeHtml(j.client)}</div>
-        <div class="job-desc">${escapeHtml(j.desc)}</div>
+        <div class="job-client">${esc(j.client_name)}</div>
+        <div class="job-desc">${esc(j.site_name || j.site_address || '—')}</div>
       </div>
       ${statusBadge(j.status)}
     </div>
   `).join('');
 
   list.querySelectorAll('.job-row').forEach(el => {
-    el.addEventListener('click', () => selectJob(+el.dataset.jobId));
+    el.addEventListener('click', () => selectJob(el.dataset.jobNumber));
   });
 }
 
-function selectJob(id) {
-  const job = JOBS.find(j => j.id === id);
+/* ── SELECT JOB ────────────────────────────────────────── */
+async function selectJob(jobNumber) {
+  const job = ALL_JOBS.find(j => j.job_number === jobNumber);
   if (!job) return;
   selectedJob = job;
+  jobCache = null;
   activeTool = 'overview';
 
   document.getElementById('pageWrapper').classList.add('has-sidebar');
@@ -500,29 +431,25 @@ function selectJob(id) {
   document.getElementById('searchView').style.display = 'none';
   document.getElementById('detailView').style.display = 'block';
   document.getElementById('sidebarToggle').style.display = window.innerWidth < 900 ? 'inline-flex' : 'none';
-  document.getElementById('headerSubtitle').textContent = `Managing ${job.number} — ${job.client}`;
+  document.getElementById('headerSubtitle').textContent = `Managing ${job.job_number} — ${job.client_name}`;
 
-  document.getElementById('sbJobNum').textContent = job.number;
-  document.getElementById('sbJobClient').textContent = job.client;
-  document.getElementById('sbJobDesc').textContent = job.desc;
-
-  const d = jobData(id);
-  document.getElementById('cnt-labour').textContent    = d.labour.length;
-  document.getElementById('cnt-materials').textContent = d.materials.length;
-  document.getElementById('cnt-pos').textContent       = d.pos.length;
-  document.getElementById('cnt-notes').textContent     = d.notes.length;
-  document.getElementById('cnt-documents').textContent = d.documents.length;
-  document.getElementById('cnt-safety').textContent    = d.safety.length;
-  document.getElementById('cnt-testing').textContent   = d.testing.length;
+  document.getElementById('sbJobNum').textContent = job.job_number;
+  document.getElementById('sbJobClient').textContent = job.client_name;
+  document.getElementById('sbJobDesc').textContent = job.site_name || job.site_address || '';
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tool === 'overview'));
+  document.querySelectorAll('.nav-count').forEach(el => el.textContent = '–');
 
-  renderTool();
+  document.getElementById('toolPanel').innerHTML = `<div class="loading-inline"><div class="spinner"></div>Loading job data…</div>`;
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  await loadJobData(job.job_number);
+  renderTool();
 }
 
 function deselectJob() {
   selectedJob = null;
+  jobCache = null;
   document.getElementById('pageWrapper').classList.remove('has-sidebar');
   document.getElementById('sidebar').style.display = 'none';
   document.getElementById('sidebarToggle').style.display = 'none';
@@ -532,20 +459,89 @@ function deselectJob() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/* ── LOAD ALL JOB DATA ─────────────────────────────────── */
+async function loadJobData(jobNumber) {
+  const [sheetsRes, posRes, filesRes] = await Promise.all([
+    sb().from('job_sheets')
+      .select('id, job_sheet_number, sheet_date, tasks, labour, materials, notes, created_by, is_service_report, signing_status')
+      .eq('job_number', jobNumber)
+      .order('sheet_date', { ascending: false }),
+    sb().from('purchase_orders')
+      .select('id, po_number, po_sequence, po_type, supplier, supplier_branch, status, subtotal, gst, total, required_by, ordered_by_name, verbal_description, created_at')
+      .eq('job_number', jobNumber)
+      .order('created_at', { ascending: false }),
+    sb().from('job_sheet_files')
+      .select('id, job_sheet_number, file_name, file_path, file_type, file_size, file_category, tags, description, uploaded_by, uploaded_at')
+      .eq('job_number', jobNumber)
+      .order('uploaded_at', { ascending: false }),
+  ]);
+
+  if (sheetsRes.error) console.error('job_sheets', sheetsRes.error);
+  if (posRes.error) console.error('purchase_orders', posRes.error);
+  if (filesRes.error) console.error('job_sheet_files', filesRes.error);
+
+  const sheets = sheetsRes.data || [];
+  const pos    = posRes.data    || [];
+  const files  = filesRes.data  || [];
+
+  // Flatten labour / materials / notes from JSONB across all sheets
+  const labour = [];
+  const materials = [];
+  const notes = [];
+  for (const s of sheets) {
+    const sheetDate = s.sheet_date;
+    const sheetNum  = s.job_sheet_number;
+    (Array.isArray(s.labour)    ? s.labour    : []).forEach(l => labour.push({ ...l, _sheet_date: sheetDate, _sheet: sheetNum }));
+    (Array.isArray(s.materials) ? s.materials : []).forEach(m => materials.push({ ...m, _sheet_date: sheetDate, _sheet: sheetNum }));
+    (Array.isArray(s.notes)     ? s.notes     : []).forEach(n => notes.push({ ...n, _sheet_date: sheetDate, _sheet: sheetNum }));
+  }
+
+  const documents = files.filter(f => f.file_category === 'documents');
+  const safety    = files.filter(f => f.file_category === 'safety');
+  const testing   = files.filter(f => f.file_category === 'testing');
+
+  jobCache = { sheets, pos, files, labour, materials, notes, documents, safety, testing };
+
+  // Update sidebar counts
+  document.getElementById('cnt-labour').textContent    = labour.length;
+  document.getElementById('cnt-materials').textContent = materials.length;
+  document.getElementById('cnt-pos').textContent       = pos.length;
+  document.getElementById('cnt-notes').textContent     = notes.length;
+  document.getElementById('cnt-documents').textContent = documents.length;
+  document.getElementById('cnt-safety').textContent    = safety.length;
+  document.getElementById('cnt-testing').textContent   = testing.length;
+}
+
+/* ── RENDER ACTIVE TOOL ────────────────────────────────── */
 function renderTool() {
-  if (!selectedJob) return;
+  if (!selectedJob || !jobCache) return;
   const panel = document.getElementById('toolPanel');
-  const d = jobData(selectedJob.id);
+  const d = jobCache;
 
   if (activeTool === 'overview')   panel.innerHTML = renderOverview(selectedJob, d);
   if (activeTool === 'labour')     panel.innerHTML = renderLabour(d.labour);
   if (activeTool === 'materials')  panel.innerHTML = renderMaterials(d.materials);
   if (activeTool === 'pos')        panel.innerHTML = renderPOs(d.pos);
   if (activeTool === 'notes')      panel.innerHTML = renderNotes(d.notes);
-  if (activeTool === 'documents')  panel.innerHTML = renderDocGrid('Documents', '📂', d.documents, 'No documents uploaded yet');
-  if (activeTool === 'safety')     panel.innerHTML = renderDocGrid('Safety', '🦺', d.safety, 'No safety documents — add SWMS, inductions, or hazard records');
-  if (activeTool === 'testing')    panel.innerHTML = renderTesting(d.testing);
+  if (activeTool === 'documents')  panel.innerHTML = renderFileGrid('Documents', '📂', d.documents, 'documents', 'No documents uploaded yet');
+  if (activeTool === 'safety')     panel.innerHTML = renderFileGrid('Safety',    '🦺', d.safety,    'safety',    'No safety documents yet');
+  if (activeTool === 'testing')    panel.innerHTML = renderFileGrid('Testing',   '🧪', d.testing,   'testing',   'No test sheets recorded yet');
 
+  // wire file tile clicks → signed URL
+  panel.querySelectorAll('[data-file-path]').forEach(tile => {
+    tile.addEventListener('click', async () => {
+      const bucket = tile.dataset.bucket;
+      const path = tile.dataset.filePath;
+      await openSignedFile(bucket, path);
+    });
+  });
+
+  // wire PO row expansion
+  panel.querySelectorAll('.po-expandable').forEach(row => {
+    row.addEventListener('click', () => togglePOItems(row));
+  });
+
+  // placeholder add buttons
   panel.querySelectorAll('.btn-add').forEach(b => {
     b.addEventListener('click', () => {
       if (window.BromarHub?.showInfo) BromarHub.showInfo(`${b.dataset.label || 'Add'} — coming soon`);
@@ -553,76 +549,203 @@ function renderTool() {
   });
 }
 
+/* ── OVERVIEW ──────────────────────────────────────────── */
 function renderOverview(job, d) {
-  const hours = d.labour.reduce((s,l) => s + l.hours, 0);
-  const mats  = d.materials.reduce((s,m) => s + m.cost, 0);
+  const hours = d.labour.reduce((s, l) => s + (Number(l.hours) || 0), 0);
+  const poTotal = d.pos.reduce((s, p) => s + (Number(p.total) || 0), 0);
+  const filesTotal = d.documents.length + d.safety.length + d.testing.length;
+
   return `
     <div class="stats-row">
       <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value">${statusBadge(job.status)}</div></div>
       <div class="stat-card"><div class="stat-label">Labour Hours</div><div class="stat-value accent">${hours.toFixed(1)}</div></div>
-      <div class="stat-card"><div class="stat-label">Materials</div><div class="stat-value">$${mats.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-label">POs</div><div class="stat-value">${d.pos.length}</div></div>
+      <div class="stat-card"><div class="stat-label">PO Total</div><div class="stat-value">${fmtMoney(poTotal)}</div></div>
+      <div class="stat-card"><div class="stat-label">Sheets</div><div class="stat-value">${d.sheets.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Files</div><div class="stat-value">${filesTotal}</div></div>
     </div>
     <div class="tool-card">
       <div class="tool-card-header"><div class="tool-card-title">Job Details</div></div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <tbody>
-            <tr><th style="width:35%;">Job Number</th><td>${job.number}</td></tr>
-            <tr><th>Client</th><td>${escapeHtml(job.client)}</td></tr>
-            <tr><th>Description</th><td>${escapeHtml(job.desc)}</td></tr>
-            <tr><th>Project Manager</th><td>${escapeHtml(job.pm)}</td></tr>
-            <tr><th>Opened</th><td>${job.opened}</td></tr>
-            <tr><th>Last Update</th><td>${job.updated}</td></tr>
+            <tr><th style="width:32%;">Job Number</th><td>${esc(job.job_number)}</td></tr>
+            <tr><th>Client</th><td>${esc(job.client_name)}</td></tr>
+            <tr><th>Site</th><td>${esc(job.site_name || '—')}</td></tr>
+            <tr><th>Site Address</th><td>${esc(job.site_address || '—')}</td></tr>
+            <tr><th>Contact</th><td>${esc(job.contact_person || '—')} ${job.contact_phone ? '· ' + esc(job.contact_phone) : ''}</td></tr>
+            <tr><th>Job Type</th><td>${esc((job.job_type || '—').replace('_', ' '))}</td></tr>
+            <tr><th>Opened</th><td>${fmtDate(job.created_at)}</td></tr>
+            <tr><th>Completed</th><td>${fmtDate(job.completed_at)}</td></tr>
+            ${job.notes ? `<tr><th>Notes</th><td>${esc(job.notes)}</td></tr>` : ''}
           </tbody>
         </table>
       </div>
     </div>`;
 }
 
-function tableShell(title, addLabel, headers, rows, emptyText) {
+/* ── TABLES (Labour, Materials, Notes) ─────────────────── */
+function tableShell(title, addLabel, headers, rowsHtml, emptyText) {
   return `
     <div class="tool-card">
       <div class="tool-card-header">
         <div class="tool-card-title">${title}</div>
         <div class="tool-card-actions"><button class="btn-add" data-label="${addLabel}">+ ${addLabel}</button></div>
       </div>
-      ${rows.length ? `
+      ${rowsHtml ? `
         <div class="data-table-wrapper">
           <table class="data-table">
             <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-            <tbody>${rows.join('')}</tbody>
+            <tbody>${rowsHtml}</tbody>
           </table>
         </div>` : `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">${emptyText}</div></div>`}
     </div>`;
 }
 
 function renderLabour(rows) {
-  return tableShell('Labour', 'Add entry', ['Date','Employee','Task','Hours'],
-    rows.map(l => `<tr><td>${l.date}</td><td>${escapeHtml(l.employee)}</td><td>${escapeHtml(l.task)}</td><td>${l.hours}</td></tr>`),
-    'No labour recorded for this job');
+  const html = rows.map(l => `
+    <tr>
+      <td>${fmtDate(l._sheet_date)}</td>
+      <td>${esc(l.employee || l.name || l.employee_name || '—')}</td>
+      <td>${esc(l.task || l.description || '—')}</td>
+      <td>${l.hours ?? '—'}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(l._sheet)}</span></td>
+    </tr>`).join('');
+  return tableShell('Labour', 'Add entry', ['Date','Employee','Task','Hours','Sheet'], html, 'No labour recorded for this job');
 }
+
 function renderMaterials(rows) {
-  return tableShell('Materials', 'Add material', ['Date','Item','Qty','Supplier','Cost'],
-    rows.map(m => `<tr><td>${m.date}</td><td>${escapeHtml(m.item)}</td><td>${m.qty}</td><td>${escapeHtml(m.supplier)}</td><td>$${m.cost.toLocaleString()}</td></tr>`),
-    'No materials recorded for this job');
+  const html = rows.map(m => `
+    <tr>
+      <td>${fmtDate(m._sheet_date)}</td>
+      <td>${esc(m.description || m.item || m.name || '—')}</td>
+      <td>${m.qty ?? m.quantity ?? '—'}</td>
+      <td>${esc(m.supplier || m.unit || '—')}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(m._sheet)}</span></td>
+    </tr>`).join('');
+  return tableShell('Materials', 'Add material', ['Date','Item','Qty','Supplier / Unit','Sheet'], html, 'No materials recorded for this job');
 }
-function renderPOs(rows) {
-  return tableShell('Purchase Orders', 'New PO', ['PO #','Date','Supplier','Status','Total'],
-    rows.map(p => `<tr><td><strong>${p.po}</strong></td><td>${p.date}</td><td>${escapeHtml(p.supplier)}</td><td>${p.status}</td><td>$${p.total.toLocaleString()}</td></tr>`),
-    'No purchase orders for this job');
-}
+
 function renderNotes(rows) {
-  return tableShell('Notes', 'Add note', ['Date','Author','Note'],
-    rows.map(n => `<tr><td style="white-space:nowrap;">${n.date}</td><td style="white-space:nowrap;">${escapeHtml(n.author)}</td><td>${escapeHtml(n.note)}</td></tr>`),
-    'No notes yet — add the first one');
+  const html = rows.map(n => `
+    <tr>
+      <td style="white-space:nowrap;">${fmtDate(n._sheet_date)}</td>
+      <td style="white-space:nowrap;">${esc(n.author || n.created_by || '—')}</td>
+      <td>${esc(n.note || n.text || n.content || '—')}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(n._sheet)}</span></td>
+    </tr>`).join('');
+  return tableShell('Notes', 'Add note', ['Date','Author','Note','Sheet'], html, 'No notes yet');
 }
-function renderTesting(rows) {
-  return tableShell('Testing', 'Add test', ['Date','Type','Performed By','Result'],
-    rows.map(t => `<tr><td>${t.date}</td><td>${escapeHtml(t.type)}</td><td>${escapeHtml(t.by)}</td><td><span class="job-status status-active">${t.result}</span></td></tr>`),
-    'No test sheets recorded yet');
+
+/* ── PURCHASE ORDERS ───────────────────────────────────── */
+function renderPOs(rows) {
+  if (!rows.length) {
+    return `<div class="tool-card">
+      <div class="tool-card-header">
+        <div class="tool-card-title">Purchase Orders</div>
+        <div class="tool-card-actions"><button class="btn-add" data-label="New PO">+ New PO</button></div>
+      </div>
+      <div class="empty-state"><div class="empty-state-icon">🧾</div><div class="empty-state-text">No purchase orders for this job</div></div>
+    </div>`;
+  }
+
+  const html = rows.map(p => `
+    <tr class="po-expandable" data-po-id="${p.id}">
+      <td><span class="caret">▸</span><strong>${esc(p.po_number)}</strong></td>
+      <td>${fmtDate(p.created_at)}</td>
+      <td>${esc(p.supplier)}${p.supplier_branch ? ' · ' + esc(p.supplier_branch) : ''}</td>
+      <td>${esc(p.po_type)}</td>
+      <td><span class="job-status status-${(p.status || 'submitted') === 'received' ? 'completed' : 'active'}">${esc(p.status)}</span></td>
+      <td style="text-align:right;">${fmtMoney(p.total)}</td>
+    </tr>
+    <tr class="po-items-row" data-po-items="${p.id}" style="display:none;"><td colspan="6"></td></tr>
+  `).join('');
+
+  return `
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <div class="tool-card-title">Purchase Orders</div>
+        <div class="tool-card-actions"><button class="btn-add" data-label="New PO">+ New PO</button></div>
+      </div>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>PO #</th><th>Date</th><th>Supplier</th><th>Type</th><th>Status</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody>${html}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
-function renderDocGrid(title, icon, items, emptyText) {
+
+async function togglePOItems(row) {
+  const poId = row.dataset.poId;
+  const itemsRow = document.querySelector(`tr[data-po-items="${poId}"]`);
+  const caret = row.querySelector('.caret');
+  if (!itemsRow) return;
+
+  if (itemsRow.style.display !== 'none') {
+    itemsRow.style.display = 'none';
+    caret.classList.remove('open');
+    return;
+  }
+
+  caret.classList.add('open');
+  itemsRow.style.display = '';
+  const cell = itemsRow.querySelector('td');
+  cell.innerHTML = `<div class="loading-inline"><div class="spinner"></div>Loading line items…</div>`;
+
+  const { data, error } = await sb()
+    .from('purchase_order_items')
+    .select('line_number, qty, part_number, description, price_each, line_total, item_notes')
+    .eq('po_id', poId)
+    .order('line_number', { ascending: true });
+
+  if (error) {
+    cell.innerHTML = `<div style="padding:1rem;color:var(--error);">Error loading items: ${esc(error.message)}</div>`;
+    return;
+  }
+
+  if (!data || !data.length) {
+    cell.innerHTML = `<div style="padding:1rem;color:var(--text-secondary);text-align:center;">No line items on this PO</div>`;
+    return;
+  }
+
+  cell.innerHTML = `
+    <table class="po-items-table">
+      <thead><tr><th>#</th><th>Part</th><th>Description</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr></thead>
+      <tbody>
+        ${data.map(i => `
+          <tr>
+            <td>${i.line_number}</td>
+            <td>${esc(i.part_number || '—')}</td>
+            <td>${esc(i.description)}${i.item_notes ? `<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px;">${esc(i.item_notes)}</div>` : ''}</td>
+            <td style="text-align:right;">${i.qty}</td>
+            <td style="text-align:right;">${fmtMoney(i.price_each)}</td>
+            <td style="text-align:right;">${fmtMoney(i.line_total)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ── FILE GRIDS ────────────────────────────────────────── */
+const FILE_ICONS = {
+  pdf: '📄', doc: '📄', docx: '📄', txt: '📄',
+  jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', heic: '🖼️',
+  xls: '📊', xlsx: '📊', csv: '📊',
+  dwg: '📐', dxf: '📐',
+  zip: '🗜️', rar: '🗜️',
+};
+function iconFor(name) {
+  const ext = (name || '').split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] || '📎';
+}
+function fmtSize(bytes) {
+  if (!bytes) return '';
+  const kb = bytes / 1024;
+  if (kb < 1024) return kb.toFixed(0) + ' KB';
+  return (kb / 1024).toFixed(1) + ' MB';
+}
+
+function renderFileGrid(title, fallbackIcon, items, category, emptyText) {
+  const bucket = BUCKETS[category];
   return `
     <div class="tool-card">
       <div class="tool-card-header">
@@ -631,18 +754,35 @@ function renderDocGrid(title, icon, items, emptyText) {
       </div>
       ${items.length ? `
         <div class="doc-grid">
-          ${items.map(d => `
-            <div class="doc-tile">
-              <div class="doc-icon">${d.icon || icon}</div>
-              <div class="doc-name">${escapeHtml(d.name)}</div>
-              <div class="doc-meta">${escapeHtml(d.type)} · ${d.updated}</div>
+          ${items.map(f => `
+            <div class="doc-tile" data-file-path="${esc(f.file_path)}" data-bucket="${esc(bucket)}">
+              <div class="doc-icon">${iconFor(f.file_name)}</div>
+              <div class="doc-name">${esc(f.file_name)}</div>
+              <div class="doc-meta">${esc((f.file_type || '').toUpperCase())}${f.file_size ? ' · ' + fmtSize(f.file_size) : ''} · ${fmtDate(f.uploaded_at)}</div>
+              ${(f.tags && f.tags.length) ? `<div class="doc-tags">${f.tags.map(t => `<span class="doc-tag">${esc(t)}</span>`).join('')}</div>` : ''}
             </div>`).join('')}
-        </div>` : `<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-text">${emptyText}</div></div>`}
+        </div>` : `<div class="empty-state"><div class="empty-state-icon">${fallbackIcon}</div><div class="empty-state-text">${emptyText}</div></div>`}
     </div>`;
 }
 
+async function openSignedFile(bucket, path) {
+  if (!bucket || !path) return;
+  const { data, error } = await sb().storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL);
+  if (error) {
+    if (window.BromarHub?.showInfo) BromarHub.showInfo('Could not open file: ' + error.message);
+    return;
+  }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+/* ── EVENTS ────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  renderJobList();
+  // wait for window.sb (auth.js sets it via createClient too, but bromar-hub.js also creates window.sb)
+  if (!window.sb) {
+    setTimeout(() => loadJobs(), 200);
+  } else {
+    loadJobs();
+  }
 
   document.getElementById('jobSearch').addEventListener('input', e => {
     searchFilter.text = e.target.value;
