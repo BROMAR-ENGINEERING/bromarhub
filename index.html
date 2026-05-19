@@ -509,36 +509,48 @@
 
         /* Compact View - smaller tiles */
         [data-density="compact"] .grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.875rem;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.625rem;
         }
         [data-density="compact"] .card {
-            padding: 1.25rem;
+            padding: 0.875rem;
         }
         [data-density="compact"] .card-icon {
-            width: 32px;
-            height: 32px;
-            margin-bottom: 0.75rem;
+            width: 24px;
+            height: 24px;
+            margin-bottom: 0.5rem;
         }
         [data-density="compact"] .card-title {
-            font-size: 0.95rem;
-            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            margin-bottom: 0;
+            line-height: 1.3;
         }
         [data-density="compact"] .card-description {
-            font-size: 0.78rem;
+            display: none;
+        }
+        [data-density="compact"] .badge {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.5rem;
+            margin-top: 0.5rem;
         }
         [data-density="compact"] section {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
         [data-density="compact"] .section-title {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            margin-bottom: 0.875rem;
+        }
+        [data-density="compact"] .section-title::before {
+            height: 18px;
         }
         [data-density="compact"] .index-title {
-            padding: 80px 1.5rem 1.25rem;
+            padding: 80px 1.5rem 1rem;
         }
         [data-density="compact"] .index-title h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
+        }
+        [data-density="compact"] .index-title .subtitle {
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -951,7 +963,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.40</div>
+    <div class="revision-number">V1.41</div>
 
     <script>
         // SUPABASE AUTH
