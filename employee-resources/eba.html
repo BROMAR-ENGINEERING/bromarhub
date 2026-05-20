@@ -4,238 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Enterprise Bargaining Agreement - Bromar</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    :root {
-      --brand-primary: #1a56db;
-      --brand-secondary: #0e9f6e;
-      --brand-accent: #ff6b35;
-      --brand-orange: #c2440e;
-      --brand-orange-soft: #fff3ee;
-      --brand-dark: #111827;
-      --brand-mid: #374151;
-      --brand-light: #f3f6ff;
-      --brand-white: #ffffff;
-      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
-      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
-      --radius: 14px;
-      --radius-sm: 8px;
-      --input-bg: #fafbff;
-      --input-bg-focus: #ffffff;
-      --input-border: #d1d9f0;
-      --input-focus: #1a56db;
-      --text-primary: #111827;
-      --text-secondary: #374151;
-      --text-muted: #6b7280;
-      --text-faded: #9ca3af;
-      --divider: #e5e7eb;
-      --footer-bg: #fafafa;
-      --error: #ef4444;
-      --success: #0e9f6e;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --brand-orange: #f0723f;
-        --brand-orange-soft: rgba(240, 114, 63, 0.12);
-        --brand-dark: #f4f4f5;
-        --brand-mid: #a1a1aa;
-        --brand-light: rgba(240, 114, 63, 0.08);
-        --brand-white: #1a1d21;
-        --bg-gradient: linear-gradient(135deg, #0f1113 0%, #15171a 50%, #1a1418 100%);
-        --card-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
-        --input-bg: #13161a;
-        --input-bg-focus: #1a1d21;
-        --input-border: #2a2d32;
-        --input-focus: #f0723f;
-        --text-primary: #f4f4f5;
-        --text-secondary: #d4d4d8;
-        --text-muted: #a1a1aa;
-        --text-faded: #71717a;
-        --divider: #2a2d32;
-        --footer-bg: #13161a;
-      }
-    }
-
-    /* Force light mode when class is added */
-    html.light-mode {
-      --brand-orange: #c2440e;
-      --brand-orange-soft: #fff3ee;
-      --brand-dark: #111827;
-      --brand-mid: #374151;
-      --brand-light: #f3f6ff;
-      --brand-white: #ffffff;
-      --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0faf5 50%, #fff4ef 100%);
-      --card-shadow: 0 20px 60px rgba(26, 86, 219, 0.12), 0 4px 16px rgba(0,0,0,0.06);
-      --input-bg: #fafbff;
-      --input-bg-focus: #ffffff;
-      --input-border: #d1d9f0;
-      --input-focus: #1a56db;
-      --text-primary: #111827;
-      --text-secondary: #374151;
-      --text-muted: #6b7280;
-      --text-faded: #9ca3af;
-      --divider: #e5e7eb;
-      --footer-bg: #fafafa;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg-gradient);
-      min-height: 100vh;
-      padding: 40px 16px 60px;
-      color: var(--brand-dark);
-    }
-
-    /* Animated background blobs */
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.35;
-      z-index: 0;
-      pointer-events: none;
-    }
-    body::before {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #bfcfff, #e0e8ff);
-      top: -100px; left: -100px;
-      animation: blob1 12s ease-in-out infinite;
-    }
-    body::after {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, #b2f0d8, #d4f7eb);
-      bottom: -80px; right: -80px;
-      animation: blob2 15s ease-in-out infinite;
-    }
-    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,30px) scale(1.08)} }
-    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,-40px) scale(1.06)} }
-    @media (prefers-color-scheme: dark) {
-      body::before { background: radial-gradient(circle, #2a3a5e, #1a2540); opacity: 0.4; }
-      body::after  { background: radial-gradient(circle, #3d2415, #2a1a0e); opacity: 0.35; }
-    }
-
+    /* Page-specific styles for PDF viewer */
     .page-wrapper {
-      max-width: 1200px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
+      margin-top: 90px;
+    }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
     }
 
-    /* Home icon button — top left of header */
-    .home-icon {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .home-icon:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .home-icon svg { width: 18px; height: 18px; }
-
-    /* Theme toggle button — top right */
-    .theme-toggle {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.2s;
-      z-index: 2;
-    }
-    .theme-toggle:hover {
-      color: var(--brand-orange);
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
-      transform: translateY(-1px);
-    }
-    .theme-toggle svg { width: 18px; height: 18px; }
-    
-    /* Show/hide icons based on theme */
-    .sun-icon { display: none; }
-    .moon-icon { display: block; }
-    
-    html.light-mode .sun-icon { display: block; }
-    html.light-mode .moon-icon { display: none; }
-
-    /* Header card with logo */
     .header-card {
-      background: var(--brand-white);
-      color: var(--text-primary);
-      border-radius: var(--radius) var(--radius) 0 0;
+      background: var(--bg-secondary);
+      border-radius: 16px 16px 0 0;
       padding: 36px 40px 28px;
       text-align: center;
-      border-bottom: 3px solid var(--brand-light);
-      position: relative;
-      overflow: hidden;
-    }
-    .header-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-    }
-
-    .logo-container {
-      margin-bottom: 20px;
-    }
-    .logo-container img {
-      max-height: 80px;
-      max-width: 260px;
-      object-fit: contain;
+      border-bottom: 3px solid var(--border);
+      margin-bottom: 0;
     }
 
     .header-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.4rem;
-      letter-spacing: 2.5px;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
       color: var(--text-primary);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
+
     .header-subtitle {
       font-size: 0.9rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-weight: 400;
     }
 
-    /* Main content card */
     .content-card {
-      background: var(--brand-white);
-      border-radius: 0 0 var(--radius) var(--radius);
-      color: var(--text-primary);
+      background: var(--bg-secondary);
+      border-radius: 0 0 16px 16px;
       padding: 36px 40px 40px;
-      box-shadow: var(--card-shadow);
+      box-shadow: 0 4px 12px var(--shadow);
     }
 
-    /* Controls bar */
     .controls-bar {
       display: flex;
       gap: 12px;
@@ -243,10 +55,10 @@
       flex-wrap: wrap;
       align-items: center;
       padding-bottom: 20px;
-      border-bottom: 1px solid var(--divider);
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
     }
 
-    /* Search controls */
     .search-controls {
       display: flex;
       gap: 12px;
@@ -264,20 +76,19 @@
     .search-input {
       width: 100%;
       padding: 11px 44px 11px 14px;
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      font-family: 'DM Sans', sans-serif;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
       font-size: 0.93rem;
       color: var(--text-primary);
-      background: var(--input-bg);
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      background: var(--bg-secondary);
+      transition: all 0.3s ease;
       outline: none;
     }
 
     .search-input:focus {
-      border-color: var(--input-focus);
-      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
-      background: var(--input-bg-focus);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
     }
 
     .search-btn {
@@ -285,7 +96,7 @@
       right: 6px;
       top: 50%;
       transform: translateY(-50%);
-      background: var(--brand-orange);
+      background: var(--accent);
       color: white;
       border: none;
       border-radius: 6px;
@@ -297,7 +108,7 @@
     }
 
     .search-btn:hover {
-      background: #a3380b;
+      filter: brightness(1.1);
       transform: translateY(-50%) translateY(-1px);
     }
 
@@ -310,12 +121,12 @@
     .nav-btn {
       width: 42px;
       height: 42px;
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-secondary);
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -324,9 +135,9 @@
     }
 
     .nav-btn:hover:not(:disabled) {
-      border-color: var(--brand-primary);
-      background: var(--brand-white);
-      color: var(--brand-primary);
+      border-color: var(--accent);
+      background: var(--card-hover);
+      color: var(--accent);
     }
 
     .nav-btn:disabled {
@@ -336,31 +147,30 @@
 
     .search-info {
       font-size: 0.85rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       white-space: nowrap;
       padding: 0 8px;
     }
 
     .clear-btn {
       padding: 11px 18px;
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Outfit', sans-serif;
       font-size: 0.85rem;
       font-weight: 600;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
     }
 
     .clear-btn:hover {
-      background: var(--input-bg);
+      background: var(--card-hover);
       color: var(--text-primary);
-      border-color: var(--text-muted);
+      border-color: var(--accent);
     }
 
-    /* Page controls */
     .page-controls {
       display: flex;
       gap: 12px;
@@ -374,7 +184,7 @@
 
     .page-info {
       font-size: 0.85rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       min-width: 100px;
       text-align: center;
     }
@@ -384,67 +194,12 @@
       gap: 6px;
     }
 
-    .download-btn {
-      padding: 11px 18px;
-      border: 1.5px solid var(--brand-orange);
-      border-radius: var(--radius-sm);
-      background: var(--brand-orange);
-      color: white;
-      cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .download-btn:hover {
-      background: #a3380b;
-      border-color: #a3380b;
-    }
-
-    /* Download section at bottom */
-    .download-section {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid var(--divider);
-      display: flex;
-      justify-content: center;
-    }
-
-    .download-btn-large {
-      padding: 14px 32px;
-      border: 1.5px solid var(--brand-orange);
-      border-radius: var(--radius-sm);
-      background: var(--brand-orange);
-      color: white;
-      cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 2px 8px rgba(194, 68, 14, 0.2);
-    }
-
-    .download-btn-large:hover {
-      background: #a3380b;
-      border-color: #a3380b;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(194, 68, 14, 0.3);
-    }
-
-    /* PDF container */
     .pdf-container {
       width: 100%;
       height: calc(100vh - 450px);
       min-height: 600px;
-      border: 2px solid var(--input-border);
-      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      border-radius: 10px;
       overflow: auto;
       background: #525659;
       position: relative;
@@ -456,14 +211,13 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
-    /* Loading overlay */
     .loading-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--brand-white);
+      background: var(--bg-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -479,8 +233,8 @@
     .spinner {
       width: 48px;
       height: 48px;
-      border: 4px solid var(--input-border);
-      border-top-color: var(--brand-orange);
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -491,18 +245,17 @@
 
     .loading-text {
       font-size: 0.9rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
-    /* Error message */
     .error-message {
       display: none;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error);
       padding: 14px 18px;
-      border-radius: var(--radius-sm);
+      border-radius: 10px;
       margin-bottom: 20px;
       font-size: 0.9rem;
     }
@@ -511,21 +264,73 @@
       display: block;
     }
 
-    @media (prefers-color-scheme: dark) {
-      .error-message {
-        background: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
-      }
-      .loading-overlay {
-        background: var(--brand-white);
-      }
+    .download-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
     }
 
-    html.light-mode .error-message {
-      background: #fef2f2;
-      border-color: #fecaca;
-      color: #991b1b;
+    .download-btn-large {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      color: white;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+    }
+
+    .download-btn-large:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4);
+    }
+
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .card-footer-link:hover { text-decoration: underline; }
+
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded);
+      font-weight: 500;
     }
 
     @media (max-width: 720px) {
@@ -591,66 +396,15 @@
         justify-content: center;
       }
     }
-
-    /* Text layer for search highlighting */
-    .textLayer {
-      position: absolute;
-      left: 0;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      overflow: hidden;
-      opacity: 0.2;
-      line-height: 1.0;
-    }
-
-    .textLayer > span {
-      color: transparent;
-      position: absolute;
-      white-space: pre;
-      cursor: text;
-      transform-origin: 0% 0%;
-    }
-
-    .textLayer .highlight {
-      background-color: rgba(255, 255, 0, 0.4);
-      border-radius: 2px;
-    }
-
-    .textLayer .highlight.selected {
-      background-color: rgba(255, 153, 0, 0.6);
-    }
   </style>
 </head>
 <body>
 <div class="page-wrapper">
 
   <!-- HEADER -->
-  <div class="header-card">
-    <a href="../index.html" class="home-icon" aria-label="Home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
-      </svg>
-    </a>
-    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
-      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/>
-        <line x1="12" y1="1" x2="12" y2="3"/>
-        <line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/>
-        <line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-    <div class="logo-container">
-      <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar Logo" id="logoImage" />
-    </div>
+  <div id="bromar-header"></div>
+
+  <div class="header-card" style="text-align: center;">
     <h1 class="header-title">Enterprise Bargaining Agreement</h1>
     <p class="header-subtitle">Search and browse through the Enterprise Bargaining Agreement 2025-2029</p>
   </div>
@@ -659,7 +413,7 @@
   <div class="content-card">
     
     <div class="error-message" id="errorMessage">
-      Could not load PDF. Please make sure the file "eba2025-2029.pdf" exists in the same folder.
+      Could not load PDF. Please make sure the file exists in the same folder.
     </div>
 
     <!-- CONTROLS BAR -->
@@ -720,6 +474,12 @@
       </button>
     </div>
 
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — ENTERPRISE BARGAINING AGREEMENT</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+
   </div>
 </div>
 
@@ -731,42 +491,6 @@
   
   // Set PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-  // ============================================================
-  // THEME TOGGLE
-  // ============================================================
-  const themeToggle = document.getElementById('themeToggle');
-  const html = document.documentElement;
-  const logoImg = document.getElementById('logoImage');
-
-  function updateLogo() {
-    if (html.classList.contains('light-mode')) {
-      logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-    } else {
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        logoImg.src = '../Bromar-Primary-Logo-Reverse-White.png';
-      } else {
-        logoImg.src = '../Bromar-Primary-Logo-Full-Colour.png';
-      }
-    }
-  }
-
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    html.classList.add('light-mode');
-  }
-  updateLogo();
-
-  themeToggle.addEventListener('click', () => {
-    html.classList.toggle('light-mode');
-    updateLogo();
-    
-    if (html.classList.contains('light-mode')) {
-      localStorage.setItem('theme', 'light');
-    } else {
-      localStorage.removeItem('theme');
-    }
-  });
 
   // ============================================================
   // PDF VIEWER & CONTROLS
@@ -786,6 +510,7 @@
   const nextPage = document.getElementById('nextPage');
   const zoomIn = document.getElementById('zoomIn');
   const zoomOut = document.getElementById('zoomOut');
+  const fitWidth = document.getElementById('fitWidth');
   const downloadPdf = document.getElementById('downloadPdf');
 
   let pdfDoc = null;
@@ -805,7 +530,6 @@
       
       console.log('Attempting to load PDF:', PDF_FILENAME);
       
-      // First check if file exists
       const response = await fetch(PDF_FILENAME);
       console.log('Fetch response status:', response.status);
       
@@ -852,7 +576,7 @@
         <strong>Could not load PDF.</strong><br>
         Error: ${error.message}<br><br>
         Possible causes:<br>
-        • File "eba2025-2029.pdf" does not exist in this folder<br>
+        • File "${PDF_FILENAME}" does not exist in this folder<br>
         • PDF file is corrupted or invalid<br>
         • File path is incorrect<br>
         • Browser security settings blocking file access<br><br>
@@ -874,7 +598,7 @@
       let renderScale = scale;
       if (isFitWidth) {
         const container = document.getElementById('pdfContainer');
-        const containerWidth = container.clientWidth - 40; // Subtract padding
+        const containerWidth = container.clientWidth - 40;
         const viewport = page.getViewport({ scale: 1 });
         renderScale = containerWidth / viewport.width;
       }
@@ -894,7 +618,6 @@
       currentPage = pageNum;
       pageInfo.textContent = `Page ${currentPage}/${totalPages}`;
       
-      // Update page navigation buttons
       prevPage.disabled = currentPage <= 1;
       nextPage.disabled = currentPage >= totalPages;
       
@@ -919,8 +642,6 @@
   });
 
   // Zoom controls
-  const fitWidth = document.getElementById('fitWidth');
-
   zoomIn.addEventListener('click', () => {
     isFitWidth = false;
     scale += 0.25;
@@ -968,7 +689,6 @@
     searchMatches = [];
     currentMatchIndex = -1;
     
-    // Search through all pages
     for (let i = 1; i <= totalPages; i++) {
       const page = await pdfDoc.getPage(i);
       const textContent = await page.getTextContent();
@@ -984,8 +704,6 @@
       searchInfo.textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
       prevMatch.disabled = false;
       nextMatch.disabled = false;
-      
-      // Go to first match
       await renderPage(searchMatches[0]);
     } else {
       searchInfo.textContent = 'No matches';
@@ -1039,18 +757,15 @@
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
-    // Ctrl/Cmd + F to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       e.preventDefault();
       searchInput.focus();
     }
     
-    // Escape to clear search
     if (e.key === 'Escape' && document.activeElement === searchInput) {
       clearSearchResults();
     }
 
-    // Arrow keys for page navigation (when not in search input)
     if (document.activeElement !== searchInput) {
       if (e.key === 'ArrowLeft' && currentPage > 1) {
         renderPage(currentPage - 1);
