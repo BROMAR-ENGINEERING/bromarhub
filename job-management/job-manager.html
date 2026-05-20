@@ -949,6 +949,13 @@ async function attachSwmsFromTemplate(templates) {
   if (tplErr) { BromarHub.hideLoading(); BromarHub.showInfo('Template load failed: ' + tplErr.message); return; }
 
   const u = await ensureCurrentUser();
+
+  // Auto-set review date to 1 month after SWMS date
+  const baseDate = swmsDate ? new Date(swmsDate) : new Date();
+  const reviewDate = new Date(baseDate);
+  reviewDate.setMonth(reviewDate.getMonth() + 1);
+  const reviewDateStr = reviewDate.toISOString().slice(0, 10);
+
   const payload = {
     job_number: selectedJob.job_number,
     swms_number: swmsNumber,
@@ -960,6 +967,7 @@ async function attachSwmsFromTemplate(templates) {
     activity_description: tpl.activity_description,
     project_name: selectedJob.site_name || selectedJob.client_name,
     swms_date: swmsDate || null,
+    review_date: reviewDateStr,
     developed_by: tpl.default_developed_by || (u?.name || null),
     reviewed_by: tpl.default_reviewed_by,
     legislation: tpl.legislation,
@@ -1248,7 +1256,7 @@ async function generateAndUploadPdf(swms, opts = {}) {
       #pdfDoc .header-row { display:flex; align-items:stretch; gap:0; margin-bottom:0; border:1px solid #999; }
       #pdfDoc .logo-cell { background:white; padding:6px 12px; display:flex; align-items:center; justify-content:center; width:160px; border-right:1px solid #999; }
       #pdfDoc .logo-cell img { max-width:140px; max-height:48px; display:block; }
-      #pdfDoc .title-banner { background:#e30613; color:white; padding:10px 14px; font-weight:700; font-size:11pt; display:flex; align-items:center; flex:1; }
+      #pdfDoc .title-banner { background:white; color:#1a1a1e; padding:10px 14px; font-weight:700; font-size:11pt; display:flex; align-items:center; flex:1; letter-spacing:0.5px; }
       #pdfDoc .company-box { background:#f2f2f2; padding:6px 10px; font-size:7.5pt; line-height:1.3; width:240px; border-left:1px solid #999; }
       #pdfDoc .activity-banner { background:#7f7f7f; color:white; padding:5px 10px; font-weight:700; font-size:9pt; }
       #pdfDoc .grey-th { background:#7f7f7f; color:white; }
@@ -1301,6 +1309,17 @@ async function generateAndUploadPdf(swms, opts = {}) {
       /* PPE table */
       #pdfDoc .ppe-table th { background:#7f7f7f; color:white; font-size:7.5pt; padding:4px 8px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; }
       #pdfDoc .ppe-table td { font-size:8pt; padding:4px 8px; }
+
+      /* Risk matrix page */
+      #pdfDoc .matrix-page { page-break-before:always; break-before:page; }
+      #pdfDoc .matrix-table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:6px; }
+      #pdfDoc .matrix-table th, #pdfDoc .matrix-table td { border:1px solid #999; text-align:center; padding:8px 6px; font-size:9pt; font-weight:600; }
+      #pdfDoc .matrix-table th { background:#7f7f7f; color:white; font-size:9pt; }
+      #pdfDoc .matrix-table .lh-label { background:#d9d9d9; font-weight:700; writing-mode:vertical-rl; transform:rotate(180deg); width:30px; font-size:8pt; letter-spacing:1px; }
+      #pdfDoc .matrix-table .row-label { background:white; font-weight:700; text-align:left; padding-left:10px; font-size:9pt; }
+      #pdfDoc .matrix-table .code { background:white; font-weight:700; width:36px; font-size:9pt; }
+      #pdfDoc .matrix-table .hoc-header { background:#7f7f7f; color:white; padding:6px; font-size:9pt; }
+      #pdfDoc .matrix-table .hoc-row td { background:white; font-weight:700; font-size:8.5pt; }
     </style>
     <div id="pdfDoc">${buildSwmsDocHtml(swms, sigs || [])}</div>`;
   document.body.appendChild(wrap);
@@ -1318,7 +1337,7 @@ async function generateAndUploadPdf(swms, opts = {}) {
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1080, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-      pagebreak: { mode: ['css', 'legacy'], before: '.signoff-page', avoid: ['tr', '.phase', '.header-row', '.activity-banner'] }
+      pagebreak: { mode: ['css', 'legacy'], before: ['.signoff-page', '.matrix-page'], avoid: ['tr', '.phase', '.header-row', '.activity-banner'] }
     }).from(wrap.querySelector('#pdfDoc'));
 
     // html2pdf v0.10 needs the worker chain: .toPdf().get('pdf') gives the jsPDF instance
@@ -1479,8 +1498,7 @@ function buildSwmsDocHtml(s, sigs) {
           <td class="lbl">Address</td><td class="val" colspan="3">${e(s.site_address || '—')}</td>
         </tr>
         <tr>
-          <td class="lbl">Contact</td><td class="val">${e(s.site_contact || '—')}</td>
-          <td class="lbl">Phone</td><td class="val">${e(s.site_contact_phone || '—')}</td>
+          <td class="lbl">Site Contact</td><td class="val" colspan="3">${e(s.site_contact || '—')}</td>
         </tr>
       </table>
 
@@ -1502,6 +1520,28 @@ function buildSwmsDocHtml(s, sigs) {
         <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
         <tr><th>Mandatory Site PPE</th><th>Additional PPE</th></tr>
         ${ppeRows}
+      </table>
+    </div>
+
+    <div class="pdf-section matrix-page">
+      <div class="section-heading">Figure 1 — Risk Management Matrix</div>
+      <table class="matrix-table">
+        <tr>
+          <td rowspan="7" class="lh-label">LIKELIHOOD</td>
+          <th></th><th></th>
+          <th colspan="5" style="font-size:10pt;">CONSEQUENCES</th>
+        </tr>
+        <tr>
+          <th></th><th></th>
+          <th>Insignificant [5]</th><th>Minor [4]</th><th>Moderate [3]</th><th>Major [2]</th><th>Catastrophic [1]</th>
+        </tr>
+        <tr><td class="row-label">Almost Certain</td><td class="code">[A]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
+        <tr><td class="row-label">Likely</td><td class="code">[B]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
+        <tr><td class="row-label">Moderate</td><td class="code">[C]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
+        <tr><td class="row-label">Unlikely</td><td class="code">[D]</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
+        <tr><td class="row-label">Rare</td><td class="code">[E]</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-mod">Moderate</td></tr>
+        <tr><td colspan="8" class="hoc-header">HIERARCHY OF CONTROL</td></tr>
+        <tr class="hoc-row"><td></td><td></td><td></td><td>Elimination →</td><td>Isolation →</td><td>Engineering →</td><td>Administration →</td><td>PPE</td></tr>
       </table>
     </div>
 
