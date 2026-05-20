@@ -1230,16 +1230,17 @@ async function generateAndUploadPdf(swms, opts = {}) {
   const { data: sigs, error: sigErr } = await sb().from('swms_signatures').select('*').eq('swms_instance_id', swms.id).order('captured_at');
   if (sigErr) console.error('[SWMS PDF] signature fetch failed', sigErr);
 
-  // Render off-screen (negative top, not negative left) so html2canvas can still paint it
+  // Render visibly off-screen but with a snug box so html2canvas captures correctly
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed; left:0; top:-20000px; width:1080px; background:white; z-index:-1;';
+  wrap.style.cssText = 'position:absolute; left:0; top:0; width:1080px; background:white; opacity:0; pointer-events:none; z-index:-9999;';
   wrap.innerHTML = `
     <style>
-      #pdfDoc { background:white; color:#000; font-family:Calibri,Arial,sans-serif; font-size:8pt; line-height:1.3; }
+      #pdfDoc { background:white; color:#000; font-family:Calibri,Arial,sans-serif; font-size:8pt; line-height:1.3; margin:0; padding:0; }
       #pdfDoc * { box-sizing:border-box; }
-      #pdfDoc .pdf-section { padding:0; page-break-after:always; }
-      #pdfDoc .pdf-section:last-child { page-break-after:auto; }
-      #pdfDoc table { width:100%; border-collapse:collapse; table-layout:fixed; }
+      #pdfDoc .pdf-section { padding:0; }
+      #pdfDoc .pdf-section + .pdf-section { margin-top:8px; }
+      #pdfDoc table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:0; }
+      #pdfDoc table + table { margin-top:2px; }
       #pdfDoc td, #pdfDoc th { border:1px solid #999; padding:3px 5px; vertical-align:top; word-wrap:break-word; overflow-wrap:break-word; font-size:7.5pt; }
       #pdfDoc th { background:#f2f2f2; text-align:left; font-weight:700; }
       #pdfDoc thead { display:table-header-group; }
@@ -1271,8 +1272,35 @@ async function generateAndUploadPdf(swms, opts = {}) {
       #pdfDoc .risk-mod { background:#ffff00; color:#000; }
       #pdfDoc .risk-high { background:#e30613; color:#fff; }
       #pdfDoc .footer { text-align:center; font-size:7.5pt; color:#666; margin-top:10px; padding-top:6px; border-top:1px solid #ccc; }
+      #pdfDoc .signoff-page { page-break-before:always; break-before:page; }
       #pdfDoc .signoff-table td { height:32px; padding:6px 8px; }
       #pdfDoc .signoff-table img { max-height:36px; max-width:100%; }
+
+      /* Cover page styling */
+      #pdfDoc .cover-hero { background:linear-gradient(135deg, #e30613 0%, #b30410 100%); color:white; padding:14px 18px; margin-top:4px; display:flex; align-items:center; justify-content:space-between; }
+      #pdfDoc .cover-hero .hero-left { display:flex; flex-direction:column; gap:2px; }
+      #pdfDoc .cover-hero .hero-eyebrow { font-size:8pt; font-weight:600; letter-spacing:2px; text-transform:uppercase; opacity:0.85; }
+      #pdfDoc .cover-hero .hero-title { font-size:18pt; font-weight:700; letter-spacing:-0.3px; line-height:1.1; margin-top:2px; }
+      #pdfDoc .cover-hero .hero-right { display:flex; gap:18px; align-items:flex-end; }
+      #pdfDoc .cover-hero .hero-stat { text-align:right; }
+      #pdfDoc .cover-hero .hero-stat-label { font-size:7pt; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; opacity:0.8; }
+      #pdfDoc .cover-hero .hero-stat-value { font-size:13pt; font-weight:700; font-family:'JetBrains Mono','Courier New',monospace; letter-spacing:-0.3px; margin-top:1px; }
+      #pdfDoc .cover-activity { background:#2c2c2c; color:white; padding:7px 18px; font-weight:600; font-size:9pt; letter-spacing:0.3px; }
+      #pdfDoc .section-heading { background:#7f7f7f; color:white; padding:5px 12px; font-size:8.5pt; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; margin-top:8px; }
+
+      /* Uniform field tables on cover */
+      #pdfDoc .field-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+      #pdfDoc .field-table td { border:1px solid #c0c0c0; padding:5px 8px; font-size:8pt; vertical-align:middle; }
+      #pdfDoc .field-table td.lbl { background:#f5f5f5; font-weight:700; color:#333; width:14%; font-size:7.5pt; letter-spacing:0.3px; text-transform:uppercase; }
+      #pdfDoc .field-table td.val { font-size:8.5pt; color:#000; }
+
+      /* Two-column reference table */
+      #pdfDoc .ref-table th { background:#7f7f7f; color:white; font-size:7.5pt; padding:4px 8px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; }
+      #pdfDoc .ref-table td { font-size:8pt; padding:5px 8px; }
+
+      /* PPE table */
+      #pdfDoc .ppe-table th { background:#7f7f7f; color:white; font-size:7.5pt; padding:4px 8px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; }
+      #pdfDoc .ppe-table td { font-size:8pt; padding:4px 8px; }
     </style>
     <div id="pdfDoc">${buildSwmsDocHtml(swms, sigs || [])}</div>`;
   document.body.appendChild(wrap);
@@ -1290,7 +1318,7 @@ async function generateAndUploadPdf(swms, opts = {}) {
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1080, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.phase', '.pdf-section'] }
+      pagebreak: { mode: ['css', 'legacy'], before: '.signoff-page', avoid: ['tr', '.phase', '.header-row', '.activity-banner'] }
     }).from(wrap.querySelector('#pdfDoc'));
 
     // html2pdf v0.10 needs the worker chain: .toPdf().get('pdf') gives the jsPDF instance
@@ -1396,47 +1424,81 @@ function buildSwmsDocHtml(s, sigs) {
     <div class="pdf-section">
       <div class="header-row">
         ${logoBlock}
-        <div class="title-banner">SAFE WORK METHOD STATEMENT – ${e((s.title || '').toUpperCase())}</div>
+        <div class="title-banner">SAFE WORK METHOD STATEMENT</div>
         <div class="company-box">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>LICENCE #: 17364</div>
       </div>
-      <div class="activity-banner">WORK ACTIVITY DESCRIPTION: ${e((s.activity_description || '').toUpperCase())}</div>
-      <table>
-        <colgroup><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/></colgroup>
+
+      <div class="cover-hero">
+        <div class="hero-left">
+          <div class="hero-eyebrow">${e(s.template_name || 'Safe Work Method Statement')}</div>
+          <div class="hero-title">${e(s.title || '')}</div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-stat">
+            <div class="hero-stat-label">Job</div>
+            <div class="hero-stat-value">${e(s.job_number || '')}</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">SWMS</div>
+            <div class="hero-stat-value">${e(s.swms_number || '')}</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Rev</div>
+            <div class="hero-stat-value">${s.revision_number}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cover-activity">${e(s.activity_description || '')}</div>
+
+      <div class="section-heading">Project Details</div>
+      <table class="field-table">
+        <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
         <tr>
-          <td><strong>Project:</strong> ${e(s.project_name || '')}</td>
-          <td><strong>SWMS #:</strong> ${e(s.swms_number)} Rev ${s.revision_number}</td>
-          <td><strong>Date:</strong> ${fmtDate(s.swms_date)}</td>
-          <td><strong>Review Date:</strong> ${fmtDate(s.review_date)}</td>
+          <td class="lbl">Project</td><td class="val">${e(s.project_name || '—')}</td>
+          <td class="lbl">SWMS Date</td><td class="val">${fmtDate(s.swms_date) || '—'}</td>
         </tr>
         <tr>
-          <td colspan="2"><strong>Developed by:</strong> ${e(s.developed_by || '')}</td>
-          <td colspan="2"><strong>Approved by:</strong> ${e(s.approved_by || '')}</td>
+          <td class="lbl">Developed by</td><td class="val">${e(s.developed_by || '—')}</td>
+          <td class="lbl">Review Date</td><td class="val">${fmtDate(s.review_date) || '—'}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Approved by</td><td class="val">${e(s.approved_by || '—')}</td>
+          <td class="lbl">Reviewed by</td><td class="val">${e(s.reviewed_by || '—')}</td>
         </tr>
       </table>
-      <table>
-        <colgroup><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/></colgroup>
+
+      <div class="section-heading">Site Details</div>
+      <table class="field-table">
+        <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
         <tr>
-          <td><strong>Client:</strong> ${e(s.client_name || '')}</td>
-          <td><strong>Site:</strong> ${e(s.site_name || '')}</td>
-          <td colspan="2"><strong>Site Address:</strong> ${e(s.site_address || '')}</td>
+          <td class="lbl">Client</td><td class="val">${e(s.client_name || '—')}</td>
+          <td class="lbl">Site</td><td class="val">${e(s.site_name || '—')}</td>
         </tr>
         <tr>
-          <td colspan="2"><strong>Site Contact:</strong> ${e(s.site_contact || '')}</td>
-          <td colspan="2"><strong>Contact Phone:</strong> ${e(s.site_contact_phone || '')}</td>
+          <td class="lbl">Address</td><td class="val" colspan="3">${e(s.site_address || '—')}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Contact</td><td class="val">${e(s.site_contact || '—')}</td>
+          <td class="lbl">Phone</td><td class="val">${e(s.site_contact_phone || '—')}</td>
         </tr>
       </table>
-      <table>
+
+      <div class="section-heading">Compliance &amp; Resources</div>
+      <table class="ref-table">
         <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
-        <tr><th>Legislation, Australian standards & codes of practice:</th><th>Personnel qualifications required:</th></tr>
-        <tr><td>${lines(s.legislation).map(e).join('<br/>')}</td><td>${e(s.qualifications || '')}</td></tr>
-        <tr><th>Plant & equipment required:</th><th>Plant & equipment inspections:</th></tr>
-        <tr><td>${lines(s.plant_required).map(e).join('<br/>')}</td><td>${lines(s.plant_inspections).map(e).join('<br/>')}</td></tr>
-        <tr><th>Materials used:</th><th>MSDS required:</th></tr>
-        <tr><td>${e(s.materials_used || '')}</td><td>${e(s.msds_required || '')}</td></tr>
-        <tr><th>Specific training required:</th><th>Relevant procedures:</th></tr>
-        <tr><td>${e(s.training_required || '')}</td><td>${e(s.relevant_procedures || '')}</td></tr>
+        <tr><th>Legislation, Standards &amp; Codes of Practice</th><th>Personnel Qualifications Required</th></tr>
+        <tr><td>${lines(s.legislation).map(e).join('<br/>') || '—'}</td><td>${e(s.qualifications || '—')}</td></tr>
+        <tr><th>Plant &amp; Equipment Required</th><th>Plant &amp; Equipment Inspections</th></tr>
+        <tr><td>${lines(s.plant_required).map(e).join('<br/>') || '—'}</td><td>${lines(s.plant_inspections).map(e).join('<br/>') || '—'}</td></tr>
+        <tr><th>Materials Used</th><th>MSDS Required</th></tr>
+        <tr><td>${e(s.materials_used || '—')}</td><td>${e(s.msds_required || '—')}</td></tr>
+        <tr><th>Specific Training Required</th><th>Relevant Procedures</th></tr>
+        <tr><td>${e(s.training_required || '—')}</td><td>${e(s.relevant_procedures || '—')}</td></tr>
       </table>
-      <table style="margin-top:8px">
+
+      <div class="section-heading">Personal Protective Equipment</div>
+      <table class="ppe-table">
         <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
         <tr><th>Mandatory Site PPE</th><th>Additional PPE</th></tr>
         ${ppeRows}
@@ -1461,7 +1523,7 @@ function buildSwmsDocHtml(s, sigs) {
       </table>
     </div>
 
-    <div class="pdf-section">
+    <div class="pdf-section signoff-page">
       <table style="margin-bottom:8px">
         <tr><td colspan="5" style="padding:8px 10px; line-height:1.45; font-size:7.5pt;">
           We, the undersigned, confirm that we were consulted in the development of this SWMS. If a failure is identified within the SWMS work will stop, the SWMS amended and changes communicated to the workforce. We also clearly understand that the controls must be applied as documented, otherwise work is to cease immediately.
