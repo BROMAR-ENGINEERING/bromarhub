@@ -851,9 +851,20 @@ function renderSwmsTool(panel, swms) {
   panel.querySelectorAll('[data-swms-pdf]').forEach(b => b.addEventListener('click', async () => {
     const swmsId = b.dataset.swmsPdf;
     const row = jobCache.swms.find(s => s.id === swmsId);
-    if (!row?.pdf_path) { BromarHub.showInfo('No PDF generated yet. Open the SWMS and regenerate.'); return; }
+    if (!row) return;
     await logSwmsAccess(swmsId, 'downloaded');
-    await openSignedFile(BUCKETS.swms, row.pdf_path);
+    if (row.pdf_path) {
+      await openSignedFile(BUCKETS.swms, row.pdf_path);
+    } else {
+      // No stored PDF yet — fetch full record and generate now, downloading locally
+      BromarHub.showLoading('Generating PDF', 'Please wait...');
+      const { data: full, error } = await sb().from('swms_instances').select('*').eq('id', swmsId).single();
+      if (error) { BromarHub.hideLoading(); BromarHub.showInfo('Load failed: ' + error.message); return; }
+      await generateAndUploadPdf(full, { saveLocal: true });
+      BromarHub.hideLoading();
+      await loadJobData(selectedJob.job_number);
+      renderTool();
+    }
   }));
 }
 
@@ -874,7 +885,7 @@ function swmsRowHtml(s) {
         <button class="btn-secondary" data-swms-view="${s.id}">View</button>
         ${s.status === 'active' ? `<button class="btn-secondary" data-swms-sign="${s.id}">✍ Sign On</button>` : ''}
         ${s.status === 'active' ? `<button class="btn-secondary" data-swms-amend="${s.id}">Amend</button>` : ''}
-        ${s.pdf_path ? `<button class="btn-secondary" data-swms-pdf="${s.id}">📄 PDF</button>` : ''}
+        <button class="btn-secondary" data-swms-pdf="${s.id}">📄 PDF</button>
       </div>
     </div>`;
 }
@@ -1058,9 +1069,17 @@ async function viewSwms(swmsId) {
   const ab = document.getElementById('viewAmendBtn');
   if (ab) ab.addEventListener('click', () => amendSwms(swmsId));
   document.getElementById('viewPdfBtn').addEventListener('click', async () => {
-    if (!data.pdf_path) { BromarHub.showInfo('No PDF on file. Regenerating...'); await generateAndUploadPdf(data); return; }
     await logSwmsAccess(swmsId, 'downloaded');
-    await openSignedFile(BUCKETS.swms, data.pdf_path);
+    if (data.pdf_path) {
+      await openSignedFile(BUCKETS.swms, data.pdf_path);
+    } else {
+      BromarHub.showLoading('Generating PDF', 'Please wait...');
+      await generateAndUploadPdf(data, { saveLocal: true });
+      BromarHub.hideLoading();
+      await loadJobData(selectedJob.job_number);
+      renderTool();
+      setTimeout(() => viewSwms(swmsId), 100);
+    }
   });
 }
 
@@ -1196,17 +1215,24 @@ async function amendSwms(swmsId) {
 }
 
 /* ── PDF GENERATION ────────────────────────────────────── */
-async function generateAndUploadPdf(swms) {
+async function generateAndUploadPdf(swms, opts = {}) {
+  const { saveLocal = false, silent = false } = opts;
+
+  if (typeof html2pdf === 'undefined') {
+    if (!silent) BromarHub.showInfo('PDF library still loading — try again in a second');
+    return null;
+  }
+
   // Make sure the Bromar logo has loaded
   await loadBromarLogo();
 
   // Fetch signatures
-  const { data: sigs } = await sb().from('swms_signatures').select('*').eq('swms_instance_id', swms.id).order('captured_at');
+  const { data: sigs, error: sigErr } = await sb().from('swms_signatures').select('*').eq('swms_instance_id', swms.id).order('captured_at');
+  if (sigErr) console.error('[SWMS PDF] signature fetch failed', sigErr);
 
-  // Build the SWMS doc HTML in a hidden element sized for A4 landscape (277mm printable)
-  // We use a 1080px wrapper which matches 277mm at ~98dpi (close to landscape A4 minus margins)
+  // Render off-screen (negative top, not negative left) so html2canvas can still paint it
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed; left:-99999px; top:0; width:1080px; background:white;';
+  wrap.style.cssText = 'position:fixed; left:0; top:-20000px; width:1080px; background:white; z-index:-1;';
   wrap.innerHTML = `
     <style>
       #pdfDoc { background:white; color:#000; font-family:Calibri,Arial,sans-serif; font-size:8pt; line-height:1.3; }
@@ -1251,23 +1277,62 @@ async function generateAndUploadPdf(swms) {
     <div id="pdfDoc">${buildSwmsDocHtml(swms, sigs || [])}</div>`;
   document.body.appendChild(wrap);
 
+  // Give the DOM and any embedded base64 images a tick to settle
+  await new Promise(r => setTimeout(r, 50));
+
+  const filename = `${swms.swms_number}_rev${swms.revision_number}.pdf`;
+  let blob;
+
   try {
-    const blob = await html2pdf().set({
+    const worker = html2pdf().set({
       margin: [10, 10, 10, 10],
+      filename,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1080 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1080, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
       pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.phase', '.pdf-section'] }
-    }).from(wrap.querySelector('#pdfDoc')).outputPdf('blob');
+    }).from(wrap.querySelector('#pdfDoc'));
 
-    const path = `${swms.job_number}/${swms.swms_number}_rev${swms.revision_number}.pdf`;
-    await sb().storage.from(BUCKETS.swms).upload(path, blob, { contentType: 'application/pdf', upsert: true });
-    await sb().from('swms_instances').update({ pdf_path: path, pdf_generated_at: new Date().toISOString() }).eq('id', swms.id);
+    // html2pdf v0.10 needs the worker chain: .toPdf().get('pdf') gives the jsPDF instance
+    blob = await worker.toPdf().output('blob');
   } catch (err) {
-    console.error('PDF gen failed', err);
-  } finally {
     document.body.removeChild(wrap);
+    console.error('[SWMS PDF] generation failed', err);
+    if (!silent) BromarHub.showInfo('PDF generation failed: ' + (err.message || err));
+    return null;
   }
+
+  document.body.removeChild(wrap);
+
+  // Optionally trigger a local download
+  if (saveLocal && blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // Upload to Supabase Storage
+  try {
+    const path = `${swms.job_number}/${swms.swms_number}_rev${swms.revision_number}.pdf`;
+    const { error: upErr } = await sb().storage.from(BUCKETS.swms).upload(path, blob, { contentType: 'application/pdf', upsert: true });
+    if (upErr) {
+      console.error('[SWMS PDF] upload failed', upErr);
+      if (!silent) BromarHub.showInfo('PDF generated but upload failed: ' + upErr.message);
+      return blob;
+    }
+    await sb().from('swms_instances').update({ pdf_path: path, pdf_generated_at: new Date().toISOString() }).eq('id', swms.id);
+    if (!silent && !saveLocal) BromarHub.showSuccess('PDF saved to storage');
+  } catch (err) {
+    console.error('[SWMS PDF] upload error', err);
+    if (!silent) BromarHub.showInfo('PDF upload error: ' + (err.message || err));
+  }
+
+  return blob;
 }
 
 function buildSwmsDocHtml(s, sigs) {
