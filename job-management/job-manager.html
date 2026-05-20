@@ -436,6 +436,34 @@ let searchFilter = { text:'', status:'all', prefix:null };
 // SWMS state for sign-on modal
 let currentSwmsForSigning = null;
 
+// Bromar logo cached as data URL for embedding in PDFs (logo files live next to the page assets)
+let BROMAR_LOGO_DATAURL = null;
+async function loadBromarLogo() {
+  if (BROMAR_LOGO_DATAURL) return BROMAR_LOGO_DATAURL;
+  // Try both light and try a couple of common paths so it works whether the page is at /job-manager/ or /
+  const candidates = [
+    '../Bromar-Primary-Logo-Full-Colour.png',
+    '/Bromar-Primary-Logo-Full-Colour.png',
+    'Bromar-Primary-Logo-Full-Colour.png'
+  ];
+  for (const url of candidates) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const blob = await r.blob();
+      BROMAR_LOGO_DATAURL = await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.onerror = rej;
+        fr.readAsDataURL(blob);
+      });
+      return BROMAR_LOGO_DATAURL;
+    } catch (_) {}
+  }
+  console.warn('[SWMS] Could not load Bromar logo for PDFs');
+  return null;
+}
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-AU', { year:'numeric', month:'short', day:'numeric' }) : '—';
 const fmtMoney = n => '$' + (Number(n) || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -935,7 +963,10 @@ async function attachSwmsFromTemplate(templates) {
     ppe_additional: tpl.ppe_additional,
     hazards_json: tpl.hazards_json,
     client_name: selectedJob.client_name,
+    site_name: selectedJob.site_name,
     site_address: selectedJob.site_address,
+    site_contact: selectedJob.contact_person,
+    site_contact_phone: selectedJob.contact_phone,
     created_by_name: u?.name || null,
     created_by_email: u?.email || null
   };
@@ -974,6 +1005,20 @@ async function viewSwms(swmsId) {
           <button class="btn-secondary" id="viewPdfBtn">📄 Download PDF</button>
           <button class="btn-secondary" id="closeDetail">Close</button>
         </div>
+      </div>
+
+      <div class="data-table-wrapper" style="margin-top:1rem;">
+        <table class="data-table">
+          <tbody>
+            <tr><th style="width:25%;">Project</th><td>${esc(data.project_name || '—')}</td></tr>
+            <tr><th>Client</th><td>${esc(data.client_name || '—')}</td></tr>
+            <tr><th>Site</th><td>${esc(data.site_name || '—')}</td></tr>
+            <tr><th>Site Address</th><td>${esc(data.site_address || '—')}</td></tr>
+            <tr><th>Site Contact</th><td>${esc(data.site_contact || '—')}${data.site_contact_phone ? ' · ' + esc(data.site_contact_phone) : ''}</td></tr>
+            <tr><th>SWMS Date</th><td>${fmtDate(data.swms_date)}</td></tr>
+            <tr><th>Developed by</th><td>${esc(data.developed_by || '—')}</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <div style="margin-top:1rem;">
@@ -1152,22 +1197,67 @@ async function amendSwms(swmsId) {
 
 /* ── PDF GENERATION ────────────────────────────────────── */
 async function generateAndUploadPdf(swms) {
+  // Make sure the Bromar logo has loaded
+  await loadBromarLogo();
+
   // Fetch signatures
   const { data: sigs } = await sb().from('swms_signatures').select('*').eq('swms_instance_id', swms.id).order('captured_at');
 
-  // Build the SWMS doc HTML in a hidden element
+  // Build the SWMS doc HTML in a hidden element sized for A4 landscape (277mm printable)
+  // We use a 1080px wrapper which matches 277mm at ~98dpi (close to landscape A4 minus margins)
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed; left:-99999px; top:0; width:1100px; background:white;';
-  wrap.innerHTML = `<div id="pdfDoc" style="background:white; color:#000; font-family:Calibri,Arial,sans-serif; font-size:9.5pt; line-height:1.35; padding:10mm;">${buildSwmsDocHtml(swms, sigs || [])}</div>`;
+  wrap.style.cssText = 'position:fixed; left:-99999px; top:0; width:1080px; background:white;';
+  wrap.innerHTML = `
+    <style>
+      #pdfDoc { background:white; color:#000; font-family:Calibri,Arial,sans-serif; font-size:8pt; line-height:1.3; }
+      #pdfDoc * { box-sizing:border-box; }
+      #pdfDoc .pdf-section { padding:0; page-break-after:always; }
+      #pdfDoc .pdf-section:last-child { page-break-after:auto; }
+      #pdfDoc table { width:100%; border-collapse:collapse; table-layout:fixed; }
+      #pdfDoc td, #pdfDoc th { border:1px solid #999; padding:3px 5px; vertical-align:top; word-wrap:break-word; overflow-wrap:break-word; font-size:7.5pt; }
+      #pdfDoc th { background:#f2f2f2; text-align:left; font-weight:700; }
+      #pdfDoc thead { display:table-header-group; }
+      #pdfDoc tr { page-break-inside:avoid; break-inside:avoid; }
+      #pdfDoc .header-row { display:flex; align-items:stretch; gap:0; margin-bottom:0; border:1px solid #999; }
+      #pdfDoc .logo-cell { background:white; padding:6px 12px; display:flex; align-items:center; justify-content:center; width:160px; border-right:1px solid #999; }
+      #pdfDoc .logo-cell img { max-width:140px; max-height:48px; display:block; }
+      #pdfDoc .title-banner { background:#e30613; color:white; padding:10px 14px; font-weight:700; font-size:11pt; display:flex; align-items:center; flex:1; }
+      #pdfDoc .company-box { background:#f2f2f2; padding:6px 10px; font-size:7.5pt; line-height:1.3; width:240px; border-left:1px solid #999; }
+      #pdfDoc .activity-banner { background:#7f7f7f; color:white; padding:5px 10px; font-weight:700; font-size:9pt; }
+      #pdfDoc .grey-th { background:#7f7f7f; color:white; }
+      #pdfDoc .hz col.c1 { width:4%; }
+      #pdfDoc .hz col.c2 { width:12%; }
+      #pdfDoc .hz col.c3 { width:12%; }
+      #pdfDoc .hz col.c4 { width:13%; }
+      #pdfDoc .hz col.c5 { width:5%; }
+      #pdfDoc .hz col.c6 { width:26%; }
+      #pdfDoc .hz col.c7 { width:8%; }
+      #pdfDoc .hz col.c8 { width:5%; }
+      #pdfDoc .hz col.c9 { width:15%; }
+      #pdfDoc .hz th { background:#7f7f7f; color:white; font-size:7pt; padding:4px; }
+      #pdfDoc .hz td { font-size:7pt; padding:3px 4px; }
+      #pdfDoc .step { background:#f2f2f2; text-align:center; font-weight:700; }
+      #pdfDoc .phase td { background:#d9d9d9; font-weight:700; padding:4px 6px; font-size:8.5pt; }
+      #pdfDoc .ctrl-list { margin:0; padding-left:12px; }
+      #pdfDoc .ctrl-list li { margin-bottom:2px; }
+      #pdfDoc .rating { text-align:center; font-weight:700; font-size:8pt; }
+      #pdfDoc .risk-low { background:#92d050; color:#000; }
+      #pdfDoc .risk-mod { background:#ffff00; color:#000; }
+      #pdfDoc .risk-high { background:#e30613; color:#fff; }
+      #pdfDoc .footer { text-align:center; font-size:7.5pt; color:#666; margin-top:10px; padding-top:6px; border-top:1px solid #ccc; }
+      #pdfDoc .signoff-table td { height:32px; padding:6px 8px; }
+      #pdfDoc .signoff-table img { max-height:36px; max-width:100%; }
+    </style>
+    <div id="pdfDoc">${buildSwmsDocHtml(swms, sigs || [])}</div>`;
   document.body.appendChild(wrap);
 
   try {
     const blob = await html2pdf().set({
-      margin: 8,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['css', 'legacy'] }
+      margin: [10, 10, 10, 10],
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1080 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.phase', '.pdf-section'] }
     }).from(wrap.querySelector('#pdfDoc')).outputPdf('blob');
 
     const path = `${swms.job_number}/${swms.swms_number}_rev${swms.revision_number}.pdf`;
@@ -1197,24 +1287,22 @@ function buildSwmsDocHtml(s, sigs) {
   let hazardRows = '';
   (s.hazards_json || []).forEach(h => {
     if (h.type === 'phase') {
-      hazardRows += `<tr><td colspan="9" style="background:#d9d9d9; font-weight:700; padding:5px 8px; font-size:9pt;">${e((h.label || '').toUpperCase())}</td></tr>`;
+      hazardRows += `<tr class="phase"><td colspan="9">${e((h.label || '').toUpperCase())}</td></tr>`;
     } else {
       const ctrlList = (h.controls || '').split('\n').map(x => x.trim()).filter(Boolean);
       const hocList = (h.hoc || '').split('\n').map(x => x.trim()).filter(Boolean);
       const respList = (h.responsibility || '').split('\n').map(x => x.trim()).filter(Boolean);
-      const rrColor = h.riskRating ? riskColor(ratingClass(h.riskRating)) : '';
-      const rrColor2 = h.residualRisk ? riskColor(ratingClass(h.residualRisk)) : '';
       hazardRows += `
         <tr>
-          <td style="background:#f2f2f2; text-align:center; font-weight:700; font-size:8pt;">${e(h.step || '')}</td>
-          <td style="font-size:8pt;">${e(h.jobStep || '')}</td>
-          <td style="font-size:8pt;">${e(h.hazard || '')}</td>
-          <td style="font-size:8pt;">${e(h.risks || '')}</td>
-          <td style="text-align:center; font-weight:700; font-size:8pt; ${rrColor}">${e(h.riskRating || '')}</td>
-          <td style="font-size:8pt;"><ul style="margin:0; padding-left:16px;">${ctrlList.map(c => `<li>${e(c)}</li>`).join('')}</ul></td>
-          <td style="font-size:8pt;">${hocList.map(e).join('<br/>')}</td>
-          <td style="text-align:center; font-weight:700; font-size:8pt; ${rrColor2}">${e(h.residualRisk || '')}</td>
-          <td style="font-size:8pt;">${respList.map(e).join('<br/>')}</td>
+          <td class="step">${e(h.step || '')}</td>
+          <td>${e(h.jobStep || '')}</td>
+          <td>${e(h.hazard || '')}</td>
+          <td>${e(h.risks || '')}</td>
+          <td class="rating ${ratingClass(h.riskRating)}">${e(h.riskRating || '')}</td>
+          <td><ul class="ctrl-list">${ctrlList.map(c => `<li>${e(c)}</li>`).join('')}</ul></td>
+          <td>${hocList.map(e).join('<br/>')}</td>
+          <td class="rating ${ratingClass(h.residualRisk)}">${e(h.residualRisk || '')}</td>
+          <td>${respList.map(e).join('<br/>')}</td>
         </tr>`;
     }
   });
@@ -1224,84 +1312,107 @@ function buildSwmsDocHtml(s, sigs) {
   for (let i = 0; i < minSigRows; i++) {
     const sig = sigs[i];
     sigRows += `<tr>
-      <td style="padding:6px 8px; height:32px; border:1px solid #999; font-size:8.5pt;"><strong>${e(sig?.signer_name || '')}</strong></td>
-      <td style="padding:6px 8px; border:1px solid #999;">${sig?.signature_data ? `<img src="${sig.signature_data}" style="max-height:40px;max-width:100%;"/>` : ''}</td>
-      <td style="padding:6px 8px; border:1px solid #999; font-size:8.5pt;">${fmtDate(sig?.sign_date)}</td>
-      <td style="padding:6px 8px; border:1px solid #999; font-size:8.5pt;">${e(sig?.sign_time || '')}</td>
-      <td style="padding:6px 8px; border:1px solid #999; font-size:8.5pt;">${e(sig?.employer || '')}</td>
+      <td><strong>${e(sig?.signer_name || '')}</strong></td>
+      <td>${sig?.signature_data ? `<img src="${sig.signature_data}"/>` : ''}</td>
+      <td>${fmtDate(sig?.sign_date)}</td>
+      <td>${e(sig?.sign_time || '')}</td>
+      <td>${e(sig?.employer || '')}</td>
     </tr>`;
   }
 
+  /* PAGE 1: Logo header + Title banner + Info + Site + Compliance + Risk matrix + PPE */
+  /* PAGE 2+: Hazards table (auto-breaks at row boundaries) */
+  /* LAST PAGE: Consent + signoff */
+  const logoBlock = BROMAR_LOGO_DATAURL
+    ? `<div class="logo-cell"><img src="${BROMAR_LOGO_DATAURL}" alt="Bromar"/></div>`
+    : `<div class="logo-cell" style="font-weight:700; font-size:14pt; color:#e30613;">BROMAR</div>`;
+
   return `
-    <div style="display:flex; gap:8px; margin-bottom:6px;">
-      <div style="flex:2; background:#e30613; color:white; padding:10px 14px; font-weight:700; font-size:11pt;">SAFE WORK METHOD STATEMENT – ${e((s.title || '').toUpperCase())}</div>
-      <div style="flex:1; background:#f2f2f2; padding:8px 12px; font-size:8.5pt;">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>LICENCE #: 17364</div>
+    <div class="pdf-section">
+      <div class="header-row">
+        ${logoBlock}
+        <div class="title-banner">SAFE WORK METHOD STATEMENT – ${e((s.title || '').toUpperCase())}</div>
+        <div class="company-box">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>LICENCE #: 17364</div>
+      </div>
+      <div class="activity-banner">WORK ACTIVITY DESCRIPTION: ${e((s.activity_description || '').toUpperCase())}</div>
+      <table>
+        <colgroup><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/></colgroup>
+        <tr>
+          <td><strong>Project:</strong> ${e(s.project_name || '')}</td>
+          <td><strong>SWMS #:</strong> ${e(s.swms_number)} Rev ${s.revision_number}</td>
+          <td><strong>Date:</strong> ${fmtDate(s.swms_date)}</td>
+          <td><strong>Review Date:</strong> ${fmtDate(s.review_date)}</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>Developed by:</strong> ${e(s.developed_by || '')}</td>
+          <td colspan="2"><strong>Approved by:</strong> ${e(s.approved_by || '')}</td>
+        </tr>
+      </table>
+      <table>
+        <colgroup><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/></colgroup>
+        <tr>
+          <td><strong>Client:</strong> ${e(s.client_name || '')}</td>
+          <td><strong>Site:</strong> ${e(s.site_name || '')}</td>
+          <td colspan="2"><strong>Site Address:</strong> ${e(s.site_address || '')}</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>Site Contact:</strong> ${e(s.site_contact || '')}</td>
+          <td colspan="2"><strong>Contact Phone:</strong> ${e(s.site_contact_phone || '')}</td>
+        </tr>
+      </table>
+      <table>
+        <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
+        <tr><th>Legislation, Australian standards & codes of practice:</th><th>Personnel qualifications required:</th></tr>
+        <tr><td>${lines(s.legislation).map(e).join('<br/>')}</td><td>${e(s.qualifications || '')}</td></tr>
+        <tr><th>Plant & equipment required:</th><th>Plant & equipment inspections:</th></tr>
+        <tr><td>${lines(s.plant_required).map(e).join('<br/>')}</td><td>${lines(s.plant_inspections).map(e).join('<br/>')}</td></tr>
+        <tr><th>Materials used:</th><th>MSDS required:</th></tr>
+        <tr><td>${e(s.materials_used || '')}</td><td>${e(s.msds_required || '')}</td></tr>
+        <tr><th>Specific training required:</th><th>Relevant procedures:</th></tr>
+        <tr><td>${e(s.training_required || '')}</td><td>${e(s.relevant_procedures || '')}</td></tr>
+      </table>
+      <table style="margin-top:8px">
+        <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
+        <tr><th>Mandatory Site PPE</th><th>Additional PPE</th></tr>
+        ${ppeRows}
+      </table>
     </div>
-    <div style="background:#7f7f7f; color:white; padding:6px 10px; font-weight:700; font-size:9pt; margin-top:6px;">WORK ACTIVITY DESCRIPTION: ${e((s.activity_description || '').toUpperCase())}</div>
-    <table style="width:100%; border-collapse:collapse; margin-top:0;">
-      <tr>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>Project:</strong> ${e(s.project_name || '')}</td>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>SWMS #:</strong> ${e(s.swms_number)} Rev ${s.revision_number}</td>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>Date:</strong> ${fmtDate(s.swms_date)}</td>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>Review Date:</strong> ${fmtDate(s.review_date)}</td>
-      </tr>
-      <tr>
-        <td colspan="2" style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>Developed by:</strong> ${e(s.developed_by || '')}</td>
-        <td colspan="2" style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;"><strong>Approved by:</strong> ${e(s.approved_by || '')}</td>
-      </tr>
-    </table>
-    <table style="width:100%; border-collapse:collapse;">
-      <tr>
-        <th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Legislation, Australian standards & codes of practice:</th>
-        <th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Personnel qualifications required:</th>
-      </tr>
-      <tr>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;">${lines(s.legislation).map(e).join('<br/>')}</td>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;">${e(s.qualifications || '')}</td>
-      </tr>
-      <tr>
-        <th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Plant & equipment required:</th>
-        <th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Plant & equipment inspections:</th>
-      </tr>
-      <tr>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;">${lines(s.plant_required).map(e).join('<br/>')}</td>
-        <td style="border:1px solid #999; padding:5px 7px; font-size:8.5pt;">${lines(s.plant_inspections).map(e).join('<br/>')}</td>
-      </tr>
-    </table>
-    <table style="width:100%; border-collapse:collapse; margin-top:12px;">
-      <tr><th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Mandatory Site PPE</th><th style="background:#f2f2f2; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Additional PPE</th></tr>
-      ${ppeRows}
-    </table>
-    <table style="width:100%; border-collapse:collapse; margin-top:12px;">
-      <tr>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Step</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Job step</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Hazards</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Risks</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Risk rating</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Controls</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Hierarchy of control</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Residual risk</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; font-size:8pt;">Responsibility</th>
-      </tr>
-      ${hazardRows}
-    </table>
-    <div style="border:1px solid #999; padding:10px 14px; font-size:8.5pt; margin-top:12px; line-height:1.45;">
-      We, the undersigned, confirm that we were consulted in the development of this SWMS. If a failure is identified within the SWMS work will stop, the SWMS amended and changes communicated to the workforce. We also clearly understand that the controls must be applied as documented, otherwise work is to cease immediately.
+
+    <div class="pdf-section">
+      <table class="hz">
+        <colgroup>
+          <col class="c1"/><col class="c2"/><col class="c3"/><col class="c4"/><col class="c5"/>
+          <col class="c6"/><col class="c7"/><col class="c8"/><col class="c9"/>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Step</th><th>Job step</th><th>Hazards</th><th>Risks</th><th>Risk rating</th>
+            <th>Controls</th><th>Hierarchy of control</th><th>Residual risk</th><th>Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${hazardRows || '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">No hazards recorded</td></tr>'}
+        </tbody>
+      </table>
     </div>
-    <table style="width:100%; border-collapse:collapse;">
-      <tr>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Name</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Signature</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Date</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Time</th>
-        <th style="background:#7f7f7f; color:white; border:1px solid #999; padding:5px 7px; text-align:left; font-size:8.5pt;">Employer</th>
-      </tr>
-      ${sigRows}
-    </table>
-    <div style="text-align:center; font-size:8pt; color:#666; margin-top:16px; padding-top:8px; border-top:1px solid #ccc;">
-      Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939
-      <div style="font-weight:700; letter-spacing:0.5px; margin-top:4px;">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div>
+
+    <div class="pdf-section">
+      <table style="margin-bottom:8px">
+        <tr><td colspan="5" style="padding:8px 10px; line-height:1.45; font-size:7.5pt;">
+          We, the undersigned, confirm that we were consulted in the development of this SWMS. If a failure is identified within the SWMS work will stop, the SWMS amended and changes communicated to the workforce. We also clearly understand that the controls must be applied as documented, otherwise work is to cease immediately.
+        </td></tr>
+      </table>
+      <table class="signoff-table">
+        <colgroup><col style="width:22%"/><col style="width:30%"/><col style="width:14%"/><col style="width:10%"/><col style="width:24%"/></colgroup>
+        <thead>
+          <tr class="grey-th"><th>Name</th><th>Signature</th><th>Date</th><th>Time</th><th>Employer</th></tr>
+        </thead>
+        <tbody>${sigRows}</tbody>
+      </table>
+      <div class="footer">
+        Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939
+        <div style="font-weight:700; letter-spacing:0.5px; margin-top:3px;">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div>
+      </div>
     </div>`;
 }
 
@@ -1316,6 +1427,9 @@ function riskColor(c) {
 document.addEventListener('DOMContentLoaded', () => {
   if (!window.sb) setTimeout(() => loadJobs(), 200);
   else loadJobs();
+
+  // Preload Bromar logo for PDF embedding
+  loadBromarLogo();
 
   document.getElementById('jobSearch').addEventListener('input', e => {
     searchFilter.text = e.target.value;
