@@ -9,6 +9,8 @@
 <script src="/tools/auth.js"></script>
 <link rel="stylesheet" href="../tools/bromar-hub.css"/>
 <script src="../tools/bromar-hub.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 
 <style>
@@ -1351,8 +1353,18 @@ const PDF_STYLES = `
 async function generateAndUploadPdf(swms, opts = {}) {
   const { saveLocal = false, silent = false } = opts;
 
-  if (typeof html2pdf === 'undefined') {
-    if (!silent) BromarHub.showInfo('PDF library still loading — try again in a second');
+  // Resolve libraries - try every known location
+  const html2canvas = window.html2canvas;
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF || (window.jspdf && window.jspdf.default);
+
+  if (!html2canvas || !jsPDF) {
+    console.error('[SWMS PDF] libraries missing', {
+      html2canvas: !!html2canvas,
+      jsPDF: !!jsPDF,
+      jspdfNs: !!window.jspdf,
+      jsPDFGlobal: !!window.jsPDF
+    });
+    if (!silent) BromarHub.showInfo('PDF libraries still loading. Wait 2 seconds and try again.');
     return null;
   }
 
@@ -1361,25 +1373,20 @@ async function generateAndUploadPdf(swms, opts = {}) {
   const { data: sigs, error: sigErr } = await sb().from('swms_signatures').select('*').eq('swms_instance_id', swms.id).order('captured_at');
   if (sigErr) console.error('[SWMS PDF] signature fetch failed', sigErr);
 
-  // Get jsPDF + html2canvas from the html2pdf bundle
-  const html2canvas = window.html2canvas;
-  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
-  if (!html2canvas || !jsPDF) {
-    if (!silent) BromarHub.showInfo('PDF libraries not available');
-    console.error('[SWMS PDF] html2canvas or jsPDF missing', { html2canvas: !!html2canvas, jsPDF: !!jsPDF });
-    return null;
-  }
-
   // Build all the page HTML
   const pages = buildSwmsPages(swms, sigs || []);
 
-  // Create wrapper
+  // Create wrapper — positioned far off-screen but fully visible so html2canvas can capture it
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute; left:0; top:0; opacity:0; pointer-events:none; z-index:-9999;';
+  wrap.style.cssText = 'position:absolute; left:-99999px; top:0; background:white; z-index:-9999;';
   wrap.innerHTML = PDF_STYLES + pages.map(p => `<div class="pdf-page">${p}</div>`).join('');
   document.body.appendChild(wrap);
 
-  await new Promise(r => setTimeout(r, 100));
+  // Wait for fonts and any embedded images to fully render
+  await new Promise(r => setTimeout(r, 250));
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (_) {}
+  }
 
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true });
   const pageEls = wrap.querySelectorAll('.pdf-page');
