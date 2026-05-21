@@ -13,7 +13,6 @@
      - window.currentUser — { name, email } of logged-in user
      - BromarHub.initTheme()
      - BromarHub.initHeader()
-     - BromarHub.initFavicon()
      - BromarHub.loadEmployees()
      - BromarHub.autoSelectLoggedInUser()
      - BromarHub.showSuccess(text, duration?)
@@ -25,130 +24,22 @@
 
 (function () {
   // ── SUPABASE ──────────────────────────────────────────────
-  const SUPABASE_URL     = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
-
-  if (!window.supabase?.createClient) {
-    console.error('[BromarHub] Supabase library not loaded');
-  } else {
-    window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Reuse the client created by auth.js (supabaseClient) to avoid
+  // duplicate GoTrueClient instances warning.
+  if (!window.sb) {
+    if (window.supabaseClient) {
+      window.sb = window.supabaseClient;
+    } else if (window.supabase?.createClient) {
+      const SUPABASE_URL      = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+      window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      console.error('[BromarHub] Supabase library not loaded');
+    }
   }
 
   window.EMPLOYEES   = [];
   window.currentUser = null;
-
-  // ── USER PREFERENCES (Font Size, Density, Zoom) ──────────
-  function applyUserPreferences() {
-    // Font size
-    const fontSize = localStorage.getItem('fontSize') || 'normal';
-    const sizes = { small: '14px', normal: '16px', large: '18px', xlarge: '20px' };
-    document.documentElement.style.fontSize = sizes[fontSize] || sizes.normal;
-    
-    // Density
-    const density = localStorage.getItem('density') || 'normal';
-    document.documentElement.setAttribute('data-density', density);
-
-    // Zoom (default off)
-    const zoom = localStorage.getItem('zoom') || 'off';
-    const viewport = document.querySelector('meta[name="viewport"]');
-    const zoomContent = zoom === 'on' 
-      ? 'width=device-width, initial-scale=1.0'
-      : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-    
-    if (viewport) {
-      viewport.setAttribute('content', zoomContent);
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'viewport';
-      meta.content = zoomContent;
-      document.head.appendChild(meta);
-    }
-  }
-
-  // Apply immediately
-  applyUserPreferences();
-
-  // ── FAVICON ───────────────────────────────────────────────
-  function initFavicon() {
-    // Skip if favicon already exists
-    if (document.querySelector('link[rel="icon"]')) return;
-    const link = document.createElement('link');
-    link.rel  = 'icon';
-    link.type = 'image/png';
-    link.href = '/favicon.png';
-    document.head.appendChild(link);
-  }
-
-  // ── PWA ───────────────────────────────────────────────────
-  function initPWA() {
-    // Add manifest link
-    if (!document.querySelector('link[rel="manifest"]')) {
-      const manifest = document.createElement('link');
-      manifest.rel  = 'manifest';
-      manifest.href = '/manifest.json';
-      document.head.appendChild(manifest);
-    }
-
-    // Add theme color
-    if (!document.querySelector('meta[name="theme-color"]')) {
-      const themeColor = document.createElement('meta');
-      themeColor.name    = 'theme-color';
-      themeColor.content = '#ea580c';
-      document.head.appendChild(themeColor);
-    }
-
-    // Add Apple-specific meta tags
-    if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) {
-      const appleCapable = document.createElement('meta');
-      appleCapable.name    = 'apple-mobile-web-app-capable';
-      appleCapable.content = 'yes';
-      document.head.appendChild(appleCapable);
-    }
-
-    if (!document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')) {
-      const appleStatusBar = document.createElement('meta');
-      appleStatusBar.name    = 'apple-mobile-web-app-status-bar-style';
-      appleStatusBar.content = 'default';
-      document.head.appendChild(appleStatusBar);
-    }
-
-    if (!document.querySelector('meta[name="apple-mobile-web-app-title"]')) {
-      const appleTitle = document.createElement('meta');
-      appleTitle.name    = 'apple-mobile-web-app-title';
-      appleTitle.content = 'Bromar Hub';
-      document.head.appendChild(appleTitle);
-    }
-
-    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
-      // iOS requires multiple sizes for best display
-      const sizes = ['72x72', '96x96', '128x128', '144x144', '152x152', '192x192'];
-      sizes.forEach(size => {
-        const appleIcon = document.createElement('link');
-        appleIcon.rel   = 'apple-touch-icon';
-        appleIcon.sizes = size;
-        appleIcon.href  = `/icons/icon-${size}.png`;
-        document.head.appendChild(appleIcon);
-      });
-      // Default (no size attribute) - iOS picks best
-      const defaultIcon = document.createElement('link');
-      defaultIcon.rel  = 'apple-touch-icon';
-      defaultIcon.href = '/icons/icon-192x192.png';
-      document.head.appendChild(defaultIcon);
-    }
-
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then((registration) => {
-            console.log('[PWA] Service Worker registered:', registration.scope);
-          })
-          .catch((error) => {
-            console.error('[PWA] Service Worker registration failed:', error);
-          });
-      });
-    }
-  }
 
   // ── THEME ─────────────────────────────────────────────────
   function initTheme() {
@@ -300,15 +191,10 @@
   }
 
   // ── AUTO-INIT ─────────────────────────────────────────────
-  // Run PWA and favicon injection immediately (before DOM ready)
-  // so iOS sees the tags before rendering
-  initFavicon();
-  initPWA();
-  
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    initHeader();         // inject header HTML (if placeholder present)
-    initTheme();          // apply saved theme + wire toggle
+    initHeader();   // inject header HTML (if placeholder present)
+    initTheme();    // apply saved theme + wire toggle
     initLoadingOverlay(); // inject loading overlay if not already in HTML
   });
 
@@ -316,8 +202,6 @@
   window.BromarHub = {
     initTheme,
     initHeader,
-    initFavicon,
-    initPWA,
     loadEmployees,
     autoSelectLoggedInUser,
     showSuccess,
