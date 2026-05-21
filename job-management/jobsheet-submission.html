@@ -317,7 +317,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.49</div>
+<div class="revision-number">V1.50</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -539,16 +539,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btn = document.getElementById('confirmNewJobBtn');
     if (selectedJobData?.job_number) return;
     if (selectedJobData && !selectedJobData.job_number) selectedJobData = null;
-    const jobTypeVal  = document.getElementById('new_job_type').value;
-    const prefix      = document.getElementById('new_prefix').value;
-    const clientId    = document.getElementById('selected_client_id').value;
-    const siteId      = document.getElementById('site_select').value;
+    const jobTypeVal = document.getElementById('new_job_type').value;
+    const prefix     = document.getElementById('new_prefix').value;
+    const clientId   = document.getElementById('selected_client_id').value;
+    const siteId     = document.getElementById('selected_site_id').value;
     console.log('[Create Job] Click →', { prefix, jobTypeVal, clientId, siteId });
-    if (!prefix || !clientId || !siteId) {
-      BromarHub.showInfo('Please fill in all required fields: Job Type, Client and Site'); return;
+    if (!prefix || (!clientId && !siteId)) {
+      BromarHub.showInfo('Please select a job type and a client or site'); return;
     }
     btn.disabled = true; btn.textContent = 'Creating...';
-    try { await createNewJobNow(prefix, clientId, siteId, jobTypeVal.split('|')[1] || ''); }
+    try { await createNewJobNow(prefix, clientId || null, siteId || null, jobTypeVal.split('|')[1] || ''); }
     finally { btn.disabled = false; btn.textContent = 'Create Job & Continue →'; }
   });
 
@@ -1750,7 +1750,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.49`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.50`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
