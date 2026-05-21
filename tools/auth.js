@@ -17,6 +17,9 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     }
 });
 
+// Expose as window.sb so bromar-hub.js and all pages reuse this single instance
+window.sb = supabaseClient;
+
 // Check authentication on page load
 (async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
