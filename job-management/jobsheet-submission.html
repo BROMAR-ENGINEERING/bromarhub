@@ -318,7 +318,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.45</div>
+<div class="revision-number">V1.46</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -468,8 +468,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Search both clients and sites simultaneously
       const [clientRes, siteRes] = await Promise.all([
         window.sb.from('clients').select('id, name').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(8),
-        window.sb.from('sites').select('id, name, address, client_id, clients(id, name)').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(6)
+        window.sb.from('sites').select('id, name, address, client_id, clients!sites_client_id_fkey(id, name)').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(6)
       ]);
+
+      console.log('[Search] query:', q, '| clients:', clientRes.data, clientRes.error, '| sites:', siteRes.data, siteRes.error);
 
       let html = '';
 
@@ -1726,7 +1728,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.45`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.46`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
