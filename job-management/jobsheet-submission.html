@@ -317,7 +317,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.48</div>
+<div class="revision-number">V1.49</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -467,11 +467,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Search both clients and sites simultaneously
       const [clientRes, siteRes] = await Promise.all([
         window.sb.from('clients').select('id, name, is_active').ilike('name', `%${q}%`).order('name').limit(8),
-        window.sb.from('sites').select('id, name, address, client_id, is_active, clients!sites_client_id_fkey(id, name)').ilike('name', `%${q}%`).order('name').limit(6)
+        window.sb.from('sites').select('id, name, address, client_id, is_active').ilike('name', `%${q}%`).order('name').limit(6)
       ]);
-      // Filter out explicitly inactive (false), keep null/true
+      // Filter out explicitly inactive
       if (clientRes.data) clientRes.data = clientRes.data.filter(c => c.is_active !== false);
       if (siteRes.data)   siteRes.data   = siteRes.data.filter(s => s.is_active !== false);
+
+      // Fetch parent client names for the sites found
+      if (siteRes.data?.length) {
+        const clientIds = [...new Set(siteRes.data.map(s => s.client_id).filter(Boolean))];
+        if (clientIds.length) {
+          const { data: parents } = await window.sb.from('clients').select('id, name').in('id', clientIds);
+          const map = {};
+          (parents || []).forEach(c => { map[c.id] = c.name; });
+          siteRes.data.forEach(s => { s.clientName = map[s.client_id] || ''; });
+        }
+      }
 
       console.log('[Search] query:', q, '| clients:', clientRes.data, clientRes.error, '| sites:', siteRes.data, siteRes.error);
 
@@ -488,9 +499,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (siteRes.data?.length) {
         html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Sites</div>`;
         html += siteRes.data.map(s => `
-          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.name)}" data-site-address="${esc(s.address||'')}" data-client-id="${s.clients?.id||''}" data-client-name="${esc(s.clients?.name||'')}" data-type="site">
+          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.name)}" data-site-address="${esc(s.address||'')}" data-client-id="${s.client_id||''}" data-client-name="${esc(s.clientName||'')}" data-type="site">
             <div class="autocomplete-item-number">📍 ${esc(s.name)}</div>
-            <div class="autocomplete-item-client">${esc(s.clients?.name||'')}${s.address ? ' · ' + esc(s.address) : ''}</div>
+            <div class="autocomplete-item-client">${esc(s.clientName||'')}${s.address ? ' · ' + esc(s.address) : ''}</div>
           </div>`).join('');
       }
 
@@ -1739,7 +1750,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.48`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.49`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
