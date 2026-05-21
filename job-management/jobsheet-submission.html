@@ -131,41 +131,38 @@
               <input type="text" id="next_job_preview" disabled style="font-weight:700; color:var(--accent);" placeholder="Select job type first..."/>
             </div>
           </div>
-          <div class="field-group full">
-            <label for="new_client_name">Client Name <span class="required">*</span></label>
-            <input type="text" id="new_client_name" placeholder="Client or company name"/>
-          </div>
-          <div class="field-group full">
-            <label for="new_site_name">Site Name <span class="required">*</span></label>
-            <input type="text" id="new_site_name" placeholder="e.g. Westmeadows Warehouse, Collins St Office"/>
-          </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label for="new_contact_person">Contact Person</label>
-              <input type="text" id="new_contact_person" placeholder="Primary contact"/>
-            </div>
-            <div class="field-group">
-              <label for="new_contact_role">Contact Role</label>
-              <select id="new_contact_role">
-                <option value="">Select role...</option>
-                <option value="Engineer">Engineer</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Manager">Manager</option>
-                <option value="Administration">Administration</option>
-              </select>
+
+          <!-- Client search -->
+          <div class="field-group full autocomplete-wrapper" id="clientSearchWrapper">
+            <label for="client_search">Client <span class="required">*</span></label>
+            <input type="text" id="client_search" placeholder="Search clients..." autocomplete="off"/>
+            <div id="clientResults" class="autocomplete-results"></div>
+            <input type="hidden" id="selected_client_id"/>
+            <div id="selectedClientDisplay" style="display:none; margin-top:6px; padding:8px 12px; background:var(--card-hover); border-radius:8px; font-size:0.85rem; border:1px solid var(--accent);">
+              <span id="selectedClientName" style="font-weight:600; color:var(--accent);"></span>
+              <button type="button" onclick="clearClientSelection()" style="float:right; background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.8rem;">✕ Change</button>
             </div>
           </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label for="new_contact_phone">Contact Phone</label>
-              <input type="tel" id="new_contact_phone" placeholder="Phone number"/>
+
+          <!-- Site selector — appears after client picked -->
+          <div class="field-group full" id="siteSelectWrapper" style="display:none;">
+            <label for="site_select">Site <span class="required">*</span></label>
+            <select id="site_select">
+              <option value="">Select site...</option>
+            </select>
+            <div id="noSitesMsg" style="display:none; margin-top:6px; font-size:0.8rem; color:var(--error);">
+              No active sites for this client. Add a site in Client Manager first.
             </div>
           </div>
-          <div class="field-group full" style="position:relative;">
-            <label for="new_site_address">Site Address <span class="required">*</span></label>
-            <input type="text" id="new_site_address" placeholder="Start typing address..." autocomplete="off"/>
-            <div id="address-results" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-secondary); border:1px solid var(--border); border-top:none; border-radius:0 0 10px 10px; max-height:220px; overflow-y:auto; z-index:1000; box-shadow:0 8px 24px var(--shadow);"></div>
+
+          <!-- Contact auto-fill display -->
+          <div id="siteContactDisplay" style="display:none; padding:10px 14px; background:var(--bg-main); border-radius:10px; border:1px solid var(--border); font-size:0.85rem; margin-bottom:0.5rem;">
+            <div style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Site Contact (from site record)</div>
+            <div id="siteContactName"  style="font-weight:600;"></div>
+            <div id="siteContactRole"  style="color:var(--text-secondary); font-size:0.8rem;"></div>
+            <div id="siteContactPhone" style="color:var(--text-secondary); font-size:0.8rem;"></div>
           </div>
+
           <div class="new-job-created" id="newJobCreatedNotice">
             <span>✅</span>
             <span>Job <strong id="newJobCreatedNumber"></strong> created — you can now add photos, documents and continue filling in the sheet.</span>
@@ -321,7 +318,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.41</div>
+<div class="revision-number">V1.45</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -423,7 +420,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         selectedJobData = null;
         document.getElementById('newJobCreatedNotice').classList.remove('show');
-        ['new_prefix','new_job_type','new_client_name','new_site_name','new_site_address'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+        ['new_prefix','new_job_type'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+        document.getElementById('site_select').disabled = false;
         if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
         setPostJobSectionsVisible(false);
         document.getElementById('confirmNewJobBtn').style.display = 'none';
@@ -459,9 +457,68 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateConfirmJobBtn(); checkAndCreateNewJob();
   });
 
-  ['new_client_name','new_site_name','new_site_address'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateConfirmJobBtn);
-    document.getElementById(id).addEventListener('blur', () => { updateConfirmJobBtn(); checkAndCreateNewJob(); });
+  // Client search
+  let clientSearchTimeout;
+  document.getElementById('client_search').addEventListener('input', function() {
+    clearTimeout(clientSearchTimeout);
+    const q = this.value.trim();
+    const results = document.getElementById('clientResults');
+    if (q.length < 2) { results.classList.remove('show'); return; }
+    clientSearchTimeout = setTimeout(async () => {
+      // Search both clients and sites simultaneously
+      const [clientRes, siteRes] = await Promise.all([
+        window.sb.from('clients').select('id, name').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(8),
+        window.sb.from('sites').select('id, name, address, client_id, clients(id, name)').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(6)
+      ]);
+
+      let html = '';
+
+      if (clientRes.data?.length) {
+        html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Clients</div>`;
+        html += clientRes.data.map(c => `
+          <div class="autocomplete-item" data-id="${c.id}" data-name="${esc(c.name)}" data-type="client">
+            <div class="autocomplete-item-number">🏢 ${esc(c.name)}</div>
+          </div>`).join('');
+      }
+
+      if (siteRes.data?.length) {
+        html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Sites</div>`;
+        html += siteRes.data.map(s => `
+          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.name)}" data-site-address="${esc(s.address||'')}" data-client-id="${s.clients?.id||''}" data-client-name="${esc(s.clients?.name||'')}" data-type="site">
+            <div class="autocomplete-item-number">📍 ${esc(s.name)}</div>
+            <div class="autocomplete-item-client">${esc(s.clients?.name||'')}${s.address ? ' · ' + esc(s.address) : ''}</div>
+          </div>`).join('');
+      }
+
+      if (!html) html = '<div class="autocomplete-item" style="color:var(--text-secondary);">No clients or sites found</div>';
+      results.innerHTML = html;
+
+      results.querySelectorAll('.autocomplete-item[data-type="client"]').forEach(item => {
+        item.addEventListener('click', () => selectClient(item.dataset.id, item.dataset.name));
+      });
+      results.querySelectorAll('.autocomplete-item[data-type="site"]').forEach(item => {
+        item.addEventListener('click', () => {
+          // Select the client first, then pre-select the site
+          selectClient(item.dataset.clientId, item.dataset.clientName);
+          // After sites load, select this specific site
+          setTimeout(async () => {
+            await loadSitesForClient(item.dataset.clientId);
+            document.getElementById('site_select').value = item.dataset.siteId;
+            onSiteSelected(item.dataset.siteId);
+          }, 400);
+        });
+      });
+
+      results.classList.add('show');
+    }, 300);
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#clientSearchWrapper')) document.getElementById('clientResults').classList.remove('show');
+  });
+
+  // Site selector
+  document.getElementById('site_select').addEventListener('change', function() {
+    onSiteSelected(this.value);
   });
 
   document.getElementById('confirmNewJobBtn').addEventListener('click', async () => {
@@ -470,30 +527,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (selectedJobData && !selectedJobData.job_number) selectedJobData = null;
     const jobTypeVal  = document.getElementById('new_job_type').value;
     const prefix      = document.getElementById('new_prefix').value;
-    const clientName  = document.getElementById('new_client_name').value.trim();
-    const siteName    = document.getElementById('new_site_name').value.trim();
-    const siteAddress = document.getElementById('new_site_address').value.trim();
-    console.log('[Create Job] Click →', { prefix, jobTypeVal, clientName, siteName, siteAddress });
-    if (!prefix || !clientName || !siteName || !siteAddress) {
-      BromarHub.showInfo('Please fill in all required fields: Job Type, Client Name, Site Name and Site Address'); return;
+    const clientId    = document.getElementById('selected_client_id').value;
+    const siteId      = document.getElementById('site_select').value;
+    console.log('[Create Job] Click →', { prefix, jobTypeVal, clientId, siteId });
+    if (!prefix || !clientId || !siteId) {
+      BromarHub.showInfo('Please fill in all required fields: Job Type, Client and Site'); return;
     }
     btn.disabled = true; btn.textContent = 'Creating...';
-    try { await createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeVal.split('|')[1] || ''); }
+    try { await createNewJobNow(prefix, clientId, siteId, jobTypeVal.split('|')[1] || ''); }
     finally { btn.disabled = false; btn.textContent = 'Create Job & Continue →'; }
-  });
-
-  // Address lookup
-  let addressTimeout;
-  document.getElementById('new_site_address').addEventListener('input', function() {
-    clearTimeout(addressTimeout);
-    const q = this.value.trim(), results = document.getElementById('address-results');
-    if (q.length < 4) { results.style.display = 'none'; return; }
-    results.innerHTML = '<div style="padding:10px 14px; font-size:0.85rem; color:var(--text-secondary);">Searching...</div>';
-    results.style.display = 'block';
-    addressTimeout = setTimeout(() => searchAddress(q), 400);
-  });
-  document.getElementById('new_site_address').addEventListener('blur', () => {
-    setTimeout(() => { document.getElementById('address-results').style.display = 'none'; }, 200);
   });
 
   // Service report toggle — show sections and load sheet picker
@@ -950,44 +992,134 @@ function applyJobSelection(job) {
     });
 }
 
-// ── NEW JOB ───────────────────────────────────────────────────
+// ── CLIENT / SITE SELECTION ───────────────────────────────────
+let selectedClientData = null;
+let selectedSiteData = null;
+
+function selectClient(id, name) {
+  selectedClientData = { id, name };
+  document.getElementById('selected_client_id').value = id;
+  document.getElementById('client_search').value = '';
+  document.getElementById('clientResults').classList.remove('show');
+  document.getElementById('selectedClientName').textContent = name;
+  document.getElementById('selectedClientDisplay').style.display = 'block';
+  document.getElementById('clientSearchWrapper').querySelector('input').style.display = 'none';
+  // Load sites for this client
+  loadSitesForClient(id);
+}
+
+window.clearClientSelection = function() {
+  selectedClientData = null;
+  selectedSiteData = null;
+  document.getElementById('selected_client_id').value = '';
+  document.getElementById('client_search').value = '';
+  document.getElementById('client_search').style.display = 'block';
+  document.getElementById('selectedClientDisplay').style.display = 'none';
+  document.getElementById('siteSelectWrapper').style.display = 'none';
+  document.getElementById('siteContactDisplay').style.display = 'none';
+  updateConfirmJobBtn();
+};
+
+async function loadSitesForClient(clientId) {
+  const siteSelect = document.getElementById('site_select');
+  const noSitesMsg = document.getElementById('noSitesMsg');
+  siteSelect.innerHTML = '<option value="">Loading sites...</option>';
+  document.getElementById('siteSelectWrapper').style.display = 'block';
+  noSitesMsg.style.display = 'none';
+
+  const { data: sites } = await window.sb.from('sites')
+    .select('id, name, address')
+    .eq('client_id', clientId).eq('is_active', true).order('name');
+
+  if (!sites?.length) {
+    siteSelect.innerHTML = '<option value="">No sites found</option>';
+    noSitesMsg.style.display = 'block';
+    updateConfirmJobBtn();
+    return;
+  }
+
+  siteSelect.innerHTML = '<option value="">Select site...</option>' + sites.map(s => {
+    const label = s.address ? `${s.name} — ${s.address}` : s.name;
+    return `<option value="${s.id}" data-name="${esc(s.name)}" data-address="${esc(s.address||'')}">${esc(label)}</option>`;
+  }).join('');
+  updateConfirmJobBtn();
+}
+
+function onSiteSelected(siteId) {
+  const siteSelect = document.getElementById('site_select');
+  const opt = siteSelect.selectedOptions[0];
+  if (!siteId || !opt?.dataset.name) {
+    selectedSiteData = null;
+    document.getElementById('siteContactDisplay').style.display = 'none';
+    updateConfirmJobBtn();
+    return;
+  }
+  selectedSiteData = { id: siteId, name: opt.dataset.name, address: opt.dataset.address || '' };
+  document.getElementById('siteContactDisplay').style.display = 'none'; // no contact fields on sites table
+  updateConfirmJobBtn();
+  checkAndCreateNewJob();
+}
+
+// ── NEW JOB CREATION ─────────────────────────────────────────
 function updateConfirmJobBtn() {
   const jobType = document.querySelector('input[name="job_type"]:checked').value;
   if (jobType !== 'new' || selectedJobData) { document.getElementById('confirmNewJobBtn').style.display='none'; return; }
-  const ok = document.getElementById('new_prefix').value && document.getElementById('new_client_name').value.trim() && document.getElementById('new_site_name').value.trim() && document.getElementById('new_site_address').value.trim();
+  const ok = document.getElementById('new_prefix').value
+          && document.getElementById('selected_client_id').value
+          && document.getElementById('site_select').value;
   document.getElementById('confirmNewJobBtn').style.display = ok ? 'block' : 'none';
 }
+
 function checkAndCreateNewJob() {
   if (document.querySelector('input[name="job_type"]:checked').value !== 'new' || selectedJobData) return;
-  const jobTypeVal=document.getElementById('new_job_type').value, prefix=document.getElementById('new_prefix').value;
-  const clientName=document.getElementById('new_client_name').value.trim(), siteName=document.getElementById('new_site_name').value.trim(), siteAddress=document.getElementById('new_site_address').value.trim();
-  if (!prefix||!clientName||!siteName||!siteAddress) return;
-  createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeVal.split('|')[1]||'');
+  const prefix   = document.getElementById('new_prefix').value;
+  const clientId = document.getElementById('selected_client_id').value;
+  const siteId   = document.getElementById('site_select').value;
+  if (!prefix || !clientId || !siteId) return;
+  createNewJobNow(prefix, clientId, siteId, document.getElementById('new_job_type').value.split('|')[1] || '');
 }
-async function createNewJobNow(prefix, clientName, siteName, siteAddress, jobTypeLabel) {
+
+async function createNewJobNow(prefix, clientId, siteId, jobTypeLabel) {
   try {
-    const contactPerson=document.getElementById('new_contact_person').value.trim(), contactPhone=document.getElementById('new_contact_phone').value.trim();
-    const contactRole=document.getElementById('new_contact_role').value;
-    const rpcParams = { p_prefix:prefix, p_client_name:clientName, p_contact_person:contactPerson, p_contact_phone:contactPhone, p_contact_role:contactRole||null, p_site_name:siteName, p_site_address:siteAddress };
+    const rpcParams = {
+      p_prefix:    prefix,
+      p_client_id: clientId,
+      p_site_id:   siteId,
+      p_contact_person: selectedSiteData?.site_contact_name || null,
+      p_contact_phone:  selectedSiteData?.site_contact_phone || null,
+      p_contact_role:   selectedSiteData?.site_contact_role || null
+    };
     console.log('[Create Job] Calling RPC with:', rpcParams);
     const { data: newJobNum, error } = await window.sb.rpc('create_new_job', rpcParams);
     console.log('[Create Job] Response:', { newJobNum, error });
     if (error) throw error;
     if (!newJobNum) throw new Error('RPC returned no job number');
-    selectedJobData = { job_number:newJobNum, client_name:clientName, site_name:siteName, site_address:siteAddress, contact_person:contactPerson, prefix, justCreated:true };
+
+    // Build selectedJobData from client/site records
+    const clientName = selectedClientData?.name || '';
+    const siteName   = selectedSiteData?.name || '';
+    const siteAddr   = selectedSiteData?.address || '';
+
+    selectedJobData = { job_number:newJobNum, client_name:clientName, site_name:siteName, site_address:siteAddr, client_id:clientId, site_id:siteId, prefix, justCreated:true };
     if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
-    ['new_prefix','new_job_type','new_client_name','new_site_name','new_site_address'].forEach(id => { const el=document.getElementById(id); if(el) el.disabled=true; });
-    document.getElementById('newJobCreatedNumber').textContent=newJobNum;
+
+    // Lock fields
+    ['new_prefix','new_job_type'].forEach(id => { const el=document.getElementById(id); if(el) el.disabled=true; });
+    document.getElementById('site_select').disabled = true;
+
+    document.getElementById('newJobCreatedNumber').textContent = newJobNum;
     document.getElementById('newJobCreatedNotice').classList.add('show');
-    document.getElementById('confirmNewJobBtn').style.display='none';
-    const sheetNum=`${newJobNum}-JS001`;
-    const sp=document.getElementById('detail-sheet-preview'); if(sp){sp.style.display='block'; document.getElementById('detail-sheet-number').textContent=sheetNum;}
-    document.getElementById('submitSheetNumber').textContent=sheetNum; document.getElementById('submitSheetNumber').style.display='inline';
+    document.getElementById('confirmNewJobBtn').style.display = 'none';
+
+    const sheetNum = `${newJobNum}-JS001`;
+    const sp = document.getElementById('detail-sheet-preview'); if(sp){sp.style.display='block'; document.getElementById('detail-sheet-number').textContent=sheetNum;}
+    document.getElementById('submitSheetNumber').textContent = sheetNum;
+    document.getElementById('submitSheetNumber').style.display = 'inline';
     setPostJobSectionsVisible(true);
   } catch (err) {
     console.error('[Create Job] Failed:', err);
     BromarHub.showInfo('Could not create job: ' + (err.message||err.toString()));
-    document.getElementById('confirmNewJobBtn').style.display='block';
+    document.getElementById('confirmNewJobBtn').style.display = 'block';
   }
 }
 
@@ -1096,28 +1228,6 @@ function updateMultiDayStatus() {
     statusEl.textContent = `📅 Multi-day report — ${count} sheets selected`;
   }
 }
-
-// ── ADDRESS SEARCH ────────────────────────────────────────────
-async function searchAddress(query) {
-  const results = document.getElementById('address-results');
-  try {
-    const resp = await fetch('https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ q:query, format:'json', addressdetails:1, limit:6, countrycodes:'au', 'accept-language':'en' }), { headers:{'Accept':'application/json'} });
-    if (!resp.ok) throw new Error();
-    const data = await resp.json();
-    if (!data.length) { results.innerHTML='<div style="padding:10px 14px; font-size:0.85rem; color:var(--text-secondary);">No results found</div>'; return; }
-    results.innerHTML = data.map(item => {
-      const a=item.address;
-      const parts=[a.house_number&&a.road?`${a.house_number} ${a.road}`:a.road, a.suburb||a.city_district||a.neighbourhood, a.state, a.postcode].filter(Boolean);
-      const display=parts.join(', ');
-      return `<div style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:0.875rem; transition:background 0.15s;" onmouseenter="this.style.background='var(--card-hover)'" onmouseleave="this.style.background=''" onclick="selectAddress('${esc(display).replace(/'/g,'&#39;')}')"><div style="font-weight:500; color:var(--text-primary);">${esc(display)}</div>${a.state?`<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">${esc(a.state)}</div>`:''}</div>`;
-    }).join('');
-  } catch { results.innerHTML='<div style="padding:10px 14px; font-size:0.85rem; color:var(--text-secondary);">Search unavailable — enter address manually</div>'; }
-}
-window.selectAddress = (address) => {
-  document.getElementById('new_site_address').value = address;
-  document.getElementById('address-results').style.display = 'none';
-  checkAndCreateNewJob();
-};
 
 // ── TASKS / LABOUR / MATERIALS / NOTES ───────────────────────
 let taskCount=0, labourCount=0, materialCount=0, noteCount=0;
@@ -1351,7 +1461,9 @@ async function handleFormSubmit(e){
       }
       if(signoffMethod==='none'){
         BromarHub.showLoading('Generating PDF...','Building report');
-        const pdf=await generatePDF(getActiveSheetNumbers());
+        const activeSheets = getActiveSheetNumbers();
+        console.log('[PDF] Generating for sheets:', activeSheets);
+        const pdf=await generatePDF(activeSheets);
         await window.sb.storage.from('job-sheet-files').upload(`${jobNumber}/service-reports/${jobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
         BromarHub.showLoading('Emailing report...',clientEmail);
         const pdfBase64=pdf.output('datauristring').split(',')[1];
@@ -1387,7 +1499,6 @@ async function uploadFilesToSupabase(jobSheetNumber,jobNumber,files){
 
 // ── PDF ───────────────────────────────────────────────────────
 async function fetchReportData(sheetNumbers){
-  // Fetch one or multiple sheets
   const nums = sheetNumbers || [currentJobSheetNumber];
   const { data: sheets, error } = await window.sb
     .from('job_sheets').select('*, job_number_register(*)')
@@ -1396,7 +1507,15 @@ async function fetchReportData(sheetNumbers){
   if (error) throw error;
 
   const isMulti = nums.length > 1;
-  const reportSections = sheets[0].report_sections || {};
+
+  // Use form checkbox values for report sections (not stored DB values)
+  const reportSections = {
+    labour:    document.getElementById('include_labour')?.checked    ?? true,
+    tasks:     document.getElementById('include_tasks')?.checked     ?? true,
+    materials: document.getElementById('include_materials')?.checked ?? false,
+    photos:    document.getElementById('include_photos')?.checked    ?? true,
+    notes:     document.getElementById('include_notes')?.checked     ?? false,
+  };
 
   let files = [];
   if (reportSections.photos) {
@@ -1411,6 +1530,10 @@ async function fetchReportData(sheetNumbers){
       files = photoFiles;
     }
   }
+
+  // Inject consistent reportSections into all sheets so generatePDF reads it correctly
+  sheets.forEach(s => { s.report_sections = reportSections; });
+
   return { sheets, primarySheet: sheets[0], files, isMulti };
 }
 
@@ -1603,16 +1726,27 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.41`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.45`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
 function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
 
 function getActiveSheetNumbers() {
-  // If multi-day sheets are selected use them, otherwise fall back to just the current sheet
-  if (multiDaySelectedSheets.length > 0) return multiDaySelectedSheets;
-  return [currentJobSheetNumber];
+  // Always ensure the real saved sheet number is in the list
+  const base = currentJobSheetNumber || null;
+  if (!base) return [base];
+
+  // Rebuild from multiDaySelectedSheets, replacing any placeholder with real number
+  const resolved = multiDaySelectedSheets
+    .map(s => (s === 'Current sheet' || s === document.getElementById('submitSheetNumber')?.textContent) ? base : s)
+    .filter(Boolean);
+
+  // Ensure current is included
+  if (!resolved.includes(base)) resolved.unshift(base);
+
+  // Deduplicate
+  return [...new Set(resolved)];
 }
 
 async function generateAndDownloadPDF(){
