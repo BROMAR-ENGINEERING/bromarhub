@@ -318,7 +318,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.46</div>
+<div class="revision-number">V1.47</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -467,9 +467,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     clientSearchTimeout = setTimeout(async () => {
       // Search both clients and sites simultaneously
       const [clientRes, siteRes] = await Promise.all([
-        window.sb.from('clients').select('id, name').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(8),
-        window.sb.from('sites').select('id, name, address, client_id, clients!sites_client_id_fkey(id, name)').ilike('name', `%${q}%`).eq('is_active', true).order('name').limit(6)
+        window.sb.from('clients').select('id, name, is_active').ilike('name', `%${q}%`).order('name').limit(8),
+        window.sb.from('sites').select('id, name, address, client_id, is_active, clients!sites_client_id_fkey(id, name)').ilike('name', `%${q}%`).order('name').limit(6)
       ]);
+      // Filter out explicitly inactive (false), keep null/true
+      if (clientRes.data) clientRes.data = clientRes.data.filter(c => c.is_active !== false);
+      if (siteRes.data)   siteRes.data   = siteRes.data.filter(s => s.is_active !== false);
 
       console.log('[Search] query:', q, '| clients:', clientRes.data, clientRes.error, '| sites:', siteRes.data, siteRes.error);
 
@@ -1029,9 +1032,10 @@ async function loadSitesForClient(clientId) {
   document.getElementById('siteSelectWrapper').style.display = 'block';
   noSitesMsg.style.display = 'none';
 
-  const { data: sites } = await window.sb.from('sites')
-    .select('id, name, address')
-    .eq('client_id', clientId).eq('is_active', true).order('name');
+  const { data: sitesRaw } = await window.sb.from('sites')
+    .select('id, name, address, is_active')
+    .eq('client_id', clientId).order('name');
+  const sites = (sitesRaw || []).filter(s => s.is_active !== false);
 
   if (!sites?.length) {
     siteSelect.innerHTML = '<option value="">No sites found</option>';
@@ -1728,7 +1732,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.46`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.47`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
