@@ -9,6 +9,114 @@
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
   <style>
+    .po-number-float {
+      display: none;
+      position: fixed;
+      top: 70px;
+      right: 16px;
+      z-index: 200;
+      padding: 10px 18px;
+      background: var(--brand-orange);
+      color: white;
+      border-radius: 10px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 1.5px;
+      box-shadow: 0 6px 20px rgba(194, 68, 14, 0.35);
+      animation: slideIn 0.3s ease;
+    }
+    .po-number-float.show { display: inline-block; }
+    .po-number-float .po-float-label {
+      display: block;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+      opacity: 0.85;
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+    @media (max-width: 720px) {
+      .po-number-float {
+        top: auto;
+        bottom: 16px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+        font-size: 1rem;
+      }
+    }
+
+    /* Submission summary screen */
+    .po-summary {
+      display: none;
+      background: var(--brand-white, var(--input-bg));
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: var(--card-shadow);
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+    .po-summary.show { display: block; }
+    .po-summary .check-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--success-bg, #d1fae5);
+      color: var(--success, #15803d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 18px;
+    }
+    .po-summary h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 1.5px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .po-summary .po-summary-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      color: var(--brand-orange);
+      margin-bottom: 22px;
+    }
+    .po-summary-details {
+      text-align: left;
+      max-width: 420px;
+      margin: 0 auto 26px;
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .po-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 16px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--input-border);
+    }
+    .po-summary-row:last-child { border-bottom: none; }
+    .po-summary-row .label {
+      color: var(--text-muted);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .po-summary-row .value {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: right;
+    }
+    .po-summary-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
     .po-number-display {
       display: inline-block;
       margin-top: 14px;
@@ -323,13 +431,31 @@
 
 <div id="bromar-header"></div>
 
+<!-- Floating PO number -->
+<div class="po-number-float" id="poFloat">
+  <span class="po-float-label">PURCHASE ORDER</span>
+  <span id="poFloatNumber">——</span>
+</div>
+
 <div class="page-title-wrapper">
   <h1>Purchase Order</h1>
   <p class="subtitle">Create a PO against a job</p>
 </div>
 
 <div class="page-wrapper">
-  <div class="form-card">
+
+  <!-- Summary confirmation (shown after submit) -->
+  <div class="po-summary" id="poSummary">
+    <div class="check-circle">✓</div>
+    <h2>Purchase Order Submitted</h2>
+    <div class="po-summary-number" id="summaryPoNumber">——</div>
+    <div class="po-summary-details" id="summaryDetails"></div>
+    <div class="po-summary-actions">
+      <button type="button" class="btn-secondary" id="summaryNewBtn">+ New Purchase Order</button>
+    </div>
+  </div>
+
+  <div class="form-card" id="poFormCard">
     <form id="poForm" name="purchase-order" novalidate autocomplete="off">
 
       <p style="display: none;">
@@ -490,10 +616,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.11</div>
+<div class="revision-number">V1.12</div>
 
 <script>
-  const DOC_VERSION = 'V1.11';
+  const DOC_VERSION = 'V1.12';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -668,6 +794,9 @@
 
     clientCard.classList.add('show');
 
+    // Preview PO number in floating badge
+    await showPoPreview(job.job_number);
+
     const deliveryAddress = document.getElementById('delivery_address');
     if (deliveryAddress && !deliveryAddress.value && job.site_address) {
       deliveryAddress.value = job.site_address;
@@ -676,11 +805,32 @@
     setPostJobSectionsVisible(true);
   }
 
-  // ============================================================
-  // MODE TOGGLE
-  // ============================================================
-  let currentMode = 'verbal';
-  const modeButtons = document.querySelectorAll('.mode-toggle-btn');
+  // Floating PO number preview
+  const poFloat = document.getElementById('poFloat');
+  const poFloatNumber = document.getElementById('poFloatNumber');
+  let previewedPoNumber = null;
+
+  async function showPoPreview(jobNumber) {
+    poFloatNumber.textContent = 'loading…';
+    poFloat.classList.add('show');
+    try {
+      const { data, error } = await window.sb.rpc('next_po_sequence', { p_job_number: jobNumber });
+      if (error) throw error;
+      const seq = String(data).padStart(4, '0');
+      previewedPoNumber = `${jobNumber}-P${seq}`;
+      poFloatNumber.textContent = previewedPoNumber;
+    } catch (err) {
+      console.warn('PO preview failed:', err);
+      previewedPoNumber = null;
+      poFloatNumber.textContent = `${jobNumber}-P????`;
+    }
+  }
+
+  function hidePoPreview() {
+    poFloat.classList.remove('show');
+    previewedPoNumber = null;
+  }
+
   const standardSection = document.querySelector('.standard-mode-section');
   const verbalSection = document.querySelector('.verbal-mode-section');
 
@@ -1224,8 +1374,32 @@
       }
 
       BromarHub.hideLoading();
-      BromarHub.showSuccess(`Purchase order ${inserted.po_number} submitted successfully.`);
 
+      // Build summary details
+      const supplierDisplay = [supplierName, (selectedBranch?.branch_name || branchSearch.value.trim())]
+        .filter(Boolean).join(' — ');
+      const rows = [
+        ['Job', selectedJobData.job_number],
+        ['Client', selectedJobData.client_name || '—'],
+        ['Type', currentMode === 'verbal' ? 'Verbal / Walk-In' : 'Standard PO'],
+        ['Supplier', supplierDisplay || '—'],
+        ['Ordered By', currentUser.name]
+      ];
+      if (currentMode === 'standard') {
+        rows.push(['Total (inc GST)', document.getElementById('totalDisplay').textContent]);
+      }
+      document.getElementById('summaryPoNumber').textContent = inserted.po_number;
+      document.getElementById('summaryDetails').innerHTML = rows.map(([l, v]) =>
+        `<div class="po-summary-row"><span class="label">${l}</span><span class="value">${BromarHub.escapeHtml(String(v))}</span></div>`
+      ).join('');
+
+      // Hide form, show summary
+      hidePoPreview();
+      document.getElementById('poFormCard').style.display = 'none';
+      document.getElementById('poSummary').classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Reset form in background for next use
       poForm.reset();
       lineItemsContainer.innerHTML = '';
       addLineItem();
@@ -1246,8 +1420,6 @@
         }
       }
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
     } catch (err) {
       console.error('Submit error:', err);
       BromarHub.hideLoading();
@@ -1265,6 +1437,12 @@
   });
 
   document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  document.getElementById('summaryNewBtn').addEventListener('click', () => {
+    document.getElementById('poSummary').classList.remove('show');
+    document.getElementById('poFormCard').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 </script>
 
 </body>
