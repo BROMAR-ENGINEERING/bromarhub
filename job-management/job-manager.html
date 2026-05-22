@@ -393,7 +393,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — JOB MANAGER</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.06</div>
+      <div class="card-footer-version">Version V1.07</div>
     </div>
 
   </main>
@@ -620,7 +620,7 @@ function deselectJob() {
 async function loadJobData(jobNumber) {
   const [sheetsRes, posRes, filesRes, swmsRes] = await Promise.all([
     sb().from('job_sheets')
-      .select('id, job_sheet_number, sheet_date, tasks, labour, materials, notes, created_by, is_service_report, signing_status')
+      .select('id, job_sheet_number, job_number, sheet_date, tasks, labour, materials, notes, created_by, is_service_report, signing_status, report_generated_at, report_sent_to, client_signature_data, client_signature_name, client_signature_date')
       .eq('job_number', jobNumber)
       .order('sheet_date', { ascending: false }),
     sb().from('purchase_orders')
@@ -692,6 +692,13 @@ function renderTool() {
   if (activeTool === 'testing')    panel.innerHTML = renderFileGrid('Testing', '🧪', d.testing, 'testing', 'No test sheets recorded yet');
   if (activeTool === 'swms')       renderSwmsTool(panel, d.swms);
 
+  panel.querySelectorAll('[data-report-pdf]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const [jobNum, sheetNum] = btn.dataset.reportPdf.split('|');
+      openServiceReport(jobNum, sheetNum);
+    });
+  });
   panel.querySelectorAll('[data-sheet-id]').forEach(row => {
     row.addEventListener('click', () => viewSheet(row.dataset.sheetId));
   });
@@ -758,6 +765,24 @@ function tableShell(title, addLabel, headers, rowsHtml, emptyText) {
     </div>`;
 }
 /* ── JOB SHEETS / SERVICE REPORTS ──────────────────────── */
+async function openServiceReport(jobNumber, sheetNum) {
+  const signedPath   = `${jobNumber}/service-reports/signed-${sheetNum}.pdf`;
+  const unsignedPath = `${jobNumber}/service-reports/${sheetNum}.pdf`;
+  let url = null;
+  try {
+    const { data } = await sb().storage.from('job-sheet-files').createSignedUrl(signedPath, 3600);
+    url = data?.signedUrl;
+  } catch {}
+  if (!url) {
+    try {
+      const { data } = await sb().storage.from('job-sheet-files').createSignedUrl(unsignedPath, 3600);
+      url = data?.signedUrl;
+    } catch {}
+  }
+  if (url) window.open(url, '_blank', 'noopener');
+  else if (window.BromarHub?.showInfo) BromarHub.showInfo('Report PDF not found in storage');
+}
+
 function signBadge(status) {
   const map = { signed:'completed', unsigned:'on_hold', sent:'active' };
   const cls = map[status] || 'draft';
@@ -782,6 +807,7 @@ function renderSheets(sheets) {
       <td>${esc(s.created_by || '—')}</td>
       <td style="font-size:0.78rem;color:var(--text-secondary);">${taskCount}t · ${labourCount}l · ${matCount}m</td>
       <td>${s.is_service_report ? signBadge(s.signing_status) : '—'}</td>
+      <td>${(s.is_service_report && s.report_generated_at) ? `<button class="btn-secondary" style="padding:0.35rem 0.7rem;font-size:0.75rem;" data-report-pdf="${esc(s.job_number)}|${esc(s.job_sheet_number)}">📄 PDF</button>` : ''}</td>
     </tr>`;
   };
 
@@ -794,7 +820,7 @@ function renderSheets(sheets) {
     </div>
     <div class="data-table-wrapper">
       <table class="data-table">
-        <thead><tr><th>Sheet #</th><th>Date</th><th>Type</th><th>By</th><th>Contents</th><th>Signing</th></tr></thead>
+        <thead><tr><th>Sheet #</th><th>Date</th><th>Type</th><th>By</th><th>Contents</th><th>Signing</th><th>Report</th></tr></thead>
         <tbody>${sheets.map(rowHtml).join('')}</tbody>
       </table>
     </div>
@@ -820,7 +846,10 @@ function viewSheet(sheetId) {
 
   const sigBlock = s.is_service_report ? `
     <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
-      <div style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">Service Report — ${signBadge(s.signing_status)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Service Report — ${signBadge(s.signing_status)}</div>
+        ${s.report_generated_at ? `<button class="btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.78rem;" data-detail-report="${esc(s.job_number)}|${esc(s.job_sheet_number)}">📄 View Report PDF</button>` : ''}
+      </div>
       ${s.client_signature_data ? `<div><img src="${s.client_signature_data}" style="max-height:60px;background:white;padding:4px;border-radius:6px;border:1px solid var(--border);"/><div style="font-size:0.8rem;margin-top:4px;">Signed by <strong>${esc(s.client_signature_name || '—')}</strong>${s.client_signature_date ? ' on ' + fmtDate(s.client_signature_date) : ''}</div></div>` : '<div style="font-size:0.85rem;color:var(--text-secondary);">Not yet signed by client</div>'}
       ${(s.report_sent_to && s.report_sent_to.length) ? `<div style="font-size:0.78rem;color:var(--text-secondary);margin-top:6px;">Sent to: ${s.report_sent_to.map(esc).join(', ')}</div>` : ''}
     </div>` : '';
@@ -842,6 +871,13 @@ function viewSheet(sheetId) {
       </div>
       ${sigBlock}
     </div>`;
+  const reportBtn = detail.querySelector('[data-detail-report]');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', () => {
+      const [jobNum, sheetNum] = reportBtn.dataset.detailReport.split('|');
+      openServiceReport(jobNum, sheetNum);
+    });
+  }
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
