@@ -298,10 +298,32 @@
           <button type="button" class="pdf-btn" id="downloadPdfBtn">📥 Download PDF</button>
           <button type="button" class="pdf-btn" id="copyLinkBtn">🔗 Copy Share Link</button>
           <button type="button" class="pdf-btn" id="emailPdfBtn">📧 Email Client</button>
-          <button type="button" class="pdf-btn" id="newSheetBtn">📝 New Job Sheet</button>
         </div>
       </div>
     </form>
+
+    <!-- COMPLETION SCREEN (shown after submit, form hidden) -->
+    <div id="completionScreen" style="display:none; text-align:center; padding:2rem 1rem;">
+      <div style="font-size:3rem; margin-bottom:0.5rem;">✅</div>
+      <h2 style="font-size:1.4rem; font-weight:700; color:var(--success); margin-bottom:0.5rem;">Job Sheet Saved</h2>
+      <p style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:0.5rem;">
+        <span id="completionSheetNumber" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--accent);"></span>
+      </p>
+      <p id="completionDetail" style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1.5rem;"></p>
+
+      <div id="completionPdfActions" style="display:none; margin-bottom:1.5rem;">
+        <div class="pdf-actions-buttons" style="justify-content:center;">
+          <button type="button" class="pdf-btn" id="comp_downloadPdfBtn">📥 Download PDF</button>
+          <button type="button" class="pdf-btn" id="comp_copyLinkBtn">🔗 Copy Link</button>
+          <button type="button" class="pdf-btn" id="comp_emailPdfBtn">📧 Email Client</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+        <button type="button" class="btn-secondary" id="amendSheetBtn">✏️ Amend This Sheet</button>
+        <button type="button" class="submit-btn" id="completionNewSheetBtn">📝 New Job Sheet</button>
+      </div>
+    </div>
 
     <div class="form-footer">
       <div class="footer-disclaimer">
@@ -317,7 +339,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.51</div>
+<div class="revision-number">V1.55</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -363,6 +385,8 @@ let uploadedFiles = [];
 let currentJobSheetNumber = null;
 let currentJobNumber = null;
 let bromarScanner = null;
+let submissionComplete = false;  // blocks duplicate submits
+let isAmending = false;          // true when editing an already-saved sheet
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -466,21 +490,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     clientSearchTimeout = setTimeout(async () => {
       // Search both clients and sites simultaneously
       const [clientRes, siteRes] = await Promise.all([
-        window.sb.from('clients').select('id, name, is_active').ilike('name', `%${q}%`).order('name').limit(8),
-        window.sb.from('sites').select('id, name, address, client_id, is_active').ilike('name', `%${q}%`).order('name').limit(6)
+        window.sb.from('clients').select('id, name, contact_name, email, is_active').ilike('name', `%${q}%`).order('name').limit(8),
+        window.sb.from('sites').select('id, name, address, client_id, is_active, site_contact_name, site_contact_email, site_contact_role').ilike('name', `%${q}%`).order('name').limit(6)
       ]);
       // Filter out explicitly inactive
       if (clientRes.data) clientRes.data = clientRes.data.filter(c => c.is_active !== false);
       if (siteRes.data)   siteRes.data   = siteRes.data.filter(s => s.is_active !== false);
 
-      // Fetch parent client names for the sites found
+      // Fetch parent client names + admin emails for the sites found
       if (siteRes.data?.length) {
         const clientIds = [...new Set(siteRes.data.map(s => s.client_id).filter(Boolean))];
         if (clientIds.length) {
-          const { data: parents } = await window.sb.from('clients').select('id, name').in('id', clientIds);
+          const { data: parents } = await window.sb.from('clients').select('id, name, email').in('id', clientIds);
           const map = {};
-          (parents || []).forEach(c => { map[c.id] = c.name; });
-          siteRes.data.forEach(s => { s.clientName = map[s.client_id] || ''; });
+          (parents || []).forEach(c => { map[c.id] = c; });
+          siteRes.data.forEach(s => {
+            s.clientName = map[s.client_id]?.name || '';
+            s.clientEmail = map[s.client_id]?.email || '';
+          });
         }
       }
 
@@ -491,17 +518,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (clientRes.data?.length) {
         html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Clients</div>`;
         html += clientRes.data.map(c => `
-          <div class="autocomplete-item" data-id="${c.id}" data-name="${esc(c.name)}" data-type="client">
+          <div class="autocomplete-item" data-id="${c.id}" data-name="${esc(c.name)}" data-contact-name="${esc(c.contact_name||'')}" data-contact-email="${esc(c.email||'')}" data-type="client">
             <div class="autocomplete-item-number">🏢 ${esc(c.name)}</div>
+            ${c.contact_name || c.email ? `<div class="autocomplete-item-client">${esc(c.contact_name||'')}${c.contact_name && c.email ? ' · ' : ''}${esc(c.email||'')}</div>` : ''}
           </div>`).join('');
       }
 
       if (siteRes.data?.length) {
         html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Sites</div>`;
         html += siteRes.data.map(s => `
-          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.name)}" data-site-address="${esc(s.address||'')}" data-client-id="${s.client_id||''}" data-client-name="${esc(s.clientName||'')}" data-type="site">
+          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.name)}" data-site-address="${esc(s.address||'')}" data-client-id="${s.client_id||''}" data-client-name="${esc(s.clientName||'')}" data-contact-name="${esc(s.site_contact_name||'')}" data-contact-email="${esc(s.site_contact_email||'')}" data-contact-role="${esc(s.site_contact_role||'')}" data-client-email="${esc(s.clientEmail||'')}" data-type="site">
             <div class="autocomplete-item-number">📍 ${esc(s.name)}</div>
-            <div class="autocomplete-item-client">${esc(s.clientName||'')}${s.address ? ' · ' + esc(s.address) : ''}</div>
+            <div class="autocomplete-item-client">${esc(s.clientName||'')}${s.site_contact_name ? ' · 👤 ' + esc(s.site_contact_name) : ''}${s.address ? ' · ' + esc(s.address) : ''}</div>
           </div>`).join('');
       }
 
@@ -509,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       results.innerHTML = html;
 
       results.querySelectorAll('.autocomplete-item[data-type="client"]').forEach(item => {
-        item.addEventListener('click', () => selectClient(item.dataset.id, item.dataset.name));
+        item.addEventListener('click', () => selectClient(item.dataset.id, item.dataset.name, item.dataset.contactName, item.dataset.contactEmail));
       });
       results.querySelectorAll('.autocomplete-item[data-type="site"]').forEach(item => {
         item.addEventListener('click', () => {
@@ -518,7 +546,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             item.dataset.siteName,
             item.dataset.siteAddress,
             item.dataset.clientId,
-            item.dataset.clientName
+            item.dataset.clientName,
+            {
+              contactName:  item.dataset.contactName,
+              contactEmail: item.dataset.contactEmail,
+              contactRole:  item.dataset.contactRole,
+              clientEmail:  item.dataset.clientEmail
+            }
           );
         });
       });
@@ -592,7 +626,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
     } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
   });
-  document.getElementById('newSheetBtn').addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
+  document.getElementById('newSheetBtn')?.addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
+
+  // Completion screen buttons
+  const compDownload = async () => {
+    BromarHub.showLoading('Generating PDF...','Building service report');
+    try { await generateAndDownloadPDF(); BromarHub.hideLoading(); BromarHub.showSuccess('PDF downloaded!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  };
+  const compCopy = async () => {
+    BromarHub.showLoading('Generating shareable link...','Uploading PDF');
+    try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); BromarHub.hideLoading(); BromarHub.showSuccess('Link copied!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  };
+  const compEmail = async () => {
+    const email = prompt('Enter client email address:'); if (!email) return;
+    BromarHub.showLoading('Preparing email...','Generating PDF');
+    try {
+      const url = await generateAndUploadPDF(); BromarHub.hideLoading();
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
+    } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  };
+  document.getElementById('comp_downloadPdfBtn').addEventListener('click', compDownload);
+  document.getElementById('comp_copyLinkBtn').addEventListener('click', compCopy);
+  document.getElementById('comp_emailPdfBtn').addEventListener('click', compEmail);
+  document.getElementById('amendSheetBtn').addEventListener('click', amendSheet);
+  document.getElementById('completionNewSheetBtn').addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
 });
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -1010,34 +1069,45 @@ function applyJobSelection(job) {
 let selectedClientData = null;
 let selectedSiteData = null;
 
-function selectClient(id, name) {
-  selectedClientData = { id, name };
+function selectClient(id, name, contactName, contactEmail) {
+  selectedClientData = { id, name, contactName: contactName || '', contactEmail: contactEmail || '' };
   selectedSiteData = null;
   document.getElementById('selected_client_id').value = id;
   document.getElementById('selected_site_id').value = '';
   document.getElementById('client_search').value = '';
   document.getElementById('clientResults').classList.remove('show');
   document.getElementById('selectedClientName').textContent = '🏢 ' + name;
-  document.getElementById('selectedSiteName').textContent = '';
+  document.getElementById('selectedSiteName').textContent = contactName || contactEmail ? `👤 ${contactName || ''}${contactName && contactEmail ? ' · ' : ''}${contactEmail || ''}` : '';
   document.getElementById('selectedClientDisplay').style.display = 'block';
   document.getElementById('client_search').style.display = 'none';
+  // Auto-fill report email (client admin email) — editable
+  autofillReportEmail(contactEmail);
   loadSitesForClient(id);
   updateConfirmJobBtn();
   checkAndCreateNewJob();
 }
 
-function selectSite(siteId, siteName, siteAddress, clientId, clientName) {
+function autofillReportEmail(email) {
+  const field = document.getElementById('signoff_email');
+  if (field && email) field.value = email;
+}
+
+function selectSite(siteId, siteName, siteAddress, clientId, clientName, contact) {
+  contact = contact || {};
   selectedClientData = clientId ? { id: clientId, name: clientName } : null;
-  selectedSiteData = { id: siteId, name: siteName, address: siteAddress || '' };
+  selectedSiteData = { id: siteId, name: siteName, address: siteAddress || '', contact };
   document.getElementById('selected_client_id').value = clientId || '';
   document.getElementById('selected_site_id').value = siteId;
   document.getElementById('client_search').value = '';
   document.getElementById('clientResults').classList.remove('show');
   document.getElementById('selectedClientName').textContent = clientName ? '🏢 ' + clientName : '📍 ' + siteName;
-  document.getElementById('selectedSiteName').textContent = clientName ? '📍 ' + siteName + (siteAddress ? ' · ' + siteAddress : '') : (siteAddress || '');
+  const contactLine = contact.contactName ? `👤 ${contact.contactName}${contact.contactEmail ? ' · ' + contact.contactEmail : ''}` : '';
+  document.getElementById('selectedSiteName').innerHTML = (clientName ? '📍 ' + siteName : (siteAddress || '')) + (contactLine ? '<br>' + contactLine : '');
   document.getElementById('selectedClientDisplay').style.display = 'block';
   document.getElementById('client_search').style.display = 'none';
   document.getElementById('siteSelectWrapper').style.display = 'none';
+  // Auto-fill report email: site contact email, fall back to client admin email — editable
+  autofillReportEmail(contact.contactEmail || contact.clientEmail);
   updateConfirmJobBtn();
   checkAndCreateNewJob();
 }
@@ -1057,7 +1127,7 @@ window.clearClientSelection = function() {
 async function loadSitesForClient(clientId) {
   const siteSelect = document.getElementById('site_select');
   const { data: sitesRaw } = await window.sb.from('sites')
-    .select('id, name, address, is_active')
+    .select('id, name, address, is_active, site_contact_name, site_contact_email, site_contact_role')
     .eq('client_id', clientId).order('name');
   const sites = (sitesRaw || []).filter(s => s.is_active !== false);
 
@@ -1068,7 +1138,7 @@ async function loadSitesForClient(clientId) {
 
   siteSelect.innerHTML = '<option value="">No specific site</option>' + sites.map(s => {
     const label = s.address ? `${s.name} — ${s.address}` : s.name;
-    return `<option value="${s.id}" data-name="${esc(s.name)}" data-address="${esc(s.address||'')}">${esc(label)}</option>`;
+    return `<option value="${s.id}" data-name="${esc(s.name)}" data-address="${esc(s.address||'')}" data-contact-name="${esc(s.site_contact_name||'')}" data-contact-email="${esc(s.site_contact_email||'')}" data-contact-role="${esc(s.site_contact_role||'')}">${esc(label)}</option>`;
   }).join('');
   document.getElementById('siteSelectWrapper').style.display = 'block';
 }
@@ -1080,9 +1150,12 @@ function onSiteSelected(siteId) {
     document.getElementById('selected_site_id').value = '';
     document.getElementById('selectedSiteName').textContent = '';
   } else {
-    selectedSiteData = { id: siteId, name: opt.dataset.name, address: opt.dataset.address || '' };
+    selectedSiteData = { id: siteId, name: opt.dataset.name, address: opt.dataset.address || '', contact: { contactName: opt.dataset.contactName, contactEmail: opt.dataset.contactEmail, contactRole: opt.dataset.contactRole } };
     document.getElementById('selected_site_id').value = siteId;
-    document.getElementById('selectedSiteName').textContent = '📍 ' + opt.dataset.name + (opt.dataset.address ? ' · ' + opt.dataset.address : '');
+    const contactLine = opt.dataset.contactName ? `  ·  👤 ${opt.dataset.contactName}` : '';
+    document.getElementById('selectedSiteName').textContent = '📍 ' + opt.dataset.name + (opt.dataset.address ? ' · ' + opt.dataset.address : '') + contactLine;
+    // Auto-fill from site contact, fall back to client admin email
+    autofillReportEmail(opt.dataset.contactEmail || selectedClientData?.contactEmail);
   }
   updateConfirmJobBtn();
 }
@@ -1393,9 +1466,14 @@ async function handleSignoffConfirm(){
 // ── FORM SUBMISSION ───────────────────────────────────────────
 async function handleFormSubmit(e){
   e.preventDefault();
+  // Guard against duplicate submissions
+  if (submissionComplete) {
+    BromarHub.showInfo('This sheet has already been saved. Use "Amend This Sheet" to make changes.');
+    return;
+  }
   const submitBtn=document.getElementById('submitBtn');
   submitBtn.disabled=true;
-  BromarHub.showLoading('Saving job sheet...','Processing your data');
+  BromarHub.showLoading(isAmending ? 'Updating job sheet...' : 'Saving job sheet...','Processing your data');
 
   // Helper: show error, scroll to element, re-enable submit
   const fail = (msg, el) => {
@@ -1437,15 +1515,27 @@ async function handleFormSubmit(e){
     const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normalHours:parseFloat(c.querySelector('.labour-normal').value)||0,overtimeHours:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);
     const materials=Array.from(document.querySelectorAll('[data-material-id]')).map(c=>({name:c.querySelector('.material-name').value.trim(),quantity:parseFloat(c.querySelector('.material-qty').value)||0,unit:c.querySelector('.material-unit').value})).filter(m=>m.name);
     const notes=Array.from(document.querySelectorAll('.note-card')).map(c=>({text:c.querySelector('.note-text').value.trim(),notifyPeople:Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb=>({name:cb.value,email:cb.dataset.email||''}))})).filter(n=>n.text);
-    const{data:jobSheetNumber,error:sheetErr}=await window.sb.rpc('create_job_sheet',{p_job_number:jobNumber,p_sheet_date:document.getElementById('sheet_date').value,p_tasks:tasks,p_labour:labour,p_notes:notes,p_created_by:currentUser.name});
-    if(sheetErr)throw sheetErr;
+    let jobSheetNumber;
+    if (isAmending && currentJobSheetNumber) {
+      // UPDATE the existing sheet instead of creating a new one
+      const { error: updErr } = await window.sb.from('job_sheets').update({
+        sheet_date: document.getElementById('sheet_date').value,
+        tasks, labour, notes, materials
+      }).eq('job_sheet_number', currentJobSheetNumber);
+      if (updErr) throw updErr;
+      jobSheetNumber = currentJobSheetNumber;
+    } else {
+      const{data:newSheetNum,error:sheetErr}=await window.sb.rpc('create_job_sheet',{p_job_number:jobNumber,p_sheet_date:document.getElementById('sheet_date').value,p_tasks:tasks,p_labour:labour,p_notes:notes,p_created_by:currentUser.name});
+      if(sheetErr)throw sheetErr;
+      jobSheetNumber = newSheetNum;
+    }
     currentJobSheetNumber=jobSheetNumber; currentJobNumber=jobNumber;
     // Replace any placeholder in multiDaySelectedSheets with the real sheet number
     multiDaySelectedSheets = multiDaySelectedSheets.map(s =>
       (s === 'Current sheet' || s === document.getElementById('submitSheetNumber')?.textContent) ? jobSheetNumber : s
     );
     if (!multiDaySelectedSheets.includes(jobSheetNumber)) multiDaySelectedSheets.unshift(jobSheetNumber);
-    if(materials.length)await window.sb.from('job_sheets').update({materials}).eq('job_sheet_number',jobSheetNumber);
+    if(materials.length && !isAmending)await window.sb.from('job_sheets').update({materials}).eq('job_sheet_number',jobSheetNumber);
     if(jobIsCompleted)await window.sb.from('job_number_register').update({status:'completed',completed_at:new Date().toISOString()}).eq('job_number',jobNumber);
     const pendingFiles=uploadedFiles.filter(f=>!f.alreadyUploaded);
     if(pendingFiles.length){BromarHub.showLoading('Uploading files...',`${pendingFiles.length} file(s)`);await uploadFilesToSupabase(jobSheetNumber,jobNumber,pendingFiles);}
@@ -1490,23 +1580,63 @@ async function handleFormSubmit(e){
         console.log('[PDF] Generating for sheets:', activeSheets);
         const pdf=await generatePDF(activeSheets);
         await window.sb.storage.from('job-sheet-files').upload(`${jobNumber}/service-reports/${jobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
-        BromarHub.showLoading('Emailing report...',clientEmail);
-        const pdfBase64=pdf.output('datauristring').split(',')[1];
-        console.log('[Email] send-signed-report, pdfBase64_length:',pdfBase64?.length);
-        const emailResponse=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:'(No signature required)',pdfBase64}});
-        console.log('[Email] Response:',emailResponse);
-        BromarHub.hideLoading();
-        if(emailResponse.error)BromarHub.showInfo(`Report saved — email failed: ${emailResponse.error.message}`);
-        else BromarHub.showSuccess(`Report emailed to ${clientEmail}`);
+
+        // When amending, ask before re-sending to the client
+        let doSend = true;
+        if (isAmending) {
+          BromarHub.hideLoading();
+          doSend = confirm(`Re-send the updated service report to ${clientEmail}?\n\nOK = re-send updated report\nCancel = just save changes, don't email`);
+        }
+
+        if (doSend) {
+          BromarHub.showLoading('Emailing report...',clientEmail);
+          const pdfBase64=pdf.output('datauristring').split(',')[1];
+          console.log('[Email] send-signed-report, pdfBase64_length:',pdfBase64?.length);
+          const emailResponse=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:'(No signature required)',pdfBase64}});
+          console.log('[Email] Response:',emailResponse);
+          BromarHub.hideLoading();
+          if(emailResponse.error)BromarHub.showInfo(`Report saved — email failed: ${emailResponse.error.message}`);
+          else BromarHub.showSuccess(`Report emailed to ${clientEmail}`);
+        } else {
+          BromarHub.hideLoading();
+          BromarHub.showSuccess('Changes saved — report not re-sent');
+        }
       }
       document.getElementById('pdfActions').classList.add('show');
-      document.getElementById('pdfActions').scrollIntoView({behavior:'smooth'});
+      showCompletionScreen(jobSheetNumber, true);
     }else{
       BromarHub.hideLoading();
-      BromarHub.showSuccess(`Job sheet saved: ${jobSheetNumber}`);
+      showCompletionScreen(jobSheetNumber, false);
     }
+    submissionComplete = true;
   }catch(err){BromarHub.hideLoading();BromarHub.showInfo('Error: '+err.message);}
   finally{submitBtn.disabled=false;}
+}
+
+// ── COMPLETION SCREEN / LOCKDOWN ──────────────────────────────
+function showCompletionScreen(sheetNumber, hadServiceReport) {
+  // Hide the entire form and submit row
+  document.getElementById('jobSheetForm').style.display = 'none';
+  // Show completion screen
+  const screen = document.getElementById('completionScreen');
+  document.getElementById('completionSheetNumber').textContent = sheetNumber;
+  document.getElementById('completionDetail').textContent = hadServiceReport
+    ? 'Service report generated. Use the buttons below or start a new sheet.'
+    : 'Saved to the job record.';
+  document.getElementById('completionPdfActions').style.display = hadServiceReport ? 'block' : 'none';
+  screen.style.display = 'block';
+  screen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function amendSheet() {
+  if (!confirm('Re-open this job sheet for editing? Saving again will update the existing sheet, not create a new one.')) return;
+  isAmending = true;
+  submissionComplete = false;
+  document.getElementById('completionScreen').style.display = 'none';
+  document.getElementById('jobSheetForm').style.display = 'block';
+  document.getElementById('submitBtn').textContent = 'Update Job Sheet';
+  document.getElementById('jobSheetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  BromarHub.showInfo('Editing ' + currentJobSheetNumber + ' — saving will update this sheet');
 }
 
 // ── FILE UPLOAD ───────────────────────────────────────────────
@@ -1751,7 +1881,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.51`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.55`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
