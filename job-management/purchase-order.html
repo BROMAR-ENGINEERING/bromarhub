@@ -616,10 +616,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.13</div>
+<div class="revision-number">V1.14</div>
 
 <script>
-  const DOC_VERSION = 'V1.13';
+  const DOC_VERSION = 'V1.14';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -651,7 +651,6 @@
     }
 
     setPostJobSectionsVisible(false);
-    addLineItem();
   });
 
   function setPostJobSectionsVisible(visible) {
@@ -831,6 +830,11 @@
     previewedPoNumber = null;
   }
 
+  // ============================================================
+  // MODE TOGGLE
+  // ============================================================
+  let currentMode = 'verbal';
+  const modeButtons = document.querySelectorAll('.mode-toggle-btn');
   const standardSection = document.querySelector('.standard-mode-section');
   const verbalSection = document.querySelector('.verbal-mode-section');
 
@@ -1233,6 +1237,7 @@
   }
 
   addLineBtn.addEventListener('click', addLineItem);
+  addLineItem(); // initial line item
 
   // ============================================================
   // VALIDATION
