@@ -391,11 +391,10 @@
             <div class="autocomplete-results" id="supplierResults"></div>
             <span class="error-msg">Please select a supplier</span>
           </div>
-          <div class="field-group">
-            <label for="supplier_branch">Branch / Location</label>
-            <select id="supplier_branch" name="supplier_branch" disabled>
-              <option value="">Select supplier first…</option>
-            </select>
+          <div class="field-group autocomplete-wrapper" id="group-branch">
+            <label for="branch_search">Branch / Location</label>
+            <input type="text" id="branch_search" placeholder="Select supplier first…" autocomplete="off" disabled/>
+            <div class="autocomplete-results" id="branchResults"></div>
           </div>
         </div>
 
@@ -491,10 +490,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.09</div>
+<div class="revision-number">V1.10</div>
 
 <script>
-  const DOC_VERSION = 'V1.09';
+  const DOC_VERSION = 'V1.10';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -769,16 +768,24 @@
     await loadBranches(s.id);
   }
 
+  const branchSearch = document.getElementById('branch_search');
+  const branchResults = document.getElementById('branchResults');
+  let ALL_BRANCHES = []; // branches for the currently selected supplier
+
   function resetBranchDropdown() {
-    const sel = document.getElementById('supplier_branch');
-    sel.innerHTML = '<option value="">Select supplier first…</option>';
-    sel.disabled = true;
+    ALL_BRANCHES = [];
+    selectedBranch = null;
+    branchSearch.value = '';
+    branchSearch.placeholder = 'Select supplier first…';
+    branchSearch.disabled = true;
+    branchResults.classList.remove('show');
   }
 
   async function loadBranches(supplierId) {
-    const sel = document.getElementById('supplier_branch');
-    sel.innerHTML = '<option value="">Loading branches…</option>';
-    sel.disabled = true;
+    branchSearch.value = '';
+    branchSearch.placeholder = 'Loading branches…';
+    branchSearch.disabled = true;
+    selectedBranch = null;
 
     try {
       const { data, error } = await window.sb
@@ -789,38 +796,106 @@
         .order('branch_name', { ascending: true });
 
       if (error) throw error;
+      ALL_BRANCHES = data || [];
 
-      if (!data || data.length === 0) {
-        sel.innerHTML = '<option value="">No branches listed</option>';
-        sel.disabled = true;
+      if (ALL_BRANCHES.length === 0) {
+        branchSearch.placeholder = 'No branches listed';
+        branchSearch.disabled = true;
         return;
       }
 
-      const opts = ['<option value="">Select a branch…</option>']
-        .concat(data.map(b => {
-          const meta = [b.suburb, b.state].filter(Boolean).join(', ');
-          return `<option value="${b.id}" data-name="${BromarHub.escapeHtml(b.branch_name)}">${BromarHub.escapeHtml(b.branch_name)}${meta ? ' — ' + BromarHub.escapeHtml(meta) : ''}</option>`;
-        }))
-        .join('');
-      sel.innerHTML = opts;
-      sel.disabled = false;
+      branchSearch.placeholder = `Search ${ALL_BRANCHES.length} branches…`;
+      branchSearch.disabled = false;
 
-      // If only one branch, auto-select it
-      if (data.length === 1) {
-        sel.value = data[0].id;
-        selectedBranch = data[0];
+      // Auto-select if only one
+      if (ALL_BRANCHES.length === 1) {
+        pickBranch(ALL_BRANCHES[0]);
+        return;
       }
 
-      sel.onchange = function() {
-        const branchId = this.value;
-        selectedBranch = branchId ? data.find(b => b.id === branchId) : null;
-      };
+      // Apply remembered preference for this user + supplier
+      if (currentUser?.name) {
+        try {
+          const { data: pref } = await window.sb
+            .from('user_supplier_preferences')
+            .select('branch_id')
+            .eq('user_name', currentUser.name)
+            .eq('supplier_id', supplierId)
+            .maybeSingle();
+          if (pref?.branch_id) {
+            const match = ALL_BRANCHES.find(b => b.id === pref.branch_id);
+            if (match) {
+              pickBranch(match);
+              // small hint that it was pre-filled
+              branchSearch.style.borderColor = 'var(--success, #15803d)';
+              setTimeout(() => { branchSearch.style.borderColor = ''; }, 1500);
+            }
+          }
+        } catch (_) { /* no pref, ignore */ }
+      }
     } catch (err) {
       console.error('Branch load failed:', err);
-      sel.innerHTML = '<option value="">Failed to load branches</option>';
-      sel.disabled = true;
+      branchSearch.placeholder = 'Failed to load branches';
+      branchSearch.disabled = true;
     }
   }
+
+  function branchLabel(b) {
+    const meta = [b.suburb, b.state].filter(Boolean).join(', ');
+    return `${b.branch_name}${meta ? ' — ' + meta : ''}`;
+  }
+
+  function pickBranch(b) {
+    selectedBranch = b;
+    branchSearch.value = branchLabel(b);
+    branchResults.classList.remove('show');
+  }
+
+  function renderBranchResults(list) {
+    if (!list.length) {
+      branchResults.innerHTML = `<div class="autocomplete-item" style="cursor:default; color:var(--text-muted); font-style:italic;">No matching branches</div>`;
+      branchResults.classList.add('show');
+      return;
+    }
+    branchResults.innerHTML = list.map(b => `
+      <div class="autocomplete-item" data-branch-id="${b.id}">
+        <div class="autocomplete-item-client">${BromarHub.escapeHtml(b.branch_name)}</div>
+        ${[b.suburb, b.state, b.postcode].filter(Boolean).length
+          ? `<div class="autocomplete-item-site">${BromarHub.escapeHtml([b.suburb, b.state, b.postcode].filter(Boolean).join(' '))}</div>`
+          : ''}
+      </div>
+    `).join('');
+    branchResults.querySelectorAll('.autocomplete-item').forEach(item => {
+      const id = item.dataset.branchId;
+      if (!id) return;
+      item.addEventListener('click', () => {
+        const b = ALL_BRANCHES.find(x => x.id === id);
+        if (b) pickBranch(b);
+      });
+    });
+    branchResults.classList.add('show');
+  }
+
+  branchSearch.addEventListener('input', function() {
+    selectedBranch = null;
+    const q = this.value.trim().toLowerCase();
+    const filtered = !q
+      ? ALL_BRANCHES
+      : ALL_BRANCHES.filter(b =>
+          (b.branch_name || '').toLowerCase().includes(q) ||
+          (b.suburb || '').toLowerCase().includes(q) ||
+          (b.postcode || '').toLowerCase().includes(q)
+        );
+    renderBranchResults(filtered);
+  });
+
+  branchSearch.addEventListener('focus', function() {
+    if (!this.disabled && ALL_BRANCHES.length) renderBranchResults(ALL_BRANCHES);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#group-branch')) branchResults.classList.remove('show');
+  });
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#group-supplier')) {
@@ -1079,6 +1154,17 @@
         .single();
 
       if (insertErr) throw insertErr;
+
+      // Remember this user's branch choice for this supplier
+      if (selectedSupplier?.id && selectedBranch?.id && currentUser?.name) {
+        try {
+          await window.sb.rpc('record_supplier_branch_use', {
+            p_user_name: currentUser.name,
+            p_supplier_id: selectedSupplier.id,
+            p_branch_id: selectedBranch.id
+          });
+        } catch (e) { console.warn('Could not save branch preference:', e); }
+      }
 
       if (currentMode === 'standard') {
         const items = collectLineItems().map(i => ({ ...i, po_id: inserted.id }));
