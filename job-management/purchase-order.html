@@ -490,10 +490,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.10</div>
+<div class="revision-number">V1.11</div>
 
 <script>
-  const DOC_VERSION = 'V1.10';
+  const DOC_VERSION = 'V1.11';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -799,8 +799,8 @@
       ALL_BRANCHES = data || [];
 
       if (ALL_BRANCHES.length === 0) {
-        branchSearch.placeholder = 'No branches listed';
-        branchSearch.disabled = true;
+        branchSearch.placeholder = 'No branches yet — type to add one';
+        branchSearch.disabled = false;
         return;
       }
 
@@ -851,21 +851,40 @@
     branchResults.classList.remove('show');
   }
 
-  function renderBranchResults(list) {
-    if (!list.length) {
-      branchResults.innerHTML = `<div class="autocomplete-item" style="cursor:default; color:var(--text-muted); font-style:italic;">No matching branches</div>`;
-      branchResults.classList.add('show');
-      return;
+  function renderBranchResults(list, typed) {
+    const q = (typed || '').trim();
+    let html = '';
+
+    if (list.length) {
+      html += list.map(b => `
+        <div class="autocomplete-item" data-branch-id="${b.id}">
+          <div class="autocomplete-item-client">${BromarHub.escapeHtml(b.branch_name)}</div>
+          ${[b.suburb, b.state, b.postcode].filter(Boolean).length
+            ? `<div class="autocomplete-item-site">${BromarHub.escapeHtml([b.suburb, b.state, b.postcode].filter(Boolean).join(' '))}</div>`
+            : ''}
+        </div>
+      `).join('');
+    } else {
+      html += `<div class="autocomplete-item" style="cursor:default; color:var(--text-muted); font-style:italic;">No matching branches</div>`;
     }
-    branchResults.innerHTML = list.map(b => `
-      <div class="autocomplete-item" data-branch-id="${b.id}">
-        <div class="autocomplete-item-client">${BromarHub.escapeHtml(b.branch_name)}</div>
-        ${[b.suburb, b.state, b.postcode].filter(Boolean).length
-          ? `<div class="autocomplete-item-site">${BromarHub.escapeHtml([b.suburb, b.state, b.postcode].filter(Boolean).join(' '))}</div>`
-          : ''}
-      </div>
-    `).join('');
+
+    // "Add new branch" option — shown when something is typed that isn't an exact match
+    const exactMatch = q && ALL_BRANCHES.some(b => b.branch_name.toLowerCase() === q.toLowerCase());
+    if (q && !exactMatch && selectedSupplier) {
+      html += `
+        <div class="autocomplete-item" data-add-branch="1" style="border-top:1px solid var(--input-border); background:var(--brand-orange-soft);">
+          <div class="autocomplete-item-client" style="color:var(--brand-orange); font-weight:700;">+ Add "${BromarHub.escapeHtml(q)}" as a new branch</div>
+          <div class="autocomplete-item-site">Saves to ${BromarHub.escapeHtml(selectedSupplier.name)} for everyone</div>
+        </div>`;
+    }
+
+    branchResults.innerHTML = html;
+
     branchResults.querySelectorAll('.autocomplete-item').forEach(item => {
+      if (item.dataset.addBranch) {
+        item.addEventListener('click', () => addNewBranch(q));
+        return;
+      }
       const id = item.dataset.branchId;
       if (!id) return;
       item.addEventListener('click', () => {
@@ -876,9 +895,37 @@
     branchResults.classList.add('show');
   }
 
+  async function addNewBranch(name) {
+    if (!selectedSupplier?.id || !name.trim()) return;
+    const branchName = name.trim();
+    BromarHub.showLoading('Adding branch…', branchName);
+    try {
+      const { data, error } = await window.sb
+        .from('supplier_branches')
+        .insert({ supplier_id: selectedSupplier.id, branch_name: branchName, is_active: true })
+        .select('id, branch_name, suburb, state, postcode, address, phone, email')
+        .single();
+      if (error) throw error;
+      ALL_BRANCHES.push(data);
+      ALL_BRANCHES.sort((a, b) => a.branch_name.localeCompare(b.branch_name));
+      BromarHub.hideLoading();
+      pickBranch(data);
+      BromarHub.showSuccess(`Branch "${branchName}" added to ${selectedSupplier.name}.`);
+    } catch (err) {
+      BromarHub.hideLoading();
+      // If it already exists (unique violation), just pick it
+      if (String(err.message || '').includes('duplicate')) {
+        const existing = ALL_BRANCHES.find(b => b.branch_name.toLowerCase() === branchName.toLowerCase());
+        if (existing) { pickBranch(existing); return; }
+      }
+      BromarHub.showInfo('Could not add branch: ' + err.message);
+    }
+  }
+
   branchSearch.addEventListener('input', function() {
     selectedBranch = null;
-    const q = this.value.trim().toLowerCase();
+    const raw = this.value.trim();
+    const q = raw.toLowerCase();
     const filtered = !q
       ? ALL_BRANCHES
       : ALL_BRANCHES.filter(b =>
@@ -886,11 +933,11 @@
           (b.suburb || '').toLowerCase().includes(q) ||
           (b.postcode || '').toLowerCase().includes(q)
         );
-    renderBranchResults(filtered);
+    renderBranchResults(filtered, raw);
   });
 
   branchSearch.addEventListener('focus', function() {
-    if (!this.disabled && ALL_BRANCHES.length) renderBranchResults(ALL_BRANCHES);
+    if (!this.disabled) renderBranchResults(ALL_BRANCHES, this.value.trim());
   });
 
   document.addEventListener('click', (e) => {
@@ -1128,7 +1175,7 @@
         supplier: supplierName,
         supplier_id: selectedSupplier?.id || null,
         supplier_branch_id: selectedBranch?.id || null,
-        supplier_branch: selectedBranch?.branch_name || null,
+        supplier_branch: selectedBranch?.branch_name || (branchSearch.value.trim() || null),
         general_notes: document.getElementById('general_notes').value.trim() || null,
         revision: DOC_VERSION,
         status: 'submitted'
