@@ -317,7 +317,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.50</div>
+<div class="revision-number">V1.51</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1111,6 +1111,7 @@ async function createNewJobNow(prefix, clientId, siteId, jobTypeLabel) {
       p_prefix:    prefix,
       p_client_id: clientId,
       p_site_id:   siteId,
+      p_job_type:  jobTypeLabel || null,
       p_contact_person: null,
       p_contact_phone:  null,
       p_contact_role:   null
@@ -1750,7 +1751,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.50`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.51`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
