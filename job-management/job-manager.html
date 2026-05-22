@@ -274,6 +274,22 @@
   .sign-canvas-wrap { border: 1px solid var(--border); border-radius: 8px; background: white; padding: 0.5rem; }
   .sign-canvas { width: 100%; height: 160px; border: 1px dashed var(--border); border-radius: 6px; cursor: crosshair; touch-action: none; background: white; }
 
+  /* ── MOBILE LABOUR CARDS ──────────────────────────────── */
+  .labour-cards { display: none; flex-direction: column; gap: 0.625rem; }
+  .labour-card {
+    background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.875rem 1rem;
+  }
+  .labour-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .labour-card-name { font-weight: 700; font-size: 0.95rem; }
+  .labour-card-date { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; }
+  .labour-card-hours { display: flex; gap: 1.25rem; }
+  .labour-hr-block { display: flex; flex-direction: column; }
+  .labour-hr-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 700; }
+  .labour-hr-value { font-size: 1.05rem; font-weight: 700; }
+  .labour-hr-value.accent { color: var(--accent); }
+  .labour-card-sheet { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; }
+
   @media (max-width: 900px) {
     .page-wrapper, .page-wrapper.has-sidebar { grid-template-columns: 1fr; padding: 0 1rem 2rem; }
     .sidebar-toggle { display: inline-flex; }
@@ -291,6 +307,8 @@
     .swms-actions { justify-content: flex-start; }
     .signer-row-card { grid-template-columns: 50px 1fr; }
     .signer-row-card .signer-row-meta-col { grid-column: 2; }
+    .labour-table-wrap { display: none; }
+    .labour-cards { display: flex; }
   }
 </style>
 </head>
@@ -374,7 +392,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — JOB MANAGER</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.04</div>
+      <div class="card-footer-version">Version V1.05</div>
     </div>
 
   </main>
@@ -439,6 +457,15 @@ const statusBadge = s => `<span class="job-status status-${s || 'active'}">${(s 
 
 const sb = () => window.sb;
 
+const PREFIX_CATEGORY = { BE:'Electrical', BC:'Construction', BA:'Automation', BS:'Service', BM:'Maintenance' };
+function jobTypeDisplay(job) {
+  const cat = PREFIX_CATEGORY[job.prefix] || '';
+  // work_type is the specific category (e.g. "General Construction"); fall back to prefix category
+  if (job.work_type) return `${esc(job.work_type)}${cat ? ` <span style="color:var(--text-secondary);font-weight:400;">· ${cat} (${esc(job.prefix)})</span>` : ''}`;
+  if (cat) return `${cat} <span style="color:var(--text-secondary);font-weight:400;">(${esc(job.prefix)})</span>`;
+  return '—';
+}
+
 /* ── CURRENT USER (for audit log) ────────────────────────── */
 let currentUser = null;
 async function ensureCurrentUser() {
@@ -475,7 +502,7 @@ async function loadJobs() {
 
   const { data, error } = await sb()
     .from('job_number_register')
-    .select('job_number, prefix, client_name, site_name, site_address, contact_person, contact_phone, status, job_type, created_at, completed_at, notes')
+    .select('job_number, prefix, client_name, site_name, site_address, contact_person, contact_phone, status, job_type, work_type, created_at, completed_at, notes')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -682,7 +709,7 @@ function renderOverview(job, d) {
             <tr><th>Site</th><td>${esc(job.site_name || '—')}</td></tr>
             <tr><th>Site Address</th><td>${esc(job.site_address || '—')}</td></tr>
             <tr><th>Contact</th><td>${esc(job.contact_person || '—')} ${job.contact_phone ? '· ' + esc(job.contact_phone) : ''}</td></tr>
-            <tr><th>Job Type</th><td>${esc((job.job_type || '—').replace('_', ' '))}</td></tr>
+            <tr><th>Job Type</th><td>${jobTypeDisplay(job)}</td></tr>
             <tr><th>Opened</th><td>${fmtDate(job.created_at)}</td></tr>
             <tr><th>Completed</th><td>${fmtDate(job.completed_at)}</td></tr>
             ${job.notes ? `<tr><th>Notes</th><td>${esc(job.notes)}</td></tr>` : ''}
@@ -704,7 +731,10 @@ function tableShell(title, addLabel, headers, rowsHtml, emptyText) {
     </div>`;
 }
 function renderLabour(rows) {
-  const html = rows.map(l => {
+  if (!rows.length) {
+    return `<div class="tool-card"><div class="tool-card-header"><div class="tool-card-title">Labour</div><div class="tool-card-actions"><button class="btn-add" data-label="Add entry">+ Add entry</button></div></div><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No labour recorded for this job</div></div></div>`;
+  }
+  const tableRows = rows.map(l => {
     const normal = Number(l.normalHours) || 0;
     const ot = Number(l.overtimeHours) || 0;
     return `<tr>
@@ -716,7 +746,37 @@ function renderLabour(rows) {
       <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(l._sheet)}</span></td>
     </tr>`;
   }).join('');
-  return tableShell('Labour', 'Add entry', ['Date','Employee','Normal','OT','Total','Sheet'], html, 'No labour recorded for this job');
+
+  const cards = rows.map(l => {
+    const normal = Number(l.normalHours) || 0;
+    const ot = Number(l.overtimeHours) || 0;
+    return `<div class="labour-card">
+      <div class="labour-card-top">
+        <div class="labour-card-name">${esc(l.employee || '—')}</div>
+        <div class="labour-card-date">${fmtDate(l._sheet_date)}</div>
+      </div>
+      <div class="labour-card-hours">
+        <div class="labour-hr-block"><span class="labour-hr-label">Normal</span><span class="labour-hr-value">${normal}</span></div>
+        <div class="labour-hr-block"><span class="labour-hr-label">OT</span><span class="labour-hr-value">${ot}</span></div>
+        <div class="labour-hr-block"><span class="labour-hr-label">Total</span><span class="labour-hr-value accent">${normal + ot}</span></div>
+      </div>
+      <div class="labour-card-sheet">${esc(l._sheet)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="tool-card">
+    <div class="tool-card-header">
+      <div class="tool-card-title">Labour</div>
+      <div class="tool-card-actions"><button class="btn-add" data-label="Add entry">+ Add entry</button></div>
+    </div>
+    <div class="labour-table-wrap data-table-wrapper">
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Employee</th><th style="text-align:right;">Normal</th><th style="text-align:right;">OT</th><th style="text-align:right;">Total</th><th>Sheet</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="labour-cards">${cards}</div>
+  </div>`;
 }
 function renderMaterials(rows) {
   const html = rows.map(m => `<tr><td>${fmtDate(m._sheet_date)}</td><td>${esc(m.description || m.item || m.name || '—')}</td><td>${m.qty ?? m.quantity ?? '—'}</td><td>${esc(m.supplier || m.unit || '—')}</td><td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(m._sheet)}</span></td></tr>`).join('');
