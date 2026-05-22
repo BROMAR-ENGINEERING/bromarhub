@@ -616,10 +616,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.12</div>
+<div class="revision-number">V1.13</div>
 
 <script>
-  const DOC_VERSION = 'V1.12';
+  const DOC_VERSION = 'V1.13';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -876,10 +876,9 @@
   async function searchSuppliers(query) {
     try {
       let q = window.sb.from('suppliers')
-        .select('id, name, category')
-        .eq('is_active', true)
+        .select('id, name, category, is_active')
         .order('name', { ascending: true })
-        .limit(15);
+        .limit(20);
 
       if (query && query.trim().length > 0) {
         q = q.ilike('name', `%${query.trim()}%`);
@@ -888,9 +887,12 @@
       const { data, error } = await q;
       if (error) throw error;
 
-      if (data?.length > 0) {
-        supplierResults.innerHTML = data.map(s => `
-          <div class="autocomplete-item" data-supplier='${JSON.stringify(s).replace(/'/g, "&#39;")}'>
+      // Filter out only those explicitly marked inactive (keep null/true)
+      const rows = (data || []).filter(s => s.is_active !== false);
+
+      if (rows.length > 0) {
+        supplierResults.innerHTML = rows.map(s => `
+          <div class="autocomplete-item" data-supplier='${JSON.stringify({id: s.id, name: s.name, category: s.category}).replace(/'/g, "&#39;")}'>
             <div class="autocomplete-item-client">${BromarHub.escapeHtml(s.name)}</div>
             ${s.category ? `<div class="autocomplete-item-site">${BromarHub.escapeHtml(s.category)}</div>` : ''}
           </div>
@@ -907,6 +909,8 @@
       }
     } catch (err) {
       console.error('Supplier search failed:', err);
+      supplierResults.innerHTML = `<div class="autocomplete-item" style="cursor:default; color:var(--error); font-style:italic;">Search error: ${BromarHub.escapeHtml(err.message || String(err))}</div>`;
+      supplierResults.classList.add('show');
     }
   }
 
@@ -940,13 +944,12 @@
     try {
       const { data, error } = await window.sb
         .from('supplier_branches')
-        .select('id, branch_name, suburb, state, postcode, address, phone, email')
+        .select('id, branch_name, suburb, state, postcode, address, phone, email, is_active')
         .eq('supplier_id', supplierId)
-        .eq('is_active', true)
         .order('branch_name', { ascending: true });
 
       if (error) throw error;
-      ALL_BRANCHES = data || [];
+      ALL_BRANCHES = (data || []).filter(b => b.is_active !== false);
 
       if (ALL_BRANCHES.length === 0) {
         branchSearch.placeholder = 'No branches yet — type to add one';
