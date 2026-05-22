@@ -339,7 +339,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.59</div>
+<div class="revision-number">V1.60</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1559,7 +1559,21 @@ async function handleFormSubmit(e){
       if (sheetsToMark.length) {
         await window.sb.from('job_sheets').update({service_report_used_in: jobSheetNumber}).in('job_sheet_number', sheetsToMark);
       }
-      if(signoffMethod==='in_person'){BromarHub.hideLoading();await openSignoffModal(jobSheetNumber,jobNumber,clientEmail);return;}
+
+      // ── ALWAYS generate + store the PDF in the bucket ──
+      // (regardless of signoff method, so Job Manager always has a copy)
+      BromarHub.showLoading('Generating service report PDF...','Building report');
+      const activeSheets = getActiveSheetNumbers();
+      console.log('[PDF] Generating for sheets:', activeSheets);
+      const reportPdf = await generatePDF(activeSheets);
+      const reportPath = `${jobNumber}/service-reports/${jobSheetNumber}.pdf`;
+      await window.sb.storage.from('job-sheet-files').upload(reportPath, reportPdf.output('blob'), { contentType:'application/pdf', upsert:true });
+      console.log('[PDF] Stored at', reportPath);
+      // Record path + flag on the sheet so Job Manager can find it
+      await window.sb.from('job_sheets').update({ service_report_path: reportPath, service_report_generated_at: new Date().toISOString() }).eq('job_sheet_number', jobSheetNumber);
+      BromarHub.hideLoading();
+
+      if(signoffMethod==='in_person'){await openSignoffModal(jobSheetNumber,jobNumber,clientEmail);return;}
       if(signoffMethod==='remote'){
         BromarHub.showLoading('Generating signing link...','Please wait');
         const{data:token,error:tokenErr}=await window.sb.rpc('generate_signing_token',{p_job_sheet_number:jobSheetNumber,p_recipient_email:clientEmail,p_expires_days:30});
@@ -1573,22 +1587,15 @@ async function handleFormSubmit(e){
         else BromarHub.showSuccess(`Signing link sent to ${clientEmail}`);
       }
       if(signoffMethod==='none'){
-        BromarHub.showLoading('Generating PDF...','Building report');
-        const activeSheets = getActiveSheetNumbers();
-        console.log('[PDF] Generating for sheets:', activeSheets);
-        const pdf=await generatePDF(activeSheets);
-        await window.sb.storage.from('job-sheet-files').upload(`${jobNumber}/service-reports/${jobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
-
-        // When amending, ask before re-sending to the client
+        // PDF already generated + stored above — just handle emailing
         let doSend = true;
         if (isAmending) {
-          BromarHub.hideLoading();
           doSend = confirm(`Re-send the updated service report to ${clientEmail}?\n\nOK = re-send updated report\nCancel = just save changes, don't email`);
         }
 
         if (doSend) {
           BromarHub.showLoading('Emailing report...',clientEmail);
-          const pdfBase64=pdf.output('datauristring').split(',')[1];
+          const pdfBase64=reportPdf.output('datauristring').split(',')[1];
           console.log('[Email] send-signed-report, pdfBase64_length:',pdfBase64?.length);
           const emailResponse=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:'(No signature required)',pdfBase64}});
           console.log('[Email] Response:',emailResponse);
@@ -1882,7 +1889,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.59`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.60`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
