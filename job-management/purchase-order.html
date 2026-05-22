@@ -9,6 +9,31 @@
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
   <style>
+    /* Map page tokens to shared bromar-hub.css tokens */
+    :root {
+      --brand-orange: var(--accent, #ea580c);
+      --brand-orange-soft: rgba(234, 88, 12, 0.10);
+      --brand-primary: var(--accent, #ea580c);
+      --brand-white: var(--bg-secondary, #fafafa);
+      --input-bg: var(--bg-secondary, #fafafa);
+      --input-border: var(--border, rgba(0,0,0,0.09));
+      --text-muted: var(--text-secondary, #636369);
+      --text-faded: var(--text-secondary, #636369);
+      --brand-light: rgba(234, 88, 12, 0.06);
+      --row-bg: var(--bg-main, #f2f2f4);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --card-shadow: 0 4px 12px var(--shadow, rgba(0,0,0,0.06));
+      --success-bg: #d1fae5;
+      --divider: var(--border, rgba(0,0,0,0.09));
+      --error: #dc2626;
+    }
+    [data-theme="dark"] {
+      --brand-orange-soft: rgba(251, 146, 60, 0.14);
+      --brand-light: rgba(251, 146, 60, 0.08);
+      --success-bg: #064e3b;
+    }
+
     .po-number-float {
       display: none;
       position: fixed;
@@ -150,7 +175,7 @@
 
     .mode-toggle {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       background: var(--input-bg);
       border: 2px solid var(--input-border);
       border-radius: 12px;
@@ -160,22 +185,26 @@
     .mode-toggle-btn {
       flex: 1;
       padding: 16px 16px;
-      border: 2px solid transparent;
-      background: transparent;
+      border: 2px solid var(--input-border);
+      background: var(--brand-white, #fff);
       color: var(--text-muted);
       font-family: 'DM Sans', sans-serif;
       font-size: 1rem;
       font-weight: 700;
       cursor: pointer;
       border-radius: 8px;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
-    .mode-toggle-btn:hover { color: var(--text-primary); }
+    .mode-toggle-btn:hover {
+      color: var(--brand-orange);
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
+    }
     .mode-toggle-btn.active {
       background: var(--brand-orange);
-      color: white;
-      box-shadow: 0 4px 14px rgba(194, 68, 14, 0.4);
-      transform: scale(1.02);
+      color: #fff;
+      border-color: var(--brand-orange);
+      transform: scale(1.03);
     }
     .mode-active-label {
       text-align: center;
@@ -211,7 +240,8 @@
       transition: background 0.15s;
     }
     .autocomplete-item:last-child { border-bottom: none; }
-    .autocomplete-item:hover { background: var(--card-hover, var(--brand-light)); }
+    .autocomplete-item:hover { background: var(--brand-orange-soft); }
+    .autocomplete-item:hover .autocomplete-item-client { color: var(--brand-orange); }
     .autocomplete-item-number {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
@@ -648,10 +678,10 @@
   </div>
 </div>
 
-<div class="revision-number">V1.15</div>
+<div class="revision-number">V1.16</div>
 
 <script>
-  const DOC_VERSION = 'V1.15';
+  const DOC_VERSION = 'V1.16';
 
   let currentUser = null;
   let EMPLOYEES = [];
