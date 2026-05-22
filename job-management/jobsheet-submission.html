@@ -325,7 +325,7 @@
       </div>
     </div>
 
-    <div class="form-footer">
+    <div class="form-footer" id="formFooter">
       <div class="footer-disclaimer">
         <p><em>💡 To view past jobsheet submissions or prepare multi-day service reports, use the <a href="../job-management/index.html" style="color:var(--accent); text-decoration:none;">Job Manager</a>.</em></p>
       </div>
@@ -339,7 +339,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.58</div>
+<div class="revision-number">V1.59</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1600,7 +1600,6 @@ async function handleFormSubmit(e){
           BromarHub.showSuccess('Changes saved — report not re-sent');
         }
       }
-      document.getElementById('pdfActions').classList.add('show');
       showCompletionScreen(jobSheetNumber, true);
     }else{
       BromarHub.hideLoading();
@@ -1613,8 +1612,10 @@ async function handleFormSubmit(e){
 
 // ── COMPLETION SCREEN / LOCKDOWN ──────────────────────────────
 function showCompletionScreen(sheetNumber, hadServiceReport) {
-  // Hide the entire form and submit row
+  // Hide the entire form and the footer disclaimer
   document.getElementById('jobSheetForm').style.display = 'none';
+  const footer = document.querySelector('.footer-disclaimer');
+  if (footer) footer.style.display = 'none';
   // Show completion screen
   const screen = document.getElementById('completionScreen');
   document.getElementById('completionSheetNumber').textContent = sheetNumber;
@@ -1632,6 +1633,8 @@ function amendSheet() {
   submissionComplete = false;
   document.getElementById('completionScreen').style.display = 'none';
   document.getElementById('jobSheetForm').style.display = 'block';
+  const footer = document.querySelector('.footer-disclaimer');
+  if (footer) footer.style.display = '';
   document.getElementById('submitBtn').textContent = 'Update Job Sheet';
   document.getElementById('jobSheetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   BromarHub.showInfo('Editing ' + currentJobSheetNumber + ' — saving will update this sheet');
@@ -1879,7 +1882,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.58`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.59`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
