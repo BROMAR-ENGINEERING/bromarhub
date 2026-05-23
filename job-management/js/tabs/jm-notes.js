@@ -10,23 +10,26 @@
     render(panel, d, job) {
       const rows = d.notes;
 
-      /* ── table body ── */
-      const body = rows.map((n, idx) => {
+      /* ── note cards ── */
+      const cards = rows.map((n, idx) => {
         const notified = (n.notifyPeople || []).map(p => typeof p === 'string' ? p : p.name).filter(Boolean);
         const notifyHtml = notified.length
-          ? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${notified.map(name =>
+          ? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;">${notified.map(name =>
               `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:var(--card-hover);border:1px solid var(--accent);border-radius:12px;font-size:0.7rem;font-weight:600;color:var(--accent);">🔔 ${esc(name)}</span>`
             ).join('')}</div>`
           : '';
-        return `<tr>
-          <td style="white-space:nowrap;">${fmtDate(n._sheet_date)}</td>
-          <td style="white-space:nowrap;">${esc(n.author || n.created_by || '—')}</td>
-          <td>
-            <div>${esc(n.note || n.text || n.content || '—')}</div>
-            ${notifyHtml}
-          </td>
-          <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);">${esc(n._sheet)}</span></td>
-        </tr>`;
+        return `<div style="background:var(--bg-main); border:1px solid var(--border); border-radius:12px; padding:1rem; transition:border-color 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">${esc(n.author || n.created_by || '—')}</span>
+              <span style="font-size:0.78rem; color:var(--text-secondary);">·</span>
+              <span style="font-size:0.8rem; color:var(--text-secondary);">${fmtDate(n._sheet_date)}</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--text-secondary); background:var(--bg-secondary); padding:2px 8px; border-radius:6px; border:1px solid var(--border);">${esc(n._sheet)}</span>
+          </div>
+          <div style="font-size:0.9rem; color:var(--text-primary); line-height:1.6; white-space:pre-wrap;">${esc(n.note || n.text || n.content || '—')}</div>
+          ${notifyHtml}
+        </div>`;
       }).join('');
 
       panel.innerHTML = `
@@ -36,7 +39,7 @@
             <div class="tool-card-actions"><button class="btn-add" id="notesAddBtn">+ Add Note</button></div>
           </div>
           ${rows.length
-            ? `<div class="data-table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Author</th><th>Note</th><th>Sheet</th></tr></thead><tbody>${body}</tbody></table></div>`
+            ? `<div style="display:flex; flex-direction:column; gap:8px;">${cards}</div>`
             : `<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No notes yet</div></div>`}
         </div>
 
@@ -56,7 +59,7 @@
               </div>
               <div>
                 <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Notify Staff <span style="font-weight:400; color:var(--text-secondary);">(optional — select who should be notified)</span></label>
-                <div id="noteModalEmployees" style="max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; background:var(--bg-main); padding:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+                <div id="noteModalEmployees" style="max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; background:var(--bg-main); padding:6px; display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:4px;">
                   <div style="padding:0.75rem; color:var(--text-secondary); font-size:0.85rem; grid-column:1/-1;">Loading employees...</div>
                 </div>
                 <div id="noteModalSelected" style="margin-top:6px; font-size:0.75rem; color:var(--text-secondary);"></div>
