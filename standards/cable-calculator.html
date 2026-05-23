@@ -9,27 +9,10 @@
   <link rel="stylesheet" href="/tools/bromar-hub.css"/>
   <script src="/tools/bromar-hub.js" defer></script>
   <style>
-    /* ── REMAP SHARED TOKENS TO CALCULATOR VARIABLES ─────────── */
-    :root {
-      --brand-white:   var(--bg-secondary);
-      --brand-light:   var(--card-hover);
-      --brand-primary: #1a56db;
-      --brand-secondary: #0e9f6e;
-      --brand-accent:  #ff6b35;
-      --brand-orange:  var(--accent);
-      --brand-orange-soft: rgba(234,88,12,0.08);
-      --input-bg:      var(--bg-secondary);
-      --input-bg-focus:var(--bg-secondary);
-      --input-border:  var(--border);
-      --input-focus:   var(--accent);
-      --text-primary:  var(--text-primary);
-      --text-secondary:var(--text-secondary);
-      --text-muted:    var(--text-secondary);
-      --divider:       var(--border);
-      --card-shadow:   0 4px 12px var(--shadow);
-      --radius:        16px;
-      --radius-sm:     10px;
-    }
+    /* ── CALCULATOR PAGE STYLES ────────────────────────────── */
+    /* Works on top of bromar-hub.css tokens:
+       --bg-main, --bg-secondary, --text-primary, --text-secondary,
+       --accent, --accent-light, --border, --shadow, --card-hover     */
 
     /* ── PAGE LAYOUT ───────────────────────────────────────── */
     body { padding-bottom: 80px; }
@@ -49,10 +32,10 @@
     /* ── HEADER CARD ───────────────────────────────────────── */
     .header-card {
       background: var(--bg-secondary);
-      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid var(--border);
+      border-radius: 16px 16px 0 0;
       padding: 32px 40px 24px;
       text-align: center;
-      border-bottom: 1px solid var(--border);
       position: relative;
       overflow: hidden;
     }
@@ -64,16 +47,19 @@
       font-family: 'Outfit', sans-serif;
       font-size: 2rem; font-weight: 700;
       letter-spacing: -0.02em;
-      color: var(--text-primary); margin-bottom: 6px;
+      color: var(--text-primary); margin-bottom: 8px;
     }
-    .header-subtitle { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; max-width: 600px; margin: 0 auto; }
+    .header-subtitle {
+      font-size: 0.88rem; color: var(--text-secondary);
+      line-height: 1.6; max-width: 600px; margin: 0 auto;
+    }
 
     /* ── FORM CARD ─────────────────────────────────────────── */
     .form-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-top: none;
-      border-radius: 0 0 var(--radius) var(--radius);
+      border-radius: 0 0 16px 16px;
       padding: 0 0 32px;
       box-shadow: 0 4px 12px var(--shadow);
     }
@@ -119,21 +105,21 @@
     .calc-input {
       padding: 9px 12px;
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: 10px;
       font-family: 'Outfit', sans-serif;
       font-size: 0.93rem;
       color: var(--text-primary);
-      background: var(--bg-secondary);
+      background: var(--bg-main);
       transition: all 0.2s;
       outline: none;
       min-width: 0;
     }
     .calc-select:focus, .calc-input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
     }
     .calc-select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
       padding-right: 32px;
@@ -143,15 +129,15 @@
 
     .input-with-unit { display: flex; align-items: center; }
     .input-with-unit .calc-input {
-      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      border-radius: 10px 0 0 10px;
       border-right: none;
       width: 80px; text-align: right;
     }
     .input-unit {
       padding: 9px 12px;
       border: 1px solid var(--border);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      background: var(--bg-main);
+      border-radius: 0 10px 10px 0;
+      background: var(--bg-secondary);
       font-size: 0.88rem; color: var(--text-secondary);
       white-space: nowrap;
     }
@@ -174,6 +160,7 @@
       height: 20px; width: 20px;
       left: 3px; bottom: 3px;
       background: white; transition: 0.3s; border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     }
     .toggle-switch input:checked + .slider { background: var(--accent); }
     .toggle-switch input:checked + .slider:before { transform: translateX(24px); }
@@ -182,7 +169,8 @@
     .advanced-panel {
       display: none;
       background: var(--bg-main);
-      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 16px 20px; margin: 12px 0 0;
     }
     .advanced-panel.show { display: block; }
@@ -205,14 +193,14 @@
     /* ── INFO MODAL ────────────────────────────────────────── */
     .info-modal-overlay {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5); z-index: 3000;
+      background: rgba(0,0,0,0.55); z-index: 3000;
       align-items: center; justify-content: center; padding: 24px;
     }
     .info-modal-overlay.show { display: flex; }
     .info-modal-box {
-      background: var(--bg-secondary); border-radius: var(--radius);
+      background: var(--bg-secondary); border-radius: 16px;
       width: 100%; max-width: 480px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
       overflow: hidden; animation: infoFadeIn 0.2s ease;
       border: 1px solid var(--border);
     }
@@ -233,7 +221,7 @@
     .info-modal-body ul { margin: 6px 0 10px 18px; }
     .info-modal-body ul li { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 4px; }
     .info-modal-body table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    .info-modal-body table th { background: var(--bg-main); padding: 7px 10px; font-size: 0.8rem; font-weight: 700; text-align: left; border: 1px solid var(--border); }
+    .info-modal-body table th { background: var(--bg-main); padding: 7px 10px; font-size: 0.8rem; font-weight: 700; text-align: left; border: 1px solid var(--border); color: var(--text-primary); }
     .info-modal-body table td { padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
 
     /* ── INSTALLATION PICKER ───────────────────────────────── */
@@ -241,8 +229,8 @@
       display: flex; align-items: center; gap: 12px;
       padding: 10px 14px;
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--bg-secondary);
+      border-radius: 10px;
+      background: var(--bg-main);
       cursor: pointer; transition: all 0.2s;
       width: 100%; text-align: left;
       font-family: 'Outfit', sans-serif;
@@ -252,82 +240,83 @@
     .install-display .chevron { margin-left: auto; color: var(--text-secondary); }
 
     /* ── INSTALL MODAL ─────────────────────────────────────── */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 2000; overflow-y: auto; padding: 20px; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto; padding: 20px; }
     #installModal { align-items: flex-start; justify-content: center; }
-    .modal-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 560px; margin: auto; overflow: hidden; }
-    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .modal-header h2 { font-size: 1.2rem; font-weight: 700; }
+    .modal-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 560px; margin: auto; overflow: hidden; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); }
+    .modal-header h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
     .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-secondary); padding: 0 4px; }
     .modal-body { max-height: 70vh; overflow-y: auto; }
     .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); background: var(--bg-main); }
     .install-option { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
     .install-option:last-child { border-bottom: none; }
-    .install-option:hover { background: var(--bg-main); }
-    .install-option.selected { background: rgba(234,88,12,0.08); }
-    .install-option-text h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; }
+    .install-option:hover { background: var(--card-hover); }
+    .install-option.selected { background: var(--card-hover); border-left: 3px solid var(--accent); }
+    .install-option-text h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; color: var(--text-primary); }
     .install-option-text p { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
 
     /* ── RESULTS ───────────────────────────────────────────── */
     .results-section { display: none; padding: 24px 40px; border-top: 2px solid var(--border); margin-top: 24px; }
     .results-section.show { display: block; }
 
-    .load-summary { background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 20px; margin-bottom: 16px; font-size: 0.95rem; font-weight: 500; }
+    .load-summary { background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; font-size: 0.95rem; font-weight: 500; color: var(--text-primary); }
     .load-summary strong { font-weight: 700; }
     .load-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
 
-    .results-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: 0.9rem; margin-bottom: 12px; }
+    .results-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 0.9rem; margin-bottom: 12px; }
     .results-table thead tr { background: var(--bg-main); border-bottom: 2px solid var(--border); }
     .results-table th { padding: 10px 12px; font-size: 0.75rem; font-weight: 700; text-align: center; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
-    .results-table td { padding: 11px 12px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-primary); font-size: 0.95rem; }
+    .results-table td { padding: 11px 12px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-primary); font-size: 0.95rem; background: var(--bg-secondary); }
     .results-table tbody tr:last-child td { border-bottom: none; }
     .results-table tbody tr { cursor: pointer; transition: background 0.15s; }
-    .results-table tbody tr:hover { background: var(--bg-main); }
-    .results-table tbody tr.selected-row { background: rgba(14,159,110,0.12); }
-    .results-table tbody tr.selected-row td { font-weight: 600; }
+    .results-table tbody tr:hover td { background: var(--card-hover); }
+    .results-table tbody tr.selected-row td { background: rgba(14,159,110,0.15); font-weight: 600; }
 
     .td-select { width: 36px; }
     .radio-dot { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 50%; display: inline-block; vertical-align: middle; position: relative; cursor: pointer; }
-    .radio-dot.checked { border-color: var(--accent); background: var(--bg-secondary); }
+    .radio-dot.checked { border-color: var(--accent); }
     .radio-dot.checked::after { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
 
-    .cell-red { background: var(--error-bg); color: var(--error); }
-    .cell-green { background: var(--success-bg); color: var(--success); }
+    .cell-red { background: rgba(220,38,38,0.15) !important; color: #f87171; }
+    .cell-green { background: rgba(21,128,61,0.15) !important; color: #4ade80; }
+    [data-theme="dark"] .cell-red { background: rgba(220,38,38,0.2) !important; color: #fca5a5; }
+    [data-theme="dark"] .cell-green { background: rgba(21,128,61,0.2) !important; color: #86efac; }
 
-    .btn-show-more { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-main); color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
+    .btn-show-more { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-main); color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
     .btn-show-more:hover { border-color: var(--accent); color: var(--accent); }
 
-    .cable-summary { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 20px; }
-    .cable-summary-title { font-weight: 700; font-size: 1rem; margin-bottom: 12px; }
-    .cable-summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+    .cable-summary { background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+    .cable-summary-title { font-weight: 700; font-size: 1rem; margin-bottom: 12px; color: var(--text-primary); }
+    .cable-summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.92rem; color: var(--text-secondary); }
     .cable-summary-row:last-child { border-bottom: none; }
-    .cable-summary-val { font-weight: 600; }
+    .cable-summary-val { font-weight: 600; color: var(--text-primary); }
 
     /* ── SAVE / REPORT ─────────────────────────────────────── */
-    .btn-save-report { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 10px 20px; border-radius: 8px; border: none; background: #0e9f6e; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 6px rgba(14,159,110,0.25); }
+    .btn-save-report { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 10px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #0e9f6e, #10b981); color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(14,159,110,0.3); }
     .btn-save-report:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-view-saved { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .btn-view-saved { font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
     .btn-view-saved:hover, .btn-view-saved.active { border-color: var(--accent); color: var(--accent); }
 
     /* ── SAVED SELECTIONS TABLE ────────────────────────────── */
-    .saved-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: 0.88rem; }
+    .saved-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 0.88rem; }
     .saved-table thead tr { background: var(--bg-main); border-bottom: 2px solid var(--border); }
     .saved-table th { padding: 10px 12px; font-size: 0.75rem; font-weight: 700; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
-    .saved-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: top; }
+    .saved-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: top; background: var(--bg-secondary); }
     .saved-table tbody tr:last-child td { border-bottom: none; }
-    .saved-table tbody tr:hover { background: var(--bg-main); }
-    .saved-table .job-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(234,88,12,0.1); color: var(--accent); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.5px; }
-    .saved-table .cable-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(26,86,219,0.1); color: #1a56db; font-weight: 700; font-size: 0.88rem; }
+    .saved-table tbody tr:hover td { background: var(--card-hover); }
+    .saved-table .job-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(234,88,12,0.12); color: var(--accent); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.5px; }
+    .saved-table .cable-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(26,86,219,0.12); color: #60a5fa; font-weight: 700; font-size: 0.88rem; }
     .btn-delete-row { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 0.8rem; transition: all 0.15s; }
-    .btn-delete-row:hover { color: var(--error); background: var(--error-bg); }
+    .btn-delete-row:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 
     /* ── BUTTONS ───────────────────────────────────────────── */
     .btn-row { display: flex; gap: 12px; justify-content: flex-end; padding: 24px 40px 0; }
-    .btn-reset { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 11px 24px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
-    .btn-reset:hover { background: var(--bg-main); color: var(--text-primary); }
-    .btn-calc { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; padding: 11px 32px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(234,88,12,0.25); }
-    .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234,88,12,0.3); }
+    .btn-reset { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 11px 24px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+    .btn-reset:hover { background: var(--bg-main); color: var(--text-primary); border-color: var(--text-secondary); }
+    .btn-calc { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; padding: 11px 32px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(234,88,12,0.3); }
+    .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234,88,12,0.35); }
 
-    /* ── FOOTER ────────────────────────────────────────────── */
+    /* ── FORM FOOTER ───────────────────────────────────────── */
     .form-footer { margin-top: 32px; text-align: center; font-size: 0.75rem; color: var(--text-secondary); padding-bottom: 8px; }
   </style>
 </head>
@@ -661,57 +650,92 @@
           <!-- Cable summary -->
           <div class="cable-summary" id="cableSummary"></div>
 
-          <!-- Save to Report button -->
+          <!-- Save / Report Buttons -->
           <div id="saveReportRow" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
             <button type="button" class="btn-save-report" id="saveReportBtn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Save to Report
+              Save to Job
             </button>
             <button type="button" class="btn-view-saved" id="viewSavedBtn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              View Saved Selections
+              Cable Schedule
             </button>
           </div>
 
           <!-- Save Panel -->
-          <div id="savePanel" style="display:none;margin-top:20px;background:var(--brand-light);border:1.5px solid var(--input-border);border-radius:var(--radius-sm);padding:20px;">
-            <div style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--text-primary);">Save Cable Selection</div>
+          <div id="savePanel" style="display:none;margin-top:20px;background:var(--bg-main);border:1px solid var(--border);border-radius:10px;padding:20px;">
+            <div style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--text-primary);">Save Circuit to Job</div>
+
+            <!-- Job Search Autocomplete -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Job Number <span style="color:var(--error);">*</span></label>
+              <div class="autocomplete-wrapper" style="position:relative;">
+                <input type="text" class="calc-input" id="saveJobSearch" placeholder="Search job number or client..." autocomplete="off" style="width:100%;text-transform:uppercase;" oninput="searchSaveJobs(this.value)"/>
+                <div class="autocomplete-results" id="saveJobResults"></div>
+              </div>
+              <!-- Selected job card -->
+              <div id="saveJobCard" style="display:none;margin-top:10px;padding:12px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent);">
+                <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);" id="saveJobCardNumber"></div>
+                <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px;" id="saveJobCardClient"></div>
+                <div style="font-size:0.82rem;color:var(--accent);margin-top:2px;" id="saveJobCardSite"></div>
+              </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
               <div>
-                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Job Number <span style="color:#ef4444;">*</span></label>
-                <input type="text" class="calc-input" id="saveJobNumber" placeholder="e.g. J12345" style="width:100%;text-transform:uppercase;" autocomplete="off"/>
+                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Circuit Description <span style="color:var(--error);">*</span></label>
+                <input type="text" class="calc-input" id="saveDescription" placeholder="e.g. Main switchboard feed" autocomplete="off" style="width:100%;"/>
               </div>
               <div>
-                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Circuit Description <span style="color:#ef4444;">*</span></label>
-                <input type="text" class="calc-input" id="saveDescription" placeholder="e.g. Main switchboard feed" autocomplete="off" style="width:100%;"/>
+                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Identifier (optional)</label>
+                <div style="display:flex;gap:6px;">
+                  <select class="calc-select" id="saveRefType" style="flex:0 0 auto;width:auto;">
+                    <option value="ref">Circuit Ref</option>
+                    <option value="nickname">Nickname</option>
+                    <option value="fed_from">Fed From</option>
+                    <option value="cb">CB Number</option>
+                  </select>
+                  <input type="text" class="calc-input" id="saveCircuitRef" placeholder="e.g. C01" autocomplete="off" style="flex:1;min-width:0;"/>
+                </div>
               </div>
             </div>
             <div style="margin-bottom:12px;">
-              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Notes (optional)</label>
-              <textarea id="saveNotes" rows="2" placeholder="Any additional notes..." style="width:100%;padding:9px 12px;border:1.5px solid var(--input-border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:0.9rem;color:var(--text-primary);background:var(--input-bg);resize:vertical;outline:none;"></textarea>
+              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Switchboard / Area (optional)</label>
+              <input type="text" class="calc-input" id="saveSwitchboard" placeholder="e.g. MSB, DB-L1, Pump Room" autocomplete="off" style="width:100%;"/>
             </div>
-            <div id="saveStatusMsg" style="display:none;padding:10px 14px;border-radius:6px;font-size:0.88rem;margin-bottom:12px;"></div>
+
+            <div style="margin-bottom:12px;">
+              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Notes (optional)</label>
+              <textarea id="saveNotes" rows="2" placeholder="Any additional notes..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--text-primary);background:var(--bg-main);resize:vertical;outline:none;"></textarea>
+            </div>
+
+            <div id="saveStatusMsg" style="display:none;padding:10px 14px;border-radius:8px;font-size:0.88rem;margin-bottom:12px;"></div>
+
             <div style="display:flex;gap:10px;justify-content:flex-end;">
-              <button type="button" class="btn-reset" onclick="document.getElementById('savePanel').style.display='none';">Cancel</button>
+              <button type="button" class="btn-reset" onclick="closeSavePanel()">Cancel</button>
               <button type="button" class="btn-calc" id="confirmSaveBtn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>
-                Confirm Save
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg>
+                Save Circuit
               </button>
             </div>
           </div>
         </div>
 
-        <!-- SAVED SELECTIONS PANEL -->
-        <div id="savedSelectionsSection" style="display:none;padding:24px 40px;border-top:2px solid var(--divider);margin-top:8px;">
+        <!-- CABLE SCHEDULE PANEL -->
+        <div id="savedSelectionsSection" style="display:none;padding:24px 40px;border-top:2px solid var(--border);margin-top:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-            <div class="section-title" style="margin:0;border:none;padding:0;">Saved Cable Selections</div>
+            <div class="section-title" style="margin:0;border:none;padding:0;">Cable Schedule</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-              <input type="text" class="calc-input" id="filterJobNumber" placeholder="Filter by job number..." style="padding:8px 12px;border:1.5px solid var(--input-border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:0.88rem;color:var(--text-primary);background:var(--input-bg);outline:none;width:200px;" oninput="filterSavedSelections()"/>
+              <div class="autocomplete-wrapper" style="position:relative;">
+                <input type="text" class="calc-input" id="filterJobNumber" placeholder="Search by job or client..." style="width:220px;" oninput="searchScheduleJobs(this.value)"/>
+                <div class="autocomplete-results" id="filterJobResults"></div>
+              </div>
+              <button type="button" class="btn-reset" id="clearScheduleFilter" style="display:none;" onclick="clearScheduleFilter()">✕ Clear</button>
               <button type="button" class="btn-reset" onclick="loadSavedSelections()">↻ Refresh</button>
             </div>
           </div>
           <div id="savedSelectionsBody">
-            <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:0.9rem;">Loading...</div>
+            <div style="text-align:center;padding:32px;color:var(--text-secondary);font-size:0.9rem;">Loading...</div>
           </div>
         </div>
 
@@ -1281,103 +1305,575 @@
   });
 
 
-  // ── BUILD SAVE PAYLOAD ─────────────────────────────────────
-  function buildSavePayload(jobNumber, description, notes) {
-    const row = allRows.find(r => r.csa === selectedRowCSA);
-    return {
-      job_number:       jobNumber.toUpperCase(),
-      description:      description,
-      notes:            notes || null,
-      phase:            document.getElementById('phase').value,
-      voltage_v:        getVoltage(),
-      rating_value:     parseFloat(document.getElementById('rating').value) || 0,
-      rating_unit:      document.getElementById('rating-unit').value,
-      cable_distance_m: parseFloat(document.getElementById('distance').value) || 0,
-      max_vd_pct:       getVdPercent(),
-      insulation:       document.getElementById('insulation').value,
-      cable_type:       document.getElementById('cable-type').value,
-      conductor:        document.getElementById('conductor').value === 'copper' ? 'Copper' : 'Aluminium',
-      installation:     selectedInstall.title,
-      active_size_mm2:  row ? row.csa : null,
-      earth_size_mm2:   row ? row.earthSize : null,
-      current_rating_a: row ? row.Imax : null,
-      voltage_drop_v:   row ? parseFloat(row.vd.toFixed(2)) : null,
-      voltage_drop_pct: row ? parseFloat(row.vdPctActual.toFixed(2)) : null,
-      created_at:       new Date().toISOString()
-    };
+  // ── REF TYPE PLACEHOLDER UPDATE ────────────────────────────
+  const refTypePlaceholders = {
+    ref:      'e.g. C01',
+    nickname: 'e.g. Air Compressor',
+    fed_from: 'e.g. MSB-CB3',
+    cb:       'e.g. 32'
+  };
+  const refTypeLabels = {
+    ref:      'Ref',
+    nickname: '',
+    fed_from: 'Fed from',
+    cb:       'CB'
+  };
+  document.addEventListener('DOMContentLoaded', () => {
+    const refTypeEl = document.getElementById('saveRefType');
+    if (refTypeEl) {
+      refTypeEl.addEventListener('change', function() {
+        document.getElementById('saveCircuitRef').placeholder = refTypePlaceholders[this.value] || '';
+      });
+    }
+  });
+
+  // ── SUPABASE ───────────────────────────────────────────────
+  // window.sb is provided by /tools/auth.js
+
+  // ── JOB SEARCH FOR SAVE PANEL ──────────────────────────────
+  let selectedSaveJob = null;
+  let saveSearchTimeout;
+
+  function searchSaveJobs(query) {
+    clearTimeout(saveSearchTimeout);
+    const results = document.getElementById('saveJobResults');
+    if (query.length < 2) { results.classList.remove('show'); return; }
+    saveSearchTimeout = setTimeout(async () => {
+      try {
+        const { data, error } = await window.sb
+          .from('job_number_register')
+          .select('job_number, client_name, site_name, site_address, prefix, status')
+          .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
+          .order('job_number', { ascending: false })
+          .limit(10);
+        if (error) throw error;
+        if (!data?.length) {
+          results.innerHTML = '<div class="autocomplete-item" style="color:var(--text-secondary);">No jobs found</div>';
+          results.classList.add('show');
+          return;
+        }
+        results.innerHTML = data.map(job => {
+          const statusBadge = job.status === 'completed'
+            ? '<span style="font-size:0.65rem;font-weight:700;background:rgba(14,159,110,0.2);color:#4ade80;padding:2px 7px;border-radius:4px;margin-left:6px;">COMPLETED</span>'
+            : '';
+          return `<div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
+            <div class="autocomplete-item-number">
+              ${BromarHub.escapeHtml(job.job_number)}
+              <span class="prefix-badge prefix-${job.prefix}">${BromarHub.escapeHtml(job.prefix || '')}</span>
+              ${statusBadge}
+            </div>
+            <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}${job.site_name ? ` · ${BromarHub.escapeHtml(job.site_name)}` : ''}</div>
+          </div>`;
+        }).join('');
+        results.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const job = JSON.parse(item.dataset.job.replace(/&#39;/g, "'"));
+            selectSaveJob(job);
+          });
+        });
+        results.classList.add('show');
+      } catch (err) { console.error('Job search failed:', err); }
+    }, 300);
   }
 
-  // ── SAVE ───────────────────────────────────────────────────
+  function selectSaveJob(job) {
+    selectedSaveJob = job;
+    document.getElementById('saveJobSearch').value = job.job_number;
+    document.getElementById('saveJobResults').classList.remove('show');
+    document.getElementById('saveJobCardNumber').textContent = `${job.job_number}${job.prefix ? ' (' + job.prefix + ')' : ''}`;
+    document.getElementById('saveJobCardClient').textContent = job.client_name || '';
+    document.getElementById('saveJobCardSite').textContent = job.site_name ? '📍 ' + job.site_name : '';
+    document.getElementById('saveJobCard').style.display = 'block';
+  }
+
+  function closeSavePanel() {
+    document.getElementById('savePanel').style.display = 'none';
+    document.getElementById('saveJobSearch').value = '';
+    document.getElementById('saveJobCard').style.display = 'none';
+    document.getElementById('saveJobResults').classList.remove('show');
+    document.getElementById('saveStatusMsg').style.display = 'none';
+    selectedSaveJob = null;
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#savePanel')) document.getElementById('saveJobResults').classList.remove('show');
+    if (!e.target.closest('#savedSelectionsSection')) document.getElementById('filterJobResults')?.classList.remove('show');
+  });
+
+  // ── JOB SEARCH FOR CABLE SCHEDULE ──────────────────────────
+  let filterSearchTimeout;
+  let activeFilterJob = null;
+
+  function searchScheduleJobs(query) {
+    clearTimeout(filterSearchTimeout);
+    const results = document.getElementById('filterJobResults');
+    if (query.length < 2) { results.classList.remove('show'); return; }
+    filterSearchTimeout = setTimeout(async () => {
+      try {
+        const { data, error } = await window.sb
+          .from('job_number_register')
+          .select('job_number, client_name, prefix')
+          .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
+          .order('job_number', { ascending: false })
+          .limit(8);
+        if (error) throw error;
+        if (!data?.length) {
+          results.innerHTML = '<div class="autocomplete-item" style="color:var(--text-secondary);">No jobs found</div>';
+          results.classList.add('show');
+          return;
+        }
+        results.innerHTML = data.map(job => `
+          <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
+            <div class="autocomplete-item-number">${BromarHub.escapeHtml(job.job_number)}<span class="prefix-badge prefix-${job.prefix}">${BromarHub.escapeHtml(job.prefix || '')}</span></div>
+            <div class="autocomplete-item-client">${BromarHub.escapeHtml(job.client_name || '')}</div>
+          </div>`).join('');
+        results.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const job = JSON.parse(item.dataset.job.replace(/&#39;/g, "'"));
+            activeFilterJob = job.job_number;
+            document.getElementById('filterJobNumber').value = job.job_number;
+            results.classList.remove('show');
+            document.getElementById('clearScheduleFilter').style.display = 'inline-flex';
+            loadSavedSelections();
+          });
+        });
+        results.classList.add('show');
+      } catch (err) { console.error('Filter search failed:', err); }
+    }, 300);
+  }
+
+  function clearScheduleFilter() {
+    activeFilterJob = null;
+    document.getElementById('filterJobNumber').value = '';
+    document.getElementById('clearScheduleFilter').style.display = 'none';
+    loadSavedSelections();
+  }
+
+  // ── SAVE BUTTON TOGGLE ─────────────────────────────────────
   document.getElementById('saveReportBtn').addEventListener('click', () => {
     const panel = document.getElementById('savePanel');
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     document.getElementById('saveStatusMsg').style.display = 'none';
   });
 
+  // ── CONFIRM SAVE ───────────────────────────────────────────
   document.getElementById('confirmSaveBtn').addEventListener('click', async () => {
-    const jobNumber   = document.getElementById('saveJobNumber').value.trim();
     const description = document.getElementById('saveDescription').value.trim();
+    const circuitRefType = document.getElementById('saveRefType').value;
+    const circuitRef  = document.getElementById('saveCircuitRef').value.trim();
+    const switchboard = document.getElementById('saveSwitchboard').value.trim();
     const notes       = document.getElementById('saveNotes').value.trim();
 
-    if (!jobNumber || !description) {
-      showSaveStatus('error', 'Please enter a Job Number and Circuit Description.');
-      return;
-    }
-    if (!selectedRowCSA) {
-      showSaveStatus('error', 'No cable selected. Please calculate first.');
-      return;
-    }
+    if (!selectedSaveJob) { showSaveStatus('error', 'Please search and select a job number.'); return; }
+    if (!description)     { showSaveStatus('error', 'Please enter a circuit description.'); return; }
+    if (!selectedRowCSA)  { showSaveStatus('error', 'No cable selected — please calculate first.'); return; }
 
     const btn = document.getElementById('confirmSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
+    btn.disabled = true; btn.textContent = 'Saving…';
 
     try {
-      const { error } = await window.sb
-        .from('cable_selections')
-        .insert([buildSavePayload(jobNumber, description, notes)]);
+      const row = allRows.find(r => r.csa === selectedRowCSA);
+      const { error } = await window.sb.from('cable_selections').insert([{
+        job_number:       selectedSaveJob.job_number,
+        client_name:      selectedSaveJob.client_name || null,
+        site_name:        selectedSaveJob.site_name || null,
+        circuit_ref:      circuitRef || null,
+        circuit_ref_type: circuitRef ? circuitRefType : null,
+        switchboard:      switchboard || null,
+        description,
+        notes:            notes || null,
+        phase:            document.getElementById('phase').value,
+        voltage_v:        getVoltage(),
+        rating_value:     parseFloat(document.getElementById('rating').value) || 0,
+        rating_unit:      document.getElementById('rating-unit').value,
+        cable_distance_m: parseFloat(document.getElementById('distance').value) || 0,
+        max_vd_pct:       getVdPercent(),
+        insulation:       document.getElementById('insulation').value,
+        cable_type:       document.getElementById('cable-type').value,
+        conductor:        document.getElementById('conductor').value === 'copper' ? 'Copper' : 'Aluminium',
+        installation:     selectedInstall.title,
+        active_size_mm2:  row ? row.csa : null,
+        earth_size_mm2:   row ? row.earthSize : null,
+        current_rating_a: row ? row.Imax : null,
+        voltage_drop_v:   row ? parseFloat(row.vd.toFixed(2)) : null,
+        voltage_drop_pct: row ? parseFloat(row.vdPctActual.toFixed(2)) : null,
+        created_at:       new Date().toISOString()
+      }]);
       if (error) throw new Error(error.message);
-      showSaveStatus('success', `✓ Saved successfully to job ${jobNumber.toUpperCase()}.`);
-      document.getElementById('saveJobNumber').value = '';
+      showSaveStatus('success', `✓ Circuit saved to job ${selectedSaveJob.job_number}.`);
       document.getElementById('saveDescription').value = '';
+      document.getElementById('saveCircuitRef').value = '';
+      document.getElementById('saveSwitchboard').value = '';
       document.getElementById('saveNotes').value = '';
-      if (document.getElementById('savedSelectionsSection').style.display !== 'none') loadSavedSelections();
+      if (document.getElementById('savedSelectionsSection').style.display !== 'none') {
+        if (!activeFilterJob || activeFilterJob === selectedSaveJob.job_number) {
+          activeFilterJob = selectedSaveJob.job_number;
+          document.getElementById('filterJobNumber').value = selectedSaveJob.job_number;
+          document.getElementById('clearScheduleFilter').style.display = 'inline-flex';
+          loadSavedSelections();
+        }
+      }
     } catch (err) {
       showSaveStatus('error', `Error: ${err.message}`);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Confirm Save';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg>Save Circuit';
+    }
+  });
+
+  function showSaveStatus(type, msg) {
+    const el = document.getElementById('saveStatusMsg');
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? 'rgba(14,159,110,0.12)' : 'rgba(220,38,38,0.1)';
+    el.style.border     = `1px solid ${type === 'success' ? 'rgba(14,159,110,0.4)' : 'rgba(220,38,38,0.3)'}`;
+    el.style.color      = type === 'success' ? '#4ade80' : '#f87171';
+    el.textContent = msg;
+  }
+
+  // ── CABLE SCHEDULE TOGGLE ──────────────────────────────────
+  let allSavedRows = [];
+
+  document.getElementById('viewSavedBtn').addEventListener('click', () => {
+    const section = document.getElementById('savedSelectionsSection');
+    const btn = document.getElementById('viewSavedBtn');
+    if (section.style.display === 'none') {
+      section.style.display = 'block';
+      btn.classList.add('active');
+      loadSavedSelections();
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      section.style.display = 'none';
+      btn.classList.remove('active');
     }
   });
 
   // ── LOAD FROM SUPABASE ─────────────────────────────────────
   async function loadSavedSelections() {
     const body = document.getElementById('savedSelectionsBody');
-    body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">Loading…</div>';
+    body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-secondary);">Loading…</div>';
     try {
-      const { data, error } = await window.sb
-        .from('cable_selections')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = window.sb.from('cable_selections').select('*')
+        .order('job_number').order('created_at', { ascending: false });
+      if (activeFilterJob) query = query.eq('job_number', activeFilterJob);
+      const { data, error } = await query;
       if (error) throw new Error(error.message);
       allSavedRows = data;
-      renderSavedSelections(allSavedRows);
+      renderCableSchedule(allSavedRows);
     } catch (err) {
-      body.innerHTML = `<div style="text-align:center;padding:32px;color:#ef4444;font-size:0.9rem;">
-        Could not connect to Supabase.<br>
-        <small style="color:var(--text-muted);">${err.message}</small>
-      </div>`;
+      body.innerHTML = `<div style="text-align:center;padding:32px;color:#f87171;font-size:0.9rem;">Could not connect to Supabase.<br><small style="color:var(--text-secondary);">${err.message}</small></div>`;
     }
+  }
+
+  // ── RENDER GROUPED CABLE SCHEDULE ─────────────────────────
+  function renderCableSchedule(rows) {
+    const body = document.getElementById('savedSelectionsBody');
+    if (!rows.length) {
+      body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-secondary);">No circuits saved yet.</div>';
+      return;
+    }
+
+    // Group by job_number first
+    const jobs = {};
+    rows.forEach(r => {
+      if (!jobs[r.job_number]) jobs[r.job_number] = { info: r, circuits: [] };
+      jobs[r.job_number].circuits.push(r);
+    });
+
+    body.innerHTML = Object.entries(jobs).map(([jobNum, { info, circuits }]) => {
+
+      // Sub-group by switchboard within each job
+      const boards = {};
+      circuits.forEach(r => {
+        const key = r.switchboard || '—';
+        if (!boards[key]) boards[key] = [];
+        boards[key].push(r);
+      });
+
+      const hasBoards = Object.keys(boards).some(k => k !== '—');
+
+      const tableRows = Object.entries(boards).map(([board, bCircuits]) => `
+        ${hasBoards ? `
+          <tr>
+            <td colspan="12" style="background:var(--bg-main);padding:8px 12px;font-weight:700;font-size:0.82rem;color:var(--accent);border-top:2px solid var(--border);letter-spacing:0.5px;">
+              ⚡ ${BromarHub.escapeHtml(board === '—' ? 'Unassigned' : board)}
+              <span style="font-weight:400;font-size:0.78rem;color:var(--text-secondary);margin-left:8px;">${bCircuits.length} circuit${bCircuits.length !== 1 ? 's' : ''}</span>
+            </td>
+          </tr>` : ''}
+        ${bCircuits.map(r => `
+          <tr>
+            <td style="font-weight:700;color:var(--accent);font-size:0.82rem;">${r.circuit_ref ? `${refTypeLabels[r.circuit_ref_type] ? `<span style="font-size:0.7rem;font-weight:400;color:var(--text-secondary);">${refTypeLabels[r.circuit_ref_type]}</span> ` : ''}${BromarHub.escapeHtml(r.circuit_ref)}` : '—'}</td>
+            <td style="max-width:150px;"><div style="font-weight:600;font-size:0.85rem;">${BromarHub.escapeHtml(r.description)}</div>${r.notes ? `<div style="font-size:0.74rem;color:var(--text-secondary);">${BromarHub.escapeHtml(r.notes)}</div>` : ''}</td>
+            <td>${r.phase === '3' ? '3Ø' : r.phase === '1' ? '1Ø' : r.phase}</td>
+            <td>${r.voltage_v}V</td>
+            <td>${r.rating_value} ${r.rating_unit}</td>
+            <td>${r.cable_distance_m}m</td>
+            <td><span class="cable-badge">${r.active_size_mm2} mm²</span></td>
+            <td>${r.earth_size_mm2} mm²</td>
+            <td>${r.current_rating_a}A</td>
+            <td style="font-weight:700;color:${r.voltage_drop_pct <= r.max_vd_pct ? '#4ade80' : '#f87171'};">${r.voltage_drop_pct}%</td>
+            <td style="font-size:0.82rem;">${r.conductor}</td>
+            <td style="white-space:nowrap;font-size:0.76rem;color:var(--text-secondary);">${new Date(r.created_at).toLocaleDateString('en-AU')}</td>
+            <td><button class="btn-delete-row" onclick="deleteSelection('${r.id}')" title="Delete">🗑</button></td>
+          </tr>`).join('')}
+      `).join('');
+
+      return `
+        <div style="margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <!-- Job Header -->
+          <div style="background:var(--bg-main);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-weight:700;font-size:1.05rem;color:var(--text-primary);">${BromarHub.escapeHtml(jobNum)}</span>
+                <span style="font-size:0.78rem;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(234,88,12,0.12);color:var(--accent);">${circuits.length} circuit${circuits.length !== 1 ? 's' : ''}</span>
+                ${hasBoards ? `<span style="font-size:0.78rem;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(26,86,219,0.1);color:#60a5fa;">${Object.keys(boards).length} boards</span>` : ''}
+              </div>
+              ${info.client_name ? `<div style="font-size:0.82rem;color:var(--text-secondary);margin-top:2px;">${BromarHub.escapeHtml(info.client_name)}${info.site_name ? ' — ' + BromarHub.escapeHtml(info.site_name) : ''}</div>` : ''}
+            </div>
+          </div>
+          <!-- Circuits Table -->
+          <div style="overflow-x:auto;">
+            <table class="saved-table" style="border:none;">
+              <thead><tr>
+                <th>Ref</th><th>Circuit</th><th>Ph</th><th>V</th><th>Rating</th>
+                <th>Dist</th><th>Active</th><th>Earth</th><th>Imax</th><th>VD%</th><th>Cond.</th><th>Date</th><th></th>
+              </tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  }
+
+  // ── PRINT JOB CABLE SCHEDULE ───────────────────────────────
+  function printJobSchedule(jobNum) {
+    const jobRows = allSavedRows.filter(r => r.job_number === jobNum);
+    if (!jobRows.length) return;
+    const info = jobRows[0];
+    const date = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+    const circuitCount = jobRows.length;
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html><head>
+<title>Cable Schedule — ${jobNum}</title>
+<meta charset="UTF-8"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 10.5px; color: #111; }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 30mm 20mm;
+  }
+  .cover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 4px solid #ea580c;
+    padding-bottom: 16px;
+    margin-bottom: 40px;
+  }
+  .bromar-logo { font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #ea580c; line-height: 1; }
+  .bromar-sub  { font-size: 9px; color: #999; letter-spacing: 1.5px; margin-top: 4px; }
+  .cover-title { font-size: 28px; font-weight: 900; color: #111; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .cover-subtitle { font-size: 13px; color: #ea580c; font-weight: 600; margin-bottom: 40px; }
+  .cover-details { background: #f8f8f8; border: 1px solid #e0e0e0; border-left: 4px solid #ea580c; border-radius: 4px; padding: 20px 24px; margin-bottom: 32px; }
+  .cover-detail-row { display: flex; gap: 8px; padding: 5px 0; font-size: 11px; border-bottom: 1px solid #ebebeb; }
+  .cover-detail-row:last-child { border-bottom: none; }
+  .cover-detail-label { font-weight: 700; color: #555; width: 120px; flex-shrink: 0; }
+  .cover-detail-value { color: #111; }
+  .cover-footer { margin-top: auto; font-size: 9px; color: #aaa; border-top: 1px solid #e0e0e0; padding-top: 10px; }
+  .cover-stamp { display: inline-block; border: 2px solid #ea580c; border-radius: 4px; padding: 8px 20px; font-size: 11px; font-weight: 700; color: #ea580c; letter-spacing: 0.5px; margin-top: 20px; }
+
+  /* ── SCHEDULE PAGES ── */
+  .schedule-page { padding: 12mm 12mm 16mm; }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ea580c;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .page-header-left { font-size: 10px; font-weight: 700; color: #ea580c; }
+  .page-header-right { font-size: 9px; color: #888; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5px;
+  }
+  thead {
+    display: table-header-group; /* repeat on every page */
+  }
+  th {
+    background: #ea580c;
+    color: white;
+    padding: 6px 6px;
+    text-align: left;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid #d44c00;
+  }
+  td {
+    padding: 5px 6px;
+    border: 1px solid #e0e0e0;
+    vertical-align: top;
+    background: white;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  tr:hover td { background: #fff8f5; }
+  .vd-ok   { color: #166534; font-weight: 700; }
+  .vd-fail { color: #991b1b; font-weight: 700; }
+  .cable   { font-weight: 700; font-size: 10px; }
+  .ref     { font-weight: 700; color: #ea580c; }
+  .notes   { font-size: 8.5px; color: #888; margin-top: 2px; }
+
+  .page-footer {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5px;
+    color: #aaa;
+    border-top: 1px solid #e8e8e8;
+    padding-top: 5px;
+  }
+
+  @media print {
+    @page { size: A4 landscape; margin: 10mm 12mm; }
+    .cover { min-height: 0; padding: 20mm 15mm; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    .page-footer { position: running(footer); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ COVER PAGE ══ -->
+<div class="cover">
+  <div class="cover-header">
+    <div>
+      <div class="bromar-logo">BROMAR</div>
+      <div class="bromar-sub">INDUSTRIAL | INFRASTRUCTURE | AUTOMATION</div>
+    </div>
+    <div style="text-align:right;font-size:10px;color:#888;">
+      <div style="font-weight:600;color:#111;font-size:12px;">CABLE SELECTION SCHEDULE</div>
+      <div>AS/NZS 3008 — Cable Sizing Standard</div>
+    </div>
+  </div>
+
+  <div class="cover-title">Cable Schedule</div>
+  <div class="cover-subtitle">Job ${jobNum}</div>
+
+  <div class="cover-details">
+    <div class="cover-detail-row">
+      <span class="cover-detail-label">Job Number</span>
+      <span class="cover-detail-value">${jobNum}</span>
+    </div>
+    ${info.client_name ? `<div class="cover-detail-row">
+      <span class="cover-detail-label">Client</span>
+      <span class="cover-detail-value">${info.client_name}</span>
+    </div>` : ''}
+    ${info.site_name ? `<div class="cover-detail-row">
+      <span class="cover-detail-label">Site</span>
+      <span class="cover-detail-value">${info.site_name}</span>
+    </div>` : ''}
+    <div class="cover-detail-row">
+      <span class="cover-detail-label">Total Circuits</span>
+      <span class="cover-detail-value">${circuitCount}</span>
+    </div>
+    <div class="cover-detail-row">
+      <span class="cover-detail-label">Standard</span>
+      <span class="cover-detail-value">AS/NZS 3008 — Australian Conditions</span>
+    </div>
+    <div class="cover-detail-row">
+      <span class="cover-detail-label">Date Printed</span>
+      <span class="cover-detail-value">${date}</span>
+    </div>
+    <div class="cover-detail-row">
+      <span class="cover-detail-label">Prepared by</span>
+      <span class="cover-detail-value">Bromar Hub Cable Calculator</span>
+    </div>
+  </div>
+
+  <div class="cover-stamp">CABLE SELECTION SCHEDULE</div>
+
+  <div class="cover-footer">
+    Bromar Electrical &amp; Automation &nbsp;|&nbsp; 2/98-108 Western Ave, Westmeadows VIC 3049 &nbsp;|&nbsp; ABN: 45 634 835 939 &nbsp;|&nbsp; Ph: +61 3 9335 5344
+  </div>
+</div>
+
+<!-- ══ SCHEDULE TABLE ══ -->
+<div class="schedule-page">
+  <div class="page-header">
+    <div class="page-header-left">CABLE SCHEDULE — ${jobNum}${info.client_name ? ' | ' + info.client_name : ''}</div>
+    <div class="page-header-right">AS/NZS 3008 | Printed: ${date}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px;">Ref</th>
+        <th style="min-width:120px;">Circuit Description</th>
+        <th style="width:32px;">Ph</th>
+        <th style="width:44px;">Voltage</th>
+        <th style="width:60px;">Rating</th>
+        <th style="width:40px;">Dist.</th>
+        <th style="width:44px;">Active</th>
+        <th style="width:40px;">Earth</th>
+        <th style="width:44px;">Imax (A)</th>
+        <th style="width:38px;">VD (V)</th>
+        <th style="width:38px;">VD (%)</th>
+        <th style="width:52px;">Conductor</th>
+        <th style="min-width:80px;">Insulation</th>
+        <th style="min-width:100px;">Installation</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${jobRows.map((r, i) => `
+      <tr>
+        <td class="ref">${r.circuit_ref || String(i + 1).padStart(2, '0')}</td>
+        <td><strong>${r.description}</strong>${r.notes ? `<div class="notes">${r.notes}</div>` : ''}</td>
+        <td>${r.phase === '3' ? '3Ø' : r.phase === '1' ? '1Ø' : r.phase}</td>
+        <td>${r.voltage_v}V</td>
+        <td>${r.rating_value} ${r.rating_unit}</td>
+        <td>${r.cable_distance_m}m</td>
+        <td class="cable">${r.active_size_mm2} mm²</td>
+        <td>${r.earth_size_mm2} mm²</td>
+        <td>${r.current_rating_a}</td>
+        <td>${r.voltage_drop_v}</td>
+        <td class="${r.voltage_drop_pct <= r.max_vd_pct ? 'vd-ok' : 'vd-fail'}">${r.voltage_drop_pct}%</td>
+        <td>${r.conductor}</td>
+        <td>${r.insulation || ''}</td>
+        <td>${r.installation || ''}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+
+  <div class="page-footer">
+    <span>Bromar Electrical &amp; Automation | ABN: 45 634 835 939 | Generated by Bromar Hub Cable Calculator (AS/NZS 3008)</span>
+    <span>${circuitCount} circuit${circuitCount !== 1 ? 's' : ''} | ${date}</span>
+  </div>
+</div>
+
+<script>window.onload = () => window.print();<\/script>
+</body></html>`);
+    win.document.close();
   }
 
   // ── DELETE ─────────────────────────────────────────────────
   async function deleteSelection(id) {
-    if (!confirm('Delete this cable selection?')) return;
+    if (!confirm('Delete this circuit?')) return;
     try {
-      const { error } = await window.sb
-        .from('cable_selections')
-        .delete()
-        .eq('id', id);
+      const { error } = await window.sb.from('cable_selections').delete().eq('id', id);
       if (error) throw new Error(error.message);
       loadSavedSelections();
     } catch (err) { alert('Could not delete: ' + err.message); }
@@ -1409,54 +1905,6 @@
     el.textContent = msg;
   }
 
-  function filterSavedSelections() {
-    const q = document.getElementById('filterJobNumber').value.trim().toUpperCase();
-    renderSavedSelections(q ? allSavedRows.filter(r => r.job_number.includes(q)) : allSavedRows);
-  }
-
-  function renderSavedSelections(rows) {
-    const body = document.getElementById('savedSelectionsBody');
-    if (!rows.length) {
-      body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">No saved selections found.</div>';
-      return;
-    }
-    body.innerHTML = `<div style="overflow-x:auto;">
-      <table class="saved-table">
-        <thead><tr>
-          <th>Job</th><th>Description</th><th>Phase / Voltage</th>
-          <th>Rating</th><th>Distance</th><th>Cable</th>
-          <th>Earth</th><th>Imax</th><th>VD%</th><th>Conductor</th><th>Date</th><th></th>
-        </tr></thead>
-        <tbody>${rows.map(r => `
-          <tr>
-            <td><span class="job-badge">${r.job_number}</span></td>
-            <td style="max-width:180px;">${r.description}${r.notes ? `<br><small style="color:var(--text-muted);">${r.notes}</small>` : ''}</td>
-            <td>${r.phase === '3' ? '3Ø' : r.phase === '1' ? '1Ø' : r.phase} ${r.voltage_v}V</td>
-            <td>${r.rating_value} ${r.rating_unit}</td>
-            <td>${r.cable_distance_m} m</td>
-            <td><span class="cable-badge">${r.active_size_mm2} mm²</span></td>
-            <td>${r.earth_size_mm2} mm²</td>
-            <td>${r.current_rating_a} A</td>
-            <td style="font-weight:600;color:${r.voltage_drop_pct <= r.max_vd_pct ? 'var(--brand-secondary)' : '#ef4444'};">${r.voltage_drop_pct}%</td>
-            <td>${r.conductor}</td>
-            <td style="white-space:nowrap;font-size:0.8rem;color:var(--text-muted);">${new Date(r.created_at).toLocaleDateString('en-AU')}</td>
-            <td><button class="btn-delete-row" onclick="deleteSelection('${r.id}')" title="Delete">🗑</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-  }
-  async function deleteSelection(id) {
-    if (!confirm('Delete this cable selection?')) return;
-    try {
-      const { error } = await window.sb
-        .from('cable_selections')
-        .delete()
-        .eq('id', id);
-      if (error) throw new Error(error.message);
-      loadSavedSelections();
-    } catch (err) { alert('Could not delete: ' + err.message); }
-  }
 
   // ── INIT ───────────────────────────────────────────────────
   updateVoltage();
