@@ -1,0 +1,61 @@
+/* ── TAB: Photos ── (responsive thumbnail gallery, tap to open full size) */
+(function () {
+  const JM = window.JobManager;
+  const { esc, fmtDate, sb, openSignedFile } = JM;
+  const BUCKET = 'job-sheet-files';
+
+  JM.registerTool('photos', {
+    label: 'Photos', icon: '📷',
+    count: d => d.photos.length,
+    render(panel, d) {
+      const photos = d.photos;
+      if (!photos.length) {
+        panel.innerHTML = `<div class="tool-card"><div class="tool-card-header"><div class="tool-card-title">Photos</div><div class="tool-card-actions"><button class="btn-add" data-label="Upload">+ Upload</button></div></div><div class="empty-state"><div class="empty-state-icon">📷</div><div class="empty-state-text">No photos uploaded for this job</div></div></div>`;
+        panel.querySelectorAll('.btn-add').forEach(b => b.addEventListener('click', () => window.BromarHub?.showInfo?.('Upload — coming soon')));
+        return;
+      }
+
+      panel.innerHTML = `<div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-card-title">Photos</div>
+          <div class="tool-card-actions"><button class="btn-add" data-label="Upload">+ Upload</button></div>
+        </div>
+        <div class="photo-grid" id="photoGrid">
+          ${photos.map(p => `
+            <div class="photo-tile" data-file-path="${esc(p.file_path)}" title="${esc(p.file_name)}">
+              <div class="photo-thumb" data-thumb="${esc(p.file_path)}"><div class="photo-spinner"></div></div>
+              <div class="photo-cap">${fmtDate(p.uploaded_at)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+      // tap a tile → open full size
+      panel.querySelectorAll('.photo-tile').forEach(tile => {
+        tile.addEventListener('click', () => openSignedFile(BUCKET, tile.dataset.filePath));
+      });
+      panel.querySelectorAll('.btn-add').forEach(b => b.addEventListener('click', () => window.BromarHub?.showInfo?.('Upload — coming soon')));
+
+      // lazily load signed thumbnail URLs
+      loadThumbs(panel);
+    }
+  });
+
+  async function loadThumbs(panel) {
+    const thumbs = panel.querySelectorAll('[data-thumb]');
+    for (const el of thumbs) {
+      const path = el.dataset.thumb;
+      try {
+        const { data, error } = await sb().storage.from(BUCKET).createSignedUrl(path, 3600);
+        if (error || !data?.signedUrl) { el.innerHTML = '<div class="photo-fallback">📷</div>'; continue; }
+        const img = new Image();
+        img.src = data.signedUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
+        img.onerror = () => { el.innerHTML = '<div class="photo-fallback">📷</div>'; };
+      } catch (_) {
+        el.innerHTML = '<div class="photo-fallback">📷</div>';
+      }
+    }
+  }
+})();
