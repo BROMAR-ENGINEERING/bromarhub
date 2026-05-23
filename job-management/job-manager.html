@@ -201,6 +201,17 @@
     background: var(--bg-main); color: var(--text-secondary);
   }
 
+  /* ── PHOTO GALLERY ── */
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.625rem; }
+  .photo-tile { cursor: pointer; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-main); transition: all 0.2s; }
+  .photo-tile:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow); }
+  .photo-thumb { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; background: var(--bg-main); overflow: hidden; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-fallback { font-size: 2rem; opacity: 0.4; }
+  .photo-spinner { width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .photo-cap { font-size: 0.7rem; color: var(--text-secondary); padding: 5px 8px; text-align: center; }
+  @media (max-width: 520px) { .photo-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); } }
+
   .po-expandable { cursor: pointer; }
   .po-items-row td { background: var(--bg-main); padding: 0 !important; }
   .po-items-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
@@ -434,9 +445,11 @@
 <script src="js/tabs/jm-pos.js" defer></script>
 <script src="js/tabs/jm-notes.js" defer></script>
 <script src="js/tabs/jm-documents.js" defer></script>
+<script src="js/tabs/jm-photos.js" defer></script>
 <script src="js/tabs/jm-swms.js" defer></script>
 <script src="js/tabs/jm-safety.js" defer></script>
 <script src="js/tabs/jm-testing.js" defer></script>
+<script src="js/tabs/jm-cabling.js" defer></script>
 
 <!-- ── Boot (runs after all tabs registered) ── -->
 <script src="js/job-manager-boot.js" defer></script>
