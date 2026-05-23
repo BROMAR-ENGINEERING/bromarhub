@@ -184,8 +184,7 @@
           window.BromarHub?.showSuccess?.('Note saved');
 
           /* Refresh the tab data and re-render */
-          const freshData = await JM.loadJobData(jobNumber);
-          JM.state.jobCache = freshData;
+          await JM.loadJobData(jobNumber);
           JM.updateCounts();
           JM.renderTool();
 
