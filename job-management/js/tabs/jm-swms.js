@@ -1,4 +1,4 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.01 */
 (function () {
   const JM = window.JobManager;
 
@@ -219,6 +219,8 @@ async function viewSwms(swmsId) {
   const { data: sigs } = await JM.sb().from('swms_signatures').select('*').eq('swms_instance_id', swmsId).order('captured_at');
   await logSwmsAccess(swmsId, 'viewed');
 
+  const hazItems = data.hazards_json || [];
+
   const detail = document.getElementById('swmsDetail');
   detail.innerHTML = `
     <div class="tool-card" style="margin-top:1rem;">
@@ -228,17 +230,14 @@ async function viewSwms(swmsId) {
           <div class="swms-detail-meta">${JM.esc(data.title)} · ${JM.statusBadge(data.status)}</div>
         </div>
         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          ${data.status === 'active' ? `<button class="btn-secondary" id="viewSignBtn">✍ Sign On</button>` : ''}
-          ${data.status === 'active' ? `<button class="btn-secondary" id="viewAmendBtn">Amend</button>` : ''}
-          <button class="btn-secondary" id="viewPdfBtn">📄 Download PDF</button>
           <button class="btn-secondary" id="closeDetail">Close</button>
         </div>
       </div>
 
-      <div class="data-table-wrapper" style="margin-top:1rem;">
+      <div class="data-table-wrapper" style="margin-top:1rem; overflow-x:auto;">
         <table class="data-table">
           <tbody>
-            <tr><th style="width:25%;">Project</th><td>${JM.esc(data.project_name || '—')}</td></tr>
+            <tr><th style="width:40%;">Project</th><td>${JM.esc(data.project_name || '—')}</td></tr>
             <tr><th>Client</th><td>${JM.esc(data.client_name || '—')}</td></tr>
             <tr><th>Site</th><td>${JM.esc(data.site_name || '—')}</td></tr>
             <tr><th>Site Address</th><td>${JM.esc(data.site_address || '—')}</td></tr>
@@ -269,36 +268,47 @@ async function viewSwms(swmsId) {
         ` : '<div style="font-size:0.85rem; color:var(--text-secondary); padding:0.5rem 0;">No signatures yet</div>'}
       </div>
 
-      <details style="margin-top:1.5rem;">
-        <summary style="cursor:pointer; font-size:0.85rem; font-weight:600; padding:0.5rem 0;">Hazards & controls (${(data.hazards_json || []).length} items)</summary>
-        <div style="margin-top:0.5rem; font-size:0.82rem;">
-          ${(data.hazards_json || []).map(h => h.type === 'phase'
-            ? `<div style="background:var(--card-hover); padding:0.4rem 0.75rem; border-radius:6px; margin-top:0.5rem; font-weight:700; font-size:0.78rem; letter-spacing:0.5px; color:var(--accent);">${JM.esc((h.label || '').toUpperCase())}</div>`
-            : `<div style="border-left:3px solid var(--accent); padding:0.4rem 0.75rem; margin:0.4rem 0;"><strong>${JM.esc(h.step || '')}</strong> ${JM.esc(h.jobStep || '')}</div>`
-          ).join('')}
+      <details style="margin-top:1.5rem;" open>
+        <summary style="cursor:pointer; font-size:0.85rem; font-weight:600; padding:0.5rem 0;">Hazards &amp; controls (${hazItems.filter(h => h.type !== 'phase').length} items)</summary>
+        <div style="margin-top:0.5rem;">
+          ${hazItems.length ? hazItems.map(hazardCardHtml).join('') : '<div style="font-size:0.85rem; color:var(--text-secondary); padding:0.5rem 0;">No hazards recorded</div>'}
         </div>
       </details>
     </div>
   `;
 
   document.getElementById('closeDetail').addEventListener('click', () => { detail.innerHTML = ''; });
-  const sb1 = document.getElementById('viewSignBtn');
-  if (sb1) sb1.addEventListener('click', () => openSignModal(swmsId));
-  const ab = document.getElementById('viewAmendBtn');
-  if (ab) ab.addEventListener('click', () => amendSwms(swmsId));
-  document.getElementById('viewPdfBtn').addEventListener('click', async () => {
-    await logSwmsAccess(swmsId, 'downloaded');
-    if (data.pdf_path) {
-      await JM.openSignedFile(JM.BUCKETS.swms, data.pdf_path);
-    } else {
-      BromarHub.showLoading('Generating PDF', 'Please wait...');
-      await generateAndUploadPdf(data, { saveLocal: true });
-      BromarHub.hideLoading();
-      await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
-      JM.renderTool();
-      setTimeout(() => viewSwms(swmsId), 100);
-    }
-  });
+}
+
+/* Stacked, mobile-friendly hazard card (replaces the wide PDF-style table in the on-screen view) */
+function hazardCardHtml(h) {
+  const e = JM.esc;
+  if (h.type === 'phase') {
+    return `<div style="background:var(--card-hover); padding:0.45rem 0.85rem; border-radius:8px; margin:0.85rem 0 0.5rem; font-weight:700; font-size:0.78rem; letter-spacing:0.5px; text-transform:uppercase; color:var(--accent);">${e((h.label || '').toUpperCase())}</div>`;
+  }
+  const ctrlList = (h.controls || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const respList = (h.responsibility || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const hocList  = (h.hoc || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const fieldRow = (label, value) => value ? `
+    <div style="display:flex; gap:0.5rem; padding:0.3rem 0; border-top:1px solid var(--border);">
+      <div style="flex:0 0 92px; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-secondary); padding-top:1px;">${label}</div>
+      <div style="flex:1; font-size:0.85rem; min-width:0; word-break:break-word;">${value}</div>
+    </div>` : '';
+
+  return `
+    <div style="border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; padding:0.75rem 0.9rem; margin-bottom:0.6rem;">
+      <div style="display:flex; align-items:center; gap:0.55rem; margin-bottom:0.35rem;">
+        <span style="flex:0 0 auto; min-width:26px; height:26px; padding:0 7px; background:var(--accent); color:#fff; border-radius:6px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; justify-content:center;">${e(h.step || '')}</span>
+        <span style="font-weight:600; font-size:0.92rem; line-height:1.3;">${e(h.jobStep || '')}</span>
+      </div>
+      ${fieldRow('Hazards', e(h.hazard || ''))}
+      ${fieldRow('Risks', e(h.risks || ''))}
+      ${fieldRow('Risk Rating', h.riskRating ? `<strong>${e(h.riskRating)}</strong>` : '')}
+      ${fieldRow('Controls', ctrlList.length ? `<ul style="margin:0; padding-left:1.1rem;">${ctrlList.map(c => `<li style="margin-bottom:2px;">${e(c)}</li>`).join('')}</ul>` : '')}
+      ${fieldRow('Hierarchy', hocList.map(e).join('<br/>'))}
+      ${fieldRow('Residual', h.residualRisk ? `<strong>${e(h.residualRisk)}</strong>` : '')}
+      ${fieldRow('Responsibility', respList.map(e).join('<br/>'))}
+    </div>`;
 }
 
 /* ── SIGN ON ───────────────────────────────────────────── */
@@ -598,7 +608,7 @@ async function generateAndUploadPdf(swms, opts = {}) {
 
 function buildSwmsPages(s, sigs) {
   const lines = t => (t || '').split('\n').map(x => x.trim()).filter(Boolean);
-  const e = esc;
+  const e = JM.esc;
   const logoBlock = JM.state.BROMAR_LOGO_DATAURL
     ? `<div class="logo-cell"><img src="${JM.state.BROMAR_LOGO_DATAURL}" alt="Bromar"/></div>`
     : `<div class="logo-cell" style="font-weight:700; font-size:14pt; color:#e30613;">BROMAR</div>`;
