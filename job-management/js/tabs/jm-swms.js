@@ -1,4 +1,4 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.04 */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.05 */
 (function () {
   const JM = window.JobManager;
 
@@ -244,19 +244,21 @@ async function viewSwms(swmsId) {
         </div>
       </div>
 
-      <div class="data-table-wrapper" style="margin-top:1rem; overflow-x:auto;">
-        <table class="data-table">
-          <tbody>
-            <tr><th style="width:40%;">Project</th><td>${JM.esc(data.project_name || '—')}</td></tr>
-            <tr><th>Client</th><td>${JM.esc(data.client_name || '—')}</td></tr>
-            <tr><th>Site</th><td>${JM.esc(data.site_name || '—')}</td></tr>
-            <tr><th>Site Address</th><td>${JM.esc(data.site_address || '—')}</td></tr>
-            <tr><th>Site Contact</th><td>${JM.esc(data.site_contact || '—')}${data.site_contact_phone ? ' · ' + JM.esc(data.site_contact_phone) : ''}</td></tr>
-            <tr><th>SWMS Date</th><td>${JM.fmtDate(data.swms_date)}</td></tr>
-            <tr><th>Review Date</th><td>${JM.fmtDate(data.review_date)}</td></tr>
-            <tr><th>Developed by</th><td>${JM.esc(data.developed_by || '—')}</td></tr>
-          </tbody>
-        </table>
+      <div style="margin-top:1rem; border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+        ${[
+          ['Project', JM.esc(data.project_name || '—')],
+          ['Client', JM.esc(data.client_name || '—')],
+          ['Site', JM.esc(data.site_name || '—')],
+          ['Site Address', JM.esc(data.site_address || '—')],
+          ['Site Contact', JM.esc(data.site_contact || '—') + (data.site_contact_phone ? ' · ' + JM.esc(data.site_contact_phone) : '')],
+          ['SWMS Date', JM.fmtDate(data.swms_date) || '—'],
+          ['Review Date', JM.fmtDate(data.review_date) || '—'],
+          ['Developed by', JM.esc(data.developed_by || '—')]
+        ].map(([label, val], i) => `
+          <div style="display:flex; ${i ? 'border-top:1px solid var(--border);' : ''}">
+            <div style="flex:0 0 108px; padding:0.6rem 0.7rem; background:var(--bg-main); font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-secondary);">${label}</div>
+            <div style="flex:1; min-width:0; padding:0.6rem 0.8rem; font-size:0.9rem; word-break:break-word;">${val}</div>
+          </div>`).join('')}
       </div>
 
       <div style="margin-top:1rem;">
