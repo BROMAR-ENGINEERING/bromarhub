@@ -652,11 +652,11 @@
 
           <!-- Save / Report Buttons -->
           <div id="saveReportRow" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
-            <button type="button" class="btn-save-report" id="saveReportBtn">
+            <button type="button" class="btn-save-report" id="saveReportBtn" style="flex:1;justify-content:center;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save to Job
             </button>
-            <button type="button" class="btn-view-saved" id="viewSavedBtn">
+            <button type="button" class="btn-view-saved" id="viewSavedBtn" style="flex:1;justify-content:center;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               Cable Schedule
             </button>
@@ -666,14 +666,13 @@
           <div id="savePanel" style="display:none;margin-top:20px;background:var(--bg-main);border:1px solid var(--border);border-radius:10px;padding:20px;">
             <div style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--text-primary);">Save Circuit to Job</div>
 
-            <!-- Job Search Autocomplete -->
+            <!-- Job Search -->
             <div style="margin-bottom:12px;">
               <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Job Number <span style="color:var(--error);">*</span></label>
               <div class="autocomplete-wrapper" style="position:relative;">
-                <input type="text" class="calc-input" id="saveJobSearch" placeholder="Search job number or client..." autocomplete="off" style="width:100%;text-transform:uppercase;" oninput="searchSaveJobs(this.value)"/>
+                <input type="text" class="calc-input" id="saveJobSearch" placeholder="Search job number or client..." autocomplete="off" style="width:100%;" oninput="searchSaveJobs(this.value)"/>
                 <div class="autocomplete-results" id="saveJobResults"></div>
               </div>
-              <!-- Selected job card -->
               <div id="saveJobCard" style="display:none;margin-top:10px;padding:12px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent);">
                 <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);" id="saveJobCardNumber"></div>
                 <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px;" id="saveJobCardClient"></div>
@@ -681,39 +680,41 @@
               </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-              <div>
-                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Circuit Description <span style="color:var(--error);">*</span></label>
-                <input type="text" class="calc-input" id="saveDescription" placeholder="e.g. Main switchboard feed" autocomplete="off" style="width:100%;"/>
-              </div>
-              <div>
-                <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Identifier (optional)</label>
-                <div style="display:flex;gap:6px;">
-                  <select class="calc-select" id="saveRefType" style="flex:0 0 auto;width:auto;">
-                    <option value="ref">Circuit Ref</option>
-                    <option value="nickname">Nickname</option>
-                    <option value="fed_from">Fed From</option>
-                    <option value="cb">CB Number</option>
-                  </select>
-                  <input type="text" class="calc-input" id="saveCircuitRef" placeholder="e.g. C01" autocomplete="off" style="flex:1;min-width:0;"/>
-                </div>
-              </div>
+            <!-- Circuit Description -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Circuit Description <span style="color:var(--error);">*</span></label>
+              <input type="text" class="calc-input" id="saveDescription" placeholder="e.g. Main switchboard feed" autocomplete="off" style="width:100%;"/>
             </div>
+
+            <!-- Identifier type + value stacked -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Identifier (optional)</label>
+              <select class="calc-select" id="saveRefType" style="width:100%;margin-bottom:6px;">
+                <option value="ref">Circuit Ref</option>
+                <option value="nickname">Nickname</option>
+                <option value="fed_from">Fed From</option>
+                <option value="cb">CB Number</option>
+              </select>
+              <input type="text" class="calc-input" id="saveCircuitRef" placeholder="e.g. C01" autocomplete="off" style="width:100%;"/>
+            </div>
+
+            <!-- Switchboard -->
             <div style="margin-bottom:12px;">
               <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Switchboard / Area (optional)</label>
               <input type="text" class="calc-input" id="saveSwitchboard" placeholder="e.g. MSB, DB-L1, Pump Room" autocomplete="off" style="width:100%;"/>
             </div>
 
+            <!-- Notes -->
             <div style="margin-bottom:12px;">
               <label style="font-size:0.83rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Notes (optional)</label>
-              <textarea id="saveNotes" rows="2" placeholder="Any additional notes..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--text-primary);background:var(--bg-main);resize:vertical;outline:none;"></textarea>
+              <textarea id="saveNotes" rows="2" placeholder="Any additional notes..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--text-primary);background:var(--bg-secondary);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
             </div>
 
             <div id="saveStatusMsg" style="display:none;padding:10px 14px;border-radius:8px;font-size:0.88rem;margin-bottom:12px;"></div>
 
-            <div style="display:flex;gap:10px;justify-content:flex-end;">
-              <button type="button" class="btn-reset" onclick="closeSavePanel()">Cancel</button>
-              <button type="button" class="btn-calc" id="confirmSaveBtn">
+            <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+              <button type="button" class="btn-reset" onclick="closeSavePanel()" style="flex:1;min-width:80px;">Cancel</button>
+              <button type="button" class="btn-calc" id="confirmSaveBtn" style="flex:2;min-width:120px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg>
                 Save Circuit
               </button>
