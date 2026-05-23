@@ -1,4 +1,4 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.05 */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.06 */
 (function () {
   const JM = window.JobManager;
 
@@ -256,7 +256,7 @@ async function viewSwms(swmsId) {
           ['Developed by', JM.esc(data.developed_by || '—')]
         ].map(([label, val], i) => `
           <div style="display:flex; ${i ? 'border-top:1px solid var(--border);' : ''}">
-            <div style="flex:0 0 108px; padding:0.6rem 0.7rem; background:var(--bg-main); font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-secondary);">${label}</div>
+            <div style="flex:0 0 84px; padding:0.6rem 0.55rem; background:var(--bg-main); font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-secondary);">${label}</div>
             <div style="flex:1; min-width:0; padding:0.6rem 0.8rem; font-size:0.9rem; word-break:break-word;">${val}</div>
           </div>`).join('')}
       </div>
