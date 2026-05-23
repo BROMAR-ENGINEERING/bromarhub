@@ -7,9 +7,10 @@
    ============================================================ */
 (function () {
   const BUCKETS = {
-    documents: 'job-documents',
-    safety:    'job-safety',
-    testing:   'job-testing',
+    documents: 'job-sheet-files',
+    safety:    'job-sheet-files',
+    testing:   'job-sheet-files',
+    photos:    'job-sheet-files',
     swms:      'swms-completed',
   };
   const SIGNED_URL_TTL = 3600;
@@ -240,7 +241,7 @@
 
   /* ── DATA LOAD ─────────────────────────────────────────── */
   async function loadJobData(jobNumber) {
-    const [sheetsRes, posRes, filesRes, swmsRes] = await Promise.all([
+    const [sheetsRes, posRes, filesRes, swmsRes, cablingRes] = await Promise.all([
       sb().from('job_sheets')
         .select('id, job_sheet_number, job_number, sheet_date, tasks, labour, materials, notes, created_by, is_service_report, signing_status, report_generated_at, report_sent_to, client_signature_data, client_signature_name, client_signature_date')
         .eq('job_number', jobNumber)
@@ -257,17 +258,23 @@
         .select('id, swms_number, revision_number, status, title, project_name, swms_date, signer_count, last_signed_at, pdf_path, created_by_name, created_at, template_id, parent_instance_id')
         .eq('job_number', jobNumber)
         .order('created_at', { ascending: false }),
+      sb().from('cable_selections')
+        .select('id, job_number, circuit_ref, switchboard, description, phase, voltage_v, rating_value, rating_unit, cable_distance_m, max_vd_pct, cable_type, conductor, installation, active_size_mm2, earth_size_mm2, current_rating_a, voltage_drop_v, voltage_drop_pct, created_at')
+        .eq('job_number', jobNumber)
+        .order('created_at', { ascending: false }),
     ]);
 
     if (sheetsRes.error) console.error('job_sheets', sheetsRes.error);
     if (posRes.error) console.error('purchase_orders', posRes.error);
     if (filesRes.error) console.error('job_sheet_files', filesRes.error);
     if (swmsRes.error) console.error('swms_instances', swmsRes.error);
+    if (cablingRes.error) console.error('cable_selections', cablingRes.error);
 
     const sheets = sheetsRes.data || [];
     const pos    = posRes.data    || [];
     const files  = filesRes.data  || [];
     const swms   = swmsRes.data   || [];
+    const cabling = cablingRes.data || [];
 
     const labour = [], materials = [], notes = [];
     for (const s of sheets) {
@@ -280,8 +287,9 @@
     const documents = files.filter(f => f.file_category === 'documents');
     const safety    = files.filter(f => f.file_category === 'safety');
     const testing   = files.filter(f => f.file_category === 'testing');
+    const photos    = files.filter(f => f.file_category === 'photos');
 
-    state.jobCache = { sheets, pos, files, labour, materials, notes, documents, safety, testing, swms };
+    state.jobCache = { sheets, pos, files, labour, materials, notes, documents, safety, testing, photos, cabling, swms };
   }
 
   function updateCounts() {
