@@ -1,4 +1,4 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.03 */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.04 */
 (function () {
   const JM = window.JobManager;
 
@@ -284,6 +284,8 @@ async function viewSwms(swmsId) {
           ${hazItems.length ? hazItems.map(hazardCardHtml).join('') : '<div style="font-size:0.85rem; color:var(--text-secondary); padding:0.5rem 0;">No hazards recorded</div>'}
         </div>
       </details>
+
+      ${riskMatrixHtml()}
     </div>
   `;
 
@@ -291,6 +293,79 @@ async function viewSwms(swmsId) {
 }
 
 /* Stacked, mobile-friendly hazard card (replaces the wide PDF-style table in the on-screen view) */
+/* ── RISK RATING (shared by screen view + PDF) ───────────── */
+const RISK_MAP = {
+  A1:'high',A2:'high',A3:'high',A4:'mod', A5:'low',
+  B1:'high',B2:'high',B3:'high',B4:'mod', B5:'low',
+  C1:'high',C2:'high',C3:'mod', C4:'mod', C5:'low',
+  D1:'high',D2:'high',D3:'mod', D4:'low', D5:'low',
+  E1:'mod', E2:'mod', E3:'low', E4:'low', E5:'low'
+};
+const RISK_COLOURS = {
+  high: { bg: '#e30613', fg: '#ffffff', label: 'High' },
+  mod:  { bg: '#ffc000', fg: '#1a1a1e', label: 'Moderate' },
+  low:  { bg: '#2e9c4d', fg: '#ffffff', label: 'Low' }
+};
+function riskLevel(code) { return RISK_MAP[(code || '').toUpperCase().trim()] || null; }
+
+/* Coloured pill: "[A1] High" */
+function riskTile(code) {
+  const c = (code || '').toUpperCase().trim();
+  const lvl = riskLevel(c);
+  if (!c) return '<span style="color:var(--text-secondary);">—</span>';
+  if (!lvl) return `<strong>${JM.esc(c)}</strong>`;
+  const col = RISK_COLOURS[lvl];
+  return `<span style="display:inline-flex; align-items:center; gap:6px; background:${col.bg}; color:${col.fg}; padding:2px 10px; border-radius:6px; font-size:0.8rem; font-weight:700; letter-spacing:0.3px;">${JM.esc(c)} · ${col.label}</span>`;
+}
+
+/* Collapsible likelihood × consequence matrix for the on-screen View */
+function riskMatrixHtml() {
+  const cell = lvl => {
+    const col = RISK_COLOURS[lvl];
+    return `<td style="background:${col.bg}; color:${col.fg}; text-align:center; font-weight:700; font-size:0.72rem; padding:6px 4px; border:1px solid var(--border);">${col.label}</td>`;
+  };
+  const rows = [
+    ['Almost Certain','A', ['low','mod','high','high','high']],
+    ['Likely',        'B', ['low','mod','high','high','high']],
+    ['Moderate',      'C', ['low','mod','mod','high','high']],
+    ['Unlikely',      'D', ['low','low','mod','high','high']],
+    ['Rare',          'E', ['low','low','low','mod','mod']]
+  ];
+  const head = `
+    <tr>
+      <th style="background:var(--bg-main); border:1px solid var(--border); padding:5px;"></th>
+      <th style="background:var(--bg-main); border:1px solid var(--border); padding:5px;"></th>
+      <th colspan="5" style="background:#7f7f7f; color:#fff; text-align:center; font-size:0.7rem; letter-spacing:0.5px; padding:5px; border:1px solid var(--border);">CONSEQUENCES</th>
+    </tr>
+    <tr>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.62rem; padding:4px; border:1px solid var(--border);">Likelihood</th>
+      <th style="background:var(--bg-main); border:1px solid var(--border);"></th>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.6rem; padding:4px; border:1px solid var(--border);">Insignificant [5]</th>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.6rem; padding:4px; border:1px solid var(--border);">Minor [4]</th>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.6rem; padding:4px; border:1px solid var(--border);">Moderate [3]</th>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.6rem; padding:4px; border:1px solid var(--border);">Major [2]</th>
+      <th style="background:#7f7f7f; color:#fff; font-size:0.6rem; padding:4px; border:1px solid var(--border);">Catastrophic [1]</th>
+    </tr>`;
+  const body = rows.map(([name, code, cells]) => `
+    <tr>
+      <td style="font-weight:700; font-size:0.72rem; padding:5px 8px; border:1px solid var(--border); white-space:nowrap;">${name}</td>
+      <td style="font-weight:700; text-align:center; font-size:0.72rem; padding:5px; border:1px solid var(--border);">[${code}]</td>
+      ${cells.map(cell).join('')}
+    </tr>`).join('');
+  return `
+    <details style="margin-top:1rem;">
+      <summary style="cursor:pointer; font-size:0.85rem; font-weight:600; padding:0.5rem 0;">Risk rating matrix &amp; key</summary>
+      <div style="overflow-x:auto; margin-top:0.5rem;">
+        <table style="border-collapse:collapse; width:100%; min-width:480px;">${head}${body}</table>
+      </div>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.75rem; font-size:0.78rem;">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:14px; height:14px; border-radius:3px; background:${RISK_COLOURS.high.bg};"></span>High — stop, controls mandatory</span>
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:14px; height:14px; border-radius:3px; background:${RISK_COLOURS.mod.bg};"></span>Moderate — controls required</span>
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:14px; height:14px; border-radius:3px; background:${RISK_COLOURS.low.bg};"></span>Low — monitor</span>
+      </div>
+    </details>`;
+}
+
 function hazardCardHtml(h) {
   const e = JM.esc;
   if (h.type === 'phase') {
@@ -313,10 +388,10 @@ function hazardCardHtml(h) {
       </div>
       ${fieldRow('Hazards', e(h.hazard || ''))}
       ${fieldRow('Risks', e(h.risks || ''))}
-      ${fieldRow('Risk Rating', h.riskRating ? `<strong>${e(h.riskRating)}</strong>` : '')}
+      ${fieldRow('Risk Rating', h.riskRating ? riskTile(h.riskRating) : '')}
       ${fieldRow('Controls', ctrlList.length ? `<ul style="margin:0; padding-left:1.1rem;">${ctrlList.map(c => `<li style="margin-bottom:2px;">${e(c)}</li>`).join('')}</ul>` : '')}
       ${fieldRow('Hierarchy', hocList.map(e).join('<br/>'))}
-      ${fieldRow('Residual', h.residualRisk ? `<strong>${e(h.residualRisk)}</strong>` : '')}
+      ${fieldRow('Residual', h.residualRisk ? riskTile(h.residualRisk) : '')}
       ${fieldRow('Responsibility', respList.map(e).join('<br/>'))}
     </div>`;
 }
@@ -677,8 +752,8 @@ function buildSwmsPages(s, sigs) {
   for (let i = 0; i < maxPpe; i++) ppeRows += `<tr><td>${e(ppeMandatory[i] || '')}</td><td>${e(ppeAdditional[i] || '')}</td></tr>`;
 
   const ratingClass = r => {
-    const map = { 'A1':'risk-high','A2':'risk-high','A3':'risk-high','A4':'risk-high','A5':'risk-low','B1':'risk-high','B2':'risk-high','B3':'risk-high','B4':'risk-mod','B5':'risk-low','C1':'risk-high','C2':'risk-high','C3':'risk-mod','C4':'risk-mod','C5':'risk-low','D1':'risk-high','D2':'risk-high','D3':'risk-mod','D4':'risk-low','D5':'risk-low','E1':'risk-mod','E2':'risk-mod','E3':'risk-low','E4':'risk-low','E5':'risk-low' };
-    return map[r] || '';
+    const lvl = riskLevel(r);
+    return lvl ? 'risk-' + lvl : '';
   };
 
   const page1 = `
