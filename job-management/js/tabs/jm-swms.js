@@ -1,4 +1,4 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.01 */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.03 */
 (function () {
   const JM = window.JobManager;
 
@@ -10,6 +10,32 @@
     count: d => d.swms.filter(s => s.status === 'active').length,
     render(panel, d) { renderSwmsTool(panel, d.swms); }
   });
+
+/* Open the live PDF: try the stored path, but if the object is missing
+   (stale pdf_path / failed earlier upload), regenerate + re-upload + open. */
+async function openSwmsPdf(swmsId) {
+  await logSwmsAccess(swmsId, 'downloaded');
+
+  const { data: full, error } = await JM.sb().from('swms_instances').select('*').eq('id', swmsId).single();
+  if (error) { BromarHub.showInfo('Load failed: ' + error.message); return; }
+
+  // 1) Try the stored path first.
+  if (full.pdf_path) {
+    try {
+      const ok = await JM.openSignedFile(JM.BUCKETS.swms, full.pdf_path);
+      if (ok !== false) return; // opened successfully
+    } catch (_) { /* fall through to regenerate */ }
+  }
+
+  // 2) No path, or the object was missing — regenerate fresh and open.
+  BromarHub.showLoading('Generating PDF', 'Please wait...');
+  const blob = await generateAndUploadPdf(full, { saveLocal: true, silent: true });
+  BromarHub.hideLoading();
+  if (!blob) { BromarHub.showInfo('Could not generate PDF. Try again in a moment.'); return; }
+
+  await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
+  JM.renderTool();
+}
 
 async function logSwmsAccess(swmsInstanceId, action, extra = {}) {
   const u = await JM.ensureCurrentUser();
@@ -61,23 +87,7 @@ function renderSwmsTool(panel, swms) {
   panel.querySelectorAll('[data-swms-view]').forEach(b => b.addEventListener('click', () => viewSwms(b.dataset.swmsView)));
   panel.querySelectorAll('[data-swms-sign]').forEach(b => b.addEventListener('click', () => openSignModal(b.dataset.swmsSign)));
   panel.querySelectorAll('[data-swms-amend]').forEach(b => b.addEventListener('click', () => amendSwms(b.dataset.swmsAmend)));
-  panel.querySelectorAll('[data-swms-pdf]').forEach(b => b.addEventListener('click', async () => {
-    const swmsId = b.dataset.swmsPdf;
-    const row = JM.state.jobCache.swms.find(s => s.id === swmsId);
-    if (!row) return;
-    await logSwmsAccess(swmsId, 'downloaded');
-    if (row.pdf_path) {
-      await JM.openSignedFile(JM.BUCKETS.swms, row.pdf_path);
-    } else {
-      BromarHub.showLoading('Generating PDF', 'Please wait...');
-      const { data: full, error } = await JM.sb().from('swms_instances').select('*').eq('id', swmsId).single();
-      if (error) { BromarHub.hideLoading(); BromarHub.showInfo('Load failed: ' + error.message); return; }
-      await generateAndUploadPdf(full, { saveLocal: true });
-      BromarHub.hideLoading();
-      await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
-      JM.renderTool();
-    }
-  }));
+  panel.querySelectorAll('[data-swms-pdf]').forEach(b => b.addEventListener('click', () => openSwmsPdf(b.dataset.swmsPdf)));
 }
 
 function swmsRowHtml(s) {
@@ -392,7 +402,7 @@ async function confirmSign() {
   if (error) { BromarHub.hideLoading(); BromarHub.showInfo('Sign failed: ' + error.message); return; }
 
   const { data: swms } = await JM.sb().from('swms_instances').select('*').eq('id', currentSwmsForSigning).single();
-  if (swms) await generateAndUploadPdf(swms);
+  if (swms) await generateAndUploadPdf(swms, { snapshot: true });
 
   BromarHub.hideLoading();
   BromarHub.showSuccess(`${name} signed`);
@@ -528,7 +538,11 @@ const PDF_STYLES = `
 `;
 
 async function generateAndUploadPdf(swms, opts = {}) {
-  const { saveLocal = false, silent = false } = opts;
+  // saveLocal  — also trigger a browser download
+  // silent     — suppress info/success banners
+  // snapshot   — additionally write an immutable, timestamped audit copy
+  //              (use this on signing/amend events, NOT on plain views)
+  const { saveLocal = false, silent = false, snapshot = false } = opts;
 
   const html2canvas = window.html2canvas;
   const jsPDF = window.jspdf?.jsPDF || window.jsPDF || (window.jspdf && window.jspdf.default);
@@ -589,14 +603,38 @@ async function generateAndUploadPdf(swms, opts = {}) {
   }
 
   try {
-    const path = `${swms.job_number}/${swms.swms_number}_rev${swms.revision_number}.pdf`;
-    const { error: upErr } = await JM.sb().storage.from(JM.BUCKETS.swms).upload(path, blob, { contentType: 'application/pdf', upsert: true });
+    // 1) Live copy — stable, overwritable path the PDF button opens.
+    const latestPath = `${swms.job_number}/${swms.swms_number}_rev${swms.revision_number}_latest.pdf`;
+    const { error: upErr } = await JM.sb().storage.from(JM.BUCKETS.swms).upload(latestPath, blob, { contentType: 'application/pdf', upsert: true });
     if (upErr) {
-      console.error('[SWMS PDF] upload failed', upErr);
+      console.error('[SWMS PDF] live upload failed', upErr);
       if (!silent) BromarHub.showInfo('PDF generated but upload failed: ' + upErr.message);
       return blob;
     }
-    await JM.sb().from('swms_instances').update({ pdf_path: path, pdf_generated_at: new Date().toISOString() }).eq('id', swms.id);
+    await JM.sb().from('swms_instances').update({ pdf_path: latestPath, pdf_generated_at: new Date().toISOString() }).eq('id', swms.id);
+
+    // 2) Immutable audit snapshot — only on signing/amend events.
+    //    Timestamped path, never overwritten, so each event is preserved.
+    if (snapshot) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const snapPath = `${swms.job_number}/audit/${swms.swms_number}_rev${swms.revision_number}_${stamp}.pdf`;
+      const { error: snapErr } = await JM.sb().storage.from(JM.BUCKETS.swms).upload(snapPath, blob, { contentType: 'application/pdf', upsert: false });
+      if (snapErr) {
+        console.error('[SWMS PDF] audit snapshot upload failed', snapErr);
+      } else {
+        try {
+          await JM.sb().from('swms_pdf_snapshots').insert({
+            swms_instance_id: swms.id,
+            job_number: swms.job_number,
+            swms_number: swms.swms_number,
+            revision_number: swms.revision_number,
+            pdf_path: snapPath,
+            signer_count: (sigs || []).length
+          });
+        } catch (logErr) { console.error('[SWMS PDF] snapshot log failed', logErr); }
+      }
+    }
+
     if (!silent && !saveLocal) BromarHub.showSuccess('PDF saved to storage');
   } catch (err) {
     console.error('[SWMS PDF] upload error', err);
