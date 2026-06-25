@@ -58,6 +58,79 @@
       pointer-events: none;
     }
 
+    .view-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .view-btn svg { width: 16px; height: 16px; }
+    .view-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .view-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ── List view ── */
+    .list-group { margin-bottom: 24px; }
+    .list-month-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--divider);
+    }
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--divider);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+    }
+    .list-row:hover { border-color: var(--accent); }
+    .list-row.current {
+      background: rgba(234, 88, 12, 0.06);
+      border-left: 3px solid var(--accent);
+    }
+    .list-row.highlight { background: #fef3c7; }
+    .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .list-emp-name { font-weight: 600; color: var(--text-primary); flex: 1; min-width: 120px; }
+    .list-dates { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+    .list-status {
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .list-status.past { background: var(--divider); color: var(--text-secondary); }
+    .list-status.current { background: #d1fae5; color: #15803d; }
+    .list-status.upcoming { background: #dbeafe; color: #2563eb; }
+    .list-note { font-size: 0.8rem; color: var(--text-secondary); font-style: italic; }
+    @media (max-width: 600px) {
+      .list-row { flex-wrap: wrap; gap: 8px; }
+      .list-dates { width: 100%; order: 3; }
+    }
+
     .month-nav {
       display: flex;
       align-items: center;
@@ -292,16 +365,32 @@
         </svg>
         <input type="text" id="searchInput" placeholder="Search employee name...">
       </div>
+      <div class="view-toggle">
+        <button id="viewCalendarBtn" class="view-btn active" data-view="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Calendar
+        </button>
+        <button id="viewListBtn" class="view-btn" data-view="list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          List
+        </button>
+      </div>
     </div>
 
-    <div class="month-nav">
-      <button id="prevMonth">←</button>
-      <div class="month-title" id="monthTitle">January 2025</div>
-      <button id="nextMonth">→</button>
+    <div id="calendarView">
+      <div class="month-nav">
+        <button id="prevMonth">←</button>
+        <div class="month-title" id="monthTitle">January 2025</div>
+        <button id="nextMonth">→</button>
+      </div>
+
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- Calendar will be generated here -->
+      </div>
     </div>
 
-    <div class="calendar-grid" id="calendarGrid">
-      <!-- Calendar will be generated here -->
+    <div id="listView" style="display:none">
+      <div id="rosterList"></div>
     </div>
 
     <div class="legend">
@@ -325,7 +414,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.15</div>
+      <div class="card-footer-version">Version V1.16</div>
     </div>
   </div>
 </div>
@@ -571,12 +660,100 @@
   }
 
   // ============================================================
+  // VIEW STATE
+  // ============================================================
+  let currentView = 'calendar';
+
+  // ============================================================
   // SEARCH
   // ============================================================
   document.getElementById('searchInput').addEventListener('input', function(e) {
     searchTerm = e.target.value;
-    renderCalendar();
+    if (currentView === 'calendar') renderCalendar();
+    else renderList();
   });
+
+  // ============================================================
+  // VIEW TOGGLE
+  // ============================================================
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+    document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('viewCalendarBtn').classList.toggle('active', view === 'calendar');
+    document.getElementById('viewListBtn').classList.toggle('active', view === 'list');
+    if (view === 'calendar') renderCalendar();
+    else renderList();
+  }
+  document.getElementById('viewCalendarBtn').addEventListener('click', () => switchView('calendar'));
+  document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
+
+  // ============================================================
+  // LIST VIEW RENDERING (date order, grouped by month)
+  // ============================================================
+  function renderList() {
+    const container = document.getElementById('rosterList');
+    const todayStr = isoDate(new Date());
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    // Filter by search, sort by start date
+    let entries = allEvents.slice().sort((a, b) => a.start_date.localeCompare(b.start_date));
+    if (searchTerm) {
+      entries = entries.filter(e => e.summary && e.summary.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    if (!entries.length) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-secondary)">No roster entries found' + (searchTerm ? ' matching "' + searchTerm + '"' : '') + '.</div>';
+      return;
+    }
+
+    // Group by month-year of start date
+    const groups = {};
+    entries.forEach(e => {
+      const d = e.start_date; // YYYY-MM-DD
+      const key = d.slice(0, 7); // YYYY-MM
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      html += '<div class="list-group">';
+      html += '<div class="list-month-header">' + months[m - 1] + ' ' + y + '</div>';
+
+      groups[key].forEach(e => {
+        const colour = getEmpColour(e.summary);
+        let status, statusClass;
+        if (e.end_date < todayStr) { status = 'Past'; statusClass = 'past'; }
+        else if (e.start_date <= todayStr && e.end_date >= todayStr) { status = 'Current'; statusClass = 'current'; }
+        else { status = 'Upcoming'; statusClass = 'upcoming'; }
+
+        const isHighlight = searchTerm && e.summary && e.summary.toLowerCase().includes(searchTerm.toLowerCase());
+        const rowClass = 'list-row' + (statusClass === 'current' ? ' current' : '') + (isHighlight ? ' highlight' : '');
+
+        html += '<div class="' + rowClass + '">';
+        html += '<span class="list-emp-dot" style="background:' + colour + '"></span>';
+        html += '<span class="list-emp-name">' + BromarHub.escapeHtml(e.summary) + '</span>';
+        html += '<span class="list-dates">' + fmtDateShort(e.start_date) + ' — ' + fmtDateShort(e.end_date) + '</span>';
+        if (e.notes) html += '<span class="list-note">' + BromarHub.escapeHtml(e.notes) + '</span>';
+        html += '<span class="list-status ' + statusClass + '">' + status + '</span>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function fmtDateShort(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dt = new Date(y, m - 1, d);
+    return days[dt.getDay()] + ' ' + d + ' ' + months[m - 1] + ' ' + y;
+  }
 
   // ============================================================
   // TAP TO EXPAND (Mobile)
