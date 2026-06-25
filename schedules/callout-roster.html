@@ -85,6 +85,25 @@
       color: #fff;
     }
 
+    /* ── Request change link ── */
+    .request-change-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -12px 0 20px;
+    }
+    .request-change-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .request-change-link svg { width: 14px; height: 14px; }
+    .request-change-link:hover { color: var(--accent); text-decoration: underline; }
+
     /* ── List view ── */
     .list-group { margin-bottom: 24px; }
     .list-month-header {
@@ -397,6 +416,13 @@
       </div>
     </div>
 
+    <div class="request-change-row">
+      <a href="/schedules/callout-roster-change.html" class="request-change-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Request a change to the roster
+      </a>
+    </div>
+
     <div id="calendarView">
       <div class="month-nav">
         <button id="prevMonth">←</button>
@@ -434,7 +460,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.20</div>
+      <div class="card-footer-version">Version V1.21</div>
     </div>
   </div>
 </div>
