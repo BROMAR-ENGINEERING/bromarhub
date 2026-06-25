@@ -113,7 +113,10 @@
       background: rgba(234, 88, 12, 0.06);
       border-left: 3px solid var(--accent);
     }
-    .list-row.highlight { background: #fef3c7; }
+    .list-row.highlight { background: #fef3c7; border-color: #f59e0b; }
+    .list-row.highlight .list-emp-name { color: #1a1a1e; }
+    .list-row.highlight .list-dates,
+    .list-row.highlight .list-note { color: #57534e; }
     .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     .list-emp-name { font-weight: 600; color: var(--text-primary); flex: 1; min-width: 120px; }
     .list-dates { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
@@ -431,7 +434,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.19</div>
+      <div class="card-footer-version">Version V1.20</div>
     </div>
   </div>
 </div>
@@ -686,6 +689,11 @@
   // ============================================================
   document.getElementById('searchInput').addEventListener('input', function(e) {
     searchTerm = e.target.value;
+    // Auto-switch to list view when searching (calendar can't show matches well)
+    if (searchTerm && currentView === 'calendar') {
+      switchView('list');
+      return;
+    }
     if (currentView === 'calendar') renderCalendar();
     else renderList();
   });
