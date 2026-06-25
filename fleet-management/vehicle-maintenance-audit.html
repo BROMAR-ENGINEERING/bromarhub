@@ -22,9 +22,8 @@
          --info-bg, --info-border, --info-text
        ============================================================ */
 
-    /* Make sure page content clears the fixed header */
-    .page-wrapper { margin-top: 90px; }
-    @media (max-width: 720px) { .page-wrapper { margin-top: 80px; } }
+    /* Make sure page content clears the fixed header
+       (.page-title-wrapper from shared CSS handles the top spacing) */
 
     /* Legend */
     .legend {
@@ -279,27 +278,7 @@
     .field-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
     @media (max-width: 600px) { .field-row.three-col { grid-template-columns: 1fr; } }
 
-    /* Page title — sits below the fixed header */
-    .audit-page-title {
-      max-width: 900px;
-      margin: 1rem auto 1.5rem;
-      padding: 0 1.5rem;
-      text-align: center;
-    }
-    .audit-page-title h1 {
-      font-size: 2rem; font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--text-primary);
-      margin-bottom: 0.25rem;
-    }
-    .audit-page-title .subtitle {
-      color: var(--text-secondary);
-      font-size: 1rem; font-weight: 300;
-    }
-    @media (max-width: 720px) {
-      .audit-page-title h1 { font-size: 1.5rem; }
-      .audit-page-title { padding: 0 1rem; }
-    }
+    /* Page title styling comes from shared bromar-hub.css .page-title-wrapper */
 
     /* In-card footer */
     .card-footer {
@@ -341,7 +320,7 @@
 
 <div id="bromar-header"></div>
 
-<div class="audit-page-title">
+<div class="page-title-wrapper">
   <h1>Vehicle Maintenance Audit</h1>
   <p class="subtitle">Complete the checklist below for the plant or vehicle being audited. Tap the info icon next to each item for guidance.</p>
 </div>
@@ -387,7 +366,7 @@
       <div class="field-row three-col">
         <div class="field-group">
           <label for="plant_type">Plant Type</label>
-          <input type="text" id="plant_type" name="plant_type" placeholder="Ute or Van only"/>
+          <input type="text" id="plant_type" name="plant_type" placeholder="e.g. Ute or Van"/>
         </div>
         <div class="field-group">
           <label for="plant_no">Plant No.</label>
@@ -446,39 +425,55 @@
 
       <div class="defect-box">
         <div class="field-group full" style="margin-bottom: 16px;">
-          <label for="defect_details">Details of Fault / Defect</label>
-          <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection..."></textarea>
-        </div>
-
-        <div class="field-group full" id="group-urgency" style="margin-bottom: 0;">
-          <label>Urgency Level</label>
-          <div class="urgency-group">
-            <label class="urgency-option" data-urgency="low">
-              <input type="radio" name="urgency" value="low"/>
-              <span class="urgency-icon">🟢</span>
-              <span class="urgency-label">Low</span>
-            </label>
-            <label class="urgency-option" data-urgency="medium">
-              <input type="radio" name="urgency" value="medium"/>
-              <span class="urgency-icon">🟡</span>
-              <span class="urgency-label">Medium</span>
-            </label>
-            <label class="urgency-option" data-urgency="high">
-              <input type="radio" name="urgency" value="high"/>
-              <span class="urgency-icon">🟠</span>
-              <span class="urgency-label">High</span>
-            </label>
-            <label class="urgency-option" data-urgency="critical">
-              <input type="radio" name="urgency" value="critical"/>
-              <span class="urgency-icon">🔴</span>
-              <span class="urgency-label">Critical</span>
-            </label>
+          <label>Were any defects identified during this audit? <span class="required">*</span></label>
+          <div class="job-number-toggle">
+            <div class="radio-option">
+              <input type="radio" name="hasDefects" id="defectsYes" value="yes">
+              <label for="defectsYes">⚠️ Yes — defects found</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="hasDefects" id="defectsNo" value="no" checked>
+              <label for="defectsNo">✅ No defects</label>
+            </div>
           </div>
         </div>
 
-        <div class="defect-warning">
-          <span>⚠️</span>
-          <span>DO NOT operate machine if unsafe.</span>
+        <div id="defectDetailsSection">
+          <div class="field-group full" style="margin-bottom: 16px;">
+            <label for="defect_details">Details of Fault / Defect</label>
+            <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection..."></textarea>
+          </div>
+
+          <div class="field-group full" id="group-urgency" style="margin-bottom: 0;">
+            <label>Urgency Level</label>
+            <div class="urgency-group">
+              <label class="urgency-option" data-urgency="low">
+                <input type="radio" name="urgency" value="low"/>
+                <span class="urgency-icon">🟢</span>
+                <span class="urgency-label">Low</span>
+              </label>
+              <label class="urgency-option" data-urgency="medium">
+                <input type="radio" name="urgency" value="medium"/>
+                <span class="urgency-icon">🟡</span>
+                <span class="urgency-label">Medium</span>
+              </label>
+              <label class="urgency-option" data-urgency="high">
+                <input type="radio" name="urgency" value="high"/>
+                <span class="urgency-icon">🟠</span>
+                <span class="urgency-label">High</span>
+              </label>
+              <label class="urgency-option" data-urgency="critical">
+                <input type="radio" name="urgency" value="critical"/>
+                <span class="urgency-icon">🔴</span>
+                <span class="urgency-label">Critical</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="defect-warning">
+            <span>⚠️</span>
+            <span>DO NOT operate machine if unsafe.</span>
+          </div>
         </div>
       </div>
 
@@ -530,7 +525,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — VEHICLE MAINTENANCE AUDIT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.05</div>
+      <div class="card-footer-version">Version V1.06</div>
     </div>
   </div>
 </div>
@@ -559,7 +554,7 @@
       templateId: "vehicleaudit_admin",
     },
     adminEmails: ["ashleys@bromar.com.au"],
-    revision: "V1.05"
+    revision: "V1.06"
   };
   emailjs.init(CONFIG.emailjs.publicKey);
 
@@ -727,6 +722,7 @@
     initInfoModal();
     initUrgencySelector();
     initQuickActions();
+    initDefectToggle();
   });
 
   function getMondayOfWeek(d) {
@@ -858,6 +854,28 @@
   function getSelectedUrgency() {
     const sel = document.querySelector('input[name="urgency"]:checked');
     return sel ? sel.value : null;
+  }
+
+  // ============================================================
+  // DEFECT TOGGLE — hide/show details when Yes/No is picked
+  // ============================================================
+  function initDefectToggle() {
+    const detailsSection = document.getElementById('defectDetailsSection');
+    function updateVisibility() {
+      const yes = document.getElementById('defectsYes').checked;
+      detailsSection.style.display = yes ? 'block' : 'none';
+      if (!yes) {
+        // Clear details and urgency when switching to "No"
+        document.getElementById('defect_details').value = '';
+        document.querySelectorAll('input[name="urgency"]').forEach(r => r.checked = false);
+        document.querySelectorAll('.urgency-option').forEach(o => {
+          o.classList.remove('selected', 'low', 'medium', 'high', 'critical');
+        });
+      }
+    }
+    document.getElementById('defectsYes').addEventListener('change', updateVisibility);
+    document.getElementById('defectsNo').addEventListener('change', updateVisibility);
+    updateVisibility();
   }
 
   // ============================================================
@@ -1081,8 +1099,11 @@
       const regNo          = document.getElementById('reg_no').value.trim() || 'Not specified';
       const currentHours   = document.getElementById('current_hours').value.trim() || 'Not recorded';
       const nextService    = document.getElementById('next_service').value.trim() || 'Not recorded';
-      const defectDetails  = document.getElementById('defect_details').value.trim() || 'No defects reported.';
-      const urgency        = getSelectedUrgency() || 'None';
+      const hasDefects     = document.getElementById('defectsYes').checked;
+      const defectDetails  = hasDefects
+        ? (document.getElementById('defect_details').value.trim() || 'No additional detail provided.')
+        : 'No defects reported.';
+      const urgency        = hasDefects ? (getSelectedUrgency() || 'None') : 'None';
       const additionalNotes= document.getElementById('additional_notes').value.trim() || 'None';
       const signoffDate    = document.getElementById('signoff_date').value;
 
@@ -1128,6 +1149,7 @@
         na_count:            naCount,
         total_checks:        results.length,
         defect_details:      defectDetails,
+        has_defects:         hasDefects ? 'Yes' : 'No',
         urgency:             urgency.toUpperCase(),
         additional_notes:    additionalNotes,
         signoff_date:        signoffDate,
@@ -1151,6 +1173,9 @@
       });
       document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
       document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
+      document.getElementById('defectsNo').checked = true;
+      document.getElementById('defectsYes').checked = false;
+      document.getElementById('defectDetailsSection').style.display = 'none';
       updateStatusSummary();
       clearSignature();
 
@@ -1198,6 +1223,9 @@
       });
       document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
       document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
+      document.getElementById('defectsNo').checked = true;
+      document.getElementById('defectsYes').checked = false;
+      document.getElementById('defectDetailsSection').style.display = 'none';
       updateStatusSummary();
       clearSignature();
       const today = new Date().toISOString().split('T')[0];
