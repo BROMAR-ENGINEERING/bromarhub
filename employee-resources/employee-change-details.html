@@ -161,6 +161,41 @@
       .section-toggle-hint { margin-left: 0; width: 100%; }
     }
 
+    /* Card footer (Report a bug + version) */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--divider, #e5e7eb);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--brand-orange, #c2440e);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-faded, #9ca3af);
+      font-weight: 500;
+    }
+
     /* Privacy reassurance banner */
     .privacy-banner {
       background: var(--brand-light, #f3f6ff);
@@ -198,7 +233,7 @@
 
 <div class="page-wrapper">
 
-  <div class="header-card">
+  <div class="header-card" style="text-align: center;">
     <h1 class="header-title">Change of Details</h1>
     <p class="header-subtitle">Use this form to update your personal information on file. Tick only the sections you want to update — the admin team will be notified and your records updated. A confirmation will be sent to your email.</p>
   </div>
@@ -596,25 +631,17 @@
 
     </form>
 
-    <div class="form-footer">
-      <div class="footer-disclaimer">
-        <p><em>Information submitted via this form is handled confidentially in accordance with the Privacy Act 1988 and is used solely for employment record keeping. Banking and identity changes may require additional verification.</em></p>
-        <p><em>For any questions or issues, please contact the admin team at admin@bromar.com.au</em></p>
-      </div>
-      <div class="footer-details">
-        <div class="footer-left">
-          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
-          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a> &nbsp;|&nbsp; REC: 30340</p>
-          <p>ABN: 45 634 835 939 &nbsp;&nbsp;&nbsp;&nbsp; ACN: 634 835 939</p>
-        </div>
-      </div>
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — CHANGE OF DETAILS</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.05</div>
     </div>
 
   </div>
 </div>
 
 <!-- Revision badge -->
-<div class="revision-number">V1.04</div>
+<div class="revision-number">V1.05</div>
 
 <script>
   // ============================================================
@@ -624,7 +651,7 @@
     edgeFunction: 'submit-change-of-details',
     maxEmergencyContacts: 4,
     maxLicences: 10,
-    revision: 'V1.04',
+    revision: 'V1.05',
     // Sensitive sections — NEVER auto-saved to localStorage
     sensitiveSections: ['banking', 'super', 'medical'],
     // Field name prefixes/IDs considered sensitive
