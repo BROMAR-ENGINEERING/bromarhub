@@ -90,22 +90,17 @@
 
     .check-pill input:checked + label .checkmark::after { display: block; }
 
-    .revision-number {
-      position: fixed;
-      bottom: 12px;
-      right: 16px;
-      font-size: 11px;
-      color: var(--text-muted);
-      opacity: 0.5;
-      font-family: monospace;
-      pointer-events: none;
-      z-index: 100;
-    }
-
     .page-wrapper { margin-top: 90px; }
     @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
 
     .header-card { text-align: center; }
+
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -255,10 +250,14 @@
         </div>
 
       </form>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB — VEHICLE MAINTENANCE REQUEST</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.02</div>
+      </div>
     </div>
   </div>
-
-  <div class="revision-number">V1.02</div>
 
 <script>
   emailjs.init('4JW7VbCEAqZt9p4Jj');
