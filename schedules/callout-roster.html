@@ -126,6 +126,23 @@
     .list-status.current { background: #d1fae5; color: #15803d; }
     .list-status.upcoming { background: #dbeafe; color: #2563eb; }
     .list-note { font-size: 0.8rem; color: var(--text-secondary); font-style: italic; }
+    .past-toggle-btn {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      border: 1.5px dashed var(--input-border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .past-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .past-section { opacity: 0.75; margin-bottom: 8px; }
     @media (max-width: 600px) {
       .list-row { flex-wrap: wrap; gap: 8px; }
       .list-dates { width: 100%; order: 3; }
@@ -173,7 +190,7 @@
 
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 1px;
       background: var(--divider);
       border: 1px solid var(--divider);
@@ -414,7 +431,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.16</div>
+      <div class="card-footer-version">Version V1.18</div>
     </div>
   </div>
 </div>
@@ -689,8 +706,10 @@
   document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
 
   // ============================================================
-  // LIST VIEW RENDERING (date order, grouped by month)
+  // LIST VIEW RENDERING (current/upcoming by default, past collapsible)
   // ============================================================
+  let showPast = false;
+
   function renderList() {
     const container = document.getElementById('rosterList');
     const todayStr = isoDate(new Date());
@@ -707,11 +726,49 @@
       return;
     }
 
+    // Split into past vs current+upcoming
+    const pastEntries = entries.filter(e => e.end_date < todayStr);
+    const activeEntries = entries.filter(e => e.end_date >= todayStr);
+
+    // Build a "Past" toggle button at top
+    let html = '';
+    if (pastEntries.length) {
+      html += '<button id="togglePastBtn" class="past-toggle-btn">' +
+        (showPast ? '▾ Hide past entries (' + pastEntries.length + ')' : '▸ Show past entries (' + pastEntries.length + ')') +
+      '</button>';
+    }
+
+    // Past section (only if expanded)
+    if (showPast && pastEntries.length) {
+      html += '<div class="past-section">';
+      html += renderListGroups(pastEntries, todayStr, months);
+      html += '</div>';
+    }
+
+    // Active section
+    if (activeEntries.length) {
+      html += renderListGroups(activeEntries, todayStr, months);
+    } else if (!searchTerm) {
+      html += '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">No current or upcoming entries.</div>';
+    }
+
+    container.innerHTML = html;
+
+    // Wire the toggle button
+    const btn = document.getElementById('togglePastBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        showPast = !showPast;
+        renderList();
+      });
+    }
+  }
+
+  function renderListGroups(entries, todayStr, months) {
     // Group by month-year of start date
     const groups = {};
     entries.forEach(e => {
-      const d = e.start_date; // YYYY-MM-DD
-      const key = d.slice(0, 7); // YYYY-MM
+      const key = e.start_date.slice(0, 7); // YYYY-MM
       if (!groups[key]) groups[key] = [];
       groups[key].push(e);
     });
@@ -743,8 +800,7 @@
 
       html += '</div>';
     });
-
-    container.innerHTML = html;
+    return html;
   }
 
   function fmtDateShort(iso) {
