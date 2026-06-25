@@ -13,6 +13,12 @@
        Shared styles (variables, base, header, form card, inputs,
        buttons, banners, loading overlay) live in bromar-hub.css */
 
+    /* Clear the fixed header injected by bromar-hub.js */
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
+    }
+
     .section-intro {
       font-size: 0.82rem;
       color: var(--text-muted);
@@ -57,12 +63,18 @@
     .collapsible-section {
       max-height: 0;
       overflow: hidden;
-      transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+      transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
       opacity: 0;
+      padding: 0 2px;
     }
     .collapsible-section.open {
-      max-height: 3000px;
+      max-height: 4000px;
       opacity: 1;
+      padding: 6px 2px 4px;
+      margin-bottom: 8px;
+    }
+    .collapsible-section .section-intro {
+      margin-top: 0;
     }
 
     /* Sub-card for repeatable groups (emergency contacts, licences) */
@@ -602,7 +614,7 @@
 </div>
 
 <!-- Revision badge -->
-<div class="revision-number">V1.02</div>
+<div class="revision-number">V1.04</div>
 
 <script>
   // ============================================================
@@ -612,7 +624,7 @@
     edgeFunction: 'submit-change-of-details',
     maxEmergencyContacts: 4,
     maxLicences: 10,
-    revision: 'V1.02',
+    revision: 'V1.04',
     // Sensitive sections — NEVER auto-saved to localStorage
     sensitiveSections: ['banking', 'super', 'medical'],
     // Field name prefixes/IDs considered sensitive
