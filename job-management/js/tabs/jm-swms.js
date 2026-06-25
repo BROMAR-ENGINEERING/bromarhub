@@ -1,16 +1,12 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.09
-   Changes since V1.08:
-   - Full SWMS editor: edit metadata, hazards (edit/add/delete/reorder),
-     phase dividers, PPE, compliance fields
-   - Editor opens automatically after Attach and Amend (so the template
-     can be tweaked before workers sign on)
-   - Edit button added to active SWMS rows
-   - Save as New Template — pushes the edited content into swms_templates
-   - Overwrite Template — replaces the source template (only enabled if
-     the current user's email matches the template's created_by_email).
-     Bumps template_version (V1.07 → V1.08 etc.)
-   - PDF regenerated on Save; attach/amend trigger audit snapshots, plain
-     edits don't
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.10
+   Changes since V1.09:
+   - Page 1: Project + Site Details merged into one compact 4-column block
+     (was 2 separate 6-row tables). Saves ~80px vertical for Compliance
+   - Compliance & Resources cells now render multi-line items as inline
+     bullet chips that wrap side-by-side, not stacked top-to-bottom.
+     Single-line items still render as plain text.
+   - Tighter padding throughout cover page so longer Compliance content
+     no longer collides with the footer
    ─────────────────────────────────────────────────────────── */
 (function () {
   const JM = window.JobManager;
@@ -1062,12 +1058,18 @@ const PDF_STYLES = `
 
 .pdf-section-heading { background: #7f7f7f; color: white; padding: 5px 12px; font-size: 9pt; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 6px; }
 .pdf-fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.pdf-fields td { border: 1px solid #d0d0d0; padding: 6px 10px; font-size: 9pt; vertical-align: middle; }
-.pdf-fields td.lbl { background: #f5f5f5; font-weight: 700; color: #333; font-size: 8pt; letter-spacing: 0.3px; text-transform: uppercase; }
-.pdf-fields td.val { background: white; color: #000; font-size: 9.5pt; }
+.pdf-fields td { border: 1px solid #d0d0d0; padding: 5px 9px; font-size: 9pt; vertical-align: middle; }
+.pdf-fields td.lbl { background: #f5f5f5; font-weight: 700; color: #333; font-size: 7.5pt; letter-spacing: 0.3px; text-transform: uppercase; }
+.pdf-fields td.val { background: white; color: #000; font-size: 9pt; }
+
 .pdf-ref { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.pdf-ref th { background: #7f7f7f; color: white; padding: 5px 10px; text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
-.pdf-ref td { border: 1px solid #d0d0d0; padding: 6px 10px; font-size: 9pt; vertical-align: top; }
+.pdf-ref th { background: #7f7f7f; color: white; padding: 4px 10px; text-align: left; font-size: 7.5pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
+.pdf-ref td { border: 1px solid #d0d0d0; padding: 5px 10px; font-size: 8.5pt; vertical-align: top; line-height: 1.45; }
+/* Inline chip layout for multi-item lists in the compliance area */
+.pdf-ref td .chip-flow { display: block; }
+.pdf-ref td .chip { display: inline-block; padding: 1px 0; margin-right: 14px; white-space: nowrap; }
+.pdf-ref td .chip::before { content: '•'; color: #e30613; font-weight: 700; margin-right: 5px; }
+.pdf-ref td .chip-wrap { white-space: normal; }
 .pdf-matrix-wrap { display: flex; gap: 24px; margin-top: 6px; padding: 0 8px; }
 .pdf-matrix { flex: 1; border-collapse: collapse; table-layout: fixed; }
 .pdf-matrix th, .pdf-matrix td { border: 1px solid #999; text-align: center; padding: 7px 6px; font-size: 9.5pt; font-weight: 600; }
@@ -1285,34 +1287,54 @@ function buildSwmsPages(s, sigs) {
     return lvl ? 'risk-' + lvl : '';
   };
 
-  // ── PAGE 1: Cover with full header + Project + Site + Compliance ──
+  // Helper: render multi-line content as inline chips that wrap naturally,
+  // or fall back to plain text for single-line content.
+  const chipFlow = txt => {
+    const items = lines(txt);
+    if (!items.length) return '—';
+    if (items.length === 1) return e(items[0]);
+    return `<div class="chip-flow chip-wrap">${items.map(i => `<span class="chip">${e(i)}</span>`).join('')}</div>`;
+  };
+
+  // ── PAGE 1: Cover with full header + combined Project/Site + Compliance ──
   const page1 = `
     ${fullHeader}
-    <div class="pdf-section-heading">Project Details</div>
+    <div class="pdf-section-heading">Project &amp; Site Details</div>
     <table class="pdf-fields">
-      <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
-      <tr><td class="lbl">Project</td><td class="val">${e(s.project_name || '—')}</td><td class="lbl">SWMS Date</td><td class="val">${JM.fmtDate(s.swms_date) || '—'}</td></tr>
-      <tr><td class="lbl">Developed by</td><td class="val">${e(s.developed_by || '—')}</td><td class="lbl">Review Date</td><td class="val">${JM.fmtDate(s.review_date) || '—'}</td></tr>
-      <tr><td class="lbl">Approved by</td><td class="val">${e(s.approved_by || '—')}</td><td class="lbl">Reviewed by</td><td class="val">${e(s.reviewed_by || '—')}</td></tr>
-    </table>
-    <div class="pdf-section-heading">Site Details</div>
-    <table class="pdf-fields">
-      <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
-      <tr><td class="lbl">Client</td><td class="val">${e(s.client_name || '—')}</td><td class="lbl">Site</td><td class="val">${e(s.site_name || '—')}</td></tr>
-      <tr><td class="lbl">Address</td><td class="val" colspan="3">${e(s.site_address || '—')}</td></tr>
-      <tr><td class="lbl">Site Contact</td><td class="val" colspan="3">${e(s.site_contact || '—')}</td></tr>
+      <colgroup><col style="width:13%"/><col style="width:37%"/><col style="width:13%"/><col style="width:37%"/></colgroup>
+      <tr>
+        <td class="lbl">Project</td><td class="val">${e(s.project_name || '—')}</td>
+        <td class="lbl">Client</td><td class="val">${e(s.client_name || '—')}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Site</td><td class="val">${e(s.site_name || '—')}</td>
+        <td class="lbl">Site Address</td><td class="val">${e(s.site_address || '—')}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Site Contact</td><td class="val">${e(s.site_contact || '—')}</td>
+        <td class="lbl">Developed by</td><td class="val">${e(s.developed_by || '—')}</td>
+      </tr>
+      <tr>
+        <td class="lbl">SWMS Date</td><td class="val">${JM.fmtDate(s.swms_date) || '—'}</td>
+        <td class="lbl">Review Date</td><td class="val">${JM.fmtDate(s.review_date) || '—'}</td>
+      </tr>
+      ${(s.approved_by || s.reviewed_by) ? `
+      <tr>
+        <td class="lbl">Approved by</td><td class="val">${e(s.approved_by || '—')}</td>
+        <td class="lbl">Reviewed by</td><td class="val">${e(s.reviewed_by || '—')}</td>
+      </tr>` : ''}
     </table>
     <div class="pdf-section-heading">Compliance &amp; Resources</div>
     <table class="pdf-ref">
       <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
       <tr><th>Legislation, Standards &amp; Codes of Practice</th><th>Personnel Qualifications Required</th></tr>
-      <tr><td>${lines(s.legislation).map(e).join('<br/>') || '—'}</td><td>${e(s.qualifications || '—')}</td></tr>
+      <tr><td>${chipFlow(s.legislation)}</td><td>${chipFlow(s.qualifications)}</td></tr>
       <tr><th>Plant &amp; Equipment Required</th><th>Plant &amp; Equipment Inspections</th></tr>
-      <tr><td>${lines(s.plant_required).map(e).join('<br/>') || '—'}</td><td>${lines(s.plant_inspections).map(e).join('<br/>') || '—'}</td></tr>
+      <tr><td>${chipFlow(s.plant_required)}</td><td>${chipFlow(s.plant_inspections)}</td></tr>
       <tr><th>Materials Used</th><th>MSDS Required</th></tr>
-      <tr><td>${e(s.materials_used || '—')}</td><td>${e(s.msds_required || '—')}</td></tr>
+      <tr><td>${chipFlow(s.materials_used)}</td><td>${chipFlow(s.msds_required)}</td></tr>
       <tr><th>Specific Training Required</th><th>Relevant Procedures</th></tr>
-      <tr><td>${e(s.training_required || '—')}</td><td>${e(s.relevant_procedures || '—')}</td></tr>
+      <tr><td>${chipFlow(s.training_required)}</td><td>${chipFlow(s.relevant_procedures)}</td></tr>
     </table>
     ${PDF_FOOTER}
     <div class="pdf-pageno">Page 1</div>`;
