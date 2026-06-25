@@ -45,6 +45,15 @@
       color: var(--info-text); border-radius: 12px; padding: 1rem 1.125rem;
       font-size: 0.88rem; line-height: 1.5;
     }
+    .swap-warning-box {
+      margin-top: 0.875rem;
+      background: #fef3c7; border: 1px solid #f59e0b; color: #92400e;
+      border-radius: 12px; padding: 0.875rem 1.125rem;
+      font-size: 0.85rem; line-height: 1.5; font-weight: 500;
+    }
+    [data-theme="dark"] .swap-warning-box {
+      background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.4); color: #fcd34d;
+    }
 
     /* ── In-card footer ── */
     .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
@@ -115,7 +124,10 @@
       <!-- 3b. No swap -->
       <div class="swap-section" id="noSwapSection">
         <div class="swap-note-box">
-          No problem — admin will arrange cover for this date. Please add any context below (reason, preferred replacement, availability).
+          Admin will arrange cover for this date. Please add any context below (reason, preferred replacement, availability).
+        </div>
+        <div class="swap-warning-box">
+          ⚠️ Please avoid late changes to the roster — changes in the week leading up to this schedule can be very difficult to organise at the last minute.
         </div>
       </div>
 
@@ -135,14 +147,21 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — ROSTER CHANGE REQUEST</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
   </div>
 </div>
 
 <script>
+  // Anon REST creds — used for reading callout_roster directly (RLS is anon-scoped on that table)
+  const SB_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+  function sbHeaders() {
+    return { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+  }
+
   let currentUser = null;
-  let rosterCache = [];          // all callout_roster rows
+  let rosterCache = [];          // all upcoming callout_roster rows
   let selectedMySlot = null;     // requester's slot to change
   let selectedTheirSlot = null;  // other employee's slot to take
   let swapType = null;
@@ -165,16 +184,14 @@
     return e?.email || '';
   }
 
-  // ── Load all upcoming roster rows once ──
+  // ── Load all upcoming roster rows via anon REST (matches working calendar page) ──
   async function loadRoster() {
     try {
-      const { data, error } = await window.sb
-        .from('callout_roster')
-        .select('*')
-        .gte('end_date', todayISO())
-        .order('start_date', { ascending: true });
-      if (error) throw error;
-      rosterCache = data || [];
+      const url = SB_URL + '/rest/v1/callout_roster?select=*&end_date=gte.' + todayISO() + '&order=start_date.asc';
+      const res = await fetch(url, { headers: sbHeaders() });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+      rosterCache = await res.json();
+      console.log('[RosterChange] loaded', rosterCache.length, 'roster rows');
     } catch (err) {
       console.error('[RosterChange] loadRoster:', err);
       BromarHub.showInfo('Could not load roster dates: ' + err.message);
@@ -320,18 +337,24 @@
       const opt = this.selectedOptions[0];
       currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
       renderMySlots();
+      refreshSwapWithOptions();
     });
 
-    // Other-employee picker (exclude self)
+    refreshSwapWithOptions();
+    renderMySlots();
+  });
+
+  // Populate the "swap with" picker, excluding the current user
+  function refreshSwapWithOptions() {
     const swapWith = document.getElementById('swapWith');
     swapWith.innerHTML = '<option value="">Select employee...</option>' +
       (window.EMPLOYEES || [])
         .filter(emp => emp.full_name !== currentUser?.name)
         .map(emp => '<option value="' + BromarHub.escapeHtml(emp.full_name) + '">' + BromarHub.escapeHtml(emp.full_name) + '</option>')
         .join('');
-
-    renderMySlots();
-  });
+    selectedTheirSlot = null;
+    document.getElementById('theirSlots').innerHTML = '<div class="slot-empty">Select the employee above to load their roster dates.</div>';
+  }
 </script>
 
 </body>
