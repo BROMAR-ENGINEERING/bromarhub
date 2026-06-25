@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employee Change of Details</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    /* PAGE-SPECIFIC STYLES ONLY
+       Shared styles (variables, base, header, form card, inputs,
+       buttons, banners, loading overlay) live in bromar-hub.css */
+
+    .section-intro {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: -10px 0 16px;
+      line-height: 1.55;
+    }
+
+    /* Section toggle — to enable/disable a whole section */
+    .section-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--section-bg, var(--input-bg));
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .section-toggle:hover { border-color: var(--brand-primary); }
+    .section-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--brand-orange);
+      flex-shrink: 0;
+    }
+    .section-toggle-text {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .section-toggle-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: auto;
+    }
+
+    .collapsible-section {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+      opacity: 0;
+    }
+    .collapsible-section.open {
+      max-height: 3000px;
+      opacity: 1;
+    }
+
+    /* Sub-card for repeatable groups (emergency contacts, licences) */
+    .sub-card {
+      background: var(--section-bg, var(--input-bg));
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .sub-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .sub-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.3px;
+    }
+    .sub-card-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--brand-orange);
+      text-transform: uppercase;
+      background: var(--brand-orange-soft, rgba(194, 68, 14, 0.08));
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* Acknowledgement checkbox section */
+    .ack-section {
+      background: var(--brand-light, var(--input-bg));
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin: 24px 0;
+    }
+    .ack-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      user-select: none;
+      line-height: 1.5;
+    }
+    .ack-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--brand-orange);
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Revision number badge */
+    .revision-number {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--brand-white, rgba(255,255,255,0.7));
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--input-border);
+      letter-spacing: 0.5px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Multi-column field rows (page-specific layouts) */
+    .field-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 720px) {
+      .field-row.cols-3 { grid-template-columns: 1fr; }
+      .section-toggle { flex-wrap: wrap; }
+      .section-toggle-hint { margin-left: 0; width: 100%; }
+    }
+
+    /* Privacy reassurance banner */
+    .privacy-banner {
+      background: var(--brand-light, #f3f6ff);
+      border: 1.5px solid var(--input-border);
+      border-left: 4px solid #1a56db;
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+    .privacy-banner-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .privacy-banner ul {
+      margin: 6px 0 0;
+      padding-left: 22px;
+    }
+    .privacy-banner li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Shared header injected by bromar-hub.js -->
+<div id="bromar-header"></div>
+
+<div class="page-wrapper">
+
+  <div class="header-card">
+    <h1 class="header-title">Change of Details</h1>
+    <p class="header-subtitle">Use this form to update your personal information on file. Tick only the sections you want to update — the admin team will be notified and your records updated. A confirmation will be sent to your email.</p>
+  </div>
+
+  <div class="form-card">
+    <form id="detailsForm" novalidate autocomplete="off">
+
+      <!-- PRIVACY REASSURANCE -->
+      <div class="privacy-banner">
+        <div class="privacy-banner-title">
+          🔒 How we handle your information
+        </div>
+        Your details are sent directly into Bromar's secure admin system — <strong>not by email</strong>. We follow the Australian Privacy Principles (Privacy Act 1988) and use your information only for managing your employment.
+        <ul>
+          <li><strong>Banking and medical information</strong> is stored separately with admin-only access.</li>
+          <li><strong>Every view of your record is logged</strong> for audit purposes.</li>
+          <li><strong>Sensitive sections are not saved on this device</strong> — closing the page clears them.</li>
+        </ul>
+      </div>
+
+      <!-- EMPLOYEE IDENTIFICATION -->
+      <div class="section-label">Your Details</div>
+      <p class="section-intro">So we know whose record to update. These fields don't change anything on file — they identify you.</p>
+
+      <div class="field-row">
+        <div class="field-group" id="group-filled-by">
+          <label for="filled_by">Employee <span class="required">*</span></label>
+          <select id="filled_by" name="filled_by" required>
+            <option value="">Loading…</option>
+          </select>
+          <span class="error-msg">Please select who is filling out the form</span>
+        </div>
+        <div class="field-group" id="group-effective">
+          <label for="effective_date">Effective Date <span class="required">*</span></label>
+          <input type="date" id="effective_date" name="effective_date"/>
+          <span class="field-hint">When should these changes take effect?</span>
+          <span class="error-msg">Please select an effective date</span>
+        </div>
+      </div>
+
+      <!-- ============== PERSONAL INFORMATION ============== -->
+      <div class="section-label">Personal Information</div>
+      <label class="section-toggle" for="toggle_personal">
+        <input type="checkbox" id="toggle_personal" data-target="section_personal"/>
+        <span class="section-toggle-text">Update name or contact details</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_personal">
+        <div class="field-row">
+          <div class="field-group">
+            <label for="new_legal_name">New Legal Name</label>
+            <input type="text" id="new_legal_name" name="new_legal_name" placeholder="e.g. after marriage / deed poll"/>
+            <span class="field-hint">Supporting documentation may be required for legal name changes.</span>
+          </div>
+          <div class="field-group">
+            <label for="preferred_name">Preferred Name</label>
+            <input type="text" id="preferred_name" name="preferred_name" placeholder="What you'd like to be called"/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="new_personal_email">Personal Email</label>
+            <input type="email" id="new_personal_email" name="new_personal_email" placeholder="you@gmail.com"/>
+          </div>
+          <div class="field-group">
+            <label for="new_mobile">Mobile Number</label>
+            <input type="tel" id="new_mobile" name="new_mobile" placeholder="04XX XXX XXX"/>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="new_home_phone">Home Phone (optional)</label>
+          <input type="tel" id="new_home_phone" name="new_home_phone" placeholder="03 XXXX XXXX"/>
+        </div>
+      </div>
+
+      <!-- ============== HOME ADDRESS ============== -->
+      <div class="section-label">Home Address</div>
+      <label class="section-toggle" for="toggle_address">
+        <input type="checkbox" id="toggle_address" data-target="section_address"/>
+        <span class="section-toggle-text">Update residential or postal address</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_address">
+        <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Residential Address</h4>
+
+        <div class="field-group full">
+          <label for="addr_line1">Street Address</label>
+          <input type="text" id="addr_line1" name="addr_line1" placeholder="Unit / Number / Street" autocomplete="street-address"/>
+        </div>
+
+        <div class="field-row cols-3">
+          <div class="field-group">
+            <label for="addr_suburb">Suburb</label>
+            <input type="text" id="addr_suburb" name="addr_suburb" autocomplete="address-level2"/>
+          </div>
+          <div class="field-group">
+            <label for="addr_state">State</label>
+            <select id="addr_state" name="addr_state">
+              <option value="">Select…</option>
+              <option>VIC</option><option>NSW</option><option>QLD</option>
+              <option>SA</option><option>WA</option><option>TAS</option>
+              <option>ACT</option><option>NT</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="addr_postcode">Postcode</label>
+            <input type="text" id="addr_postcode" name="addr_postcode" inputmode="numeric" maxlength="4"/>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="ack-label" style="font-size: 0.85rem;">
+            <input type="checkbox" id="postal_same" name="postal_same"/>
+            <span>Postal address is the same as residential</span>
+          </label>
+        </div>
+
+        <div id="postal_block">
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin: 16px 0 10px; font-weight: 600;">Postal Address (if different)</h4>
+
+          <div class="field-group full">
+            <label for="postal_line1">Street Address / PO Box</label>
+            <input type="text" id="postal_line1" name="postal_line1"/>
+          </div>
+
+          <div class="field-row cols-3">
+            <div class="field-group">
+              <label for="postal_suburb">Suburb</label>
+              <input type="text" id="postal_suburb" name="postal_suburb"/>
+            </div>
+            <div class="field-group">
+              <label for="postal_state">State</label>
+              <select id="postal_state" name="postal_state">
+                <option value="">Select…</option>
+                <option>VIC</option><option>NSW</option><option>QLD</option>
+                <option>SA</option><option>WA</option><option>TAS</option>
+                <option>ACT</option><option>NT</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="postal_postcode">Postcode</label>
+              <input type="text" id="postal_postcode" name="postal_postcode" inputmode="numeric" maxlength="4"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== EMERGENCY CONTACTS ============== -->
+      <div class="section-label">Emergency Contacts</div>
+      <label class="section-toggle" for="toggle_emergency">
+        <input type="checkbox" id="toggle_emergency" data-target="section_emergency"/>
+        <span class="section-toggle-text">Update emergency contact information</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_emergency">
+        <p class="section-intro">Please provide at least one primary contact. We'll only contact them in a genuine emergency.</p>
+
+        <div id="emergencyContacts">
+          <div class="sub-card" data-contact-index="1">
+            <div class="sub-card-header">
+              <span class="sub-card-title">Primary Contact</span>
+              <span class="sub-card-badge">Primary</span>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Full Name</label>
+                <input type="text" name="ec1_name" placeholder="Their full name"/>
+              </div>
+              <div class="field-group">
+                <label>Relationship</label>
+                <select name="ec1_relationship">
+                  <option value="">Select…</option>
+                  <option>Spouse / Partner</option>
+                  <option>Parent</option>
+                  <option>Sibling</option>
+                  <option>Child</option>
+                  <option>Friend</option>
+                  <option>Other Relative</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Mobile Number</label>
+                <input type="tel" name="ec1_mobile" placeholder="04XX XXX XXX"/>
+              </div>
+              <div class="field-group">
+                <label>Alternative Number</label>
+                <input type="tel" name="ec1_alt_phone" placeholder="Home or work number"/>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Email (optional)</label>
+              <input type="email" name="ec1_email"/>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="add-btn" id="addEmergencyContact">+ Add another emergency contact</button>
+      </div>
+
+      <!-- ============== BANKING DETAILS ============== -->
+      <div class="section-label">Banking Details (Pay)</div>
+      <label class="section-toggle" for="toggle_banking">
+        <input type="checkbox" id="toggle_banking" data-target="section_banking"/>
+        <span class="section-toggle-text">Update bank account for pay deposits</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_banking">
+        <p class="section-intro">⚠️ Banking changes will be verified by the admin team before being applied.</p>
+
+        <div class="field-group full">
+          <label for="bank_name">Bank / Financial Institution</label>
+          <input type="text" id="bank_name" name="bank_name" placeholder="e.g. Commonwealth Bank"/>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="bsb">BSB</label>
+            <input type="text" id="bsb" name="bsb" placeholder="XXX-XXX" maxlength="7" inputmode="numeric"/>
+          </div>
+          <div class="field-group">
+            <label for="account_number">Account Number</label>
+            <input type="text" id="account_number" name="account_number" inputmode="numeric"/>
+          </div>
+        </div>
+
+        <div class="field-group full">
+          <label for="account_name">Account Name</label>
+          <input type="text" id="account_name" name="account_name" placeholder="Name on the account"/>
+        </div>
+      </div>
+
+      <!-- ============== SUPERANNUATION ============== -->
+      <div class="section-label">Superannuation</div>
+      <label class="section-toggle" for="toggle_super">
+        <input type="checkbox" id="toggle_super" data-target="section_super"/>
+        <span class="section-toggle-text">Update super fund details</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_super">
+        <div class="field-row">
+          <div class="field-group">
+            <label for="super_fund">Super Fund Name</label>
+            <input type="text" id="super_fund" name="super_fund" placeholder="e.g. Australian Retirement Trust"/>
+          </div>
+          <div class="field-group">
+            <label for="super_member">Member Number</label>
+            <input type="text" id="super_member" name="super_member"/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="super_usi">USI (Unique Superannuation Identifier)</label>
+            <input type="text" id="super_usi" name="super_usi"/>
+          </div>
+          <div class="field-group">
+            <label for="super_abn">Fund ABN (for SMSF)</label>
+            <input type="text" id="super_abn" name="super_abn"/>
+            <span class="field-hint">Only required for self-managed super funds.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== LICENCES & QUALIFICATIONS ============== -->
+      <div class="section-label">Licences & Qualifications</div>
+      <label class="section-toggle" for="toggle_licences">
+        <input type="checkbox" id="toggle_licences" data-target="section_licences"/>
+        <span class="section-toggle-text">Update licences, tickets or trade qualifications</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_licences">
+        <p class="section-intro">Add any new or renewed licences. Include expiry dates so we can track them.</p>
+
+        <div id="licences">
+          <div class="sub-card" data-licence-index="1">
+            <div class="sub-card-header">
+              <span class="sub-card-title">Licence / Qualification 1</span>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Type</label>
+                <select name="lic1_type">
+                  <option value="">Select…</option>
+                  <option>Driver's Licence (Car)</option>
+                  <option>Driver's Licence (HR)</option>
+                  <option>Driver's Licence (HC)</option>
+                  <option>Driver's Licence (MR)</option>
+                  <option>White Card / Construction Induction</option>
+                  <option>Working at Heights</option>
+                  <option>Confined Space</option>
+                  <option>Forklift Licence</option>
+                  <option>EWP / Yellow Card</option>
+                  <option>Electrical Licence (A-Grade)</option>
+                  <option>Electrical Licence (Restricted)</option>
+                  <option>Plumbing Licence</option>
+                  <option>Refrigeration / AC Licence (ARC)</option>
+                  <option>First Aid / CPR</option>
+                  <option>Test & Tag</option>
+                  <option>Working with Children Check</option>
+                  <option>Police Check</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Number / Reference</label>
+                <input type="text" name="lic1_number"/>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Issue Date</label>
+                <input type="date" name="lic1_issue"/>
+              </div>
+              <div class="field-group">
+                <label>Expiry Date</label>
+                <input type="date" name="lic1_expiry"/>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Notes (e.g. specify "Other")</label>
+              <input type="text" name="lic1_notes" placeholder="Optional"/>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="add-btn" id="addLicence">+ Add another licence or qualification</button>
+      </div>
+
+      <!-- ============== MEDICAL / SAFETY ============== -->
+      <div class="section-label">Medical & Safety</div>
+      <label class="section-toggle" for="toggle_medical">
+        <input type="checkbox" id="toggle_medical" data-target="section_medical"/>
+        <span class="section-toggle-text">Update medical conditions, allergies or workplace requirements</span>
+        <span class="section-toggle-hint">Tick to expand</span>
+      </label>
+
+      <div class="collapsible-section" id="section_medical">
+        <p class="section-intro">Information shared here is treated confidentially and used only for workplace health and safety purposes.</p>
+
+        <div class="field-group full">
+          <label for="med_allergies">Allergies</label>
+          <textarea id="med_allergies" name="med_allergies" rows="2" placeholder="e.g. peanuts, bee stings, latex…"></textarea>
+        </div>
+
+        <div class="field-group full">
+          <label for="med_conditions">Medical Conditions Relevant to Work</label>
+          <textarea id="med_conditions" name="med_conditions" rows="2" placeholder="Anything we should know in case of a workplace incident — e.g. asthma, epilepsy, diabetes."></textarea>
+        </div>
+
+        <div class="field-group full">
+          <label for="med_medications">Medications That May Affect Work</label>
+          <textarea id="med_medications" name="med_medications" rows="2" placeholder="Optional — only if relevant to safety on site."></textarea>
+        </div>
+
+        <div class="field-group full">
+          <label for="med_doctor">Preferred GP / Medical Practice (optional)</label>
+          <input type="text" id="med_doctor" name="med_doctor" placeholder="Practice name and phone number"/>
+        </div>
+      </div>
+
+      <!-- ============== ADDITIONAL NOTES ============== -->
+      <div class="section-label">Additional Comments</div>
+
+      <div class="field-group full">
+        <label for="general_comments">Anything else?</label>
+        <textarea id="general_comments" name="general_comments" rows="3" placeholder="Anything not covered above, or context for the changes."></textarea>
+      </div>
+
+      <!-- ACKNOWLEDGEMENT -->
+      <div class="ack-section">
+        <label class="ack-label">
+          <input type="checkbox" id="acknowledgement" name="acknowledgement"/>
+          <span>I confirm the information provided in this form is true and correct to the best of my knowledge. I understand that providing false or misleading information may affect my employment and that supporting documentation may be requested for certain changes (e.g. legal name changes, banking details).</span>
+        </label>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Changes</button>
+      </div>
+
+    </form>
+
+    <div class="form-footer">
+      <div class="footer-disclaimer">
+        <p><em>Information submitted via this form is handled confidentially in accordance with the Privacy Act 1988 and is used solely for employment record keeping. Banking and identity changes may require additional verification.</em></p>
+        <p><em>For any questions or issues, please contact the admin team at admin@bromar.com.au</em></p>
+      </div>
+      <div class="footer-details">
+        <div class="footer-left">
+          <p><strong>2/98-108 Western Ave, Westmeadows, VIC 3049</strong></p>
+          <p>PH: +61 3 9335 5344 &nbsp;|&nbsp; FAX: +61 3 9335 5322 &nbsp;|&nbsp; EMAIL: <a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a> &nbsp;|&nbsp; REC: 30340</p>
+          <p>ABN: 45 634 835 939 &nbsp;&nbsp;&nbsp;&nbsp; ACN: 634 835 939</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Revision badge -->
+<div class="revision-number">V1.02</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION
+  // ============================================================
+  const CONFIG = {
+    edgeFunction: 'submit-change-of-details',
+    maxEmergencyContacts: 4,
+    maxLicences: 10,
+    revision: 'V1.02',
+    // Sensitive sections — NEVER auto-saved to localStorage
+    sensitiveSections: ['banking', 'super', 'medical'],
+    // Field name prefixes/IDs considered sensitive
+    sensitiveFieldIds: [
+      'bank_name', 'bsb', 'account_number', 'account_name',
+      'super_fund', 'super_member', 'super_usi', 'super_abn',
+      'med_allergies', 'med_conditions', 'med_medications', 'med_doctor'
+    ],
+    sensitiveToggleIds: ['toggle_banking', 'toggle_super', 'toggle_medical']
+  };
+
+  let currentUser = null;
+  let EMPLOYEES = [];
+
+  // ============================================================
+  // INIT — load employees and auto-select logged-in user
+  // ============================================================
+  async function init() {
+    try {
+      EMPLOYEES = await BromarHub.loadEmployees('filled_by');
+      await BromarHub.autoSelectLoggedInUser('filled_by');
+
+      const filledBy = document.getElementById('filled_by');
+      if (filledBy.value) {
+        const opt = filledBy.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+
+      filledBy.addEventListener('change', function() {
+        const opt = this.selectedOptions[0];
+        currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+      });
+    } catch (err) {
+      console.error('Failed to load employees:', err);
+    }
+
+    setTimeout(restoreFormData, 100);
+  }
+
+  // Default effective date = today
+  document.getElementById('effective_date').valueAsDate = new Date();
+
+  if (window.BromarHub) {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+
+  // ============================================================
+  // SECTION TOGGLES
+  // ============================================================
+  document.querySelectorAll('.section-toggle input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const target = document.getElementById(cb.dataset.target);
+      if (!target) return;
+      const hint = cb.closest('.section-toggle').querySelector('.section-toggle-hint');
+      if (cb.checked) {
+        target.classList.add('open');
+        if (hint) hint.textContent = 'Updating';
+      } else {
+        target.classList.remove('open');
+        if (hint) hint.textContent = 'Tick to expand';
+        // Clear sensitive fields if a sensitive section is unticked
+        if (CONFIG.sensitiveToggleIds.includes(cb.id)) {
+          clearSensitiveFieldsInSection(cb.dataset.target);
+        }
+      }
+      debouncedSave();
+    });
+  });
+
+  function clearSensitiveFieldsInSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    section.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'checkbox') el.checked = false;
+      else el.value = '';
+    });
+  }
+
+  // ============================================================
+  // POSTAL = RESIDENTIAL toggle
+  // ============================================================
+  const postalSame = document.getElementById('postal_same');
+  const postalBlock = document.getElementById('postal_block');
+  postalSame.addEventListener('change', () => {
+    postalBlock.style.display = postalSame.checked ? 'none' : 'block';
+  });
+
+  // ============================================================
+  // EMERGENCY CONTACTS — add/remove
+  // ============================================================
+  let emergencyContactCount = 1;
+  document.getElementById('addEmergencyContact').addEventListener('click', () => {
+    if (emergencyContactCount >= CONFIG.maxEmergencyContacts) return;
+    emergencyContactCount++;
+    const i = emergencyContactCount;
+    const card = document.createElement('div');
+    card.className = 'sub-card';
+    card.dataset.contactIndex = i;
+    card.innerHTML = `
+      <div class="sub-card-header">
+        <span class="sub-card-title">Additional Contact ${i - 1}</span>
+        <button type="button" class="remove-btn">Remove</button>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Full Name</label>
+          <input type="text" name="ec${i}_name" placeholder="Their full name"/>
+        </div>
+        <div class="field-group">
+          <label>Relationship</label>
+          <select name="ec${i}_relationship">
+            <option value="">Select…</option>
+            <option>Spouse / Partner</option><option>Parent</option>
+            <option>Sibling</option><option>Child</option>
+            <option>Friend</option><option>Other Relative</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Mobile Number</label>
+          <input type="tel" name="ec${i}_mobile" placeholder="04XX XXX XXX"/>
+        </div>
+        <div class="field-group">
+          <label>Alternative Number</label>
+          <input type="tel" name="ec${i}_alt_phone"/>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Email (optional)</label>
+        <input type="email" name="ec${i}_email"/>
+      </div>
+    `;
+    document.getElementById('emergencyContacts').appendChild(card);
+    card.querySelector('.remove-btn').addEventListener('click', () => {
+      card.remove();
+      debouncedSave();
+    });
+    debouncedSave();
+  });
+
+  // ============================================================
+  // LICENCES — add/remove
+  // ============================================================
+  let licenceCount = 1;
+  document.getElementById('addLicence').addEventListener('click', () => {
+    if (licenceCount >= CONFIG.maxLicences) return;
+    licenceCount++;
+    const i = licenceCount;
+    const card = document.createElement('div');
+    card.className = 'sub-card';
+    card.dataset.licenceIndex = i;
+    card.innerHTML = `
+      <div class="sub-card-header">
+        <span class="sub-card-title">Licence / Qualification ${i}</span>
+        <button type="button" class="remove-btn">Remove</button>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Type</label>
+          <select name="lic${i}_type">
+            <option value="">Select…</option>
+            <option>Driver's Licence (Car)</option>
+            <option>Driver's Licence (HR)</option>
+            <option>Driver's Licence (HC)</option>
+            <option>Driver's Licence (MR)</option>
+            <option>White Card / Construction Induction</option>
+            <option>Working at Heights</option>
+            <option>Confined Space</option>
+            <option>Forklift Licence</option>
+            <option>EWP / Yellow Card</option>
+            <option>Electrical Licence (A-Grade)</option>
+            <option>Electrical Licence (Restricted)</option>
+            <option>Plumbing Licence</option>
+            <option>Refrigeration / AC Licence (ARC)</option>
+            <option>First Aid / CPR</option>
+            <option>Test & Tag</option>
+            <option>Working with Children Check</option>
+            <option>Police Check</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Number / Reference</label>
+          <input type="text" name="lic${i}_number"/>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Issue Date</label>
+          <input type="date" name="lic${i}_issue"/>
+        </div>
+        <div class="field-group">
+          <label>Expiry Date</label>
+          <input type="date" name="lic${i}_expiry"/>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Notes</label>
+        <input type="text" name="lic${i}_notes" placeholder="Optional"/>
+      </div>
+    `;
+    document.getElementById('licences').appendChild(card);
+    card.querySelector('.remove-btn').addEventListener('click', () => {
+      card.remove();
+      debouncedSave();
+    });
+    debouncedSave();
+  });
+
+  // ============================================================
+  // AUTO-SAVE — EXCLUDES SENSITIVE FIELDS
+  // ============================================================
+  const STORAGE_KEY = 'change_of_details_draft';
+
+  function isSensitiveField(el) {
+    // Exclude fields by ID
+    if (el.id && CONFIG.sensitiveFieldIds.includes(el.id)) return true;
+    // Exclude any field that lives inside a sensitive section
+    const section = el.closest('.collapsible-section');
+    if (section) {
+      const sensitiveTargets = ['section_banking', 'section_super', 'section_medical'];
+      if (sensitiveTargets.includes(section.id)) return true;
+    }
+    return false;
+  }
+
+  function saveFormData() {
+    const form = document.getElementById('detailsForm');
+    const data = {};
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+      if (!el.name && !el.id) return;
+      // 🔒 Skip sensitive fields entirely
+      if (isSensitiveField(el)) return;
+      const key = el.name || el.id;
+      if (el.type === 'checkbox') {
+        data[key] = el.checked;
+      } else {
+        data[key] = el.value;
+      }
+    });
+    data._emergencyContactCount = emergencyContactCount;
+    data._licenceCount = licenceCount;
+    // Only save non-sensitive open sections
+    data._openSections = [];
+    document.querySelectorAll('.section-toggle input[type="checkbox"]:checked').forEach(cb => {
+      if (CONFIG.sensitiveToggleIds.includes(cb.id)) return; // don't persist sensitive toggle state
+      data._openSections.push(cb.id);
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function restoreFormData() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const data = JSON.parse(saved);
+
+      if (window.BromarHub && BromarHub.showInfo) {
+        BromarHub.showInfo('💾 Your progress was restored. Banking and medical details are never saved on this device — please re-enter them if needed.');
+      }
+
+      const targetEC = data._emergencyContactCount || 1;
+      while (emergencyContactCount < targetEC) {
+        document.getElementById('addEmergencyContact').click();
+      }
+
+      const targetLic = data._licenceCount || 1;
+      while (licenceCount < targetLic) {
+        document.getElementById('addLicence').click();
+      }
+
+      (data._openSections || []).forEach(id => {
+        if (CONFIG.sensitiveToggleIds.includes(id)) return; // safety
+        const cb = document.getElementById(id);
+        if (cb) {
+          cb.checked = true;
+          cb.dispatchEvent(new Event('change'));
+        }
+      });
+
+      Object.keys(data).forEach(key => {
+        if (key.startsWith('_')) return;
+        const el = document.querySelector(`[name="${key}"], #${CSS.escape(key)}`);
+        if (!el) return;
+        // 🔒 Never restore into a sensitive field
+        if (isSensitiveField(el)) return;
+        if (el.type === 'checkbox') {
+          el.checked = !!data[key];
+          if (key === 'postal_same' && el.checked) {
+            el.dispatchEvent(new Event('change'));
+          }
+        } else {
+          // Don't overwrite filled_by if it's been auto-selected
+          if (key === 'filled_by' && el.value) return;
+          el.value = data[key];
+        }
+      });
+    } catch (err) {
+      console.error('Error restoring form data', err);
+    }
+  }
+
+  function clearFormData() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  let saveTimeout;
+  function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveFormData, 500);
+  }
+
+  document.getElementById('detailsForm').addEventListener('input', debouncedSave);
+  document.getElementById('detailsForm').addEventListener('change', debouncedSave);
+
+  // Clear sensitive fields from localStorage when the page unloads
+  window.addEventListener('beforeunload', () => {
+    // saveFormData already excludes sensitive fields, so a final save
+    // here ensures nothing sensitive lingers from before the page closed
+    saveFormData();
+  });
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+  function validateForm() {
+    let valid = true;
+
+    function check(groupId, condition) {
+      const grp = document.getElementById(groupId);
+      const inp = grp.querySelector('input, select, textarea');
+      if (!condition) {
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
+        valid = false;
+      } else {
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
+      }
+    }
+
+    const filledBy = document.getElementById('filled_by').value;
+    const effective = document.getElementById('effective_date').value;
+
+    check('group-filled-by', !!filledBy);
+    check('group-effective', !!effective);
+
+    const ack = document.getElementById('acknowledgement');
+    if (!ack.checked) {
+      ack.closest('.ack-section').style.borderColor = 'var(--error)';
+      ack.closest('.ack-section').style.background = 'rgba(239, 68, 68, 0.06)';
+      valid = false;
+    } else {
+      ack.closest('.ack-section').style.borderColor = '';
+      ack.closest('.ack-section').style.background = '';
+    }
+
+    const anySection = document.querySelectorAll('.section-toggle input[type="checkbox"]:checked').length;
+    if (anySection === 0) {
+      alert('Please tick at least one section to update.');
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  // ============================================================
+  // BUILD PAYLOAD FOR EDGE FUNCTION
+  // ============================================================
+  function buildPayload() {
+    const v = (id) => (document.getElementById(id)?.value || '').trim() || null;
+    const n = (name) => (document.querySelector(`[name="${name}"]`)?.value || '').trim() || null;
+    const isChecked = (id) => document.getElementById(id)?.checked || false;
+
+    // Map toggle IDs to section keys
+    const sectionMap = {
+      toggle_personal:  'personal',
+      toggle_address:   'address',
+      toggle_emergency: 'emergency',
+      toggle_banking:   'banking',
+      toggle_super:     'super',
+      toggle_licences:  'licences',
+      toggle_medical:   'medical'
+    };
+    const sections = [];
+    Object.entries(sectionMap).forEach(([toggleId, key]) => {
+      if (isChecked(toggleId)) sections.push(key);
+    });
+
+    const payload = {
+      submitted_by:    currentUser.name,
+      submitted_email: currentUser.email,
+      effective_date:  document.getElementById('effective_date').value,
+      effective_date_display: new Date(document.getElementById('effective_date').value).toLocaleDateString('en-AU', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      }),
+      sections,
+      revision: CONFIG.revision,
+      general_comments: v('general_comments')
+    };
+
+    if (isChecked('toggle_personal')) {
+      payload.new_legal_name     = v('new_legal_name');
+      payload.preferred_name     = v('preferred_name');
+      payload.new_personal_email = v('new_personal_email');
+      payload.new_mobile         = v('new_mobile');
+      payload.new_home_phone     = v('new_home_phone');
+    }
+
+    if (isChecked('toggle_address')) {
+      payload.addr_line1    = v('addr_line1');
+      payload.addr_suburb   = v('addr_suburb');
+      payload.addr_state    = v('addr_state');
+      payload.addr_postcode = v('addr_postcode');
+      payload.postal_same   = isChecked('postal_same');
+      if (!payload.postal_same) {
+        payload.postal_line1    = v('postal_line1');
+        payload.postal_suburb   = v('postal_suburb');
+        payload.postal_state    = v('postal_state');
+        payload.postal_postcode = v('postal_postcode');
+      }
+    }
+
+    if (isChecked('toggle_emergency')) {
+      const contacts = [];
+      document.querySelectorAll('#emergencyContacts .sub-card').forEach(card => {
+        const i = card.dataset.contactIndex;
+        const name = n(`ec${i}_name`);
+        if (!name) return;
+        contacts.push({
+          name,
+          relationship: n(`ec${i}_relationship`),
+          mobile: n(`ec${i}_mobile`),
+          alt_phone: n(`ec${i}_alt_phone`),
+          email: n(`ec${i}_email`)
+        });
+      });
+      payload.emergency_contacts = contacts;
+    }
+
+    if (isChecked('toggle_banking')) {
+      payload.bank_name      = v('bank_name');
+      payload.bsb            = v('bsb');
+      payload.account_number = v('account_number');
+      payload.account_name   = v('account_name');
+    }
+
+    if (isChecked('toggle_super')) {
+      payload.super_fund   = v('super_fund');
+      payload.super_member = v('super_member');
+      payload.super_usi    = v('super_usi');
+      payload.super_abn    = v('super_abn');
+    }
+
+    if (isChecked('toggle_licences')) {
+      const licences = [];
+      document.querySelectorAll('#licences .sub-card').forEach(card => {
+        const i = card.dataset.licenceIndex;
+        const type = n(`lic${i}_type`);
+        if (!type) return;
+        licences.push({
+          type,
+          number: n(`lic${i}_number`),
+          issue_date: n(`lic${i}_issue`),
+          expiry_date: n(`lic${i}_expiry`),
+          notes: n(`lic${i}_notes`)
+        });
+      });
+      payload.licences = licences;
+    }
+
+    if (isChecked('toggle_medical')) {
+      payload.med_allergies   = v('med_allergies');
+      payload.med_conditions  = v('med_conditions');
+      payload.med_medications = v('med_medications');
+      payload.med_doctor      = v('med_doctor');
+    }
+
+    return payload;
+  }
+
+  // ============================================================
+  // SUBMIT — to Edge Function
+  // ============================================================
+  const form = document.getElementById('detailsForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // currentUser fallback
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) {
+        const opt = sel.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+    }
+    if (!currentUser) {
+      alert('Please select who is filling out the form');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    BromarHub.showLoading('Submitting securely', 'Sending your details to Bromar\'s secure admin system…');
+
+    try {
+      const payload = buildPayload();
+
+      // Call the Edge Function — JWT is added automatically by supabase-js
+      const { data, error } = await window.sb.functions.invoke(CONFIG.edgeFunction, {
+        body: payload
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      BromarHub.hideLoading();
+      BromarHub.showSuccess('✅ Your details have been submitted securely. A confirmation has been sent to your email and admin has been notified.');
+
+      form.reset();
+      document.querySelectorAll('.section-toggle input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change'));
+      });
+      clearFormData();
+      document.getElementById('effective_date').valueAsDate = new Date();
+
+      // Re-select logged-in user
+      await BromarHub.autoSelectLoggedInUser('filled_by');
+      const filledBy = document.getElementById('filled_by');
+      if (filledBy.value) {
+        const opt = filledBy.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Submission error:', err);
+      BromarHub.hideLoading();
+      alert('Something went wrong: ' + (err.message || 'Unknown error') + '. Please try again or contact admin@bromar.com.au directly.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Changes';
+    }
+  });
+
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+      e.target.classList.remove('error');
+      const grp = e.target.closest('.field-group');
+      if (grp) grp.classList.remove('has-error');
+    }
+  });
+
+  form.addEventListener('reset', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.section-toggle input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change'));
+      });
+      clearFormData();
+      document.getElementById('effective_date').valueAsDate = new Date();
+    }, 10);
+  });
+</script>
+
+</body>
+</html>
