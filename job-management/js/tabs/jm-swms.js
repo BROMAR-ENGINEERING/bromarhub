@@ -1,4 +1,15 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.06 */
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.07
+   Changes since V1.06:
+   - Footer: one-line layout, 4px from bottom, 24px bottom padding on each page
+     so content cannot bleed under it
+   - Header company cell + footer now show REC: 40430 (not LICENCE #: 17364)
+   - Compact header for pages 2+ (logo + title/activity + monospace JOB/SWMS/REV
+     codes + thin red border). Saves ~100px vertical per page
+   - Weighted hazard pagination — rows with more controls take more budget so
+     tall rows don't get silently cropped by `overflow:hidden`
+   - Snapshot inserts now include `trigger_event` so the audit log knows which
+     event (signed / amended / attached) produced each PDF
+   ─────────────────────────────────────────────────────────── */
 (function () {
   const JM = window.JobManager;
 
@@ -213,7 +224,8 @@ async function attachSwmsFromTemplate(templates) {
   const { data: created, error: insErr } = await JM.sb().from('swms_instances').insert(payload).select().single();
   if (insErr) { BromarHub.hideLoading(); BromarHub.showInfo('Create failed: ' + insErr.message); return; }
 
-  await generateAndUploadPdf(created);
+  // First PDF for a new SWMS is also an audit-worthy event
+  await generateAndUploadPdf(created, { snapshot: true, triggerEvent: 'attached', silent: true });
 
   BromarHub.hideLoading();
   BromarHub.showSuccess(`SWMS ${swmsNumber} attached to job`);
@@ -294,7 +306,6 @@ async function viewSwms(swmsId) {
   document.getElementById('closeDetail').addEventListener('click', () => { detail.innerHTML = ''; });
 }
 
-/* Stacked, mobile-friendly hazard card (replaces the wide PDF-style table in the on-screen view) */
 /* ── RISK RATING (shared by screen view + PDF) ───────────── */
 const RISK_MAP = {
   A1:'high',A2:'high',A3:'high',A4:'mod', A5:'low',
@@ -310,7 +321,6 @@ const RISK_COLOURS = {
 };
 function riskLevel(code) { return RISK_MAP[(code || '').toUpperCase().trim()] || null; }
 
-/* Coloured pill: "[A1] High" */
 function riskTile(code) {
   const c = (code || '').toUpperCase().trim();
   const lvl = riskLevel(c);
@@ -320,7 +330,6 @@ function riskTile(code) {
   return `<span style="display:inline-flex; align-items:center; gap:6px; background:${col.bg}; color:${col.fg}; padding:2px 10px; border-radius:6px; font-size:0.8rem; font-weight:700; letter-spacing:0.3px;">${JM.esc(c)} · ${col.label}</span>`;
 }
 
-/* Collapsible likelihood × consequence matrix for the on-screen View */
 function riskMatrixHtml() {
   const cell = lvl => {
     const col = RISK_COLOURS[lvl];
@@ -431,6 +440,7 @@ function signPos(e, c) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const c = document.getElementById('signCanvas');
+  if (!c) return;
   const start = e => { e.preventDefault(); signDrawing = true; signLast = signPos(e, c); };
   const move = e => {
     if (!signDrawing) return; e.preventDefault();
@@ -442,15 +452,15 @@ document.addEventListener('DOMContentLoaded', () => {
   c.addEventListener('mousedown', start); c.addEventListener('mousemove', move); c.addEventListener('mouseup', end); c.addEventListener('mouseleave', end);
   c.addEventListener('touchstart', start, { passive: false }); c.addEventListener('touchmove', move, { passive: false }); c.addEventListener('touchend', end);
 
-  document.getElementById('clearSignBtn').addEventListener('click', () => {
+  document.getElementById('clearSignBtn')?.addEventListener('click', () => {
     const rect = c.getBoundingClientRect();
     signCtx.clearRect(0, 0, rect.width * 2, rect.height * 2);
   });
-  document.getElementById('cancelSignBtn').addEventListener('click', () => {
+  document.getElementById('cancelSignBtn')?.addEventListener('click', () => {
     document.getElementById('signModal').classList.remove('show');
     currentSwmsForSigning = null;
   });
-  document.getElementById('confirmSignBtn').addEventListener('click', confirmSign);
+  document.getElementById('confirmSignBtn')?.addEventListener('click', confirmSign);
 });
 
 async function confirmSign() {
@@ -479,7 +489,7 @@ async function confirmSign() {
   if (error) { BromarHub.hideLoading(); BromarHub.showInfo('Sign failed: ' + error.message); return; }
 
   const { data: swms } = await JM.sb().from('swms_instances').select('*').eq('id', currentSwmsForSigning).single();
-  if (swms) await generateAndUploadPdf(swms, { snapshot: true });
+  if (swms) await generateAndUploadPdf(swms, { snapshot: true, triggerEvent: 'signed', silent: true });
 
   BromarHub.hideLoading();
   BromarHub.showSuccess(`${name} signed`);
@@ -516,6 +526,9 @@ async function amendSwms(swmsId) {
   const { data: created, error: insErr } = await JM.sb().from('swms_instances').insert(newSwms).select().single();
   if (insErr) { BromarHub.hideLoading(); BromarHub.showInfo(insErr.message); return; }
 
+  // First PDF of the new revision is audit-worthy
+  await generateAndUploadPdf(created, { snapshot: true, triggerEvent: 'amended', silent: true });
+
   BromarHub.hideLoading();
   BromarHub.showSuccess(`Revision ${newRev} created. Workers must re-sign.`);
   await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
@@ -545,12 +558,14 @@ const PDF_STYLES = `
   font-size: 8.5pt;
   line-height: 1.3;
   box-sizing: border-box;
-  padding: 0;
+  padding: 0 0 28px 0;          /* 28px reserved at bottom for the footer */
   margin: 0;
   position: relative;
   overflow: hidden;
 }
 .pdf-page * { box-sizing: border-box; }
+
+/* Full header (page 1 only) */
 .pdf-header { display: flex; align-items: stretch; border: 1px solid #999; }
 .pdf-header .logo-cell { background: white; padding: 6px 12px; display: flex; align-items: center; justify-content: center; width: 160px; border-right: 1px solid #999; }
 .pdf-header .logo-cell img { max-width: 140px; max-height: 48px; display: block; }
@@ -564,7 +579,18 @@ const PDF_STYLES = `
 .pdf-hero .h-stat-label { font-size: 7pt; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.8; }
 .pdf-hero .h-stat-value { font-size: 14pt; font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monospace; margin-top: 2px; }
 .pdf-activity { background: #2c2c2c; color: white; padding: 8px 18px; font-weight: 600; font-size: 9pt; letter-spacing: 0.3px; }
-.pdf-section-heading { background: #7f7f7f; color: white; padding: 6px 12px; font-size: 9pt; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 10px; }
+
+/* Compact header (pages 2+) — saves ~100px vertical vs full hero */
+.pdf-compact-header { display: flex; align-items: center; gap: 14px; padding: 8px 14px; border-bottom: 2px solid #e30613; background: white; }
+.pdf-compact-header .ch-logo { max-height: 32px; max-width: 110px; }
+.pdf-compact-header .ch-logo-text { font-weight: 700; font-size: 12pt; color: #e30613; }
+.pdf-compact-header .ch-title { flex: 1; min-width: 0; }
+.pdf-compact-header .ch-title-main { font-size: 10pt; font-weight: 700; color: #1a1a1e; letter-spacing: 0.2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-compact-header .ch-title-sub { font-size: 7.5pt; color: #666; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-compact-header .ch-stats { display: flex; gap: 14px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 8.5pt; font-weight: 700; color: #1a1a1e; }
+.pdf-compact-header .ch-stat span { color: #888; font-weight: 600; font-size: 6.5pt; letter-spacing: 1px; display: block; margin-bottom: 1px; font-family: Calibri, Arial, sans-serif; }
+
+.pdf-section-heading { background: #7f7f7f; color: white; padding: 5px 12px; font-size: 9pt; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 6px; }
 .pdf-fields { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pdf-fields td { border: 1px solid #d0d0d0; padding: 6px 10px; font-size: 9pt; vertical-align: middle; }
 .pdf-fields td.lbl { background: #f5f5f5; font-weight: 700; color: #333; font-size: 8pt; letter-spacing: 0.3px; text-transform: uppercase; }
@@ -572,7 +598,7 @@ const PDF_STYLES = `
 .pdf-ref { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pdf-ref th { background: #7f7f7f; color: white; padding: 5px 10px; text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
 .pdf-ref td { border: 1px solid #d0d0d0; padding: 6px 10px; font-size: 9pt; vertical-align: top; }
-.pdf-matrix-wrap { display: flex; gap: 24px; margin-top: 8px; }
+.pdf-matrix-wrap { display: flex; gap: 24px; margin-top: 8px; padding: 0 8px; }
 .pdf-matrix { flex: 1; border-collapse: collapse; table-layout: fixed; }
 .pdf-matrix th, .pdf-matrix td { border: 1px solid #999; text-align: center; padding: 10px 6px; font-size: 10pt; font-weight: 600; }
 .pdf-matrix th { background: #7f7f7f; color: white; }
@@ -608,18 +634,23 @@ const PDF_STYLES = `
 .pdf-signoff th { background: #7f7f7f; color: white; padding: 6px 10px; text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
 .pdf-signoff td { border: 1px solid #c0c0c0; padding: 8px 10px; height: 38px; font-size: 9pt; vertical-align: middle; }
 .pdf-signoff img { max-height: 40px; max-width: 100%; display: block; }
-.pdf-footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 7.5pt; color: #666; padding: 6px 0; border-top: 1px solid #ccc; }
-.pdf-footer .warn { font-weight: 700; letter-spacing: 0.5px; margin-top: 2px; }
+
+/* Single-line footer, 4px clear of bottom edge */
+.pdf-footer { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 7pt; color: #666; padding: 4px 12px 0; border-top: 1px solid #ccc; white-space: nowrap; }
+.pdf-footer .warn { font-weight: 700; letter-spacing: 0.5px; }
 .pdf-pageno { position: absolute; bottom: 6px; right: 12px; font-size: 7pt; color: #999; font-family: 'JetBrains Mono', monospace; }
 </style>
 `;
 
+const PDF_FOOTER = `<div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd · ABN 45 634 835 939 · REC: 40430 · <span class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</span></div>`;
+
 async function generateAndUploadPdf(swms, opts = {}) {
-  // saveLocal  — also trigger a browser download
-  // silent     — suppress info/success banners
-  // snapshot   — additionally write an immutable, timestamped audit copy
-  //              (use this on signing/amend events, NOT on plain views)
-  const { saveLocal = false, silent = false, snapshot = false } = opts;
+  // saveLocal     — also trigger a browser download
+  // silent        — suppress info/success banners
+  // snapshot      — additionally write an immutable, timestamped audit copy
+  //                 (use this on signing/amend/attach events, NOT on plain views)
+  // triggerEvent  — free-text label for the snapshot row ('signed' | 'amended' | 'attached')
+  const { saveLocal = false, silent = false, snapshot = false, triggerEvent = null } = opts;
 
   const html2canvas = window.html2canvas;
   const jsPDF = window.jspdf?.jsPDF || window.jsPDF || (window.jspdf && window.jspdf.default);
@@ -690,8 +721,7 @@ async function generateAndUploadPdf(swms, opts = {}) {
     }
     await JM.sb().from('swms_instances').update({ pdf_path: latestPath, pdf_generated_at: new Date().toISOString() }).eq('id', swms.id);
 
-    // 2) Immutable audit snapshot — only on signing/amend events.
-    //    Timestamped path, never overwritten, so each event is preserved.
+    // 2) Immutable audit snapshot — only on signing/amend/attach events.
     if (snapshot) {
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       const snapPath = `${swms.job_number}/audit/${swms.swms_number}_rev${swms.revision_number}_${stamp}.pdf`;
@@ -706,7 +736,8 @@ async function generateAndUploadPdf(swms, opts = {}) {
             swms_number: swms.swms_number,
             revision_number: swms.revision_number,
             pdf_path: snapPath,
-            signer_count: (sigs || []).length
+            signer_count: (sigs || []).length,
+            trigger_event: triggerEvent
           });
         } catch (logErr) { console.error('[SWMS PDF] snapshot log failed', logErr); }
       }
@@ -724,15 +755,17 @@ async function generateAndUploadPdf(swms, opts = {}) {
 function buildSwmsPages(s, sigs) {
   const lines = t => (t || '').split('\n').map(x => x.trim()).filter(Boolean);
   const e = JM.esc;
+
   const logoBlock = JM.state.BROMAR_LOGO_DATAURL
     ? `<div class="logo-cell"><img src="${JM.state.BROMAR_LOGO_DATAURL}" alt="Bromar"/></div>`
     : `<div class="logo-cell" style="font-weight:700; font-size:14pt; color:#e30613;">BROMAR</div>`;
 
-  const pageHeader = `
+  // ── Full header (page 1 only) ──
+  const fullHeader = `
     <div class="pdf-header">
       ${logoBlock}
       <div class="title-band">SAFE WORK METHOD STATEMENT</div>
-      <div class="company-cell">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>LICENCE #: 17364</div>
+      <div class="company-cell">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>REC: 40430</div>
     </div>
     <div class="pdf-hero">
       <div class="h-left">
@@ -747,6 +780,24 @@ function buildSwmsPages(s, sigs) {
     </div>
     <div class="pdf-activity">${e(s.activity_description || '')}</div>`;
 
+  // ── Compact header (pages 2+) ──
+  const compactLogoBlock = JM.state.BROMAR_LOGO_DATAURL
+    ? `<img class="ch-logo" src="${JM.state.BROMAR_LOGO_DATAURL}" alt="Bromar"/>`
+    : `<div class="ch-logo-text">BROMAR</div>`;
+  const compactHeader = `
+    <div class="pdf-compact-header">
+      ${compactLogoBlock}
+      <div class="ch-title">
+        <div class="ch-title-main">SWMS — ${e(s.title || '')}</div>
+        <div class="ch-title-sub">${e(s.activity_description || '')}</div>
+      </div>
+      <div class="ch-stats">
+        <div class="ch-stat"><span>JOB</span> ${e(s.job_number || '—')}</div>
+        <div class="ch-stat"><span>SWMS</span> ${e(s.swms_number || '—')}</div>
+        <div class="ch-stat"><span>REV</span> ${s.revision_number}</div>
+      </div>
+    </div>`;
+
   const ppeMandatory = lines(s.ppe_mandatory);
   const ppeAdditional = lines(s.ppe_additional);
   const maxPpe = Math.max(ppeMandatory.length, ppeAdditional.length, 1);
@@ -758,8 +809,9 @@ function buildSwmsPages(s, sigs) {
     return lvl ? 'risk-' + lvl : '';
   };
 
+  // ── PAGE 1: Cover with full header + Project + Site + Compliance ──
   const page1 = `
-    ${pageHeader}
+    ${fullHeader}
     <div class="pdf-section-heading">Project Details</div>
     <table class="pdf-fields">
       <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
@@ -772,7 +824,7 @@ function buildSwmsPages(s, sigs) {
       <colgroup><col style="width:14%"/><col style="width:36%"/><col style="width:14%"/><col style="width:36%"/></colgroup>
       <tr><td class="lbl">Client</td><td class="val">${e(s.client_name || '—')}</td><td class="lbl">Site</td><td class="val">${e(s.site_name || '—')}</td></tr>
       <tr><td class="lbl">Address</td><td class="val" colspan="3">${e(s.site_address || '—')}</td></tr>
-      <tr><td class="lbl">Site Contact</td><td class="val" colspan="3">${e(s.site_contact || '—')}${s.site_contact_phone ? ' · ' + e(s.site_contact_phone) : ''}</td></tr>
+      <tr><td class="lbl">Site Contact</td><td class="val" colspan="3">${e(s.site_contact || '—')}</td></tr>
     </table>
     <div class="pdf-section-heading">Compliance &amp; Resources</div>
     <table class="pdf-ref">
@@ -786,11 +838,12 @@ function buildSwmsPages(s, sigs) {
       <tr><th>Specific Training Required</th><th>Relevant Procedures</th></tr>
       <tr><td>${e(s.training_required || '—')}</td><td>${e(s.relevant_procedures || '—')}</td></tr>
     </table>
-    <div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939<div class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div></div>
+    ${PDF_FOOTER}
     <div class="pdf-pageno">Page 1</div>`;
 
+  // ── PAGE 2: Risk Matrix + Hierarchy of Control (compact header) ──
   const page2 = `
-    ${pageHeader}
+    ${compactHeader}
     <div class="pdf-section-heading">Figure 1 — Risk Management Matrix &amp; Hierarchy of Control</div>
     <div class="pdf-matrix-wrap">
       <table class="pdf-matrix">
@@ -812,29 +865,48 @@ function buildSwmsPages(s, sigs) {
         <div class="hoc-item"><div class="hoc-num">6</div><div class="hoc-text"><strong>PPE</strong><span>Last line of defence</span></div></div>
       </div>
     </div>
-    <div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939<div class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div></div>
+    ${PDF_FOOTER}
     <div class="pdf-pageno">Page 2</div>`;
 
+  // ── PAGE 3: PPE (compact header) ──
   const page3 = `
-    ${pageHeader}
+    ${compactHeader}
     <div class="pdf-section-heading">Personal Protective Equipment</div>
     <table class="pdf-ppe">
       <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
       <tr><th>Mandatory Site PPE</th><th>Additional PPE Required</th></tr>
       ${ppeRows}
     </table>
-    <div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939<div class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div></div>
+    ${PDF_FOOTER}
     <div class="pdf-pageno">Page 3</div>`;
 
-  const ROWS_PER_PAGE = 11;
+  // ── PAGES 4+: Hazards — weighted pagination ──
+  // Each row's "weight" reflects its content density. Total budget per page = 14.
+  //   Base row = 1.4 units, +0.45 per control/HoC/responsibility line beyond 2
+  //   Phase divider = 0.6 units
+  const PAGE_BUDGET = 14;
   const hazItems = s.hazards_json || [];
   const hazardPages = [];
   let chunk = [];
-  let rowCount = 0;
+  let used = 0;
   for (const h of hazItems) {
+    let weight;
+    if (h.type === 'phase') {
+      weight = 0.6;
+    } else {
+      const ctrlCount = (h.controls || '').split('\n').filter(x => x.trim()).length;
+      const hocCount = (h.hoc || '').split('\n').filter(x => x.trim()).length;
+      const respCount = (h.responsibility || '').split('\n').filter(x => x.trim()).length;
+      const maxLines = Math.max(ctrlCount, hocCount, respCount, 2);
+      weight = 1.4 + Math.max(0, maxLines - 2) * 0.45;
+    }
+    if (used + weight > PAGE_BUDGET && chunk.length) {
+      hazardPages.push(chunk);
+      chunk = [];
+      used = 0;
+    }
     chunk.push(h);
-    if (h.type !== 'phase') rowCount++;
-    if (rowCount >= ROWS_PER_PAGE) { hazardPages.push(chunk); chunk = []; rowCount = 0; }
+    used += weight;
   }
   if (chunk.length) hazardPages.push(chunk);
   if (!hazardPages.length) hazardPages.push([]);
@@ -863,17 +935,18 @@ function buildSwmsPages(s, sigs) {
       }
     });
     return `
-      ${pageHeader}
+      ${compactHeader}
       <div class="pdf-section-heading">Job Steps, Hazards &amp; Controls${hazardPages.length > 1 ? ` — Continued (${idx + 1} of ${hazardPages.length})` : ''}</div>
       <table class="pdf-haz">
         <colgroup><col class="c1"/><col class="c2"/><col class="c3"/><col class="c4"/><col class="c5"/><col class="c6"/><col class="c7"/><col class="c8"/><col class="c9"/></colgroup>
         <thead><tr><th>Step</th><th>Job Step</th><th>Hazards</th><th>Risks</th><th>Risk<br/>Rating</th><th>Controls</th><th>Hierarchy<br/>of Control</th><th>Residual<br/>Risk</th><th>Responsibility</th></tr></thead>
         <tbody>${body || '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">No hazards recorded</td></tr>'}</tbody>
       </table>
-      <div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939<div class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div></div>
+      ${PDF_FOOTER}
       <div class="pdf-pageno">Page ${4 + idx}</div>`;
   });
 
+  // ── LAST PAGE: Worker sign-on (compact header) ──
   const signoffPageNo = 4 + hazardPages.length;
   let sigBody = '';
   const minSigRows = Math.max(sigs.length, 10);
@@ -889,7 +962,7 @@ function buildSwmsPages(s, sigs) {
   }
 
   const signoffPage = `
-    ${pageHeader}
+    ${compactHeader}
     <div class="pdf-section-heading">Worker Sign-On</div>
     <div class="pdf-consent">
       We, the undersigned, confirm that we were consulted in the development of this SWMS. If a failure is identified within the SWMS work will stop, the SWMS amended and changes communicated to the workforce. We also clearly understand that the controls must be applied as documented, otherwise work is to cease immediately. We also confirm that we are qualified to carry out the works identified above, a copy to evidence our required qualifications have been provided and where applicable all insurances and work cover policies to undertake this activity are current.
@@ -899,7 +972,7 @@ function buildSwmsPages(s, sigs) {
       <thead><tr><th>Name</th><th>Signature</th><th>Date</th><th>Time</th><th>Employer</th></tr></thead>
       <tbody>${sigBody}</tbody>
     </table>
-    <div class="pdf-footer">Bromar Electrical Services (AUST) Pty Ltd — ABN 45 634 835 939<div class="warn">THIS DOCUMENT IS 'UNCONTROLLED' WHEN PRINTED</div></div>
+    ${PDF_FOOTER}
     <div class="pdf-pageno">Page ${signoffPageNo}</div>`;
 
   return [page1, page2, page3, ...hazPagesHtml, signoffPage];
