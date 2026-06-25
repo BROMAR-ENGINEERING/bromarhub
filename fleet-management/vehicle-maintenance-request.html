@@ -3,1145 +3,347 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vehicle Maintenance Audit</title>
+  <title>BROMAR — Vehicle Maintenance Request</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <style>
-    /* ============================================================
-       PAGE-SPECIFIC STYLES ONLY
-       ============================================================ */
+    /* ── Page-specific styles only ── */
 
-    /* Legend */
-    .legend {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      padding: 14px 16px;
-      background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: var(--radius-sm); margin-bottom: 18px;
-    }
-    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-secondary); }
-    .legend-pill {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 6px; font-weight: 700; font-size: 0.7rem;
-    }
-    .legend-pill.ok    { background: var(--status-ok-bg, #f0fdf4);    color: var(--status-ok, #0e9f6e); }
-    .legend-pill.fault { background: var(--status-fault-bg, #fef2f2); color: var(--status-fault, #ef4444); }
-    .legend-pill.na    { background: var(--status-na-bg, #f3f4f6);    color: var(--status-na, #6b7280); }
-
-    /* Status summary */
-    .status-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 20px;
-      font-size: 0.8rem; font-weight: 600;
-      background: var(--input-bg); border: 1px solid var(--input-border);
-      color: var(--text-secondary);
-    }
-    .status-pill .count { font-weight: 700; }
-    .status-pill.has-faults {
-      background: var(--status-fault-bg, #fef2f2);
-      border-color: var(--status-fault, #ef4444);
-      color: var(--status-fault, #ef4444);
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
     }
 
-    /* Quick actions row */
-    .quick-actions {
-      display: flex; gap: 8px; flex-wrap: wrap;
-      margin-bottom: 14px;
+    .check-pill { position: relative; }
+
+    .check-pill input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
     }
-    .quick-btn {
-      padding: 6px 14px; border-radius: 6px;
+
+    .check-pill label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      background: var(--input-bg);
       border: 1px solid var(--input-border);
-      background: var(--brand-white); color: var(--text-secondary);
-      font-family: inherit; font-size: 0.8rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0;
+      transition: all 0.18s;
+      user-select: none;
     }
-    .quick-btn:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
 
-    /* Check items */
-    .check-item {
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px; background: var(--input-bg);
-      margin-bottom: 12px; transition: all 0.2s;
+    .check-pill label .emoji { font-size: 16px; line-height: 1; flex-shrink: 0; }
+    .check-pill label .text { flex: 1; }
+
+    .check-pill label:hover {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
     }
-    .check-item.status-ok    { border-color: var(--status-ok, #0e9f6e);    background: var(--status-ok-bg, #f0fdf4); }
-    .check-item.status-fault { border-color: var(--status-fault, #ef4444); background: var(--status-fault-bg, #fef2f2); }
-    .check-item.status-na    { border-color: var(--status-na, #6b7280);    background: var(--status-na-bg, #f3f4f6); opacity: 0.85; }
 
-    .check-item-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
-    .check-number {
-      flex-shrink: 0;
-      width: 28px; height: 28px; border-radius: 50%;
-      background: var(--brand-orange); color: white;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 700;
-    }
-    .check-text-wrap { flex: 1; padding-top: 4px; display: flex; align-items: center; gap: 8px; }
-    .check-text { font-size: 0.92rem; color: var(--text-primary); line-height: 1.45; }
-
-    /* Info icon */
-    .info-icon {
-      width: 20px; height: 20px; flex-shrink: 0;
-      border-radius: 50%;
-      background: var(--brand-orange-soft, rgba(194, 68, 14, 0.1));
+    .check-pill input:checked + label {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-soft);
       color: var(--brand-orange);
-      border: none; cursor: pointer;
-      font-size: 0.75rem; font-weight: 700;
-      display: inline-flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
+      font-weight: 600;
     }
-    .info-icon:hover { background: var(--brand-orange); color: white; transform: scale(1.1); }
 
-    .status-buttons { display: flex; gap: 8px; flex-shrink: 0; }
-    .status-btn {
-      padding: 6px 12px; border-radius: 6px;
+    .checkmark {
+      width: 17px;
+      height: 17px;
       border: 1.5px solid var(--input-border);
-      background: var(--brand-white); color: var(--text-muted);
-      font-family: inherit; font-size: 0.78rem; font-weight: 600;
-      cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;
+      border-radius: 4px;
+      background: var(--brand-white);
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      transition: all 0.18s;
+      margin-left: auto;
     }
-    .status-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
-    .status-btn.active.ok    { background: var(--status-ok, #0e9f6e);    border-color: var(--status-ok, #0e9f6e);    color: white; }
-    .status-btn.active.fault { background: var(--status-fault, #ef4444); border-color: var(--status-fault, #ef4444); color: white; }
-    .status-btn.active.na    { background: var(--status-na, #6b7280);    border-color: var(--status-na, #6b7280);    color: white; }
 
-    .check-comment {
-      width: 100%; padding: 8px 12px;
-      border: 1px solid var(--input-border); border-radius: 6px;
-      background: var(--brand-white); font-family: inherit;
-      font-size: 0.85rem; color: var(--text-primary);
-      resize: vertical; min-height: 38px;
+    .check-pill input:checked + label .checkmark {
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
+    }
+
+    .checkmark::after {
+      content: '';
       display: none;
-    }
-    .check-item.show-comment .check-comment { display: block; }
-    .check-item.show-comment.comment-required .check-comment {
-      border-color: var(--status-fault, #ef4444);
-    }
-
-    @media (max-width: 600px) {
-      .check-item-top { flex-wrap: wrap; }
-      .status-buttons { width: 100%; justify-content: stretch; }
-      .status-btn { flex: 1; }
+      width: 10px;
+      height: 10px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 6l3 3 5-5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
     }
 
-    /* Info modal */
-    .info-modal-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(15, 17, 19, 0.55);
-      z-index: 9999;
-      display: none; align-items: center; justify-content: center;
-      padding: 20px;
-      backdrop-filter: blur(2px);
-    }
-    .info-modal-backdrop.show { display: flex; }
-    .info-modal {
-      background: var(--brand-white);
-      border-radius: var(--radius);
-      max-width: 480px; width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
-      animation: modalIn 0.2s ease;
-    }
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    .info-modal-header {
-      background: var(--brand-orange); color: white;
-      padding: 16px 20px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .info-modal-title { font-size: 1rem; font-weight: 700; }
-    .info-modal-close {
-      background: rgba(255,255,255,0.2); border: none;
-      color: white; font-size: 1.4rem; line-height: 1;
-      width: 28px; height: 28px; border-radius: 50%;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .info-modal-close:hover { background: rgba(255,255,255,0.35); }
-    .info-modal-body {
-      padding: 20px;
-      font-size: 0.92rem; line-height: 1.6; color: var(--text-primary);
-    }
-    .info-modal-body ul { margin: 8px 0 0 18px; padding: 0; }
-    .info-modal-body li { margin-bottom: 6px; }
+    .check-pill input:checked + label .checkmark::after { display: block; }
 
-    /* Defect identification box */
-    .defect-box {
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      padding: 18px; background: var(--input-bg);
-    }
-    .defect-warning {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 14px;
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 6px;
-      color: var(--error, #ef4444);
-      font-size: 0.85rem; font-weight: 600;
-      margin-top: 14px;
-    }
-
-    /* Urgency selector */
-    .urgency-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    @media (max-width: 600px) { .urgency-group { grid-template-columns: repeat(2, 1fr); } }
-    .urgency-option {
-      position: relative;
-      padding: 12px 10px; border-radius: 8px;
-      border: 1.5px solid var(--input-border);
-      background: var(--brand-white);
-      cursor: pointer; text-align: center;
-      transition: all 0.2s;
-      display: flex; flex-direction: column; gap: 4px; align-items: center;
-    }
-    .urgency-option input { position: absolute; opacity: 0; pointer-events: none; }
-    .urgency-icon { font-size: 1.3rem; }
-    .urgency-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
-    .urgency-option:hover { border-color: var(--text-secondary); }
-    .urgency-option.selected.low      { border-color: #0e9f6e; background: rgba(14, 159, 110, 0.08); }
-    .urgency-option.selected.low      .urgency-label { color: #0e9f6e; }
-    .urgency-option.selected.medium   { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
-    .urgency-option.selected.medium   .urgency-label { color: #f59e0b; }
-    .urgency-option.selected.high     { border-color: #f97316; background: rgba(249, 115, 22, 0.08); }
-    .urgency-option.selected.high     .urgency-label { color: #f97316; }
-    .urgency-option.selected.critical { border-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
-    .urgency-option.selected.critical .urgency-label { color: #ef4444; }
-
-    /* Signature pad */
-    .signature-box {
-      border: 1.5px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      background: var(--input-bg); padding: 16px;
-    }
-    .signature-pad-wrapper {
-      position: relative; background: #ffffff;
-      border: 1.5px dashed var(--input-border); border-radius: 6px;
-      overflow: hidden; touch-action: none;
-    }
-    .signature-pad-wrapper.has-signature { border-style: solid; border-color: var(--brand-orange); }
-    .signature-pad { display: block; width: 100%; height: 180px; cursor: crosshair; }
-    .signature-placeholder {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 0.85rem; color: var(--text-faded, #9ca3af);
-      pointer-events: none; user-select: none; letter-spacing: 0.5px;
-    }
-    .signature-pad-wrapper.has-signature .signature-placeholder { display: none; }
-    .signature-controls {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 12px; gap: 12px; flex-wrap: wrap;
-    }
-    .signature-meta { font-size: 0.8rem; color: var(--text-muted); }
-    .signature-meta strong { color: var(--text-secondary); }
-    .btn-clear-sig {
-      font-family: inherit; font-size: 0.8rem; font-weight: 600;
-      padding: 7px 14px; border-radius: 6px;
-      border: 1px solid var(--input-border);
-      background: var(--brand-white); color: var(--text-muted);
-      cursor: pointer; transition: all 0.2s;
-    }
-    .btn-clear-sig:hover { color: var(--error, #ef4444); border-color: var(--error, #ef4444); }
-    .field-group.has-error .signature-pad-wrapper {
-      border-color: var(--error, #ef4444);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
-
-    /* Locked field styling */
-    input.locked, select.locked {
-      background: var(--input-bg, #f7f7f9);
-      cursor: not-allowed;
-      color: var(--text-secondary);
-    }
-    .lock-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 0.7rem; font-weight: 600;
-      color: var(--text-muted);
-      margin-left: 6px;
-    }
-
-    /* Three-column row */
-    .field-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
-    @media (max-width: 600px) { .field-row.three-col { grid-template-columns: 1fr; } }
-
-    /* Revision badge */
     .revision-number {
-      position: fixed; bottom: 12px; right: 14px;
-      font-size: 0.72rem; font-weight: 600;
-      color: var(--text-faded, #9ca3af);
-      background: var(--brand-white);
-      border: 1px solid var(--input-border);
-      padding: 4px 10px; border-radius: 12px;
-      letter-spacing: 0.5px; z-index: 100;
-      opacity: 0.75; pointer-events: none;
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.5;
+      font-family: monospace;
+      pointer-events: none;
+      z-index: 100;
     }
   </style>
 </head>
 <body>
 
-<div id="bromar-header"></div>
+  <!-- Shared header injected by bromar-hub.js -->
+  <div id="bromar-header"></div>
 
-<div class="page-wrapper">
-
-  <div class="header-card">
-    <h1 class="header-title">Vehicle Maintenance Audit</h1>
-    <p class="header-subtitle">Complete the checklist below for the plant or vehicle being audited. Tap the info icon next to each item for guidance.</p>
-  </div>
-
-  <div class="form-card">
-    <form id="auditForm" novalidate>
-
-      <!-- OPERATOR DETAILS -->
-      <div class="section-label">Operator Details</div>
-
-      <div class="field-row">
-        <div class="field-group" id="group-filled-by">
-          <label for="filled_by">Filled By <span class="required">*</span></label>
-          <select id="filled_by" name="filled_by">
-            <option value="">Loading employees…</option>
-          </select>
-          <span class="error-msg">Please select who is filling out the form</span>
-        </div>
-        <div class="field-group" id="group-operator-email">
-          <label for="operator_email">Email <span class="lock-badge" id="emailLockBadge" style="display:none;">🔒 Auto-filled</span></label>
-          <input type="email" id="operator_email" name="operator_email" placeholder="Auto-filled from selection" readonly/>
-        </div>
-      </div>
-
-      <!-- AUDIT DETAILS -->
-      <div class="section-label">Audit Details</div>
-
-      <div class="field-row">
-        <div class="field-group" id="group-week">
-          <label for="week_commencing">Week Commencing <span class="required">*</span></label>
-          <input type="date" id="week_commencing" name="week_commencing"/>
-          <span class="error-msg">Please select the week commencing date</span>
-        </div>
-        <div class="field-group" id="group-plant-name">
-          <label for="plant_name">Plant <span class="required">*</span></label>
-          <input type="text" id="plant_name" name="plant_name" placeholder="e.g. Truck 04, Forklift A"/>
-          <span class="error-msg">Please enter the plant name</span>
-        </div>
-      </div>
-
-      <div class="field-row three-col">
-        <div class="field-group">
-          <label for="plant_type">Plant Type</label>
-          <input type="text" id="plant_type" name="plant_type" placeholder="e.g. Ute, Truck, EWP"/>
-        </div>
-        <div class="field-group">
-          <label for="plant_no">Plant No.</label>
-          <input type="text" id="plant_no" name="plant_no" placeholder="Plant number"/>
-        </div>
-        <div class="field-group">
-          <label for="reg_no">Reg No.</label>
-          <input type="text" id="reg_no" name="reg_no" placeholder="Registration"/>
-        </div>
-      </div>
-
-      <!-- SERVICING -->
-      <div class="section-label">Servicing</div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label for="current_hours">Plant Hours / Kilometers</label>
-          <input type="text" id="current_hours" name="current_hours" placeholder="Current reading"/>
-        </div>
-        <div class="field-group">
-          <label for="next_service">Hours / Kilometers of Next Service</label>
-          <input type="text" id="next_service" name="next_service" placeholder="Next service due"/>
-        </div>
-      </div>
-
-      <!-- INSPECTION CHECKS -->
-      <div class="section-label">Inspection Checks</div>
-
-      <div class="legend">
-        <span class="legend-item"><span class="legend-pill ok">OK</span> Item is OK</span>
-        <span class="legend-item"><span class="legend-pill fault">!</span> Fault Identified</span>
-        <span class="legend-item"><span class="legend-pill na">NA</span> Not Applicable</span>
-      </div>
-
-      <div class="quick-actions">
-        <button type="button" class="quick-btn" id="markAllOkBtn">✓ Mark all OK</button>
-        <button type="button" class="quick-btn" id="clearAllBtn">↺ Clear all</button>
-      </div>
-
-      <div class="status-summary" id="statusSummary">
-        <span class="status-pill"><span>✅ OK:</span> <span class="count" id="countOk">0</span></span>
-        <span class="status-pill" id="faultPill"><span>⚠️ Faults:</span> <span class="count" id="countFault">0</span></span>
-        <span class="status-pill"><span>➖ N/A:</span> <span class="count" id="countNa">0</span></span>
-        <span class="status-pill"><span>⏳ Pending:</span> <span class="count" id="countPending">8</span></span>
-      </div>
-
-      <div id="checklistContainer"></div>
-
-      <div class="error-banner" id="checksError">
-        <span>⚠️</span>
-        <span>Please mark all inspection items before submitting.</span>
-      </div>
-
-      <!-- DEFECT IDENTIFICATION -->
-      <div class="section-label">Defect Identification</div>
-
-      <div class="defect-box">
-        <div class="field-group full" style="margin-bottom: 16px;">
-          <label for="defect_details">Details of Fault / Defect</label>
-          <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection..."></textarea>
-        </div>
-
-        <div class="field-group full" id="group-urgency" style="margin-bottom: 0;">
-          <label>Urgency Level</label>
-          <div class="urgency-group">
-            <label class="urgency-option" data-urgency="low">
-              <input type="radio" name="urgency" value="low"/>
-              <span class="urgency-icon">🟢</span>
-              <span class="urgency-label">Low</span>
-            </label>
-            <label class="urgency-option" data-urgency="medium">
-              <input type="radio" name="urgency" value="medium"/>
-              <span class="urgency-icon">🟡</span>
-              <span class="urgency-label">Medium</span>
-            </label>
-            <label class="urgency-option" data-urgency="high">
-              <input type="radio" name="urgency" value="high"/>
-              <span class="urgency-icon">🟠</span>
-              <span class="urgency-label">High</span>
-            </label>
-            <label class="urgency-option" data-urgency="critical">
-              <input type="radio" name="urgency" value="critical"/>
-              <span class="urgency-icon">🔴</span>
-              <span class="urgency-label">Critical</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="defect-warning">
-          <span>⚠️</span>
-          <span>DO NOT operate machine if unsafe.</span>
-        </div>
-      </div>
-
-      <!-- ADDITIONAL NOTES & SIGN-OFF -->
-      <div class="section-label">Additional Notes &amp; Sign-Off</div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label for="signoff_date">Date</label>
-          <input type="date" id="signoff_date" name="signoff_date"/>
-        </div>
-        <div class="field-group">
-          <!-- spacer / could fit extra meta later -->
-        </div>
-      </div>
-
-      <div class="field-group full">
-        <label for="additional_notes">Additional Notes</label>
-        <textarea id="additional_notes" name="additional_notes" placeholder="Any further notes, observations, or follow-up required..."></textarea>
-      </div>
-
-      <div class="field-group full" id="group-signature">
-        <label>Operator's Signature <span class="required">*</span></label>
-        <div class="signature-box">
-          <div class="signature-pad-wrapper" id="sigWrapper">
-            <canvas class="signature-pad" id="signaturePad"></canvas>
-            <span class="signature-placeholder">Sign here using your mouse or finger</span>
-          </div>
-          <div class="signature-controls">
-            <div class="signature-meta">
-              <strong>Signed:</strong> <span id="sigDateDisplay">—</span>
-            </div>
-            <button type="button" class="btn-clear-sig" id="clearSigBtn">Clear Signature</button>
-          </div>
-        </div>
-        <span class="error-msg">Please sign before submitting</span>
-      </div>
-
-      <!-- SUBMIT -->
-      <div class="form-divider"></div>
-      <div class="submit-row">
-        <span class="submit-note">* Required fields</span>
-        <button type="reset" class="btn-secondary">Clear</button>
-        <button type="submit" class="submit-btn" id="submitBtn">Submit Audit</button>
-      </div>
-
-    </form>
-  </div>
-</div>
-
-<!-- INFO MODAL -->
-<div class="info-modal-backdrop" id="infoModalBackdrop">
-  <div class="info-modal">
-    <div class="info-modal-header">
-      <div class="info-modal-title" id="infoModalTitle"></div>
-      <button type="button" class="info-modal-close" id="infoModalClose" aria-label="Close">×</button>
+  <div class="page-wrapper">
+    <div class="header-card">
+      <h1 class="header-title">Vehicle Maintenance Request</h1>
+      <p class="header-subtitle">Complete the form below — a confirmation will be sent to your email.</p>
     </div>
-    <div class="info-modal-body" id="infoModalBody"></div>
-  </div>
-</div>
 
-<!-- Revision badge -->
-<div class="revision-number">V1.03</div>
+    <div class="form-card">
+      <form id="maintenanceForm" novalidate>
+
+        <div class="success-banner" id="successBanner">
+          <span>✅</span>
+          <span>Thank you, your maintenance request has been submitted.</span>
+        </div>
+
+        <!-- DRIVER DETAILS -->
+        <div class="form-section">
+          <div class="section-label">Driver Details</div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="fullName">Full Name <span class="required">*</span></label>
+              <input type="text" id="fullName" name="fullName" placeholder="Old Mate" required />
+            </div>
+            <div class="field-group">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <input type="email" id="email" name="email" placeholder="oldmate@bromar.com.au" required />
+            </div>
+          </div>
+
+          <div class="field-group" style="max-width:calc(50% - 8px);">
+            <label for="phone">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="phone" name="phone" placeholder="04xx xxx xxx" required />
+          </div>
+        </div>
+
+        <!-- VEHICLE DETAILS -->
+        <div class="form-section">
+          <div class="section-label">Vehicle Details</div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="rego">Registration <span class="required">*</span></label>
+              <input type="text" id="rego" name="rego" placeholder="ABC-123" required />
+            </div>
+            <div class="field-group">
+              <label for="make">Make <span class="required">*</span></label>
+              <input type="text" id="make" name="make" placeholder="e.g. Volkswagen" required />
+            </div>
+          </div>
+
+          <div class="field-row-3">
+            <div class="field-group">
+              <label for="model">Model <span class="required">*</span></label>
+              <input type="text" id="model" name="model" placeholder="e.g. Transporter" required />
+            </div>
+            <div class="field-group">
+              <label for="odometer">Odometer (km) <span class="required">*</span></label>
+              <input type="number" id="odometer" name="odometer" placeholder="e.g. 125000" min="0" required />
+            </div>
+            <div class="field-group">
+              <label for="serviceDue">Service Due at (km)</label>
+              <input type="number" id="serviceDue" name="serviceDue" placeholder="e.g. 130000" min="0" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ITEMS REQUIRING ATTENTION -->
+        <div class="form-section">
+          <div class="section-label">Items Requiring Attention</div>
+
+          <div class="checkbox-grid">
+            <div class="check-pill">
+              <input type="checkbox" id="tyres" name="attention" value="Tyres" />
+              <label for="tyres"><span class="emoji">🛞</span><span class="text">Tyres</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="wipers" name="attention" value="Wipers" />
+              <label for="wipers"><span class="emoji">🌧️</span><span class="text">Wipers</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="windscreen" name="attention" value="Windscreen" />
+              <label for="windscreen"><span class="emoji">🪟</span><span class="text">Windscreen</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="brakes" name="attention" value="Brakes" />
+              <label for="brakes"><span class="emoji">🛑</span><span class="text">Brakes</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="oil" name="attention" value="Oil & Fluids" />
+              <label for="oil"><span class="emoji">🛢️</span><span class="text">Oil &amp; Fluids</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="battery" name="attention" value="Battery" />
+              <label for="battery"><span class="emoji">🔋</span><span class="text">Battery</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="lights" name="attention" value="Lights" />
+              <label for="lights"><span class="emoji">💡</span><span class="text">Lights</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="aircon" name="attention" value="Air Conditioning" />
+              <label for="aircon"><span class="emoji">❄️</span><span class="text">Air Conditioning</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="suspension" name="attention" value="Suspension" />
+              <label for="suspension"><span class="emoji">🔩</span><span class="text">Suspension</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="belts" name="attention" value="Belts & Hoses" />
+              <label for="belts"><span class="emoji">⚙️</span><span class="text">Belts &amp; Hoses</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="transmission" name="attention" value="Transmission" />
+              <label for="transmission"><span class="emoji">🔧</span><span class="text">Transmission</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="body" name="attention" value="Body / Panel Damage" />
+              <label for="body"><span class="emoji">🚗</span><span class="text">Body / Panel Damage</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="exhaust" name="attention" value="Exhaust" />
+              <label for="exhaust"><span class="emoji">💨</span><span class="text">Exhaust</span><span class="checkmark"></span></label>
+            </div>
+            <div class="check-pill">
+              <input type="checkbox" id="enginelight" name="attention" value="Engine / Warning Light" />
+              <label for="enginelight"><span class="emoji">⚠️</span><span class="text">Engine / Warning Light</span><span class="checkmark"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADDITIONAL COMMENTS -->
+        <div class="form-section">
+          <div class="section-label">Additional Comments</div>
+          <textarea id="comments" name="comments" placeholder="Any additional comments or concerns…"></textarea>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <div class="submit-row">
+          <span class="submit-note">* Required fields</span>
+          <button type="reset" class="btn-secondary">Clear</button>
+          <button type="submit" class="submit-btn" id="submitBtn">Submit Request</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="revision-number">V1.01</div>
 
 <script>
-  // ============================================================
-  // CONFIGURATION
-  // ============================================================
-  const CONFIG = {
-    emailjs: {
-      publicKey:  "4JW7VbCEAqZt9p4Jj",
-      serviceId:  "BromarEmail",
-      templateId: "vehicleaudit_admin",
-    },
-    adminEmails: ["ashleys@bromar.com.au"],
-    revision: "V1.03"
-  };
-  emailjs.init(CONFIG.emailjs.publicKey);
+  emailjs.init('4JW7VbCEAqZt9p4Jj');
 
-  // ============================================================
-  // STATE
-  // ============================================================
-  let EMPLOYEES = [];
-  let currentUser = null;
-
-  const CHECKS = [
-    {
-      id: 'check1',
-      label: 'Brakes, Steering & Warning Devices',
-      text: 'Brakes, steering, gauges, lights, warning devices, strobe/beacon, reverse squawker',
-      info: 'Check for any unusual noises, vibrations, or play. Verify:',
-      bullets: [
-        'Brake pedal firm, no grinding or spongy feel',
-        'Steering moves freely with no excessive play',
-        'All dashboard gauges functional',
-        'Headlights, tail lights, indicators, brake lights all working',
-        'Strobe / beacon activates correctly',
-        'Reverse squawker is audible from outside the vehicle'
-      ]
-    },
-    {
-      id: 'check2',
-      label: 'Visibility',
-      text: 'Visibility — windscreen, wipers, washer, demister, mirrors',
-      info: 'Driver must have clear, unobstructed view in all conditions:',
-      bullets: [
-        'Windscreen free of cracks or chips that obstruct view',
-        'Wipers leave a clean sweep with no streaks',
-        'Washer fluid topped up and jets spray correctly',
-        'Demister / heater clears the windscreen quickly',
-        'All mirrors intact, clean, and properly adjusted'
-      ]
-    },
-    {
-      id: 'check3',
-      label: 'Cabin',
-      text: 'Cabin — access/egress, seating, seatbelts, loose objects',
-      info: 'Ensure safe entry, exit, and operation from the cab:',
-      bullets: [
-        'Steps and grab handles secure and free of grease/mud',
-        'Seat adjustment works, no excessive wear or damage',
-        'Seatbelts retract and lock correctly under sudden pull',
-        'No loose tools, equipment, or items that could become projectiles',
-        'Cab interior clean and tidy'
-      ]
-    },
-    {
-      id: 'check4',
-      label: 'Wheels & Tyres',
-      text: 'Wheels — tyres, nuts, damage, wear, pressure',
-      info: 'Inspect each tyre and wheel hub:',
-      bullets: [
-        'Tread depth above legal minimum (1.5mm car, 1.6mm light truck)',
-        'No cuts, bulges, or sidewall damage',
-        'All wheel nuts present and correctly torqued',
-        'No missing valve caps',
-        'Tyre pressure within manufacturer specification (when cold)'
-      ]
-    },
-    {
-      id: 'check5',
-      label: 'Guards & Exterior',
-      text: 'Guards / exterior — in place, secure, warning lights etc.',
-      info: 'Confirm all protective elements are intact:',
-      bullets: [
-        'All safety guards fitted and securely fastened',
-        'No missing bolts, screws, or fasteners',
-        'Reflective stickers and warning labels visible',
-        'Body panels secure with no sharp edges',
-        'Toolboxes and storage compartments lock properly'
-      ]
-    },
-    {
-      id: 'check6',
-      label: 'Excessive Wear Components',
-      text: 'Excessive wear — hooks, chains, pins, pivots, tracks',
-      info: 'Inspect load-bearing and moving parts:',
-      bullets: [
-        'Lifting hooks free of stretching, cracks, or deformation',
-        'Chains and slings within capacity rating, not worn',
-        'Pins and pivot points lubricated with no slop or wobble',
-        'Tracks or wheel bearings within wear tolerance',
-        'Hydraulic cylinders show no leaks at seals'
-      ]
-    },
-    {
-      id: 'check7',
-      label: 'Safety Equipment',
-      text: 'Safety — fire extinguisher, first aid kit',
-      info: 'Verify emergency equipment is ready for use:',
-      bullets: [
-        'Fire extinguisher in date (check tag)',
-        'Pressure gauge in the green zone',
-        'Extinguisher accessible and not buried under gear',
-        'First aid kit fully stocked, contents in date',
-        'Both items clearly labelled and visible'
-      ]
-    },
-    {
-      id: 'check8',
-      label: 'Electrical & Communications',
-      text: 'Misc. electrical, CB radio (incl. car and 240V charger)',
-      info: 'Test all electrical accessories:',
-      bullets: [
-        'All 12V power outlets working',
-        'CB radio transmits and receives clearly',
-        '240V inverter / charger functional, no warning lights',
-        'Cables in good condition, no exposed wires or damaged insulation',
-        'USB and phone charging points operational'
-      ]
-    }
-  ];
-
-  // ============================================================
-  // INIT
-  // ============================================================
-  document.addEventListener('DOMContentLoaded', async () => {
-    if (typeof BromarHub === 'undefined') {
-      await new Promise(resolve => {
-        const interval = setInterval(() => {
-          if (typeof BromarHub !== 'undefined') { clearInterval(interval); resolve(); }
-        }, 50);
-      });
-    }
-
-    // Defaults: dates set to today (and Monday-of-this-week for week_commencing)
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('signoff_date').value = today;
-    document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
-
-    // Load employees, auto-select logged-in user
-    try {
-      EMPLOYEES = await BromarHub.loadEmployees('filled_by');
-      await BromarHub.autoSelectLoggedInUser('filled_by');
-
-      const filledBy = document.getElementById('filled_by');
-      const emailEl  = document.getElementById('operator_email');
-      const lockBadge = document.getElementById('emailLockBadge');
-
-      function setEmailFromSelection() {
-        const opt = filledBy.selectedOptions[0];
-        if (opt && opt.value) {
-          currentUser = { name: opt.value, email: opt.dataset.email || '' };
-          emailEl.value = currentUser.email;
-          emailEl.classList.add('locked');
-          lockBadge.style.display = 'inline-flex';
-        } else {
-          currentUser = null;
-          emailEl.value = '';
-          emailEl.classList.remove('locked');
-          lockBadge.style.display = 'none';
-        }
-      }
-      setEmailFromSelection();
-      filledBy.addEventListener('change', setEmailFromSelection);
-    } catch (err) {
-      console.error('Failed to load employees:', err);
-    }
-
-    renderChecklist();
-    initSignaturePad();
-    initInfoModal();
-    initUrgencySelector();
-    initQuickActions();
-  });
-
-  function getMondayOfWeek(d) {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust if Sunday
-    date.setDate(diff);
-    return date.toISOString().split('T')[0];
-  }
-
-  // ============================================================
-  // CHECKLIST
-  // ============================================================
-  function renderChecklist() {
-    const container = document.getElementById('checklistContainer');
-    CHECKS.forEach((check, idx) => {
-      const item = document.createElement('div');
-      item.className = 'check-item';
-      item.dataset.checkId = check.id;
-      item.innerHTML = `
-        <div class="check-item-top">
-          <div class="check-number">${idx + 1}</div>
-          <div class="check-text-wrap">
-            <span class="check-text">${BromarHub.escapeHtml(check.text)}</span>
-            <button type="button" class="info-icon" data-info="${check.id}" aria-label="More info">i</button>
-          </div>
-          <div class="status-buttons" data-check="${check.id}">
-            <button type="button" class="status-btn" data-status="ok">OK</button>
-            <button type="button" class="status-btn" data-status="fault">Fault</button>
-            <button type="button" class="status-btn" data-status="na">N/A</button>
-          </div>
-        </div>
-        <textarea class="check-comment" data-check-comment="${check.id}" placeholder="Describe the fault (required)..."></textarea>
-      `;
-      container.appendChild(item);
-    });
-
-    document.querySelectorAll('.status-buttons').forEach(group => {
-      group.addEventListener('click', (e) => {
-        const btn = e.target.closest('.status-btn');
-        if (!btn) return;
-        const status = btn.dataset.status;
-        const checkId = group.dataset.check;
-        const item = document.querySelector(`[data-check-id="${checkId}"]`);
-
-        const wasActive = btn.classList.contains('active');
-        group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
-
-        if (!wasActive) {
-          btn.classList.add('active', status);
-          item.classList.add(`status-${status}`);
-          if (status === 'fault') item.classList.add('show-comment', 'comment-required');
-        }
-        updateStatusSummary();
-      });
-    });
-  }
-
-  function updateStatusSummary() {
-    let ok = 0, fault = 0, na = 0;
-    document.querySelectorAll('.check-item').forEach(item => {
-      if (item.classList.contains('status-ok')) ok++;
-      else if (item.classList.contains('status-fault')) fault++;
-      else if (item.classList.contains('status-na')) na++;
-    });
-    const pending = CHECKS.length - ok - fault - na;
-    document.getElementById('countOk').textContent = ok;
-    document.getElementById('countFault').textContent = fault;
-    document.getElementById('countNa').textContent = na;
-    document.getElementById('countPending').textContent = pending;
-    document.getElementById('faultPill').classList.toggle('has-faults', fault > 0);
-    if (pending === 0) document.getElementById('checksError').classList.remove('show');
-  }
-
-  function getCheckResults() {
-    return CHECKS.map((check, idx) => {
-      const item = document.querySelector(`[data-check-id="${check.id}"]`);
-      const commentEl = document.querySelector(`[data-check-comment="${check.id}"]`);
-      let status = 'PENDING';
-      if (item.classList.contains('status-ok'))         status = 'OK';
-      else if (item.classList.contains('status-fault')) status = 'FAULT';
-      else if (item.classList.contains('status-na'))    status = 'N/A';
-      return { number: idx + 1, label: check.label, text: check.text, status, comment: commentEl.value.trim() };
-    });
-  }
-
-  // ============================================================
-  // INFO MODAL
-  // ============================================================
-  function initInfoModal() {
-    const backdrop = document.getElementById('infoModalBackdrop');
-    const title = document.getElementById('infoModalTitle');
-    const body  = document.getElementById('infoModalBody');
-
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.info-icon');
-      if (!btn) return;
-      const id = btn.dataset.info;
-      const check = CHECKS.find(c => c.id === id);
-      if (!check) return;
-      title.textContent = check.label;
-      body.innerHTML = `<p>${BromarHub.escapeHtml(check.info)}</p><ul>` +
-        check.bullets.map(b => `<li>${BromarHub.escapeHtml(b)}</li>`).join('') +
-        `</ul>`;
-      backdrop.classList.add('show');
-    });
-
-    document.getElementById('infoModalClose').addEventListener('click', () => backdrop.classList.remove('show'));
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.classList.remove('show'); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') backdrop.classList.remove('show'); });
-  }
-
-  // ============================================================
-  // URGENCY SELECTOR
-  // ============================================================
-  function initUrgencySelector() {
-    document.querySelectorAll('.urgency-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('.urgency-option').forEach(o => {
-          o.classList.remove('selected', 'low', 'medium', 'high', 'critical');
-        });
-        opt.classList.add('selected', opt.dataset.urgency);
-        opt.querySelector('input').checked = true;
-      });
-    });
-  }
-
-  function getSelectedUrgency() {
-    const sel = document.querySelector('input[name="urgency"]:checked');
-    return sel ? sel.value : null;
-  }
-
-  // ============================================================
-  // QUICK ACTIONS
-  // ============================================================
-  function initQuickActions() {
-    document.getElementById('markAllOkBtn').addEventListener('click', () => {
-      if (!confirm('Mark all inspection items as OK? Any existing selections will be replaced.')) return;
-      CHECKS.forEach(check => {
-        const item = document.querySelector(`[data-check-id="${check.id}"]`);
-        const group = item.querySelector('.status-buttons');
-        group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
-        const okBtn = group.querySelector('[data-status="ok"]');
-        okBtn.classList.add('active', 'ok');
-        item.classList.add('status-ok');
-      });
-      updateStatusSummary();
-    });
-
-    document.getElementById('clearAllBtn').addEventListener('click', () => {
-      if (!confirm('Clear all inspection selections?')) return;
-      document.querySelectorAll('.check-item').forEach(item => {
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
-      });
-      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-      updateStatusSummary();
-    });
-  }
-
-  // ============================================================
-  // SIGNATURE PAD
-  // ============================================================
-  let sigCanvas, sigWrapper, sigCtx;
-  let sigDrawing = false, sigHasContent = false;
-  let sigLastX = 0, sigLastY = 0, sigSignedAt = null;
-
-  function initSignaturePad() {
-    sigCanvas  = document.getElementById('signaturePad');
-    sigWrapper = document.getElementById('sigWrapper');
-    sigCtx     = sigCanvas.getContext('2d');
-
-    sigCanvas.addEventListener('mousedown', startSig);
-    sigCanvas.addEventListener('mousemove', moveSig);
-    sigCanvas.addEventListener('mouseup', endSig);
-    sigCanvas.addEventListener('mouseleave', endSig);
-    sigCanvas.addEventListener('touchstart', startSig, { passive: false });
-    sigCanvas.addEventListener('touchmove', moveSig,  { passive: false });
-    sigCanvas.addEventListener('touchend', endSig);
-
-    document.getElementById('clearSigBtn').addEventListener('click', clearSignature);
-    window.addEventListener('resize', resizeSigCanvas);
-    setTimeout(resizeSigCanvas, 50);
-  }
-
-  function resizeSigCanvas() {
-    const ratio = window.devicePixelRatio || 1;
-    const rect = sigCanvas.getBoundingClientRect();
-    let savedImage = null;
-    if (sigHasContent && sigCanvas.width > 0 && sigCanvas.height > 0) {
-      savedImage = sigCanvas.toDataURL();
-    }
-    sigCanvas.width  = rect.width  * ratio;
-    sigCanvas.height = rect.height * ratio;
-    sigCtx.scale(ratio, ratio);
-    sigCtx.lineWidth = 2;
-    sigCtx.lineCap = 'round';
-    sigCtx.lineJoin = 'round';
-    sigCtx.strokeStyle = '#111827';
-    if (savedImage) {
-      const img = new Image();
-      img.onload = () => sigCtx.drawImage(img, 0, 0, rect.width, rect.height);
-      img.src = savedImage;
-    }
-  }
-
-  function getSigPos(e) {
-    const rect = sigCanvas.getBoundingClientRect();
-    const cx = e.touches ? e.touches[0].clientX : e.clientX;
-    const cy = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: cx - rect.left, y: cy - rect.top };
-  }
-
-  function startSig(e) {
-    e.preventDefault();
-    sigDrawing = true;
-    const pos = getSigPos(e);
-    sigLastX = pos.x; sigLastY = pos.y;
-    if (!sigHasContent) {
-      sigHasContent = true;
-      sigSignedAt = new Date();
-      sigWrapper.classList.add('has-signature');
-      updateSigDateDisplay();
-      document.getElementById('group-signature').classList.remove('has-error');
-    }
-  }
-
-  function moveSig(e) {
-    if (!sigDrawing) return;
-    e.preventDefault();
-    const pos = getSigPos(e);
-    sigCtx.beginPath();
-    sigCtx.moveTo(sigLastX, sigLastY);
-    sigCtx.lineTo(pos.x, pos.y);
-    sigCtx.stroke();
-    sigLastX = pos.x; sigLastY = pos.y;
-  }
-
-  function endSig() { sigDrawing = false; }
-
-  function updateSigDateDisplay() {
-    const el = document.getElementById('sigDateDisplay');
-    el.textContent = sigSignedAt
-      ? sigSignedAt.toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
-      : '—';
-  }
-
-  function clearSignature() {
-    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-    sigHasContent = false;
-    sigSignedAt = null;
-    sigWrapper.classList.remove('has-signature');
-    updateSigDateDisplay();
-  }
-
-  // ============================================================
-  // VALIDATION
-  // ============================================================
-  function validateForm() {
-    let valid = true;
-    function check(groupId, condition) {
-      const grp = document.getElementById(groupId);
-      const inp = grp.querySelector('input, select, textarea');
-      if (!condition) {
-        grp.classList.add('has-error');
-        if (inp) inp.classList.add('error');
-        valid = false;
-      } else {
-        grp.classList.remove('has-error');
-        if (inp) inp.classList.remove('error');
-      }
-    }
-
-    const filledBy = document.getElementById('filled_by').value.trim();
-    const week     = document.getElementById('week_commencing').value;
-    const plant    = document.getElementById('plant_name').value.trim();
-
-    check('group-filled-by',  filledBy.length > 0);
-    check('group-week',       week.length > 0);
-    check('group-plant-name', plant.length > 0);
-
-    // Inspection: all marked + fault items must have a comment
-    const results = getCheckResults();
-    const pending = results.filter(r => r.status === 'PENDING');
-    const faultMissingComment = results.filter(r => r.status === 'FAULT' && !r.comment);
-
-    if (pending.length > 0 || faultMissingComment.length > 0) {
-      const errBox = document.getElementById('checksError');
-      errBox.classList.add('show');
-      errBox.querySelector('span:last-child').textContent = pending.length > 0
-        ? 'Please mark all inspection items before submitting.'
-        : 'Please add a comment for each fault before submitting.';
-      // Highlight missing-comment fault items
-      faultMissingComment.forEach(r => {
-        const item = document.querySelector(`[data-check-id="check${r.number}"]`);
-        if (item) item.classList.add('comment-required');
-      });
-      valid = false;
-    } else {
-      document.getElementById('checksError').classList.remove('show');
-    }
-
-    if (!sigHasContent) {
-      document.getElementById('group-signature').classList.add('has-error');
-      valid = false;
-    } else {
-      document.getElementById('group-signature').classList.remove('has-error');
-    }
-
-    return valid;
-  }
-
-  // ============================================================
-  // FORM SUBMIT
-  // ============================================================
-  const auditForm = document.getElementById('auditForm');
+  const form      = document.getElementById('maintenanceForm');
   const submitBtn = document.getElementById('submitBtn');
 
-  auditForm.addEventListener('submit', async function(e) {
+  // Auto-uppercase rego
+  document.getElementById('rego').addEventListener('input', function () {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    e.stopImmediatePropagation();
-    if (submitBtn.disabled) return;
 
-    if (!validateForm()) {
-      const firstError = document.querySelector('.has-error') || document.getElementById('checksError');
-      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
+    // Validate required fields
+    const required = [...form.querySelectorAll('[required]')];
+    let firstInvalid = null;
 
-    if (!currentUser) {
-      const sel = document.getElementById('filled_by');
-      if (sel.value) {
-        const opt = sel.selectedOptions[0];
-        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+    required.forEach(el => {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+      if (!el.value.trim()) {
+        el.style.borderColor = '#dc2626';
+        el.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+        if (!firstInvalid) firstInvalid = el;
       }
-    }
-    if (!currentUser) {
-      BromarHub.showInfo('Please select who is filling out the form');
+    });
+
+    if (firstInvalid) {
+      firstInvalid.focus();
       return;
     }
+
+    // Collect checked attention items
+    const checked = [...form.querySelectorAll('input[name="attention"]:checked')]
+      .map(cb => cb.value);
+    const attentionItems = checked.length > 0 ? checked.join(', ') : 'None selected';
+
+    const submittedDate = new Date().toLocaleDateString('en-AU', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const templateParams = {
+      submitted_date:  submittedDate,
+      employee_name:   document.getElementById('fullName').value.trim(),
+      employee_email:  document.getElementById('email').value.trim(),
+      employee_phone:  document.getElementById('phone').value.trim(),
+      registration:    document.getElementById('rego').value.trim(),
+      make:            document.getElementById('make').value.trim(),
+      model:           document.getElementById('model').value.trim(),
+      odometer:        document.getElementById('odometer').value.trim(),
+      service_due:     document.getElementById('serviceDue').value.trim() || 'Not provided',
+      attention_items: attentionItems,
+      comments:        document.getElementById('comments').value.trim() || 'None',
+    };
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
-    BromarHub.showLoading('Submitting audit', 'Sending your report to admin…');
+    BromarHub.showLoading('Submitting request…');
 
-    try {
-      const weekCommencing = document.getElementById('week_commencing').value;
-      const plantName      = document.getElementById('plant_name').value.trim();
-      const plantType      = document.getElementById('plant_type').value.trim() || 'Not specified';
-      const plantNo        = document.getElementById('plant_no').value.trim() || 'Not specified';
-      const regNo          = document.getElementById('reg_no').value.trim() || 'Not specified';
-      const currentHours   = document.getElementById('current_hours').value.trim() || 'Not recorded';
-      const nextService    = document.getElementById('next_service').value.trim() || 'Not recorded';
-      const defectDetails  = document.getElementById('defect_details').value.trim() || 'No defects reported.';
-      const urgency        = getSelectedUrgency() || 'None';
-      const additionalNotes= document.getElementById('additional_notes').value.trim() || 'None';
-      const signoffDate    = document.getElementById('signoff_date').value;
-
-      const results    = getCheckResults();
-      const okCount    = results.filter(r => r.status === 'OK').length;
-      const faultCount = results.filter(r => r.status === 'FAULT').length;
-      const naCount    = results.filter(r => r.status === 'N/A').length;
-
-      const checksSummary = results.map(r => {
-        let line = `${r.number}. [${r.status}] ${r.text}`;
-        if (r.comment) line += `\n   Comment: ${r.comment}`;
-        return line;
-      }).join('\n');
-
-      const checksSummaryHtml = results.map(r => {
-        const colour = r.status === 'OK' ? '#0e9f6e' : r.status === 'FAULT' ? '#ef4444' : '#6b7280';
-        let line = `<li><strong style="color:${colour}">[${r.status}]</strong> ${BromarHub.escapeHtml(r.text)}`;
-        if (r.comment) line += `<br><em style="color:#6b7280">Comment: ${BromarHub.escapeHtml(r.comment)}</em>`;
-        line += '</li>';
-        return line;
-      }).join('');
-
-      const submitted = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
-      const signatureDataUrl = sigCanvas.toDataURL('image/png');
-      const signatureDate = sigSignedAt
-        ? sigSignedAt.toLocaleString('en-AU', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })
-        : submitted;
-
-      const templateParams = {
-        week_commencing:     weekCommencing,
-        plant_name:          plantName,
-        plant_type:          plantType,
-        plant_no:            plantNo,
-        reg_no:              regNo,
-        current_hours:       currentHours,
-        next_service:        nextService,
-        operator_name:       currentUser.name,
-        operator_email:      currentUser.email,
-        checks_summary:      checksSummary,
-        checks_summary_html: `<ol>${checksSummaryHtml}</ol>`,
-        ok_count:            okCount,
-        fault_count:         faultCount,
-        na_count:            naCount,
-        total_checks:        results.length,
-        defect_details:      defectDetails,
-        urgency:             urgency.toUpperCase(),
-        additional_notes:    additionalNotes,
-        signoff_date:        signoffDate,
-        signature_image:     signatureDataUrl,
-        signature_date:      signatureDate,
-        submitted_date:      submitted,
-        revision:            CONFIG.revision,
-        admin_emails:        CONFIG.adminEmails.join(', '),
-        to_email:            currentUser.email,
-      };
-
-      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-
-      BromarHub.hideLoading();
-      BromarHub.showSuccess('Audit submitted successfully — a copy has been sent to your email and admin.');
-
-      // Reset form preserving user
-      auditForm.reset();
-      document.querySelectorAll('.check-item').forEach(item => {
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
+    emailjs.send('BromarEmail', 'vehicle_maint_req', templateParams)
+      .then(() => {
+        BromarHub.hideLoading();
+        BromarHub.showSuccess('Thank you, your maintenance request has been submitted.');
+        form.reset();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+      })
+      .catch((err) => {
+        BromarHub.hideLoading();
+        console.error('EmailJS error:', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+        alert('Something went wrong — please try again or contact admin@bromar.com.au');
       });
-      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-      document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
-      updateStatusSummary();
-      clearSignature();
-
-      // Restore defaults
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('signoff_date').value = today;
-      document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
-      if (currentUser) {
-        const sel = document.getElementById('filled_by');
-        for (const opt of sel.options) {
-          if (opt.value === currentUser.name) { sel.value = opt.value; break; }
-        }
-        document.getElementById('operator_email').value = currentUser.email;
-      }
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
-      console.error('Submit error:', err);
-      BromarHub.hideLoading();
-      BromarHub.showInfo('Something went wrong — please contact management or admin directly.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Audit';
-    }
   });
 
-  // Clear error state on input change
-  document.addEventListener('input', (e) => {
-    const el = e.target;
-    if (!el.matches('input, select, textarea')) return;
-    el.classList.remove('error');
-    const grp = el.closest('[id^="group-"]');
-    if (grp) grp.classList.remove('has-error');
-    if (el.classList.contains('check-comment')) {
-      const item = el.closest('.check-item');
-      if (item && el.value.trim().length > 0) item.classList.remove('comment-required');
-    }
-  });
-
-  // Reset handler
-  auditForm.addEventListener('reset', () => {
-    setTimeout(() => {
-      document.querySelectorAll('.check-item').forEach(item => {
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
-      });
-      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-      document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
-      updateStatusSummary();
-      clearSignature();
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('signoff_date').value = today;
-      document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
-    }, 0);
+  // Clear validation styling on input
+  form.querySelectorAll('[required]').forEach(el => {
+    el.addEventListener('input', () => {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+    });
   });
 </script>
-
 </body>
 </html>
