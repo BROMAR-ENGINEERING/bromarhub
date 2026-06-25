@@ -116,6 +116,10 @@
       padding: 16px 18px;
       margin: 24px 0;
     }
+    [data-theme="dark"] .ack-section {
+      background: rgba(234, 88, 12, 0.06);
+      border-color: rgba(234, 88, 12, 0.25);
+    }
     .ack-label {
       display: flex;
       align-items: flex-start;
@@ -213,7 +217,7 @@
       align-items: center;
       gap: 8px;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: var(--text-primary);
       margin-bottom: 8px;
     }
@@ -224,6 +228,25 @@
     .privacy-banner li {
       margin-bottom: 4px;
     }
+    .privacy-banner strong {
+      color: var(--text-primary);
+    }
+
+    /* Dark mode override — make banner readable on dark backgrounds */
+    [data-theme="dark"] .privacy-banner {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.25);
+      border-left-color: #60a5fa;
+      color: var(--text-primary);
+    }
+    [data-theme="dark"] .privacy-banner-title,
+    [data-theme="dark"] .privacy-banner strong {
+      color: var(--text-primary);
+    }
+
+    /* Defensive: hide error messages until field-group has .has-error */
+    .error-msg { display: none; }
+    .field-group.has-error .error-msg { display: block; color: var(--error, #dc2626); font-size: 0.78rem; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -634,14 +657,14 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CHANGE OF DETAILS</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.05</div>
+      <div class="card-footer-version">Version V1.06</div>
     </div>
 
   </div>
 </div>
 
 <!-- Revision badge -->
-<div class="revision-number">V1.05</div>
+<div class="revision-number">V1.06</div>
 
 <script>
   // ============================================================
@@ -651,7 +674,7 @@
     edgeFunction: 'submit-change-of-details',
     maxEmergencyContacts: 4,
     maxLicences: 10,
-    revision: 'V1.05',
+    revision: 'V1.06',
     // Sensitive sections — NEVER auto-saved to localStorage
     sensitiveSections: ['banking', 'super', 'medical'],
     // Field name prefixes/IDs considered sensitive
