@@ -1,14 +1,16 @@
-/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.07
-   Changes since V1.06:
-   - Footer: one-line layout, 4px from bottom, 24px bottom padding on each page
-     so content cannot bleed under it
-   - Header company cell + footer now show REC: 40430 (not LICENCE #: 17364)
-   - Compact header for pages 2+ (logo + title/activity + monospace JOB/SWMS/REV
-     codes + thin red border). Saves ~100px vertical per page
-   - Weighted hazard pagination — rows with more controls take more budget so
-     tall rows don't get silently cropped by `overflow:hidden`
-   - Snapshot inserts now include `trigger_event` so the audit log knows which
-     event (signed / amended / attached) produced each PDF
+/* ── TAB: SWMS ── (sign-on, amend/revision, multi-page PDF) — V1.09
+   Changes since V1.08:
+   - Full SWMS editor: edit metadata, hazards (edit/add/delete/reorder),
+     phase dividers, PPE, compliance fields
+   - Editor opens automatically after Attach and Amend (so the template
+     can be tweaked before workers sign on)
+   - Edit button added to active SWMS rows
+   - Save as New Template — pushes the edited content into swms_templates
+   - Overwrite Template — replaces the source template (only enabled if
+     the current user's email matches the template's created_by_email).
+     Bumps template_version (V1.07 → V1.08 etc.)
+   - PDF regenerated on Save; attach/amend trigger audit snapshots, plain
+     edits don't
    ─────────────────────────────────────────────────────────── */
 (function () {
   const JM = window.JobManager;
@@ -96,6 +98,7 @@ function renderSwmsTool(panel, swms) {
   panel.querySelector('#manageTemplatesBtn').addEventListener('click', () => { window.open('../swms-builder/swms-builder.html', '_blank'); });
 
   panel.querySelectorAll('[data-swms-view]').forEach(b => b.addEventListener('click', () => viewSwms(b.dataset.swmsView)));
+  panel.querySelectorAll('[data-swms-edit]').forEach(b => b.addEventListener('click', () => openSwmsEditor(b.dataset.swmsEdit, { mode: 'edit' })));
   panel.querySelectorAll('[data-swms-sign]').forEach(b => b.addEventListener('click', () => openSignModal(b.dataset.swmsSign)));
   panel.querySelectorAll('[data-swms-amend]').forEach(b => b.addEventListener('click', () => amendSwms(b.dataset.swmsAmend)));
   panel.querySelectorAll('[data-swms-pdf]').forEach(b => b.addEventListener('click', () => openSwmsPdf(b.dataset.swmsPdf)));
@@ -116,6 +119,7 @@ function swmsRowHtml(s) {
       </div>
       <div class="swms-actions">
         <button class="btn-secondary" data-swms-view="${s.id}">View</button>
+        ${s.status === 'active' ? `<button class="btn-secondary" data-swms-edit="${s.id}">✎ Edit</button>` : ''}
         ${s.status === 'active' ? `<button class="btn-secondary" data-swms-sign="${s.id}">✍ Sign On</button>` : ''}
         ${s.status === 'active' ? `<button class="btn-secondary" data-swms-amend="${s.id}">Amend</button>` : ''}
         <button class="btn-secondary" data-swms-pdf="${s.id}">📄 PDF</button>
@@ -224,14 +228,12 @@ async function attachSwmsFromTemplate(templates) {
   const { data: created, error: insErr } = await JM.sb().from('swms_instances').insert(payload).select().single();
   if (insErr) { BromarHub.hideLoading(); BromarHub.showInfo('Create failed: ' + insErr.message); return; }
 
-  // First PDF for a new SWMS is also an audit-worthy event
-  await generateAndUploadPdf(created, { snapshot: true, triggerEvent: 'attached', silent: true });
-
   BromarHub.hideLoading();
-  BromarHub.showSuccess(`SWMS ${swmsNumber} attached to job`);
-  await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
+  await JM.loadJobData(JM.state.selectedJob.job_number);
   JM.updateCounts();
   JM.renderTool();
+  // Open the editor so the user can tweak the template before signing starts
+  openSwmsEditor(created.id, { mode: 'attach', templateId: tpl.id });
 }
 
 async function viewSwms(swmsId) {
@@ -526,15 +528,483 @@ async function amendSwms(swmsId) {
   const { data: created, error: insErr } = await JM.sb().from('swms_instances').insert(newSwms).select().single();
   if (insErr) { BromarHub.hideLoading(); BromarHub.showInfo(insErr.message); return; }
 
-  // First PDF of the new revision is audit-worthy
-  await generateAndUploadPdf(created, { snapshot: true, triggerEvent: 'amended', silent: true });
-
   BromarHub.hideLoading();
-  BromarHub.showSuccess(`Revision ${newRev} created. Workers must re-sign.`);
-  await JM.loadJobData(JM.state.selectedJob.job_number); JM.updateCounts();
+  await JM.loadJobData(JM.state.selectedJob.job_number);
   JM.updateCounts();
   JM.renderTool();
-  setTimeout(() => viewSwms(created.id), 100);
+  // Open the editor — Save will generate the PDF and record the audit snapshot
+  openSwmsEditor(created.id, { mode: 'amend', templateId: parent.template_id });
+}
+
+/* ── EDITOR ──────────────────────────────────────────────
+   Full edit of an existing swms_instance: metadata, hazards, phases.
+   Opens automatically after Attach and Amend, and from the Edit button.
+   Save writes back to the row + regenerates the PDF.
+   ──────────────────────────────────────────────────────── */
+
+// Working copy held in module state so all helpers can read/write
+let editorState = null;
+
+const RATING_CODES = ['A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5','E1','E2','E3','E4','E5'];
+
+async function openSwmsEditor(swmsId, opts = {}) {
+  const { mode = 'edit', templateId = null } = opts;
+
+  BromarHub.showLoading('Loading SWMS', 'Please wait...');
+  const { data, error } = await JM.sb().from('swms_instances').select('*').eq('id', swmsId).single();
+  BromarHub.hideLoading();
+  if (error) { BromarHub.showInfo('Load failed: ' + error.message); return; }
+
+  // Build working copy. hazards_json items keep their shape; we only mutate locally.
+  editorState = {
+    swmsId,
+    mode,
+    templateId: templateId || data.template_id || null,
+    data: { ...data },
+    hazards: Array.isArray(data.hazards_json) ? JSON.parse(JSON.stringify(data.hazards_json)) : [],
+    canOverwriteTemplate: false
+  };
+
+  // Decide if user can overwrite the source template (only if email matches creator)
+  if (editorState.templateId) {
+    try {
+      const u = await JM.ensureCurrentUser();
+      const { data: tpl } = await JM.sb().from('swms_templates').select('id, name, created_by_email').eq('id', editorState.templateId).single();
+      editorState.templateName = tpl?.name || null;
+      editorState.canOverwriteTemplate = !!(u?.email && tpl?.created_by_email && u.email.toLowerCase() === tpl.created_by_email.toLowerCase());
+    } catch (_) {}
+  }
+
+  renderEditor();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderEditor() {
+  const detail = document.getElementById('swmsDetail');
+  if (!detail || !editorState) return;
+  const s = editorState.data;
+  const e = JM.esc;
+  const modeLabel = ({ attach: 'Edit before sign-on', amend: 'Edit revision', edit: 'Edit SWMS' })[editorState.mode] || 'Edit SWMS';
+
+  const ratingSelect = (field, current) => {
+    const cur = (current || '').toUpperCase();
+    const opts = ['', ...RATING_CODES].map(c => `<option value="${c}"${c === cur ? ' selected' : ''}>${c || '—'}</option>`).join('');
+    return `<select class="ed-input" data-field="${field}">${opts}</select>`;
+  };
+
+  // ── Hazard list ──
+  let hazList = '';
+  editorState.hazards.forEach((h, idx) => {
+    if (h.type === 'phase') {
+      hazList += `
+        <div class="ed-phase" data-idx="${idx}">
+          <div class="ed-phase-bar">
+            <span class="ed-phase-tag">PHASE</span>
+            <input type="text" class="ed-phase-input" data-field="label" placeholder="Phase label..." value="${e(h.label || '')}"/>
+            <div class="ed-row-actions">
+              <button class="ed-mini" data-action="up" title="Move up">▲</button>
+              <button class="ed-mini" data-action="down" title="Move down">▼</button>
+              <button class="ed-mini ed-del" data-action="delete" title="Delete">✕</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      hazList += `
+        <div class="ed-haz" data-idx="${idx}">
+          <div class="ed-haz-head">
+            <div class="ed-haz-num">
+              <span class="ed-haz-num-label">Step</span>
+              <input type="text" class="ed-input ed-step" data-field="step" value="${e(h.step || '')}"/>
+            </div>
+            <div class="ed-row-actions">
+              <button class="ed-mini" data-action="up" title="Move up">▲</button>
+              <button class="ed-mini" data-action="down" title="Move down">▼</button>
+              <button class="ed-mini ed-del" data-action="delete" title="Delete">✕</button>
+            </div>
+          </div>
+          <div class="ed-haz-body">
+            <div class="ed-fld">
+              <label>Job Step</label>
+              <input type="text" class="ed-input" data-field="jobStep" value="${e(h.jobStep || '')}"/>
+            </div>
+            <div class="ed-fld">
+              <label>Hazards</label>
+              <textarea class="ed-input" data-field="hazard" rows="2">${e(h.hazard || '')}</textarea>
+            </div>
+            <div class="ed-fld">
+              <label>Risks</label>
+              <textarea class="ed-input" data-field="risks" rows="2">${e(h.risks || '')}</textarea>
+            </div>
+            <div class="ed-fld-grid">
+              <div class="ed-fld">
+                <label>Risk Rating</label>
+                ${ratingSelect('riskRating', h.riskRating)}
+              </div>
+              <div class="ed-fld">
+                <label>Residual Risk</label>
+                ${ratingSelect('residualRisk', h.residualRisk)}
+              </div>
+            </div>
+            <div class="ed-fld">
+              <label>Controls <span style="font-weight:400;color:var(--text-secondary);font-size:0.7rem;">(one per line)</span></label>
+              <textarea class="ed-input" data-field="controls" rows="4">${e(h.controls || '')}</textarea>
+            </div>
+            <div class="ed-fld-grid">
+              <div class="ed-fld">
+                <label>Hierarchy of Control</label>
+                <textarea class="ed-input" data-field="hoc" rows="2">${e(h.hoc || '')}</textarea>
+              </div>
+              <div class="ed-fld">
+                <label>Responsibility</label>
+                <textarea class="ed-input" data-field="responsibility" rows="2">${e(h.responsibility || '')}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+  });
+
+  if (!hazList) {
+    hazList = `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.85rem;">No hazards yet. Add your first one below.</div>`;
+  }
+
+  detail.innerHTML = `
+    <style>
+      .ed-card { margin-top: 1rem; }
+      .ed-section { margin-top: 1.25rem; }
+      .ed-section-title { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+      .ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      @media (max-width: 720px) { .ed-grid { grid-template-columns: 1fr; } }
+      .ed-fld { display: flex; flex-direction: column; gap: 0.25rem; }
+      .ed-fld label { font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
+      .ed-input { width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; background: var(--bg-main); color: var(--text-primary); font-family: inherit; resize: vertical; }
+      .ed-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+      .ed-fld-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      .ed-haz { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 0.75rem 0.9rem; margin-bottom: 0.85rem; background: var(--bg-main); }
+      .ed-haz-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; gap: 0.5rem; }
+      .ed-haz-num { display: flex; align-items: center; gap: 0.4rem; }
+      .ed-haz-num-label { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+      .ed-step { width: 70px !important; text-align: center; font-weight: 700; }
+      .ed-haz-body { display: flex; flex-direction: column; gap: 0.6rem; }
+      .ed-phase { background: var(--card-hover); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.8rem; margin-bottom: 0.85rem; }
+      .ed-phase-bar { display: flex; align-items: center; gap: 0.5rem; }
+      .ed-phase-tag { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
+      .ed-phase-input { flex: 1; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-weight: 600; background: var(--bg-main); color: var(--text-primary); }
+      .ed-row-actions { display: flex; gap: 0.3rem; }
+      .ed-mini { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-main); cursor: pointer; font-size: 0.75rem; color: var(--text-primary); display: inline-flex; align-items: center; justify-content: center; }
+      .ed-mini:hover { background: var(--card-hover); border-color: var(--accent); }
+      .ed-del { color: var(--error); }
+      .ed-del:hover { background: rgba(220, 38, 38, 0.1); border-color: var(--error); }
+      .ed-add-row { display: flex; gap: 0.5rem; justify-content: center; padding: 0.75rem 0; flex-wrap: wrap; }
+      .ed-add-btn { padding: 0.5rem 1rem; border: 1px dashed var(--border); border-radius: 8px; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+      .ed-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card-hover); }
+      .ed-footer { position: sticky; bottom: 0; background: var(--bg-secondary); border-top: 1px solid var(--border); padding: 0.85rem 1rem; margin: 1.5rem -1rem -1rem; display: flex; gap: 0.5rem; justify-content: space-between; flex-wrap: wrap; z-index: 10; }
+      .ed-footer-left, .ed-footer-right { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .ed-banner { background: var(--card-hover); border: 1px solid var(--accent); border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.82rem; margin-bottom: 1rem; }
+    </style>
+
+    <div class="tool-card ed-card">
+      <div class="swms-detail-header">
+        <div>
+          <div class="swms-detail-title">${e(s.swms_number)} · Rev ${s.revision_number} — ${modeLabel}</div>
+          <div class="swms-detail-meta">${e(s.title)} · ${JM.statusBadge(s.status)}</div>
+        </div>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <button class="btn-secondary" id="edCancel">Cancel</button>
+        </div>
+      </div>
+
+      ${editorState.mode === 'attach' ? `<div class="ed-banner">📝 <strong>Edit before sign-on.</strong> Tweak the SWMS to match this site's conditions, then click <strong>Save</strong>. Workers can sign on after you save.</div>` : ''}
+      ${editorState.mode === 'amend' ? `<div class="ed-banner">📝 <strong>New revision created.</strong> The previous revision is superseded. Edit the hazards and details below, then click <strong>Save</strong>. Workers must re-sign.</div>` : ''}
+
+      <div class="ed-section">
+        <div class="ed-section-title">SWMS Details</div>
+        <div class="ed-grid">
+          <div class="ed-fld"><label>Title</label><input type="text" class="ed-input" id="edf-title" value="${e(s.title || '')}"/></div>
+          <div class="ed-fld"><label>Project</label><input type="text" class="ed-input" id="edf-project_name" value="${e(s.project_name || '')}"/></div>
+          <div class="ed-fld" style="grid-column:1/-1;"><label>Activity Description</label><textarea class="ed-input" id="edf-activity_description" rows="2">${e(s.activity_description || '')}</textarea></div>
+          <div class="ed-fld"><label>SWMS Date</label><input type="date" class="ed-input" id="edf-swms_date" value="${s.swms_date || ''}"/></div>
+          <div class="ed-fld"><label>Review Date</label><input type="date" class="ed-input" id="edf-review_date" value="${s.review_date || ''}"/></div>
+          <div class="ed-fld"><label>Developed by</label><input type="text" class="ed-input" id="edf-developed_by" value="${e(s.developed_by || '')}"/></div>
+          <div class="ed-fld"><label>Approved by</label><input type="text" class="ed-input" id="edf-approved_by" value="${e(s.approved_by || '')}"/></div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-title">Site Details</div>
+        <div class="ed-grid">
+          <div class="ed-fld"><label>Client</label><input type="text" class="ed-input" id="edf-client_name" value="${e(s.client_name || '')}"/></div>
+          <div class="ed-fld"><label>Site</label><input type="text" class="ed-input" id="edf-site_name" value="${e(s.site_name || '')}"/></div>
+          <div class="ed-fld" style="grid-column:1/-1;"><label>Site Address</label><input type="text" class="ed-input" id="edf-site_address" value="${e(s.site_address || '')}"/></div>
+          <div class="ed-fld"><label>Site Contact</label><input type="text" class="ed-input" id="edf-site_contact" value="${e(s.site_contact || '')}"/></div>
+          <div class="ed-fld"><label>Contact Phone</label><input type="text" class="ed-input" id="edf-site_contact_phone" value="${e(s.site_contact_phone || '')}"/></div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-title">Compliance &amp; Resources</div>
+        <div class="ed-grid">
+          <div class="ed-fld"><label>Legislation (one per line)</label><textarea class="ed-input" id="edf-legislation" rows="3">${e(s.legislation || '')}</textarea></div>
+          <div class="ed-fld"><label>Qualifications</label><textarea class="ed-input" id="edf-qualifications" rows="3">${e(s.qualifications || '')}</textarea></div>
+          <div class="ed-fld"><label>Plant &amp; Equipment Required</label><textarea class="ed-input" id="edf-plant_required" rows="2">${e(s.plant_required || '')}</textarea></div>
+          <div class="ed-fld"><label>Plant Inspections</label><textarea class="ed-input" id="edf-plant_inspections" rows="2">${e(s.plant_inspections || '')}</textarea></div>
+          <div class="ed-fld"><label>Materials Used</label><textarea class="ed-input" id="edf-materials_used" rows="2">${e(s.materials_used || '')}</textarea></div>
+          <div class="ed-fld"><label>MSDS Required</label><textarea class="ed-input" id="edf-msds_required" rows="2">${e(s.msds_required || '')}</textarea></div>
+          <div class="ed-fld"><label>Training Required</label><textarea class="ed-input" id="edf-training_required" rows="2">${e(s.training_required || '')}</textarea></div>
+          <div class="ed-fld"><label>Relevant Procedures</label><textarea class="ed-input" id="edf-relevant_procedures" rows="2">${e(s.relevant_procedures || '')}</textarea></div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-title">PPE</div>
+        <div class="ed-grid">
+          <div class="ed-fld"><label>Mandatory PPE (one per line)</label><textarea class="ed-input" id="edf-ppe_mandatory" rows="5">${e(s.ppe_mandatory || '')}</textarea></div>
+          <div class="ed-fld"><label>Additional PPE (one per line)</label><textarea class="ed-input" id="edf-ppe_additional" rows="5">${e(s.ppe_additional || '')}</textarea></div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-title">Hazards &amp; Controls (${editorState.hazards.filter(h => h.type !== 'phase').length} steps)</div>
+        <div id="edHazList">${hazList}</div>
+        <div class="ed-add-row">
+          <button class="ed-add-btn" id="edAddRow">+ Add Hazard Row</button>
+          <button class="ed-add-btn" id="edAddPhase">+ Add Phase Divider</button>
+        </div>
+      </div>
+
+      <div class="ed-footer">
+        <div class="ed-footer-left">
+          <button class="btn-secondary" id="edSaveAsNew">💾 Save as New Template</button>
+          ${editorState.canOverwriteTemplate ? `<button class="btn-secondary" id="edOverwrite">↺ Overwrite "${e(editorState.templateName || '')}"</button>` : ''}
+        </div>
+        <div class="ed-footer-right">
+          <button class="btn-secondary" id="edCancel2">Cancel</button>
+          <button class="submit-btn" id="edSave">Save SWMS</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Wire row-level actions
+  detail.querySelectorAll('#edHazList [data-idx]').forEach(rowEl => {
+    const idx = parseInt(rowEl.dataset.idx, 10);
+    rowEl.querySelectorAll('[data-action]').forEach(b => {
+      b.addEventListener('click', () => handleEditorRowAction(idx, b.dataset.action));
+    });
+    rowEl.querySelectorAll('[data-field]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        editorState.hazards[idx][inp.dataset.field] = inp.value;
+      });
+    });
+  });
+
+  document.getElementById('edAddRow').addEventListener('click', () => addEditorRow('haz'));
+  document.getElementById('edAddPhase').addEventListener('click', () => addEditorRow('phase'));
+  document.getElementById('edCancel').addEventListener('click', closeEditor);
+  document.getElementById('edCancel2').addEventListener('click', closeEditor);
+  document.getElementById('edSave').addEventListener('click', () => saveEditor());
+  document.getElementById('edSaveAsNew').addEventListener('click', saveAsNewTemplate);
+  const ow = document.getElementById('edOverwrite');
+  if (ow) ow.addEventListener('click', overwriteTemplate);
+}
+
+function handleEditorRowAction(idx, action) {
+  if (action === 'delete') {
+    if (!confirm('Delete this row?')) return;
+    editorState.hazards.splice(idx, 1);
+  } else if (action === 'up') {
+    if (idx === 0) return;
+    [editorState.hazards[idx - 1], editorState.hazards[idx]] = [editorState.hazards[idx], editorState.hazards[idx - 1]];
+  } else if (action === 'down') {
+    if (idx >= editorState.hazards.length - 1) return;
+    [editorState.hazards[idx + 1], editorState.hazards[idx]] = [editorState.hazards[idx], editorState.hazards[idx + 1]];
+  }
+  renderEditor();
+}
+
+function addEditorRow(kind) {
+  // Read current top-level form values back into state so they aren't lost on re-render
+  syncTopFieldsIntoState();
+  if (kind === 'phase') {
+    editorState.hazards.push({ type: 'phase', label: '' });
+  } else {
+    // Auto-number next step
+    const hazRows = editorState.hazards.filter(h => h.type !== 'phase');
+    const nextStep = String(hazRows.length + 1).padStart(2, '0');
+    editorState.hazards.push({
+      step: nextStep,
+      jobStep: '',
+      hazard: '',
+      risks: '',
+      riskRating: '',
+      controls: '',
+      hoc: '',
+      residualRisk: '',
+      responsibility: ''
+    });
+  }
+  renderEditor();
+}
+
+function syncTopFieldsIntoState() {
+  const fields = ['title','project_name','activity_description','swms_date','review_date','developed_by','approved_by','client_name','site_name','site_address','site_contact','site_contact_phone','legislation','qualifications','plant_required','plant_inspections','materials_used','msds_required','training_required','relevant_procedures','ppe_mandatory','ppe_additional'];
+  for (const f of fields) {
+    const el = document.getElementById('edf-' + f);
+    if (el) editorState.data[f] = el.value;
+  }
+}
+
+function closeEditor() {
+  if (confirm('Discard changes and close the editor? Unsaved edits will be lost.')) {
+    editorState = null;
+    document.getElementById('swmsDetail').innerHTML = '';
+  }
+}
+
+async function saveEditor() {
+  if (!editorState) return;
+  syncTopFieldsIntoState();
+
+  BromarHub.showLoading('Saving SWMS', 'Updating and generating PDF...');
+  const s = editorState.data;
+  const updates = {
+    title: s.title,
+    project_name: s.project_name,
+    activity_description: s.activity_description,
+    swms_date: s.swms_date || null,
+    review_date: s.review_date || null,
+    developed_by: s.developed_by,
+    approved_by: s.approved_by,
+    client_name: s.client_name,
+    site_name: s.site_name,
+    site_address: s.site_address,
+    site_contact: s.site_contact,
+    site_contact_phone: s.site_contact_phone,
+    legislation: s.legislation,
+    qualifications: s.qualifications,
+    plant_required: s.plant_required,
+    plant_inspections: s.plant_inspections,
+    materials_used: s.materials_used,
+    msds_required: s.msds_required,
+    training_required: s.training_required,
+    relevant_procedures: s.relevant_procedures,
+    ppe_mandatory: s.ppe_mandatory,
+    ppe_additional: s.ppe_additional,
+    hazards_json: editorState.hazards
+  };
+
+  const { data: updated, error } = await JM.sb().from('swms_instances').update(updates).eq('id', editorState.swmsId).select().single();
+  if (error) { BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + error.message); return; }
+
+  // Regenerate PDF. Treat the first save after attach/amend as audit-worthy.
+  const triggerEvent = editorState.mode === 'attach' ? 'attached'
+                     : editorState.mode === 'amend' ? 'amended'
+                     : 'edited';
+  const snapshot = editorState.mode !== 'edit'; // edits don't create audit snapshots, attach/amend do
+  await generateAndUploadPdf(updated, { snapshot, triggerEvent, silent: true });
+
+  BromarHub.hideLoading();
+  BromarHub.showSuccess('SWMS saved');
+  editorState = null;
+  await JM.loadJobData(JM.state.selectedJob.job_number);
+  JM.updateCounts();
+  JM.renderTool();
+}
+
+async function saveAsNewTemplate() {
+  if (!editorState) return;
+  syncTopFieldsIntoState();
+  const defaultName = (editorState.templateName || editorState.data.title || 'SWMS Template') + ' (copy)';
+  const name = prompt('New template name:', defaultName);
+  if (!name) return;
+  const trimmed = name.trim();
+  if (!trimmed) { BromarHub.showInfo('Name required'); return; }
+
+  BromarHub.showLoading('Saving template', 'Please wait...');
+  const u = await JM.ensureCurrentUser();
+  const s = editorState.data;
+  const payload = {
+    name: trimmed,
+    title: s.title || trimmed,
+    activity_description: s.activity_description,
+    legislation: s.legislation,
+    qualifications: s.qualifications,
+    plant_required: s.plant_required,
+    plant_inspections: s.plant_inspections,
+    materials_used: s.materials_used,
+    msds_required: s.msds_required,
+    training_required: s.training_required,
+    relevant_procedures: s.relevant_procedures,
+    ppe_mandatory: s.ppe_mandatory,
+    ppe_additional: s.ppe_additional,
+    hazards_json: editorState.hazards,
+    default_developed_by: s.developed_by,
+    default_reviewed_by: s.reviewed_by,
+    template_version: 'V1.00',
+    created_by_name: u?.name || null,
+    created_by_email: u?.email || null
+  };
+  const { data: created, error } = await JM.sb().from('swms_templates').insert(payload).select().single();
+  BromarHub.hideLoading();
+  if (error) {
+    if (error.code === '23505') {
+      BromarHub.showInfo('A template with that name already exists. Pick a different name.');
+    } else {
+      BromarHub.showInfo('Save failed: ' + error.message);
+    }
+    return;
+  }
+  BromarHub.showSuccess(`Template "${trimmed}" saved`);
+  // Point future overwrites at the new template
+  editorState.templateId = created.id;
+  editorState.templateName = created.name;
+  editorState.canOverwriteTemplate = true;
+  renderEditor();
+}
+
+async function overwriteTemplate() {
+  if (!editorState || !editorState.templateId) return;
+  if (!confirm(`Overwrite template "${editorState.templateName}"? This affects all FUTURE SWMS created from this template. Existing SWMS instances are unaffected.`)) return;
+  syncTopFieldsIntoState();
+
+  BromarHub.showLoading('Updating template', 'Please wait...');
+  const s = editorState.data;
+  // Read current version to increment
+  const { data: tpl } = await JM.sb().from('swms_templates').select('template_version').eq('id', editorState.templateId).single();
+  const ver = bumpTemplateVersion(tpl?.template_version || 'V1.00');
+
+  const updates = {
+    title: s.title || editorState.templateName,
+    activity_description: s.activity_description,
+    legislation: s.legislation,
+    qualifications: s.qualifications,
+    plant_required: s.plant_required,
+    plant_inspections: s.plant_inspections,
+    materials_used: s.materials_used,
+    msds_required: s.msds_required,
+    training_required: s.training_required,
+    relevant_procedures: s.relevant_procedures,
+    ppe_mandatory: s.ppe_mandatory,
+    ppe_additional: s.ppe_additional,
+    hazards_json: editorState.hazards,
+    default_developed_by: s.developed_by,
+    default_reviewed_by: s.reviewed_by,
+    template_version: ver
+  };
+  const { error } = await JM.sb().from('swms_templates').update(updates).eq('id', editorState.templateId);
+  BromarHub.hideLoading();
+  if (error) { BromarHub.showInfo('Overwrite failed: ' + error.message); return; }
+  BromarHub.showSuccess(`Template updated → ${ver}`);
+}
+
+function bumpTemplateVersion(v) {
+  // 'V1.07' → 'V1.08'
+  const m = (v || '').match(/^V(\d+)\.(\d+)$/i);
+  if (!m) return 'V1.01';
+  const major = parseInt(m[1], 10);
+  const minor = parseInt(m[2], 10) + 1;
+  if (minor > 99) return `V${major + 1}.00`;
+  return `V${major}.${String(minor).padStart(2, '0')}`;
 }
 
 /* ── PDF GENERATION ──────────────────────────────────────
@@ -598,16 +1068,16 @@ const PDF_STYLES = `
 .pdf-ref { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pdf-ref th { background: #7f7f7f; color: white; padding: 5px 10px; text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
 .pdf-ref td { border: 1px solid #d0d0d0; padding: 6px 10px; font-size: 9pt; vertical-align: top; }
-.pdf-matrix-wrap { display: flex; gap: 24px; margin-top: 8px; padding: 0 8px; }
+.pdf-matrix-wrap { display: flex; gap: 24px; margin-top: 6px; padding: 0 8px; }
 .pdf-matrix { flex: 1; border-collapse: collapse; table-layout: fixed; }
-.pdf-matrix th, .pdf-matrix td { border: 1px solid #999; text-align: center; padding: 10px 6px; font-size: 10pt; font-weight: 600; }
+.pdf-matrix th, .pdf-matrix td { border: 1px solid #999; text-align: center; padding: 7px 6px; font-size: 9.5pt; font-weight: 600; }
 .pdf-matrix th { background: #7f7f7f; color: white; }
-.pdf-matrix .lh-label { background: #d9d9d9; font-weight: 700; writing-mode: vertical-rl; transform: rotate(180deg); width: 32px; font-size: 9pt; letter-spacing: 1.5px; }
+.pdf-matrix .lh-label { background: #d9d9d9; font-weight: 700; writing-mode: vertical-rl; width: 32px; font-size: 9pt; letter-spacing: 1.5px; }
 .pdf-matrix .row-label { background: white; font-weight: 700; text-align: left; padding-left: 12px; font-size: 10pt; }
 .pdf-matrix .code { background: white; font-weight: 700; width: 42px; font-size: 10pt; }
-.pdf-hoc-panel { width: 280px; background: #f8f8f8; border: 1px solid #d0d0d0; padding: 12px 14px; font-size: 8.5pt; line-height: 1.45; }
-.pdf-hoc-panel h3 { font-size: 9.5pt; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.6px; color: #2c2c2c; }
-.pdf-hoc-panel .hoc-item { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #e5e5e5; }
+.pdf-hoc-panel { width: 280px; background: #f8f8f8; border: 1px solid #d0d0d0; padding: 10px 14px; font-size: 8.5pt; line-height: 1.4; }
+.pdf-hoc-panel h3 { font-size: 9.5pt; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; color: #2c2c2c; }
+.pdf-hoc-panel .hoc-item { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid #e5e5e5; }
 .pdf-hoc-panel .hoc-item:last-child { border-bottom: none; }
 .pdf-hoc-panel .hoc-num { width: 18px; height: 18px; background: #7f7f7f; color: white; border-radius: 50%; font-weight: 700; font-size: 8pt; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .pdf-hoc-panel .hoc-text strong { display: block; font-size: 9pt; color: #1a1a1e; margin-bottom: 1px; }
@@ -618,6 +1088,12 @@ const PDF_STYLES = `
 .pdf-ppe { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pdf-ppe th { background: #7f7f7f; color: white; padding: 6px 12px; text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
 .pdf-ppe td { border: 1px solid #d0d0d0; padding: 7px 12px; font-size: 9pt; }
+
+/* Compact PPE — 4-column layout for the combined matrix+PPE page */
+.pdf-ppe-compact { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 4px; }
+.pdf-ppe-compact th { background: #7f7f7f; color: white; padding: 4px 8px; text-align: left; font-size: 7.5pt; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #666; }
+.pdf-ppe-compact td { border: 1px solid #d0d0d0; padding: 4px 8px; font-size: 8pt; vertical-align: middle; }
+.pdf-ppe-compact td.lbl { background: #f5f5f5; font-weight: 700; font-size: 6.5pt; text-transform: uppercase; letter-spacing: 0.3px; color: #555; width: 4%; text-align: center; }
 .pdf-haz { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .pdf-haz col.c1 { width: 4%; } .pdf-haz col.c2 { width: 12%; } .pdf-haz col.c3 { width: 12%; }
 .pdf-haz col.c4 { width: 13%; } .pdf-haz col.c5 { width: 5%; } .pdf-haz col.c6 { width: 26%; }
@@ -841,7 +1317,39 @@ function buildSwmsPages(s, sigs) {
     ${PDF_FOOTER}
     <div class="pdf-pageno">Page 1</div>`;
 
-  // ── PAGE 2: Risk Matrix + Hierarchy of Control (compact header) ──
+  // ── PAGE 2: Risk Matrix + Hierarchy of Control + PPE (combined) ──
+  // PPE laid out as a 4-column grid below the matrix to fit on one page.
+  // Mandatory items appear first, then Additional, flowing left-to-right.
+  const allPpe = [
+    ...ppeMandatory.map(item => ({ item, type: 'M' })),
+    ...ppeAdditional.map(item => ({ item, type: 'A' }))
+  ];
+  // Distribute into 4 columns top-to-bottom
+  const ppeColCount = 4;
+  const ppePerCol = Math.ceil(allPpe.length / ppeColCount) || 1;
+  const ppeColumns = [];
+  for (let c = 0; c < ppeColCount; c++) {
+    ppeColumns.push(allPpe.slice(c * ppePerCol, (c + 1) * ppePerCol));
+  }
+  const maxRows = Math.max(...ppeColumns.map(c => c.length), 1);
+  let ppeCompactRows = '';
+  for (let r = 0; r < maxRows; r++) {
+    let row = '<tr>';
+    for (let c = 0; c < ppeColCount; c++) {
+      const cell = ppeColumns[c][r];
+      if (cell) {
+        const badge = cell.type === 'M'
+          ? '<span style="background:#e30613;color:#fff;font-weight:700;padding:1px 5px;border-radius:3px;font-size:6.5pt;margin-right:6px;">REQ</span>'
+          : '<span style="background:#888;color:#fff;font-weight:700;padding:1px 5px;border-radius:3px;font-size:6.5pt;margin-right:6px;">ADD</span>';
+        row += `<td>${badge}${e(cell.item)}</td>`;
+      } else {
+        row += '<td></td>';
+      }
+    }
+    row += '</tr>';
+    ppeCompactRows += row;
+  }
+
   const page2 = `
     ${compactHeader}
     <div class="pdf-section-heading">Figure 1 — Risk Management Matrix &amp; Hierarchy of Control</div>
@@ -865,20 +1373,13 @@ function buildSwmsPages(s, sigs) {
         <div class="hoc-item"><div class="hoc-num">6</div><div class="hoc-text"><strong>PPE</strong><span>Last line of defence</span></div></div>
       </div>
     </div>
-    ${PDF_FOOTER}
-    <div class="pdf-pageno">Page 2</div>`;
-
-  // ── PAGE 3: PPE (compact header) ──
-  const page3 = `
-    ${compactHeader}
-    <div class="pdf-section-heading">Personal Protective Equipment</div>
-    <table class="pdf-ppe">
-      <colgroup><col style="width:50%"/><col style="width:50%"/></colgroup>
-      <tr><th>Mandatory Site PPE</th><th>Additional PPE Required</th></tr>
-      ${ppeRows}
+    <div class="pdf-section-heading">Personal Protective Equipment <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:7.5pt;opacity:0.85;margin-left:8px;">REQ = Mandatory · ADD = Additional</span></div>
+    <table class="pdf-ppe-compact">
+      <colgroup><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/><col style="width:25%"/></colgroup>
+      <tbody>${ppeCompactRows}</tbody>
     </table>
     ${PDF_FOOTER}
-    <div class="pdf-pageno">Page 3</div>`;
+    <div class="pdf-pageno">Page 2</div>`;
 
   // ── PAGES 4+: Hazards — weighted pagination ──
   // Each row's "weight" reflects its content density. Total budget per page = 14.
@@ -943,11 +1444,11 @@ function buildSwmsPages(s, sigs) {
         <tbody>${body || '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">No hazards recorded</td></tr>'}</tbody>
       </table>
       ${PDF_FOOTER}
-      <div class="pdf-pageno">Page ${4 + idx}</div>`;
+      <div class="pdf-pageno">Page ${3 + idx}</div>`;
   });
 
   // ── LAST PAGE: Worker sign-on (compact header) ──
-  const signoffPageNo = 4 + hazardPages.length;
+  const signoffPageNo = 3 + hazardPages.length;
   let sigBody = '';
   const minSigRows = Math.max(sigs.length, 10);
   for (let i = 0; i < minSigRows; i++) {
@@ -975,6 +1476,6 @@ function buildSwmsPages(s, sigs) {
     ${PDF_FOOTER}
     <div class="pdf-pageno">Page ${signoffPageNo}</div>`;
 
-  return [page1, page2, page3, ...hazPagesHtml, signoffPage];
+  return [page1, page2, ...hazPagesHtml, signoffPage];
 }
 })();
