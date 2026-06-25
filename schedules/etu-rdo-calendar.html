@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ETU RDO Calendar</title>
+  <title>ETU RDO Calendar - Bromar Hub</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
-  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
   <style>
-    /* Page-specific styles only */
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
+    }
+
+    /* ── Event type colors ── */
     :root {
       --rdo: #457B9D;
       --holiday: #E63946;
@@ -18,163 +22,222 @@
       --picnic: #9b59b6;
     }
 
-    .page-wrapper { margin-top: 90px; }
-    @media (max-width: 520px) {
-      .page-wrapper { margin-top: 80px; }
+    /* ── Toolbar / View toggle ── */
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+    .view-toggle { display: flex; gap: 8px; }
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .view-btn svg { width: 16px; height: 16px; }
+    .view-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .view-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
     }
 
+    /* ── Month nav ── */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+    }
+    .month-nav button {
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .month-nav button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(234, 88, 12, 0.08);
+    }
+    .month-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 200px;
+      text-align: center;
+    }
+
+    /* ── Calendar grid ── */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .day-header {
+      background: var(--bg-secondary);
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .day-cell {
+      background: var(--bg-secondary);
+      min-height: 120px;
+      padding: 8px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .day-cell:hover { background: var(--card-hover); }
+    .day-cell.other-month { opacity: 0.4; }
+    .day-cell.today {
+      background: rgba(234, 88, 12, 0.08);
+      border: 2px solid var(--accent);
+    }
+    .day-number {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .day-cell.weekend .day-number { color: var(--accent); }
+
+    .event-item {
+      padding: 4px 6px;
+      margin-bottom: 3px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      color: #fff;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .event-item.rdo { background: var(--rdo); border-left: 3px solid var(--rdo); }
+    .event-item.holiday { background: var(--holiday); border-left: 3px solid var(--holiday); }
+    .event-item.lockdown { background: var(--lockdown); border-left: 3px solid var(--lockdown); }
+    .event-item.picnic { background: var(--picnic); border-left: 3px solid var(--picnic); }
+
+    @media (max-width: 768px) {
+      .event-item.expanded {
+        white-space: normal;
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        padding: 3px 4px;
+      }
+    }
+
+    /* ── List view ── */
+    .list-group { margin-bottom: 24px; }
+    .list-month-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border);
+    }
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+    }
+    .list-row:hover { border-color: var(--accent); }
+    .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .list-emp-name { font-weight: 600; color: var(--text-primary); flex: 1; min-width: 120px; }
+    .list-dates { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+    @media (max-width: 600px) {
+      .list-row { flex-wrap: wrap; gap: 8px; }
+      .list-dates { width: 100%; order: 3; }
+    }
+
+    /* ── Legend ── */
     .legend {
       display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
       flex-wrap: wrap;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-      padding: 1.5rem;
-      background: var(--input-bg);
-      border: 1.5px solid var(--input-border);
-      border-radius: 8px;
     }
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 8px;
       font-size: 0.85rem;
-      font-weight: 600;
       color: var(--text-secondary);
     }
-    .legend-dot {
-      width: 16px;
+    .legend-color {
+      width: 24px;
       height: 16px;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 3px;
     }
-    .legend-dot.rdo { background: var(--rdo); }
-    .legend-dot.holiday { background: var(--holiday); }
-    .legend-dot.lockdown { background: var(--lockdown); }
-    .legend-dot.picnic { background: var(--picnic); }
 
-    #calendar { background: transparent; }
-    .fc { font-family: 'DM Sans', sans-serif; }
-    .fc-toolbar-title {
-      font-family: 'Bebas Neue', sans-serif !important;
-      font-size: 1.8rem !important;
-      letter-spacing: 2px;
-      color: var(--text-primary);
-    }
-    .fc .fc-button,
-    .fc .fc-button-primary,
-    .fc-button-primary {
-      background-color: #c2440e !important;
-      background-image: none !important;
-      border: none !important;
-      border-radius: 8px !important;
-      padding: 0.6rem 1.2rem !important;
-      font-weight: 600 !important;
-      text-transform: uppercase;
-      font-size: 0.85rem !important;
-      letter-spacing: 0.5px;
-      color: #ffffff !important;
-      box-shadow: 0 2px 6px rgba(194, 68, 14, 0.25) !important;
-      opacity: 1 !important;
-    }
-    .fc .fc-button:hover,
-    .fc .fc-button-primary:hover {
-      background-color: #a3380b !important;
-      color: #ffffff !important;
-      transform: translateY(-1px);
-    }
-    .fc .fc-button-active,
-    .fc .fc-button-primary:not(:disabled).fc-button-active,
-    .fc .fc-button-primary:not(:disabled):active {
-      background-color: #1a56db !important;
-      color: #ffffff !important;
-    }
-    .fc .fc-button:disabled {
-      background-color: #c2440e !important;
-      color: #ffffff !important;
-      opacity: 0.5 !important;
-    }
-    .fc-daygrid-day:hover { background: var(--input-bg); }
-    .fc-day-today { background: var(--brand-light) !important; }
-    .fc-day-today .fc-daygrid-day-number {
-      background: var(--brand-orange);
-      color: white;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-    }
-    .fc-col-header-cell {
-      background: #111827;
-      padding: 1rem 0.5rem;
+    /* ── Visit link ── */
+    .visit-link-row { text-align: center; margin-top: 2rem; }
+    .visit-link {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff !important;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
       font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      border: none !important;
+      box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);
+      transition: all 0.2s;
     }
-    .fc-col-header-cell a,
-    .fc-col-header-cell-cushion {
-      color: #ffffff !important;
-      text-decoration: none !important;
-    }
-    .fc-daygrid-day { border-color: var(--input-border) !important; }
-    .fc-event {
-      border: none !important;
-      border-radius: 6px !important;
-      padding: 4px 8px !important;
-      margin: 2px 0 !important;
-      font-size: 0.85rem !important;
-      cursor: pointer !important;
-    }
-    .fc-event.rdo { background: var(--rdo) !important; color: white !important; }
-    .fc-event.holiday { background: var(--holiday) !important; color: white !important; }
-    .fc-event.lockdown { background: var(--lockdown) !important; color: white !important; }
-    .fc-event.picnic { background: var(--picnic) !important; color: white !important; }
-    .fc-event-title {
-      white-space: normal !important;
-      overflow: visible !important;
-      color: white !important;
-      font-weight: 600 !important;
-    }
-    .fc-daygrid-event-dot { display: none !important; }
-
-    /* List view */
-    .fc-list-event-title,
-    .fc-list-event-title a,
-    .fc-list-event-time,
-    .fc-list-day-text,
-    .fc-list-day-side-text,
-    .fc-list-day-cushion {
-      color: var(--text-primary) !important;
-    }
-    .fc-list-event-title,
-    .fc-list-event-title a {
-      white-space: normal !important;
-      font-weight: 500 !important;
-    }
-    .fc-list-day-cushion { background: var(--input-bg) !important; }
-    .fc-list-event td { background: var(--brand-white) !important; }
-    .fc-list-event:hover td { background: var(--input-bg) !important; }
-    .fc-list-event-dot { border-width: 6px !important; }
-    .fc-list-event.rdo .fc-list-event-dot { border-color: var(--rdo) !important; }
-    .fc-list-event.holiday .fc-list-event-dot { border-color: var(--holiday) !important; }
-    .fc-list-event.lockdown .fc-list-event-dot { border-color: var(--lockdown) !important; }
-    .fc-list-event.picnic .fc-list-event-dot { border-color: var(--picnic) !important; }
-
-    @media (max-width: 768px) {
-      .fc-toolbar { flex-direction: column; gap: 1rem; }
-      .fc-toolbar-title { font-size: 1.3rem !important; }
-      .legend { gap: 1rem; }
+    .visit-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
     }
 
-    /* Card footer */
+    /* ── Card footer ── */
     .card-footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid var(--divider, #e5e7eb);
+      border-top: 1px solid var(--border);
       text-align: center;
     }
     .card-footer-title {
@@ -193,7 +256,7 @@
       align-items: center;
       gap: 6px;
       font-size: 0.85rem;
-      color: var(--brand-orange, #c2440e);
+      color: var(--accent);
       text-decoration: none;
       font-weight: 600;
       margin-bottom: 14px;
@@ -201,33 +264,81 @@
     .card-footer-link:hover { text-decoration: underline; }
     .card-footer-version {
       font-size: 0.78rem;
-      color: var(--text-faded, #9ca3af);
+      color: var(--text-secondary);
       font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .calendar-grid { font-size: 0.8rem; }
+      .day-cell { min-height: 80px; padding: 4px; }
+      .event-item { font-size: 0.65rem; padding: 2px 4px; }
+      .month-title { font-size: 1.1rem; }
     }
   </style>
 </head>
 <body>
-<div id="bromar-header"></div>
-
 <div class="page-wrapper">
+
+  <div id="bromar-header"></div>
+
   <div class="header-card" style="text-align: center;">
     <h1 class="header-title">ETU RDO Calendar</h1>
     <p class="header-subtitle">Rostered Days Off, Public Holidays & Lockdown Weekends</p>
   </div>
 
   <div class="form-card">
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot rdo"></div><span>RDO - Rostered Day Off</span></div>
-      <div class="legend-item"><div class="legend-dot holiday"></div><span>P/H - Public Holiday</span></div>
-      <div class="legend-item"><div class="legend-dot lockdown"></div><span>L/D - Lockdown Weekend</span></div>
-      <div class="legend-item"><div class="legend-dot picnic"></div><span>Picnic Day</span></div>
+    <div class="toolbar">
+      <div class="view-toggle">
+        <button id="viewCalendarBtn" class="view-btn active" data-view="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Calendar
+        </button>
+        <button id="viewListBtn" class="view-btn" data-view="list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          List
+        </button>
+      </div>
     </div>
 
-    <div id="calendar"></div>
+    <div id="calendarView">
+      <div class="month-nav">
+        <button id="prevMonth">←</button>
+        <div class="month-title" id="monthTitle">January 2025</div>
+        <button id="nextMonth">→</button>
+      </div>
 
-    <div style="text-align: center; margin-top: 2rem;">
-      <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" target="_blank" rel="noopener noreferrer"
-         style="display:inline-block;background:var(--brand-orange);color:white;padding:0.8rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 2px 6px rgba(194,68,14,0.25);">
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <div id="listView" style="display:none">
+      <div id="rosterList"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--rdo);"></div>
+        <span>RDO - Rostered Day Off</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--holiday);"></div>
+        <span>P/H - Public Holiday</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--lockdown);"></div>
+        <span>L/D - Lockdown Weekend</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--picnic);"></div>
+        <span>Picnic Day</span>
+      </div>
+      <div class="legend-item">
+        <div style="width: 16px; height: 16px; background: rgba(234, 88, 12, 0.08); border: 2px solid var(--accent); border-radius: 3px;"></div>
+        <span>Today</span>
+      </div>
+    </div>
+
+    <div class="visit-link-row">
+      <a href="https://www.etuvic.com.au/your-union/rdo-calendar/" class="visit-link" target="_blank" rel="noopener noreferrer">
         Visit Official ETU Calendar
       </a>
     </div>
@@ -235,222 +346,391 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — ETU RDO CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
+  // ============================================================
+  // EVENT DATA - From ETU Victoria ICS feed
+  // ============================================================
+  const allEvents = [
+    {title:'L/D Weekend',start_date:'2026-04-25',end_date:'2026-04-26',type:'lockdown'},
+    {title:'RDO',start_date:'2026-04-27',end_date:'2026-04-28',type:'rdo'},
+    {title:'RDO',start_date:'2026-05-11',end_date:'2026-05-11',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-05-23',end_date:'2026-05-24',type:'lockdown'},
+    {title:'RDO',start_date:'2026-05-25',end_date:'2026-05-25',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-06-06',end_date:'2026-06-07',type:'lockdown'},
+    {title:"P/H - King's Birthday",start_date:'2026-06-08',end_date:'2026-06-08',type:'holiday'},
+    {title:'RDO',start_date:'2026-06-09',end_date:'2026-06-09',type:'rdo'},
+    {title:'RDO',start_date:'2026-06-22',end_date:'2026-06-22',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-07-04',end_date:'2026-07-05',type:'lockdown'},
+    {title:'RDO',start_date:'2026-07-06',end_date:'2026-07-06',type:'rdo'},
+    {title:'RDO',start_date:'2026-07-20',end_date:'2026-07-20',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-08-01',end_date:'2026-08-02',type:'lockdown'},
+    {title:'RDO',start_date:'2026-08-03',end_date:'2026-08-03',type:'rdo'},
+    {title:'RDO',start_date:'2026-08-17',end_date:'2026-08-17',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-08-29',end_date:'2026-08-30',type:'lockdown'},
+    {title:'RDO',start_date:'2026-08-31',end_date:'2026-08-31',type:'rdo'},
+    {title:'RDO',start_date:'2026-09-14',end_date:'2026-09-14',type:'rdo'},
+    {title:'P/H - Grand Final Eve',start_date:'2026-09-25',end_date:'2026-09-25',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2026-09-26',end_date:'2026-09-27',type:'lockdown'},
+    {title:'RDO',start_date:'2026-09-28',end_date:'2026-09-28',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-10-10',end_date:'2026-10-11',type:'lockdown'},
+    {title:'RDO',start_date:'2026-10-12',end_date:'2026-10-12',type:'rdo'},
+    {title:'RDO',start_date:'2026-10-26',end_date:'2026-10-26',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2026-10-31',end_date:'2026-11-01',type:'lockdown'},
+    {title:'RDO',start_date:'2026-11-02',end_date:'2026-11-02',type:'rdo'},
+    {title:'P/H - Melbourne Cup',start_date:'2026-11-03',end_date:'2026-11-03',type:'holiday'},
+    {title:'RDO',start_date:'2026-11-04',end_date:'2026-11-04',type:'rdo'},
+    {title:'RDO',start_date:'2026-11-16',end_date:'2026-11-16',type:'rdo'},
+    {title:'Picnic Day',start_date:'2026-12-07',end_date:'2026-12-07',type:'picnic'},
+    {title:'P/H - Christmas Day',start_date:'2026-12-25',end_date:'2026-12-25',type:'holiday'},
+    {title:'P/H - Boxing Day',start_date:'2026-12-26',end_date:'2026-12-26',type:'holiday'},
+    {title:'P/H - Boxing Day',start_date:'2026-12-28',end_date:'2026-12-28',type:'holiday'},
+    {title:"P/H - New Year's Day",start_date:'2027-01-01',end_date:'2027-01-01',type:'holiday'},
+    {title:'RDO',start_date:'2027-01-11',end_date:'2027-01-11',type:'rdo'},
+    {title:'RDO',start_date:'2027-01-12',end_date:'2027-01-12',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-01-23',end_date:'2027-01-24',type:'lockdown'},
+    {title:'RDO',start_date:'2027-01-25',end_date:'2027-01-25',type:'rdo'},
+    {title:'P/H - Australia Day',start_date:'2027-01-26',end_date:'2027-01-26',type:'holiday'},
+    {title:'RDO',start_date:'2027-02-08',end_date:'2027-02-08',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-02-20',end_date:'2027-02-21',type:'lockdown'},
+    {title:'RDO',start_date:'2027-02-22',end_date:'2027-02-22',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-03-06',end_date:'2027-03-07',type:'lockdown'},
+    {title:'P/H - Labour Day',start_date:'2027-03-08',end_date:'2027-03-08',type:'holiday'},
+    {title:'RDO',start_date:'2027-03-09',end_date:'2027-03-09',type:'rdo'},
+    {title:'P/H - Good Friday',start_date:'2027-03-26',end_date:'2027-03-26',type:'holiday'},
+    {title:'P/H - Easter Saturday',start_date:'2027-03-27',end_date:'2027-03-27',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2027-03-27',end_date:'2027-03-28',type:'lockdown'},
+    {title:'P/H - Easter Sunday',start_date:'2027-03-28',end_date:'2027-03-28',type:'holiday'},
+    {title:'P/H - Easter Monday',start_date:'2027-03-29',end_date:'2027-03-29',type:'holiday'},
+    {title:'RDO',start_date:'2027-03-30',end_date:'2027-03-30',type:'rdo'},
+    {title:'RDO',start_date:'2027-03-31',end_date:'2027-03-31',type:'rdo'},
+    {title:'RDO',start_date:'2027-04-12',end_date:'2027-04-12',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-04-24',end_date:'2027-04-25',type:'lockdown'},
+    {title:'P/H - Anzac Day',start_date:'2027-04-26',end_date:'2027-04-26',type:'holiday'},
+    {title:'RDO',start_date:'2027-04-27',end_date:'2027-04-27',type:'rdo'},
+    {title:'RDO',start_date:'2027-05-10',end_date:'2027-05-10',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-05-22',end_date:'2027-05-23',type:'lockdown'},
+    {title:'RDO',start_date:'2027-05-24',end_date:'2027-05-24',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-06-12',end_date:'2027-06-13',type:'lockdown'},
+    {title:"P/H - King's Birthday",start_date:'2027-06-14',end_date:'2027-06-14',type:'holiday'},
+    {title:'RDO',start_date:'2027-06-15',end_date:'2027-06-15',type:'rdo'},
+    {title:'RDO',start_date:'2027-06-28',end_date:'2027-06-28',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-07-10',end_date:'2027-07-11',type:'lockdown'},
+    {title:'RDO',start_date:'2027-07-12',end_date:'2027-07-12',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-07-24',end_date:'2027-07-25',type:'lockdown'},
+    {title:'RDO',start_date:'2027-07-26',end_date:'2027-07-26',type:'rdo'},
+    {title:'RDO',start_date:'2027-08-09',end_date:'2027-08-09',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-08-21',end_date:'2027-08-22',type:'lockdown'},
+    {title:'RDO',start_date:'2027-08-23',end_date:'2027-08-23',type:'rdo'},
+    {title:'RDO',start_date:'2027-09-06',end_date:'2027-09-06',type:'rdo'},
+    {title:'P/H - Grand Final Eve',start_date:'2027-09-24',end_date:'2027-09-24',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2027-09-25',end_date:'2027-09-26',type:'lockdown'},
+    {title:'RDO',start_date:'2027-09-27',end_date:'2027-09-27',type:'rdo'},
+    {title:'RDO',start_date:'2027-10-04',end_date:'2027-10-04',type:'rdo'},
+    {title:'RDO',start_date:'2027-10-18',end_date:'2027-10-18',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-10-30',end_date:'2027-10-31',type:'lockdown'},
+    {title:'RDO',start_date:'2027-11-01',end_date:'2027-11-01',type:'rdo'},
+    {title:'P/H - Melbourne Cup',start_date:'2027-11-02',end_date:'2027-11-02',type:'holiday'},
+    {title:'RDO',start_date:'2027-11-03',end_date:'2027-11-03',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2027-11-13',end_date:'2027-11-14',type:'lockdown'},
+    {title:'RDO',start_date:'2027-11-15',end_date:'2027-11-15',type:'rdo'},
+    {title:'Picnic Day',start_date:'2027-12-06',end_date:'2027-12-06',type:'picnic'},
+    {title:'RDO',start_date:'2027-12-24',end_date:'2027-12-24',type:'rdo'},
+    {title:'P/H - Christmas',start_date:'2027-12-27',end_date:'2027-12-27',type:'holiday'},
+    {title:'P/H - Boxing Day',start_date:'2027-12-28',end_date:'2027-12-28',type:'holiday'},
+    {title:"P/H - New Year's Day",start_date:'2028-01-03',end_date:'2028-01-03',type:'holiday'},
+    {title:'RDO',start_date:'2028-01-10',end_date:'2028-01-10',type:'rdo'},
+    {title:'RDO',start_date:'2028-01-11',end_date:'2028-01-11',type:'rdo'},
+    {title:'P/H - Australia Day',start_date:'2028-01-26',end_date:'2028-01-26',type:'holiday'},
+    {title:'RDO',start_date:'2028-01-27',end_date:'2028-01-27',type:'rdo'},
+    {title:'RDO',start_date:'2028-01-28',end_date:'2028-01-28',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-01-29',end_date:'2028-01-30',type:'lockdown'},
+    {title:'RDO',start_date:'2028-02-07',end_date:'2028-02-07',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-02-19',end_date:'2028-02-20',type:'lockdown'},
+    {title:'RDO',start_date:'2028-02-21',end_date:'2028-02-21',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-03-11',end_date:'2028-03-12',type:'lockdown'},
+    {title:'P/H - Labour Day',start_date:'2028-03-13',end_date:'2028-03-13',type:'holiday'},
+    {title:'RDO',start_date:'2028-03-14',end_date:'2028-03-14',type:'rdo'},
+    {title:'RDO',start_date:'2028-03-27',end_date:'2028-03-27',type:'rdo'},
+    {title:'P/H - Good Friday',start_date:'2028-04-14',end_date:'2028-04-14',type:'holiday'},
+    {title:'P/H - Easter Saturday',start_date:'2028-04-15',end_date:'2028-04-15',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2028-04-15',end_date:'2028-04-16',type:'lockdown'},
+    {title:'P/H - Easter Sunday',start_date:'2028-04-16',end_date:'2028-04-16',type:'holiday'},
+    {title:'P/H - Easter Monday',start_date:'2028-04-17',end_date:'2028-04-17',type:'holiday'},
+    {title:'RDO',start_date:'2028-04-20',end_date:'2028-04-20',type:'rdo'},
+    {title:'RDO',start_date:'2028-04-21',end_date:'2028-04-21',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-04-22',end_date:'2028-04-23',type:'lockdown'},
+    {title:'RDO',start_date:'2028-04-24',end_date:'2028-04-24',type:'rdo'},
+    {title:'P/H - Anzac Day',start_date:'2028-04-25',end_date:'2028-04-25',type:'holiday'},
+    {title:'RDO',start_date:'2028-05-15',end_date:'2028-05-15',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-05-27',end_date:'2028-05-28',type:'lockdown'},
+    {title:'RDO',start_date:'2028-05-29',end_date:'2028-05-29',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-06-10',end_date:'2028-06-11',type:'lockdown'},
+    {title:"P/H - King's Birthday",start_date:'2028-06-12',end_date:'2028-06-12',type:'holiday'},
+    {title:'RDO',start_date:'2028-06-13',end_date:'2028-06-13',type:'rdo'},
+    {title:'RDO',start_date:'2028-06-26',end_date:'2028-06-26',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-07-08',end_date:'2028-07-09',type:'lockdown'},
+    {title:'RDO',start_date:'2028-07-10',end_date:'2028-07-10',type:'rdo'},
+    {title:'RDO',start_date:'2028-07-24',end_date:'2028-07-24',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-08-05',end_date:'2028-08-06',type:'lockdown'},
+    {title:'RDO',start_date:'2028-08-07',end_date:'2028-08-07',type:'rdo'},
+    {title:'RDO',start_date:'2028-08-21',end_date:'2028-08-21',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-09-02',end_date:'2028-09-03',type:'lockdown'},
+    {title:'RDO',start_date:'2028-09-04',end_date:'2028-09-04',type:'rdo'},
+    {title:'RDO',start_date:'2028-09-18',end_date:'2028-09-18',type:'rdo'},
+    {title:'P/H - Grand Final Eve',start_date:'2028-09-29',end_date:'2028-09-29',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2028-09-30',end_date:'2028-10-01',type:'lockdown'},
+    {title:'RDO',start_date:'2028-10-02',end_date:'2028-10-02',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-10-14',end_date:'2028-10-15',type:'lockdown'},
+    {title:'RDO',start_date:'2028-10-16',end_date:'2028-10-16',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2028-11-04',end_date:'2028-11-05',type:'lockdown'},
+    {title:'RDO',start_date:'2028-11-06',end_date:'2028-11-06',type:'rdo'},
+    {title:'P/H - Melbourne Cup',start_date:'2028-11-07',end_date:'2028-11-07',type:'holiday'},
+    {title:'RDO',start_date:'2028-11-08',end_date:'2028-11-08',type:'rdo'},
+    {title:'RDO',start_date:'2028-11-20',end_date:'2028-11-20',type:'rdo'},
+    {title:'Picnic Day',start_date:'2028-12-04',end_date:'2028-12-04',type:'picnic'},
+    {title:'P/H - Christmas Day',start_date:'2028-12-25',end_date:'2028-12-25',type:'holiday'},
+    {title:'P/H - Boxing Day',start_date:'2028-12-26',end_date:'2028-12-26',type:'holiday'},
+    {title:"P/H - New Year's Day",start_date:'2029-01-01',end_date:'2029-01-01',type:'holiday'},
+    {title:'RDO',start_date:'2029-01-09',end_date:'2029-01-09',type:'rdo'},
+    {title:'P/H - Australia Day',start_date:'2029-01-26',end_date:'2029-01-26',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2029-01-27',end_date:'2029-01-28',type:'lockdown'},
+    {title:'RDO',start_date:'2029-01-29',end_date:'2029-01-29',type:'rdo'},
+    {title:'RDO',start_date:'2029-02-12',end_date:'2029-02-12',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-02-24',end_date:'2029-02-25',type:'lockdown'},
+    {title:'RDO',start_date:'2029-02-26',end_date:'2029-02-26',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-03-10',end_date:'2029-03-11',type:'lockdown'},
+    {title:'P/H - Labour Day',start_date:'2029-03-12',end_date:'2029-03-12',type:'holiday'},
+    {title:'RDO',start_date:'2029-03-13',end_date:'2029-03-13',type:'rdo'},
+    {title:'P/H - Good Friday',start_date:'2029-03-30',end_date:'2029-03-30',type:'holiday'},
+    {title:'P/H - Easter Saturday',start_date:'2029-03-31',end_date:'2029-03-31',type:'holiday'},
+    {title:'L/D Weekend',start_date:'2029-03-31',end_date:'2029-04-01',type:'lockdown'},
+    {title:'P/H - Easter Sunday',start_date:'2029-04-01',end_date:'2029-04-01',type:'holiday'},
+    {title:'P/H - Easter Monday',start_date:'2029-04-02',end_date:'2029-04-02',type:'holiday'},
+    {title:'RDO',start_date:'2029-04-03',end_date:'2029-04-03',type:'rdo'},
+    {title:'RDO',start_date:'2029-04-04',end_date:'2029-04-04',type:'rdo'},
+    {title:'P/H - Anzac Day',start_date:'2029-04-25',end_date:'2029-04-25',type:'holiday'},
+    {title:'RDO',start_date:'2029-04-26',end_date:'2029-04-26',type:'rdo'},
+    {title:'RDO',start_date:'2029-04-27',end_date:'2029-04-27',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-04-28',end_date:'2029-04-29',type:'lockdown'},
+    {title:'RDO',start_date:'2029-05-14',end_date:'2029-05-14',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-05-26',end_date:'2029-05-27',type:'lockdown'},
+    {title:'RDO',start_date:'2029-05-28',end_date:'2029-05-28',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-06-09',end_date:'2029-06-10',type:'lockdown'},
+    {title:"P/H - King's Birthday",start_date:'2029-06-11',end_date:'2029-06-11',type:'holiday'},
+    {title:'RDO',start_date:'2029-06-12',end_date:'2029-06-12',type:'rdo'},
+    {title:'RDO',start_date:'2029-06-25',end_date:'2029-06-25',type:'rdo'},
+    {title:'L/D Weekend',start_date:'2029-07-07',end_date:'2029-07-08',type:'lockdown'},
+    {title:'RDO',start_date:'2029-07-09',end_date:'2029-07-09',type:'rdo'},
+    {title:'RDO',start_date:'2029-07-23',end_date:'2029-07-23',type:'rdo'}
+  ];
 
-    const events = [
-      {title:'L/D Weekend',start:'2026-04-25',end:'2026-04-27',className:'lockdown'},
-      {title:'RDO',start:'2026-04-27',end:'2026-04-29',className:'rdo'},
-      {title:'RDO',start:'2026-05-11',end:'2026-05-12',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-05-23',end:'2026-05-25',className:'lockdown'},
-      {title:'RDO',start:'2026-05-25',end:'2026-05-26',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-06-06',end:'2026-06-08',className:'lockdown'},
-      {title:"P/H - King's Birthday",start:'2026-06-08',end:'2026-06-09',className:'holiday'},
-      {title:'RDO',start:'2026-06-09',end:'2026-06-10',className:'rdo'},
-      {title:'RDO',start:'2026-06-22',end:'2026-06-23',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-07-04',end:'2026-07-06',className:'lockdown'},
-      {title:'RDO',start:'2026-07-06',end:'2026-07-07',className:'rdo'},
-      {title:'RDO',start:'2026-07-20',end:'2026-07-21',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-08-01',end:'2026-08-03',className:'lockdown'},
-      {title:'RDO',start:'2026-08-03',end:'2026-08-04',className:'rdo'},
-      {title:'RDO',start:'2026-08-17',end:'2026-08-18',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-08-29',end:'2026-08-31',className:'lockdown'},
-      {title:'RDO',start:'2026-08-31',end:'2026-09-01',className:'rdo'},
-      {title:'RDO',start:'2026-09-14',end:'2026-09-15',className:'rdo'},
-      {title:'P/H - Grand Final Eve',start:'2026-09-25',end:'2026-09-26',className:'holiday'},
-      {title:'L/D Weekend',start:'2026-09-26',end:'2026-09-28',className:'lockdown'},
-      {title:'RDO',start:'2026-09-28',end:'2026-09-29',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-10-10',end:'2026-10-12',className:'lockdown'},
-      {title:'RDO',start:'2026-10-12',end:'2026-10-13',className:'rdo'},
-      {title:'RDO',start:'2026-10-26',end:'2026-10-27',className:'rdo'},
-      {title:'L/D Weekend',start:'2026-10-31',end:'2026-11-02',className:'lockdown'},
-      {title:'RDO',start:'2026-11-02',end:'2026-11-03',className:'rdo'},
-      {title:'P/H - Melbourne Cup',start:'2026-11-03',end:'2026-11-04',className:'holiday'},
-      {title:'RDO',start:'2026-11-04',end:'2026-11-05',className:'rdo'},
-      {title:'RDO',start:'2026-11-16',end:'2026-11-17',className:'rdo'},
-      {title:'Picnic Day',start:'2026-12-07',end:'2026-12-08',className:'picnic'},
-      {title:'P/H - Christmas Day',start:'2026-12-25',end:'2026-12-26',className:'holiday'},
-      {title:'P/H - Boxing Day',start:'2026-12-26',end:'2026-12-27',className:'holiday'},
-      {title:'P/H - Boxing Day',start:'2026-12-28',end:'2026-12-29',className:'holiday'},
-      {title:"P/H - New Year's Day",start:'2027-01-01',end:'2027-01-02',className:'holiday'},
-      {title:'RDO',start:'2027-01-11',end:'2027-01-12',className:'rdo'},
-      {title:'RDO',start:'2027-01-12',end:'2027-01-13',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-01-23',end:'2027-01-25',className:'lockdown'},
-      {title:'RDO',start:'2027-01-25',end:'2027-01-26',className:'rdo'},
-      {title:'P/H - Australia Day',start:'2027-01-26',end:'2027-01-27',className:'holiday'},
-      {title:'RDO',start:'2027-02-08',end:'2027-02-09',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-02-20',end:'2027-02-22',className:'lockdown'},
-      {title:'RDO',start:'2027-02-22',end:'2027-02-23',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-03-06',end:'2027-03-08',className:'lockdown'},
-      {title:'P/H - Labour Day',start:'2027-03-08',end:'2027-03-09',className:'holiday'},
-      {title:'RDO',start:'2027-03-09',end:'2027-03-10',className:'rdo'},
-      {title:'P/H - Good Friday',start:'2027-03-26',end:'2027-03-27',className:'holiday'},
-      {title:'P/H - Easter Saturday',start:'2027-03-27',end:'2027-03-28',className:'holiday'},
-      {title:'L/D Weekend',start:'2027-03-27',end:'2027-03-29',className:'lockdown'},
-      {title:'P/H - Easter Sunday',start:'2027-03-28',end:'2027-03-29',className:'holiday'},
-      {title:'P/H - Easter Monday',start:'2027-03-29',end:'2027-03-30',className:'holiday'},
-      {title:'RDO',start:'2027-03-30',end:'2027-03-31',className:'rdo'},
-      {title:'RDO',start:'2027-03-31',end:'2027-04-01',className:'rdo'},
-      {title:'RDO',start:'2027-04-12',end:'2027-04-13',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-04-24',end:'2027-04-26',className:'lockdown'},
-      {title:'P/H - Anzac Day',start:'2027-04-26',end:'2027-04-27',className:'holiday'},
-      {title:'RDO',start:'2027-04-27',end:'2027-04-28',className:'rdo'},
-      {title:'RDO',start:'2027-05-10',end:'2027-05-11',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-05-22',end:'2027-05-24',className:'lockdown'},
-      {title:'RDO',start:'2027-05-24',end:'2027-05-25',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-06-12',end:'2027-06-14',className:'lockdown'},
-      {title:"P/H - King's Birthday",start:'2027-06-14',end:'2027-06-15',className:'holiday'},
-      {title:'RDO',start:'2027-06-15',end:'2027-06-16',className:'rdo'},
-      {title:'RDO',start:'2027-06-28',end:'2027-06-29',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-07-10',end:'2027-07-12',className:'lockdown'},
-      {title:'RDO',start:'2027-07-12',end:'2027-07-13',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-07-24',end:'2027-07-26',className:'lockdown'},
-      {title:'RDO',start:'2027-07-26',end:'2027-07-27',className:'rdo'},
-      {title:'RDO',start:'2027-08-09',end:'2027-08-10',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-08-21',end:'2027-08-23',className:'lockdown'},
-      {title:'RDO',start:'2027-08-23',end:'2027-08-24',className:'rdo'},
-      {title:'RDO',start:'2027-09-06',end:'2027-09-07',className:'rdo'},
-      {title:'P/H - Grand Final Eve',start:'2027-09-24',end:'2027-09-25',className:'holiday'},
-      {title:'L/D Weekend',start:'2027-09-25',end:'2027-09-27',className:'lockdown'},
-      {title:'RDO',start:'2027-09-27',end:'2027-09-28',className:'rdo'},
-      {title:'RDO',start:'2027-10-04',end:'2027-10-05',className:'rdo'},
-      {title:'RDO',start:'2027-10-18',end:'2027-10-19',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-10-30',end:'2027-11-01',className:'lockdown'},
-      {title:'RDO',start:'2027-11-01',end:'2027-11-02',className:'rdo'},
-      {title:'P/H - Melbourne Cup',start:'2027-11-02',end:'2027-11-03',className:'holiday'},
-      {title:'RDO',start:'2027-11-03',end:'2027-11-04',className:'rdo'},
-      {title:'L/D Weekend',start:'2027-11-13',end:'2027-11-15',className:'lockdown'},
-      {title:'RDO',start:'2027-11-15',end:'2027-11-16',className:'rdo'},
-      {title:'Picnic Day',start:'2027-12-06',end:'2027-12-07',className:'picnic'},
-      {title:'RDO',start:'2027-12-24',end:'2027-12-25',className:'rdo'},
-      {title:'P/H - Christmas',start:'2027-12-27',end:'2027-12-28',className:'holiday'},
-      {title:'P/H - Boxing Day',start:'2027-12-28',end:'2027-12-29',className:'holiday'},
-      {title:"P/H - New Year's Day",start:'2028-01-03',end:'2028-01-04',className:'holiday'},
-      {title:'RDO',start:'2028-01-10',end:'2028-01-11',className:'rdo'},
-      {title:'RDO',start:'2028-01-11',end:'2028-01-12',className:'rdo'},
-      {title:'P/H - Australia Day',start:'2028-01-26',end:'2028-01-27',className:'holiday'},
-      {title:'RDO',start:'2028-01-27',end:'2028-01-28',className:'rdo'},
-      {title:'RDO',start:'2028-01-28',end:'2028-01-29',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-01-29',end:'2028-01-31',className:'lockdown'},
-      {title:'RDO',start:'2028-02-07',end:'2028-02-08',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-02-19',end:'2028-02-21',className:'lockdown'},
-      {title:'RDO',start:'2028-02-21',end:'2028-02-22',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-03-11',end:'2028-03-13',className:'lockdown'},
-      {title:'P/H - Labour Day',start:'2028-03-13',end:'2028-03-14',className:'holiday'},
-      {title:'RDO',start:'2028-03-14',end:'2028-03-15',className:'rdo'},
-      {title:'RDO',start:'2028-03-27',end:'2028-03-28',className:'rdo'},
-      {title:'P/H - Good Friday',start:'2028-04-14',end:'2028-04-15',className:'holiday'},
-      {title:'P/H - Easter Saturday',start:'2028-04-15',end:'2028-04-16',className:'holiday'},
-      {title:'L/D Weekend',start:'2028-04-15',end:'2028-04-17',className:'lockdown'},
-      {title:'P/H - Easter Sunday',start:'2028-04-16',end:'2028-04-17',className:'holiday'},
-      {title:'P/H - Easter Monday',start:'2028-04-17',end:'2028-04-18',className:'holiday'},
-      {title:'RDO',start:'2028-04-20',end:'2028-04-21',className:'rdo'},
-      {title:'RDO',start:'2028-04-21',end:'2028-04-22',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-04-22',end:'2028-04-24',className:'lockdown'},
-      {title:'RDO',start:'2028-04-24',end:'2028-04-25',className:'rdo'},
-      {title:'P/H - Anzac Day',start:'2028-04-25',end:'2028-04-26',className:'holiday'},
-      {title:'RDO',start:'2028-05-15',end:'2028-05-16',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-05-27',end:'2028-05-29',className:'lockdown'},
-      {title:'RDO',start:'2028-05-29',end:'2028-05-30',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-06-10',end:'2028-06-12',className:'lockdown'},
-      {title:"P/H - King's Birthday",start:'2028-06-12',end:'2028-06-13',className:'holiday'},
-      {title:'RDO',start:'2028-06-13',end:'2028-06-14',className:'rdo'},
-      {title:'RDO',start:'2028-06-26',end:'2028-06-27',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-07-08',end:'2028-07-10',className:'lockdown'},
-      {title:'RDO',start:'2028-07-10',end:'2028-07-11',className:'rdo'},
-      {title:'RDO',start:'2028-07-24',end:'2028-07-25',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-08-05',end:'2028-08-07',className:'lockdown'},
-      {title:'RDO',start:'2028-08-07',end:'2028-08-08',className:'rdo'},
-      {title:'RDO',start:'2028-08-21',end:'2028-08-22',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-09-02',end:'2028-09-04',className:'lockdown'},
-      {title:'RDO',start:'2028-09-04',end:'2028-09-05',className:'rdo'},
-      {title:'RDO',start:'2028-09-18',end:'2028-09-19',className:'rdo'},
-      {title:'P/H - Grand Final Eve',start:'2028-09-29',end:'2028-09-30',className:'holiday'},
-      {title:'L/D Weekend',start:'2028-09-30',end:'2028-10-02',className:'lockdown'},
-      {title:'RDO',start:'2028-10-02',end:'2028-10-03',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-10-14',end:'2028-10-16',className:'lockdown'},
-      {title:'RDO',start:'2028-10-16',end:'2028-10-17',className:'rdo'},
-      {title:'L/D Weekend',start:'2028-11-04',end:'2028-11-06',className:'lockdown'},
-      {title:'RDO',start:'2028-11-06',end:'2028-11-07',className:'rdo'},
-      {title:'P/H - Melbourne Cup',start:'2028-11-07',end:'2028-11-08',className:'holiday'},
-      {title:'RDO',start:'2028-11-08',end:'2028-11-09',className:'rdo'},
-      {title:'RDO',start:'2028-11-20',end:'2028-11-21',className:'rdo'},
-      {title:'Picnic Day',start:'2028-12-04',end:'2028-12-05',className:'picnic'},
-      {title:'P/H - Christmas Day',start:'2028-12-25',end:'2028-12-26',className:'holiday'},
-      {title:'P/H - Boxing Day',start:'2028-12-26',end:'2028-12-27',className:'holiday'},
-      {title:"P/H - New Year's Day",start:'2029-01-01',end:'2029-01-02',className:'holiday'},
-      {title:'RDO',start:'2029-01-09',end:'2029-01-10',className:'rdo'},
-      {title:'P/H - Australia Day',start:'2029-01-26',end:'2029-01-27',className:'holiday'},
-      {title:'L/D Weekend',start:'2029-01-27',end:'2029-01-29',className:'lockdown'},
-      {title:'RDO',start:'2029-01-29',end:'2029-01-30',className:'rdo'},
-      {title:'RDO',start:'2029-02-12',end:'2029-02-13',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-02-24',end:'2029-02-26',className:'lockdown'},
-      {title:'RDO',start:'2029-02-26',end:'2029-02-27',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-03-10',end:'2029-03-12',className:'lockdown'},
-      {title:'P/H - Labour Day',start:'2029-03-12',end:'2029-03-13',className:'holiday'},
-      {title:'RDO',start:'2029-03-13',end:'2029-03-14',className:'rdo'},
-      {title:'P/H - Good Friday',start:'2029-03-30',end:'2029-03-31',className:'holiday'},
-      {title:'P/H - Easter Saturday',start:'2029-03-31',end:'2029-04-01',className:'holiday'},
-      {title:'L/D Weekend',start:'2029-03-31',end:'2029-04-02',className:'lockdown'},
-      {title:'P/H - Easter Sunday',start:'2029-04-01',end:'2029-04-02',className:'holiday'},
-      {title:'P/H - Easter Monday',start:'2029-04-02',end:'2029-04-03',className:'holiday'},
-      {title:'RDO',start:'2029-04-03',end:'2029-04-04',className:'rdo'},
-      {title:'RDO',start:'2029-04-04',end:'2029-04-05',className:'rdo'},
-      {title:'P/H - Anzac Day',start:'2029-04-25',end:'2029-04-26',className:'holiday'},
-      {title:'RDO',start:'2029-04-26',end:'2029-04-27',className:'rdo'},
-      {title:'RDO',start:'2029-04-27',end:'2029-04-28',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-04-28',end:'2029-04-30',className:'lockdown'},
-      {title:'RDO',start:'2029-05-14',end:'2029-05-15',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-05-26',end:'2029-05-28',className:'lockdown'},
-      {title:'RDO',start:'2029-05-28',end:'2029-05-29',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-06-09',end:'2029-06-11',className:'lockdown'},
-      {title:"P/H - King's Birthday",start:'2029-06-11',end:'2029-06-12',className:'holiday'},
-      {title:'RDO',start:'2029-06-12',end:'2029-06-13',className:'rdo'},
-      {title:'RDO',start:'2029-06-25',end:'2029-06-26',className:'rdo'},
-      {title:'L/D Weekend',start:'2029-07-07',end:'2029-07-09',className:'lockdown'},
-      {title:'RDO',start:'2029-07-09',end:'2029-07-10',className:'rdo'},
-      {title:'RDO',start:'2029-07-23',end:'2029-07-24',className:'rdo'}
-    ];
+  // ============================================================
+  // STATE
+  // ============================================================
+  let currentDate = new Date();
+  let currentView = 'calendar';
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      firstDay: 1,
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,listYear'
-      },
-      buttonText: { today: 'Today', month: 'Month', list: 'List' },
-      events: events,
-      displayEventTime: true,
-      displayEventEnd: true,
-      eventClick: function(info) {
-        const start = info.event.start.toLocaleDateString('en-AU', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
-        let message = info.event.title + '\n' + start;
-        if (info.event.end && info.event.end > info.event.start) {
-          const end = new Date(info.event.end);
-          end.setDate(end.getDate() - 1);
-          message += '\nTo: ' + end.toLocaleDateString('en-AU', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-          });
-        }
-        alert(message);
-      },
-      height: 'auto',
-      fixedWeekCount: false,
-      eventDisplay: 'block'
+  // ── ISO date helper ──
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  // ============================================================
+  // RENDER CALENDAR
+  // ============================================================
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    document.getElementById('monthTitle').textContent =
+      currentDate.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const prevMonthDays = startDay === 0 ? 6 : startDay - 1; // Monday start
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    // Day headers (Mon - Sun)
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(day => {
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = day;
+      grid.appendChild(header);
     });
 
-    calendar.render();
+    // Previous month days
+    for (let i = prevMonthDays; i > 0; i--) {
+      const dayNum = prevMonthLastDay - i + 1;
+      const date = new Date(year, month - 1, dayNum);
+      grid.appendChild(createDayCell(date, dayNum, true));
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      grid.appendChild(createDayCell(date, day, false));
+    }
+
+    // Next month fillers
+    const totalCells = prevMonthDays + daysInMonth;
+    const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
+    for (let day = 1; day <= remainingCells; day++) {
+      const date = new Date(year, month + 1, day);
+      grid.appendChild(createDayCell(date, day, true));
+    }
+  }
+
+  function createDayCell(date, dayNum, isOtherMonth) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (isOtherMonth) cell.classList.add('other-month');
+
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) cell.classList.add('weekend');
+
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) cell.classList.add('today');
+
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = dayNum;
+    cell.appendChild(dayNumber);
+
+    getEventsForDate(date).forEach(event => {
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item ' + event.type;
+      eventItem.textContent = event.title;
+      eventItem.title = event.title;
+      cell.appendChild(eventItem);
+    });
+
+    return cell;
+  }
+
+  function getEventsForDate(date) {
+    const dateStr = isoDate(date);
+    return allEvents.filter(e => dateStr >= e.start_date && dateStr <= e.end_date);
+  }
+
+  // ============================================================
+  // LIST VIEW
+  // ============================================================
+  function renderList() {
+    const container = document.getElementById('rosterList');
+    const todayStr = isoDate(new Date());
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    // Only show current + upcoming
+    const entries = allEvents
+      .filter(e => e.end_date >= todayStr)
+      .slice()
+      .sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+    if (!entries.length) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-secondary)">No upcoming entries.</div>';
+      return;
+    }
+
+    // Group by month-year of start date
+    const groups = {};
+    entries.forEach(e => {
+      const key = e.start_date.slice(0, 7);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      html += '<div class="list-group">';
+      html += '<div class="list-month-header">' + months[m - 1] + ' ' + y + '</div>';
+
+      groups[key].forEach(e => {
+        const colour = getTypeColour(e.type);
+        html += '<div class="list-row">';
+        html += '<span class="list-emp-dot" style="background:' + colour + '"></span>';
+        html += '<span class="list-emp-name">' + BromarHub.escapeHtml(e.title) + '</span>';
+        const dateText = e.start_date === e.end_date
+          ? fmtDateShort(e.start_date)
+          : fmtDateShort(e.start_date) + ' — ' + fmtDateShort(e.end_date);
+        html += '<span class="list-dates">' + dateText + '</span>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function getTypeColour(type) {
+    return { rdo:'#457B9D', holiday:'#E63946', lockdown:'#2A9D8F', picnic:'#9b59b6' }[type] || '#457B9D';
+  }
+
+  function fmtDateShort(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dt = new Date(y, m - 1, d);
+    return days[dt.getDay()] + ' ' + d + ' ' + months[m - 1] + ' ' + y;
+  }
+
+  // ============================================================
+  // VIEW TOGGLE
+  // ============================================================
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+    document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('viewCalendarBtn').classList.toggle('active', view === 'calendar');
+    document.getElementById('viewListBtn').classList.toggle('active', view === 'list');
+    if (view === 'calendar') renderCalendar();
+    else renderList();
+  }
+  document.getElementById('viewCalendarBtn').addEventListener('click', () => switchView('calendar'));
+  document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
+
+  // ============================================================
+  // MONTH NAVIGATION
+  // ============================================================
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  // ============================================================
+  // TAP TO EXPAND (Mobile)
+  // ============================================================
+  document.addEventListener('click', function(e) {
+    const eventItem = e.target.closest('.event-item');
+    if (eventItem) eventItem.classList.toggle('expanded');
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    renderCalendar();
   });
 </script>
+
 </body>
 </html>
