@@ -54,7 +54,6 @@
       margin-bottom: 20px;
       flex-wrap: wrap;
       align-items: center;
-      padding-bottom: 20px;
       border-top: 1px solid var(--border);
       padding-top: 20px;
     }
@@ -211,7 +210,8 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
-    .loading-overlay {
+    /* PDF-specific loading overlay (renamed to avoid clash with shared .loading-overlay) */
+    .pdf-loading {
       position: absolute;
       top: 0;
       left: 0;
@@ -226,11 +226,11 @@
       z-index: 10;
     }
 
-    .loading-overlay.hidden {
+    .pdf-loading.hidden {
       display: none;
     }
 
-    .spinner {
+    .pdf-spinner {
       width: 48px;
       height: 48px;
       border: 4px solid var(--border);
@@ -243,7 +243,7 @@
       to { transform: rotate(360deg); }
     }
 
-    .loading-text {
+    .pdf-loading-text {
       font-size: 0.9rem;
       color: var(--text-secondary);
       font-weight: 500;
@@ -457,9 +457,9 @@
 
     <!-- PDF VIEWER -->
     <div class="pdf-container" id="pdfContainer">
-      <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Loading PDF...</div>
+      <div class="pdf-loading" id="pdfLoading">
+        <div class="pdf-spinner"></div>
+        <div class="pdf-loading-text">Loading PDF...</div>
       </div>
       <canvas id="pdfCanvas"></canvas>
     </div>
@@ -477,7 +477,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — ENTERPRISE BARGAINING AGREEMENT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
 
   </div>
@@ -497,7 +497,7 @@
   // ============================================================
   const canvas = document.getElementById('pdfCanvas');
   const ctx = canvas.getContext('2d');
-  const loadingOverlay = document.getElementById('loadingOverlay');
+  const pdfLoading = document.getElementById('pdfLoading');
   const errorMessage = document.getElementById('errorMessage');
   const pageInfo = document.getElementById('pageInfo');
   const searchInput = document.getElementById('searchInput');
@@ -525,7 +525,7 @@
   // Load PDF
   async function loadPDF() {
     try {
-      loadingOverlay.classList.remove('hidden');
+      pdfLoading.classList.remove('hidden');
       errorMessage.classList.remove('show');
       
       console.log('Attempting to load PDF:', PDF_FILENAME);
@@ -535,13 +535,6 @@
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}. File "${PDF_FILENAME}" not found.`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      console.log('Content-Type:', contentType);
-      
-      if (!contentType || !contentType.includes('pdf')) {
-        console.warn('Warning: Content-Type is not PDF:', contentType);
       }
       
       const arrayBuffer = await response.arrayBuffer();
@@ -566,20 +559,19 @@
       
       await renderPage(currentPage);
       
-      loadingOverlay.classList.add('hidden');
+      pdfLoading.classList.add('hidden');
       
     } catch (error) {
       console.error('Error loading PDF:', error);
       console.error('Error details:', error.message);
-      loadingOverlay.classList.add('hidden');
+      pdfLoading.classList.add('hidden');
       errorMessage.innerHTML = `
         <strong>Could not load PDF.</strong><br>
         Error: ${error.message}<br><br>
         Possible causes:<br>
         • File "${PDF_FILENAME}" does not exist in this folder<br>
         • PDF file is corrupted or invalid<br>
-        • File path is incorrect<br>
-        • Browser security settings blocking file access<br><br>
+        • File path is incorrect<br><br>
         <em>Check the browser console (F12) for more details.</em>
       `;
       errorMessage.classList.add('show');
@@ -594,13 +586,12 @@
     try {
       const page = await pdfDoc.getPage(pageNum);
       
-      // Calculate scale for fit-to-width mode
       let renderScale = scale;
       if (isFitWidth) {
         const container = document.getElementById('pdfContainer');
         const containerWidth = container.clientWidth - 40;
-        const viewport = page.getViewport({ scale: 1 });
-        renderScale = containerWidth / viewport.width;
+        const baseViewport = page.getViewport({ scale: 1 });
+        renderScale = containerWidth / baseViewport.width;
       }
       
       const viewport = page.getViewport({ scale: renderScale });
@@ -630,15 +621,11 @@
 
   // Page navigation
   prevPage.addEventListener('click', () => {
-    if (currentPage > 1) {
-      renderPage(currentPage - 1);
-    }
+    if (currentPage > 1) renderPage(currentPage - 1);
   });
 
   nextPage.addEventListener('click', () => {
-    if (currentPage < totalPages) {
-      renderPage(currentPage + 1);
-    }
+    if (currentPage < totalPages) renderPage(currentPage + 1);
   });
 
   // Zoom controls
@@ -666,14 +653,12 @@
     isFitWidth = true;
   }
 
-  // Re-render on window resize for fit-to-width mode
+  // Re-render on resize for fit-to-width mode
   let resizeTimeout;
   window.addEventListener('resize', () => {
     if (isFitWidth) {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        renderPage(currentPage);
-      }, 300);
+      resizeTimeout = setTimeout(() => renderPage(currentPage), 300);
     }
   });
 
@@ -688,6 +673,7 @@
 
     searchMatches = [];
     currentMatchIndex = -1;
+    searchInfo.textContent = 'Searching...';
     
     for (let i = 1; i <= totalPages; i++) {
       const page = await pdfDoc.getPage(i);
@@ -724,9 +710,7 @@
   searchBtn.addEventListener('click', performSearch);
   
   searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      performSearch();
-    }
+    if (e.key === 'Enter') performSearch();
   });
 
   clearSearch.addEventListener('click', clearSearchResults);
