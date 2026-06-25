@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Roster Change / Swap Request - Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* ── Selectable roster slot cards ── */
+    .slot-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.5rem; }
+    .slot-card {
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 0.9rem 1rem; cursor: pointer; display: flex; align-items: center;
+      gap: 0.9rem; transition: all 0.2s; background: var(--bg-secondary);
+    }
+    .slot-card:hover { border-color: var(--accent); }
+    .slot-card.selected { border-color: var(--accent); background: var(--card-hover); }
+    .slot-radio {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-radius: 50%; flex-shrink: 0; position: relative;
+    }
+    .slot-card.selected .slot-radio { border-color: var(--accent); }
+    .slot-card.selected .slot-radio::after {
+      content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent);
+    }
+    .slot-main { flex: 1; min-width: 0; }
+    .slot-dates { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; }
+    .slot-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+    .slot-empty {
+      text-align: center; padding: 1.5rem; color: var(--text-secondary);
+      font-size: 0.9rem; border: 1.5px dashed var(--border); border-radius: 12px;
+    }
+
+    /* ── Conditional swap sections ── */
+    .swap-section { display: none; margin-top: 1rem; }
+    .swap-section.show { display: block; }
+    .swap-note-box {
+      background: var(--info-bg); border: 1px solid var(--info-border);
+      color: var(--info-text); border-radius: 12px; padding: 1rem 1.125rem;
+      font-size: 0.88rem; line-height: 1.5;
+    }
+
+    /* ── In-card footer ── */
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <div id="bromar-header"></div>
+
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">Roster Change / Swap Request</h1>
+    <p class="header-subtitle">Request to change or swap one of your on-call roster dates</p>
+  </div>
+
+  <div class="form-card">
+
+    <div class="success-banner" id="successBanner"><span>✅</span><span id="successText"></span></div>
+    <div class="info-banner" id="infoBanner"><span>ℹ️</span><span id="infoBannerText"></span></div>
+
+    <form id="rosterChangeForm">
+
+      <!-- 1. Requester -->
+      <div class="section-label">Your details</div>
+      <div class="field-group full">
+        <label for="requested_by">Your name <span class="required">*</span></label>
+        <select id="requested_by" required></select>
+      </div>
+
+      <!-- 2. Date to change -->
+      <div class="section-label">Which roster date do you need to change?</div>
+      <div id="mySlots" class="slot-list">
+        <div class="slot-empty">Select your name to load your upcoming roster dates.</div>
+      </div>
+
+      <!-- 3. Swap option -->
+      <div class="section-label">How would you like to handle it?</div>
+      <div class="job-number-toggle">
+        <div class="radio-option">
+          <input type="radio" name="swapType" id="swapArranged" value="swap_arranged">
+          <label for="swapArranged">🔁 I've organised a swap</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" name="swapType" id="noSwap" value="no_swap">
+          <label for="noSwap">🆘 No swap organised</label>
+        </div>
+      </div>
+
+      <!-- 3a. Swap arranged -->
+      <div class="swap-section" id="swapArrangedSection">
+        <div class="field-group full">
+          <label for="swapWith">Who have you arranged the swap with? <span class="required">*</span></label>
+          <select id="swapWith"><option value="">Select employee...</option></select>
+        </div>
+        <div class="field-group full">
+          <label>Which of their dates will you take?</label>
+          <div id="theirSlots" class="slot-list">
+            <div class="slot-empty">Select the employee above to load their roster dates.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3b. No swap -->
+      <div class="swap-section" id="noSwapSection">
+        <div class="swap-note-box">
+          No problem — admin will arrange cover for this date. Please add any context below (reason, preferred replacement, availability).
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="field-group full" style="margin-top: 1.25rem;">
+        <label for="notes">Notes / reason</label>
+        <textarea id="notes" placeholder="Any extra details about this change or swap..."></textarea>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">Admin will be notified by email.</span>
+        <button type="submit" class="submit-btn">Submit Request</button>
+      </div>
+    </form>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — ROSTER CHANGE REQUEST</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentUser = null;
+  let rosterCache = [];          // all callout_roster rows
+  let selectedMySlot = null;     // requester's slot to change
+  let selectedTheirSlot = null;  // other employee's slot to take
+  let swapType = null;
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return DAYS[dt.getDay()] + ' ' + d + ' ' + MONTHS[m-1] + ' ' + y;
+  }
+  function emailFor(name) {
+    const e = (window.EMPLOYEES || []).find(x => x.full_name === name);
+    return e?.email || '';
+  }
+
+  // ── Load all upcoming roster rows once ──
+  async function loadRoster() {
+    try {
+      const { data, error } = await window.sb
+        .from('callout_roster')
+        .select('*')
+        .gte('end_date', todayISO())
+        .order('start_date', { ascending: true });
+      if (error) throw error;
+      rosterCache = data || [];
+    } catch (err) {
+      console.error('[RosterChange] loadRoster:', err);
+      BromarHub.showInfo('Could not load roster dates: ' + err.message);
+    }
+  }
+
+  function slotsForName(name) {
+    if (!name) return [];
+    const key = name.trim().toLowerCase();
+    return rosterCache.filter(r => (r.employee_name || '').trim().toLowerCase() === key);
+  }
+
+  function renderSlots(container, name, onPick, getSelected) {
+    const slots = slotsForName(name);
+    if (!slots.length) {
+      container.innerHTML = '<div class="slot-empty">No upcoming roster dates found for ' + BromarHub.escapeHtml(name || 'this person') + '.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    slots.forEach(slot => {
+      const card = document.createElement('div');
+      card.className = 'slot-card';
+      if (getSelected() && getSelected().id === slot.id) card.classList.add('selected');
+      const range = slot.start_date === slot.end_date
+        ? fmtDate(slot.start_date)
+        : fmtDate(slot.start_date) + '  →  ' + fmtDate(slot.end_date);
+      const meta = [slot.shift_type, slot.notes].filter(Boolean).join(' · ');
+      card.innerHTML =
+        '<div class="slot-radio"></div>' +
+        '<div class="slot-main"><div class="slot-dates">' + range + '</div>' +
+        (meta ? '<div class="slot-meta">' + BromarHub.escapeHtml(meta) + '</div>' : '') + '</div>';
+      card.addEventListener('click', () => {
+        onPick(slot);
+        container.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+      container.appendChild(card);
+    });
+  }
+
+  function renderMySlots() {
+    selectedMySlot = null;
+    renderSlots(document.getElementById('mySlots'), currentUser?.name, s => selectedMySlot = s, () => selectedMySlot);
+  }
+  function renderTheirSlots() {
+    selectedTheirSlot = null;
+    const name = document.getElementById('swapWith').value;
+    renderSlots(document.getElementById('theirSlots'), name, s => selectedTheirSlot = s, () => selectedTheirSlot);
+  }
+
+  // ── Swap toggle ──
+  document.querySelectorAll('input[name="swapType"]').forEach(r => {
+    r.addEventListener('change', function () {
+      swapType = this.value;
+      document.getElementById('swapArrangedSection').classList.toggle('show', swapType === 'swap_arranged');
+      document.getElementById('noSwapSection').classList.toggle('show', swapType === 'no_swap');
+    });
+  });
+
+  document.getElementById('swapWith').addEventListener('change', renderTheirSlots);
+
+  // ── Submit ──
+  document.getElementById('rosterChangeForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    if (!currentUser) {
+      const sel = document.getElementById('requested_by');
+      if (sel.value) currentUser = { name: sel.value, email: sel.selectedOptions[0]?.dataset.email || '' };
+    }
+    if (!currentUser) { BromarHub.showInfo('Please select your name.'); return; }
+    if (!selectedMySlot) { BromarHub.showInfo('Please select the roster date you need to change.'); return; }
+    if (!swapType) { BromarHub.showInfo('Please choose how to handle the change.'); return; }
+
+    let swapName = '', swapEmail = '';
+    if (swapType === 'swap_arranged') {
+      swapName = document.getElementById('swapWith').value;
+      if (!swapName) { BromarHub.showInfo('Please select who you arranged the swap with.'); return; }
+      if (!selectedTheirSlot) { BromarHub.showInfo('Please select which of their dates you will take.'); return; }
+      swapEmail = emailFor(swapName);
+    }
+
+    const notes = document.getElementById('notes').value.trim();
+    BromarHub.showLoading('Submitting request...', 'Saving and notifying admin');
+
+    const payload = {
+      requested_by: currentUser.name,
+      requested_by_email: currentUser.email || '',
+      original_roster_id: selectedMySlot.id || null,
+      original_start_date: selectedMySlot.start_date,
+      original_end_date: selectedMySlot.end_date,
+      original_shift_type: selectedMySlot.shift_type || '',
+      swap_type: swapType,
+      swap_with_name: swapName || null,
+      swap_with_email: swapEmail || null,
+      swap_roster_id: selectedTheirSlot?.id || null,
+      swap_start_date: selectedTheirSlot?.start_date || null,
+      swap_end_date: selectedTheirSlot?.end_date || null,
+      swap_shift_type: selectedTheirSlot?.shift_type || null,
+      notes: notes || null,
+      status: 'pending'
+    };
+
+    try {
+      const { error } = await window.sb.from('callout_roster_changes').insert([payload]);
+      if (error) throw error;
+
+      // Email admin (non-blocking — DB insert already succeeded)
+      try {
+        await fetch('/.netlify/functions/send-roster-change-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (mailErr) { console.warn('[RosterChange] email failed:', mailErr); }
+
+      BromarHub.hideLoading();
+      BromarHub.showSuccess('Request submitted. Admin has been notified.');
+      this.reset();
+      selectedMySlot = selectedTheirSlot = swapType = null;
+      document.getElementById('swapArrangedSection').classList.remove('show');
+      document.getElementById('noSwapSection').classList.remove('show');
+      renderMySlots();
+      document.getElementById('theirSlots').innerHTML = '<div class="slot-empty">Select the employee above to load their roster dates.</div>';
+    } catch (err) {
+      console.error('[RosterChange] submit:', err);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Submit failed: ' + err.message);
+    }
+  });
+
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadRoster();
+    await BromarHub.loadEmployees('requested_by');
+    await BromarHub.autoSelectLoggedInUser('requested_by');
+
+    const requestedBy = document.getElementById('requested_by');
+    if (requestedBy.value) {
+      const opt = requestedBy.selectedOptions[0];
+      currentUser = { name: opt.value, email: opt.dataset.email || '' };
+    }
+    requestedBy.addEventListener('change', function () {
+      const opt = this.selectedOptions[0];
+      currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+      renderMySlots();
+    });
+
+    // Other-employee picker (exclude self)
+    const swapWith = document.getElementById('swapWith');
+    swapWith.innerHTML = '<option value="">Select employee...</option>' +
+      (window.EMPLOYEES || [])
+        .filter(emp => emp.full_name !== currentUser?.name)
+        .map(emp => '<option value="' + BromarHub.escapeHtml(emp.full_name) + '">' + BromarHub.escapeHtml(emp.full_name) + '</option>')
+        .join('');
+
+    renderMySlots();
+  });
+</script>
+
+</body>
+</html>
