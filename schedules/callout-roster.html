@@ -153,17 +153,22 @@
     }
 
     .event-item {
-      background: rgba(234, 88, 12, 0.15);
+      background: var(--accent);
       border-left: 3px solid var(--accent);
       padding: 4px 6px;
       margin-bottom: 3px;
       border-radius: 3px;
       font-size: 0.75rem;
-      color: var(--text-primary);
-      font-weight: 500;
+      color: #fff;
+      font-weight: 600;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      cursor: default;
+    }
+    .co-note-dot {
+      display: inline-block; width: 5px; height: 5px; background: #fbbf24;
+      border-radius: 50%; margin-left: 3px; vertical-align: middle;
     }
 
     .event-item.highlight {
@@ -320,7 +325,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.14</div>
+      <div class="card-footer-version">Version V1.15</div>
     </div>
   </div>
 </div>
@@ -335,6 +340,29 @@
   let currentDate = new Date();
   let allEvents = [];
   let searchTerm = '';
+
+  // ── Employee colour map (matches ops page palette) ──
+  const empColours = {};
+  const colourPalette = [
+    '#ea580c','#2563eb','#15803d','#9333ea','#dc2626','#0891b2',
+    '#c026d3','#ca8a04','#4f46e5','#059669','#e11d48','#7c3aed',
+    '#d97706','#0d9488','#6366f1','#db2777'
+  ];
+  function getEmpColour(name) {
+    if (!empColours[name]) {
+      const idx = Object.keys(empColours).length % colourPalette.length;
+      empColours[name] = colourPalette[idx];
+    }
+    return empColours[name];
+  }
+
+  // ── ISO date helper (local, AU-safe) ──
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
 
   // ============================================================
   // SUPABASE CONFIG (embedded like ops page - renamed to avoid auth.js conflict)
@@ -382,11 +410,11 @@
         return;
       }
 
-      // Convert Supabase data to events format
+      // Keep raw ISO date strings (YYYY-MM-DD) like ops page for correct comparison
       allEvents = data.map(entry => {
         return {
-          start: new Date(entry.start_date),
-          end: new Date(entry.end_date),
+          start_date: entry.start_date,
+          end_date: entry.end_date,
           summary: entry.employee_name,
           shiftType: entry.shift_type || '',
           notes: entry.notes || ''
@@ -490,10 +518,16 @@
       const eventItem = document.createElement('div');
       eventItem.className = 'event-item';
       
+      // Per-employee colour like ops page
+      const colour = getEmpColour(event.summary);
+      eventItem.style.background = colour;
+      eventItem.style.borderLeftColor = colour;
+      
       // Get initials (first letter of each word)
       const initials = event.summary ? event.summary.split(' ').map(w => w[0]).join('').toUpperCase() : 'X';
+      const noteDot = event.notes ? '<span class="co-note-dot"></span>' : '';
       
-      eventItem.innerHTML = `<span class="co-cal-fullname">${event.summary || 'On Call'}</span><span class="co-cal-initials">${initials}</span>`;
+      eventItem.innerHTML = `<span class="co-cal-fullname">${event.summary || 'On Call'}</span><span class="co-cal-initials">${initials}</span>${noteDot}`;
       eventItem.title = `${event.summary}\n${event.shiftType}${event.notes ? '\n' + event.notes : ''}`;
       
       // Highlight if matches search
@@ -509,37 +543,29 @@
   }
 
   function getEventsForDate(date) {
-    const dateStr = date.toDateString();
+    const dateStr = isoDate(date); // YYYY-MM-DD
     const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
     const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
     const isWeekday = !isWeekend;
     
     return allEvents.filter(event => {
-      if (!event.start) return false;
+      if (!event.start_date || !event.end_date) return false;
       
-      const eventStart = new Date(event.start);
-      const eventEnd = event.end ? new Date(event.end) : eventStart;
-      
-      // Check if date falls within event range
-      const eventStartStr = eventStart.toDateString();
-      const eventEndStr = eventEnd.toDateString();
-      
-      const inRange = dateStr >= eventStartStr && dateStr <= eventEndStr;
-      
+      // ISO strings compare correctly (YYYY-MM-DD)
+      const inRange = dateStr >= event.start_date && dateStr <= event.end_date;
       if (!inRange) return false;
       
       // Filter based on shift type
       const shiftType = event.shiftType || '';
       
       if (shiftType.includes('Weekend Only')) {
-        return isWeekend; // Only show on Sat/Sun
+        return isWeekend;
       } else if (shiftType.includes('Weekday Only')) {
-        return isWeekday; // Only show Mon-Fri
+        return isWeekday;
       } else if (shiftType.includes('Mon-Thu Only')) {
-        return dayOfWeek >= 1 && dayOfWeek <= 4; // Mon-Thu
+        return dayOfWeek >= 1 && dayOfWeek <= 4;
       }
       
-      // Default: show on all days (Weekday + Weekend)
       return true;
     });
   }
