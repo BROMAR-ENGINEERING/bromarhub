@@ -10,141 +10,116 @@
   <script src="../tools/bromar-hub.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
-    /* ── Page layout spacing for fixed header ── */
-    .page-wrapper { margin-top: 90px; }
-    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+    /* ============================================================
+       PAGE-SPECIFIC STYLES ONLY
+       ============================================================ */
 
-    /* ── Inspection legend ── */
+    /* Legend */
     .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      display: flex; flex-wrap: wrap; gap: 10px;
       padding: 14px 16px;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius-sm);
-      margin-bottom: 18px;
+      background: var(--input-bg); border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm); margin-bottom: 18px;
     }
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-    }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-secondary); }
     .legend-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 0.7rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 6px; font-weight: 700; font-size: 0.7rem;
     }
-    .legend-pill.ok    { background: #f0fdf4; color: #0e9f6e; }
-    .legend-pill.fault { background: #fef2f2; color: #ef4444; }
-    .legend-pill.na    { background: #f3f4f6; color: #6b7280; }
+    .legend-pill.ok    { background: var(--status-ok-bg, #f0fdf4);    color: var(--status-ok, #0e9f6e); }
+    .legend-pill.fault { background: var(--status-fault-bg, #fef2f2); color: var(--status-fault, #ef4444); }
+    .legend-pill.na    { background: var(--status-na-bg, #f3f4f6);    color: var(--status-na, #6b7280); }
 
-    /* ── Status summary ── */
-    .status-summary {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-    }
+    /* Status summary */
+    .status-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
     .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600;
+      background: var(--input-bg); border: 1px solid var(--input-border);
       color: var(--text-secondary);
     }
+    .status-pill .count { font-weight: 700; }
     .status-pill.has-faults {
-      background: #fef2f2;
-      border-color: #ef4444;
-      color: #ef4444;
+      background: var(--status-fault-bg, #fef2f2);
+      border-color: var(--status-fault, #ef4444);
+      color: var(--status-fault, #ef4444);
     }
 
-    /* ── Check items ── */
+    /* Quick actions row */
+    .quick-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .quick-btn {
+      padding: 6px 14px; border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--brand-white); color: var(--text-secondary);
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .quick-btn:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+
+    /* Check items */
     .check-item {
       border: 1.5px solid var(--input-border);
       border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      background: var(--input-bg);
-      margin-bottom: 10px;
-      transition: all 0.2s;
+      padding: 14px 16px; background: var(--input-bg);
+      margin-bottom: 12px; transition: all 0.2s;
     }
-    .check-item.status-ok    { border-color: #0e9f6e; background: #f0fdf4; }
-    .check-item.status-fault { border-color: #ef4444; background: #fef2f2; }
-    .check-item.status-na    { border-color: #6b7280; background: #f3f4f6; opacity: 0.85; }
+    .check-item.status-ok    { border-color: var(--status-ok, #0e9f6e);    background: var(--status-ok-bg, #f0fdf4); }
+    .check-item.status-fault { border-color: var(--status-fault, #ef4444); background: var(--status-fault-bg, #fef2f2); }
+    .check-item.status-na    { border-color: var(--status-na, #6b7280);    background: var(--status-na-bg, #f3f4f6); opacity: 0.85; }
 
-    .check-item-top {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
+    .check-item-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
     .check-number {
       flex-shrink: 0;
-      width: 28px; height: 28px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--brand-orange); color: white;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .check-text-wrap { flex: 1; padding-top: 4px; display: flex; align-items: center; gap: 8px; }
+    .check-text { font-size: 0.92rem; color: var(--text-primary); line-height: 1.45; }
+
+    /* Info icon */
+    .info-icon {
+      width: 20px; height: 20px; flex-shrink: 0;
       border-radius: 50%;
-      background: var(--brand-orange);
-      color: white;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 700;
+      background: var(--brand-orange-soft, rgba(194, 68, 14, 0.1));
+      color: var(--brand-orange);
+      border: none; cursor: pointer;
+      font-size: 0.75rem; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
     }
-    .check-text {
-      flex: 1;
-      font-size: 0.92rem;
-      color: var(--text-primary);
-      line-height: 1.45;
-      padding-top: 4px;
-    }
-    .status-buttons {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+    .info-icon:hover { background: var(--brand-orange); color: white; transform: scale(1.1); }
+
+    .status-buttons { display: flex; gap: 8px; flex-shrink: 0; }
     .status-btn {
-      padding: 6px 12px;
-      border-radius: 6px;
+      padding: 6px 12px; border-radius: 6px;
       border: 1.5px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-muted);
-      font-family: inherit;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
+      background: var(--brand-white); color: var(--text-muted);
+      font-family: inherit; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;
     }
     .status-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
-    .status-btn.active.ok    { background: #0e9f6e; border-color: #0e9f6e; color: white; }
-    .status-btn.active.fault { background: #ef4444; border-color: #ef4444; color: white; }
-    .status-btn.active.na    { background: #6b7280; border-color: #6b7280; color: white; }
+    .status-btn.active.ok    { background: var(--status-ok, #0e9f6e);    border-color: var(--status-ok, #0e9f6e);    color: white; }
+    .status-btn.active.fault { background: var(--status-fault, #ef4444); border-color: var(--status-fault, #ef4444); color: white; }
+    .status-btn.active.na    { background: var(--status-na, #6b7280);    border-color: var(--status-na, #6b7280);    color: white; }
 
     .check-comment {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      background: var(--brand-white);
-      font-family: inherit;
-      font-size: 0.85rem;
-      color: var(--text-primary);
-      resize: vertical;
-      min-height: 38px;
+      width: 100%; padding: 8px 12px;
+      border: 1px solid var(--input-border); border-radius: 6px;
+      background: var(--brand-white); font-family: inherit;
+      font-size: 0.85rem; color: var(--text-primary);
+      resize: vertical; min-height: 38px;
       display: none;
     }
     .check-item.show-comment .check-comment { display: block; }
+    .check-item.show-comment.comment-required .check-comment {
+      border-color: var(--status-fault, #ef4444);
+    }
 
     @media (max-width: 600px) {
       .check-item-top { flex-wrap: wrap; }
@@ -152,154 +127,165 @@
       .status-btn { flex: 1; }
     }
 
-    /* ── Vehicle info display ── */
-    .vehicle-info-bar {
-      display: none;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding: 12px 16px;
-      background: var(--brand-orange-soft);
-      border: 1px solid var(--brand-orange);
-      border-radius: var(--radius-sm);
-      margin-top: 10px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
+    /* Info modal */
+    .info-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 17, 19, 0.55);
+      z-index: 9999;
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(2px);
     }
-    .vehicle-info-bar.show { display: flex; }
-    .vehicle-info-bar strong { color: var(--text-primary); }
-    .vehicle-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+    .info-modal-backdrop.show { display: flex; }
+    .info-modal {
+      background: var(--brand-white);
+      border-radius: var(--radius);
+      max-width: 480px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      animation: modalIn 0.2s ease;
     }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .info-modal-header {
+      background: var(--brand-orange); color: white;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .info-modal-title { font-size: 1rem; font-weight: 700; }
+    .info-modal-close {
+      background: rgba(255,255,255,0.2); border: none;
+      color: white; font-size: 1.4rem; line-height: 1;
+      width: 28px; height: 28px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .info-modal-close:hover { background: rgba(255,255,255,0.35); }
+    .info-modal-body {
+      padding: 20px;
+      font-size: 0.92rem; line-height: 1.6; color: var(--text-primary);
+    }
+    .info-modal-body ul { margin: 8px 0 0 18px; padding: 0; }
+    .info-modal-body li { margin-bottom: 6px; }
 
-    /* ── Defect box ── */
+    /* Defect identification box */
     .defect-box {
       border: 1.5px solid var(--input-border);
       border-radius: var(--radius-sm);
-      padding: 18px;
-      background: var(--input-bg);
+      padding: 18px; background: var(--input-bg);
     }
     .defect-warning {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: flex; align-items: center; gap: 8px;
       padding: 10px 14px;
-      background: rgba(239,68,68,0.08);
-      border: 1px solid rgba(239,68,68,0.25);
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
       border-radius: 6px;
-      color: #ef4444;
-      font-size: 0.85rem;
-      font-weight: 600;
+      color: var(--error, #ef4444);
+      font-size: 0.85rem; font-weight: 600;
       margin-top: 14px;
     }
 
-    /* ── Signature pad ── */
+    /* Urgency selector */
+    .urgency-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .urgency-group { grid-template-columns: repeat(2, 1fr); } }
+    .urgency-option {
+      position: relative;
+      padding: 12px 10px; border-radius: 8px;
+      border: 1.5px solid var(--input-border);
+      background: var(--brand-white);
+      cursor: pointer; text-align: center;
+      transition: all 0.2s;
+      display: flex; flex-direction: column; gap: 4px; align-items: center;
+    }
+    .urgency-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .urgency-icon { font-size: 1.3rem; }
+    .urgency-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+    .urgency-option:hover { border-color: var(--text-secondary); }
+    .urgency-option.selected.low      { border-color: #0e9f6e; background: rgba(14, 159, 110, 0.08); }
+    .urgency-option.selected.low      .urgency-label { color: #0e9f6e; }
+    .urgency-option.selected.medium   { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+    .urgency-option.selected.medium   .urgency-label { color: #f59e0b; }
+    .urgency-option.selected.high     { border-color: #f97316; background: rgba(249, 115, 22, 0.08); }
+    .urgency-option.selected.high     .urgency-label { color: #f97316; }
+    .urgency-option.selected.critical { border-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .urgency-option.selected.critical .urgency-label { color: #ef4444; }
+
+    /* Signature pad */
     .signature-box {
       border: 1.5px solid var(--input-border);
       border-radius: var(--radius-sm);
-      background: var(--input-bg);
-      padding: 16px;
+      background: var(--input-bg); padding: 16px;
     }
     .signature-pad-wrapper {
-      position: relative;
-      background: #ffffff;
-      border: 1.5px dashed var(--input-border);
-      border-radius: 6px;
-      overflow: hidden;
-      touch-action: none;
+      position: relative; background: #ffffff;
+      border: 1.5px dashed var(--input-border); border-radius: 6px;
+      overflow: hidden; touch-action: none;
     }
-    .signature-pad-wrapper.has-signature {
-      border-style: solid;
-      border-color: var(--brand-orange);
-    }
+    .signature-pad-wrapper.has-signature { border-style: solid; border-color: var(--brand-orange); }
     .signature-pad { display: block; width: 100%; height: 180px; cursor: crosshair; }
     .signature-placeholder {
-      position: absolute;
-      top: 50%; left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 0.85rem;
-      color: var(--text-faded, #9ca3af);
-      pointer-events: none;
-      user-select: none;
+      font-size: 0.85rem; color: var(--text-faded, #9ca3af);
+      pointer-events: none; user-select: none; letter-spacing: 0.5px;
     }
     .signature-pad-wrapper.has-signature .signature-placeholder { display: none; }
     .signature-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
-      gap: 12px;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 12px; gap: 12px; flex-wrap: wrap;
     }
     .signature-meta { font-size: 0.8rem; color: var(--text-muted); }
     .signature-meta strong { color: var(--text-secondary); }
     .btn-clear-sig {
-      font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 7px 14px;
-      border-radius: 6px;
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      padding: 7px 14px; border-radius: 6px;
       border: 1px solid var(--input-border);
-      background: var(--brand-white);
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s;
+      background: var(--brand-white); color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s;
     }
-    .btn-clear-sig:hover { color: #ef4444; border-color: #ef4444; }
+    .btn-clear-sig:hover { color: var(--error, #ef4444); border-color: var(--error, #ef4444); }
     .field-group.has-error .signature-pad-wrapper {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+      border-color: var(--error, #ef4444);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
     }
 
-    /* ── Three-col row ── */
+    /* Locked field styling */
+    input.locked, select.locked {
+      background: var(--input-bg, #f7f7f9);
+      cursor: not-allowed;
+      color: var(--text-secondary);
+    }
+    .lock-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    /* Three-column row */
     .field-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
     @media (max-width: 600px) { .field-row.three-col { grid-template-columns: 1fr; } }
 
-    /* ── In-card footer ── */
-    .card-footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid var(--divider, #e5e7eb);
-      text-align: center;
-    }
-    .card-footer-title {
-      font-weight: 700;
-      font-size: 1.05rem;
-      letter-spacing: 0.8px;
-      color: var(--text-primary);
-      margin-bottom: 10px;
-      white-space: nowrap;
-    }
-    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
-    .card-footer-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: var(--brand-orange, #c2440e);
-      text-decoration: none;
-      font-weight: 600;
-      margin-bottom: 14px;
-    }
-    .card-footer-link:hover { text-decoration: underline; }
-    .card-footer-version {
-      font-size: 0.78rem;
+    /* Revision badge */
+    .revision-number {
+      position: fixed; bottom: 12px; right: 14px;
+      font-size: 0.72rem; font-weight: 600;
       color: var(--text-faded, #9ca3af);
-      font-weight: 500;
+      background: var(--brand-white);
+      border: 1px solid var(--input-border);
+      padding: 4px 10px; border-radius: 12px;
+      letter-spacing: 0.5px; z-index: 100;
+      opacity: 0.75; pointer-events: none;
     }
   </style>
 </head>
 <body>
 
-<!-- Shared header injected by bromar-hub.js -->
 <div id="bromar-header"></div>
 
 <div class="page-wrapper">
 
-  <div class="header-card" style="text-align:center;">
+  <div class="header-card">
     <h1 class="header-title">Vehicle Maintenance Audit</h1>
-    <p class="header-subtitle">Complete the checklist below for the vehicle being audited. Mark each item as OK, Fault, or N/A and add comments where required.</p>
+    <p class="header-subtitle">Complete the checklist below for the plant or vehicle being audited. Tap the info icon next to each item for guidance.</p>
   </div>
 
   <div class="form-card">
@@ -316,34 +302,14 @@
           </select>
           <span class="error-msg">Please select who is filling out the form</span>
         </div>
-        <div class="field-group">
-          <label for="operator_initial">Operator Initial</label>
-          <input type="text" id="operator_initial" name="operator_initial" placeholder="e.g. JD" maxlength="6"/>
+        <div class="field-group" id="group-operator-email">
+          <label for="operator_email">Email <span class="lock-badge" id="emailLockBadge" style="display:none;">🔒 Auto-filled</span></label>
+          <input type="email" id="operator_email" name="operator_email" placeholder="Auto-filled from selection" readonly/>
         </div>
       </div>
 
-      <!-- VEHICLE SELECTION -->
-      <div class="section-label">Vehicle</div>
-
-      <div class="field-group" id="group-vehicle">
-        <label for="vehicle_select">Select Vehicle <span class="required">*</span></label>
-        <select id="vehicle_select" name="vehicle_select">
-          <option value="">Loading vehicles…</option>
-        </select>
-        <span class="error-msg">Please select a vehicle</span>
-      </div>
-
-      <!-- Auto-populated vehicle info -->
-      <div class="vehicle-info-bar" id="vehicleInfoBar">
-        <span class="vehicle-chip">🚗 <strong id="infoMake">—</strong></span>
-        <span class="vehicle-chip">📋 Model: <strong id="infoModel">—</strong></span>
-        <span class="vehicle-chip">🔢 Plant No: <strong id="infoPlantNo">—</strong></span>
-        <span class="vehicle-chip">📝 Rego: <strong id="infoRego">—</strong></span>
-        <span class="vehicle-chip">📅 Year: <strong id="infoYear">—</strong></span>
-      </div>
-
       <!-- AUDIT DETAILS -->
-      <div class="section-label" style="margin-top:24px;">Audit Details</div>
+      <div class="section-label">Audit Details</div>
 
       <div class="field-row">
         <div class="field-group" id="group-week">
@@ -351,10 +317,25 @@
           <input type="date" id="week_commencing" name="week_commencing"/>
           <span class="error-msg">Please select the week commencing date</span>
         </div>
+        <div class="field-group" id="group-plant-name">
+          <label for="plant_name">Plant <span class="required">*</span></label>
+          <input type="text" id="plant_name" name="plant_name" placeholder="e.g. Truck 04, Forklift A"/>
+          <span class="error-msg">Please enter the plant name</span>
+        </div>
+      </div>
+
+      <div class="field-row three-col">
         <div class="field-group">
-          <label for="audit_type">Audit Type</label>
-          <input type="text" id="audit_type" name="audit_type" value="Monthly Vehicle Inspection" readonly
-            style="background:var(--input-bg);color:var(--text-muted);cursor:default;"/>
+          <label for="plant_type">Plant Type</label>
+          <input type="text" id="plant_type" name="plant_type" placeholder="e.g. Ute, Truck, EWP"/>
+        </div>
+        <div class="field-group">
+          <label for="plant_no">Plant No.</label>
+          <input type="text" id="plant_no" name="plant_no" placeholder="Plant number"/>
+        </div>
+        <div class="field-group">
+          <label for="reg_no">Reg No.</label>
+          <input type="text" id="reg_no" name="reg_no" placeholder="Registration"/>
         </div>
       </div>
 
@@ -363,12 +344,12 @@
 
       <div class="field-row">
         <div class="field-group">
-          <label for="current_km_hours">Current KM / Hours</label>
-          <input type="number" id="current_km_hours" name="current_km_hours" placeholder="e.g. 125000" min="0"/>
+          <label for="current_hours">Plant Hours / Kilometers</label>
+          <input type="text" id="current_hours" name="current_hours" placeholder="Current reading"/>
         </div>
         <div class="field-group">
-          <label for="next_service_km">Next Service KM / Hours</label>
-          <input type="number" id="next_service_km" name="next_service_km" placeholder="e.g. 130000" min="0"/>
+          <label for="next_service">Hours / Kilometers of Next Service</label>
+          <input type="text" id="next_service" name="next_service" placeholder="Next service due"/>
         </div>
       </div>
 
@@ -381,53 +362,85 @@
         <span class="legend-item"><span class="legend-pill na">NA</span> Not Applicable</span>
       </div>
 
-      <div class="status-summary">
-        <span class="status-pill">✅ OK: <strong id="countOk">0</strong></span>
-        <span class="status-pill" id="faultPill">⚠️ Faults: <strong id="countFault">0</strong></span>
-        <span class="status-pill">➖ N/A: <strong id="countNa">0</strong></span>
-        <span class="status-pill">⏳ Pending: <strong id="countPending">8</strong></span>
+      <div class="quick-actions">
+        <button type="button" class="quick-btn" id="markAllOkBtn">✓ Mark all OK</button>
+        <button type="button" class="quick-btn" id="clearAllBtn">↺ Clear all</button>
+      </div>
+
+      <div class="status-summary" id="statusSummary">
+        <span class="status-pill"><span>✅ OK:</span> <span class="count" id="countOk">0</span></span>
+        <span class="status-pill" id="faultPill"><span>⚠️ Faults:</span> <span class="count" id="countFault">0</span></span>
+        <span class="status-pill"><span>➖ N/A:</span> <span class="count" id="countNa">0</span></span>
+        <span class="status-pill"><span>⏳ Pending:</span> <span class="count" id="countPending">8</span></span>
       </div>
 
       <div id="checklistContainer"></div>
 
-      <div class="info-banner" id="checksError">
-        <span>⚠️ Please mark all inspection items before submitting.</span>
+      <div class="error-banner" id="checksError">
+        <span>⚠️</span>
+        <span>Please mark all inspection items before submitting.</span>
       </div>
 
-      <!-- DEFECT REPORT -->
-      <div class="section-label">Defect Report</div>
+      <!-- DEFECT IDENTIFICATION -->
+      <div class="section-label">Defect Identification</div>
 
       <div class="defect-box">
-        <div class="field-row">
-          <div class="field-group">
-            <label for="defect_reported_by">Reported By</label>
-            <input type="text" id="defect_reported_by" name="defect_reported_by" placeholder="Name of person reporting"/>
-          </div>
-          <div class="field-group">
-            <label for="defect_date">Date</label>
-            <input type="date" id="defect_date" name="defect_date"/>
-          </div>
-        </div>
-        <div class="field-group" style="margin-bottom:0;">
+        <div class="field-group full" style="margin-bottom: 16px;">
           <label for="defect_details">Details of Fault / Defect</label>
-          <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection…"></textarea>
+          <textarea id="defect_details" name="defect_details" placeholder="Describe any faults or defects identified during the inspection..."></textarea>
         </div>
+
+        <div class="field-group full" id="group-urgency" style="margin-bottom: 0;">
+          <label>Urgency Level</label>
+          <div class="urgency-group">
+            <label class="urgency-option" data-urgency="low">
+              <input type="radio" name="urgency" value="low"/>
+              <span class="urgency-icon">🟢</span>
+              <span class="urgency-label">Low</span>
+            </label>
+            <label class="urgency-option" data-urgency="medium">
+              <input type="radio" name="urgency" value="medium"/>
+              <span class="urgency-icon">🟡</span>
+              <span class="urgency-label">Medium</span>
+            </label>
+            <label class="urgency-option" data-urgency="high">
+              <input type="radio" name="urgency" value="high"/>
+              <span class="urgency-icon">🟠</span>
+              <span class="urgency-label">High</span>
+            </label>
+            <label class="urgency-option" data-urgency="critical">
+              <input type="radio" name="urgency" value="critical"/>
+              <span class="urgency-icon">🔴</span>
+              <span class="urgency-label">Critical</span>
+            </label>
+          </div>
+        </div>
+
         <div class="defect-warning">
           <span>⚠️</span>
           <span>DO NOT operate machine if unsafe.</span>
         </div>
       </div>
 
-      <!-- NOTES -->
-      <div class="section-label" style="margin-top:24px;">Additional Notes</div>
-      <div class="field-group">
-        <textarea id="notes" name="notes" placeholder="Any additional notes or observations…"></textarea>
+      <!-- ADDITIONAL NOTES & SIGN-OFF -->
+      <div class="section-label">Additional Notes &amp; Sign-Off</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="signoff_date">Date</label>
+          <input type="date" id="signoff_date" name="signoff_date"/>
+        </div>
+        <div class="field-group">
+          <!-- spacer / could fit extra meta later -->
+        </div>
       </div>
 
-      <!-- SIGNATURE -->
-      <div class="section-label">Signature</div>
+      <div class="field-group full">
+        <label for="additional_notes">Additional Notes</label>
+        <textarea id="additional_notes" name="additional_notes" placeholder="Any further notes, observations, or follow-up required..."></textarea>
+      </div>
 
-      <div class="field-group" id="group-signature">
+      <div class="field-group full" id="group-signature">
         <label>Operator's Signature <span class="required">*</span></label>
         <div class="signature-box">
           <div class="signature-pad-wrapper" id="sigWrapper">
@@ -435,7 +448,9 @@
             <span class="signature-placeholder">Sign here using your mouse or finger</span>
           </div>
           <div class="signature-controls">
-            <div class="signature-meta"><strong>Signed:</strong> <span id="sigDateDisplay">—</span></div>
+            <div class="signature-meta">
+              <strong>Signed:</strong> <span id="sigDateDisplay">—</span>
+            </div>
             <button type="button" class="btn-clear-sig" id="clearSigBtn">Clear Signature</button>
           </div>
         </div>
@@ -451,153 +466,218 @@
       </div>
 
     </form>
-
-    <div class="card-footer">
-      <div class="card-footer-title">BROMAR HUB — VEHICLE MAINTENANCE AUDIT</div>
-      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.03</div>
-    </div>
   </div>
 </div>
 
+<!-- INFO MODAL -->
+<div class="info-modal-backdrop" id="infoModalBackdrop">
+  <div class="info-modal">
+    <div class="info-modal-header">
+      <div class="info-modal-title" id="infoModalTitle"></div>
+      <button type="button" class="info-modal-close" id="infoModalClose" aria-label="Close">×</button>
+    </div>
+    <div class="info-modal-body" id="infoModalBody"></div>
+  </div>
+</div>
+
+<!-- Revision badge -->
+<div class="revision-number">V1.03</div>
+
 <script>
   // ============================================================
-  // CONFIG
+  // CONFIGURATION
   // ============================================================
   const CONFIG = {
     emailjs: {
-      publicKey:  '4JW7VbCEAqZt9p4Jj',
-      serviceId:  'BromarEmail',
-      templateId: 'vehicleaudit_admin',
+      publicKey:  "4JW7VbCEAqZt9p4Jj",
+      serviceId:  "BromarEmail",
+      templateId: "vehicleaudit_admin",
     },
-    adminEmails: ['ashleys@bromar.com.au'],
-    revision: 'V1.03',
-    auditTypeId: 'monthly_vehicle_inspection',
+    adminEmails: ["ashleys@bromar.com.au"],
+    revision: "V1.03"
   };
-
   emailjs.init(CONFIG.emailjs.publicKey);
 
   // ============================================================
   // STATE
   // ============================================================
   let EMPLOYEES = [];
-  let VEHICLES  = [];
-  let currentUser    = null;
-  let selectedVehicle = null;
+  let currentUser = null;
 
   const CHECKS = [
-    { id: 'check1', text: 'Brakes, steering, gauges, lights, warning devices, strobe/beacon, reverse squawker' },
-    { id: 'check2', text: 'Visibility — windscreen, wipers, washer, demister, mirrors' },
-    { id: 'check3', text: 'Cabin — access/egress, seating, seatbelts, loose objects' },
-    { id: 'check4', text: 'Wheels — tyres, nuts, damage, wear, pressure' },
-    { id: 'check5', text: 'Guards / exterior — in place, secure, warning lights etc.' },
-    { id: 'check6', text: 'Excessive wear — hooks, chains, pins, pivots, tracks' },
-    { id: 'check7', text: 'Safety — fire extinguisher, first aid kit' },
-    { id: 'check8', text: 'Misc. electrical, CB radio (incl. car and 240V charger)' },
+    {
+      id: 'check1',
+      label: 'Brakes, Steering & Warning Devices',
+      text: 'Brakes, steering, gauges, lights, warning devices, strobe/beacon, reverse squawker',
+      info: 'Check for any unusual noises, vibrations, or play. Verify:',
+      bullets: [
+        'Brake pedal firm, no grinding or spongy feel',
+        'Steering moves freely with no excessive play',
+        'All dashboard gauges functional',
+        'Headlights, tail lights, indicators, brake lights all working',
+        'Strobe / beacon activates correctly',
+        'Reverse squawker is audible from outside the vehicle'
+      ]
+    },
+    {
+      id: 'check2',
+      label: 'Visibility',
+      text: 'Visibility — windscreen, wipers, washer, demister, mirrors',
+      info: 'Driver must have clear, unobstructed view in all conditions:',
+      bullets: [
+        'Windscreen free of cracks or chips that obstruct view',
+        'Wipers leave a clean sweep with no streaks',
+        'Washer fluid topped up and jets spray correctly',
+        'Demister / heater clears the windscreen quickly',
+        'All mirrors intact, clean, and properly adjusted'
+      ]
+    },
+    {
+      id: 'check3',
+      label: 'Cabin',
+      text: 'Cabin — access/egress, seating, seatbelts, loose objects',
+      info: 'Ensure safe entry, exit, and operation from the cab:',
+      bullets: [
+        'Steps and grab handles secure and free of grease/mud',
+        'Seat adjustment works, no excessive wear or damage',
+        'Seatbelts retract and lock correctly under sudden pull',
+        'No loose tools, equipment, or items that could become projectiles',
+        'Cab interior clean and tidy'
+      ]
+    },
+    {
+      id: 'check4',
+      label: 'Wheels & Tyres',
+      text: 'Wheels — tyres, nuts, damage, wear, pressure',
+      info: 'Inspect each tyre and wheel hub:',
+      bullets: [
+        'Tread depth above legal minimum (1.5mm car, 1.6mm light truck)',
+        'No cuts, bulges, or sidewall damage',
+        'All wheel nuts present and correctly torqued',
+        'No missing valve caps',
+        'Tyre pressure within manufacturer specification (when cold)'
+      ]
+    },
+    {
+      id: 'check5',
+      label: 'Guards & Exterior',
+      text: 'Guards / exterior — in place, secure, warning lights etc.',
+      info: 'Confirm all protective elements are intact:',
+      bullets: [
+        'All safety guards fitted and securely fastened',
+        'No missing bolts, screws, or fasteners',
+        'Reflective stickers and warning labels visible',
+        'Body panels secure with no sharp edges',
+        'Toolboxes and storage compartments lock properly'
+      ]
+    },
+    {
+      id: 'check6',
+      label: 'Excessive Wear Components',
+      text: 'Excessive wear — hooks, chains, pins, pivots, tracks',
+      info: 'Inspect load-bearing and moving parts:',
+      bullets: [
+        'Lifting hooks free of stretching, cracks, or deformation',
+        'Chains and slings within capacity rating, not worn',
+        'Pins and pivot points lubricated with no slop or wobble',
+        'Tracks or wheel bearings within wear tolerance',
+        'Hydraulic cylinders show no leaks at seals'
+      ]
+    },
+    {
+      id: 'check7',
+      label: 'Safety Equipment',
+      text: 'Safety — fire extinguisher, first aid kit',
+      info: 'Verify emergency equipment is ready for use:',
+      bullets: [
+        'Fire extinguisher in date (check tag)',
+        'Pressure gauge in the green zone',
+        'Extinguisher accessible and not buried under gear',
+        'First aid kit fully stocked, contents in date',
+        'Both items clearly labelled and visible'
+      ]
+    },
+    {
+      id: 'check8',
+      label: 'Electrical & Communications',
+      text: 'Misc. electrical, CB radio (incl. car and 240V charger)',
+      info: 'Test all electrical accessories:',
+      bullets: [
+        'All 12V power outlets working',
+        'CB radio transmits and receives clearly',
+        '240V inverter / charger functional, no warning lights',
+        'Cables in good condition, no exposed wires or damaged insulation',
+        'USB and phone charging points operational'
+      ]
+    }
   ];
 
   // ============================================================
-  // INIT — wait for BromarHub then load data
+  // INIT
   // ============================================================
   document.addEventListener('DOMContentLoaded', async () => {
-    await waitForBromarHub();
+    if (typeof BromarHub === 'undefined') {
+      await new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (typeof BromarHub !== 'undefined') { clearInterval(interval); resolve(); }
+        }, 50);
+      });
+    }
 
-    // Load employees
+    // Defaults: dates set to today (and Monday-of-this-week for week_commencing)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('signoff_date').value = today;
+    document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
+
+    // Load employees, auto-select logged-in user
     try {
       EMPLOYEES = await BromarHub.loadEmployees('filled_by');
       await BromarHub.autoSelectLoggedInUser('filled_by');
+
       const filledBy = document.getElementById('filled_by');
-      if (filledBy.value) {
+      const emailEl  = document.getElementById('operator_email');
+      const lockBadge = document.getElementById('emailLockBadge');
+
+      function setEmailFromSelection() {
         const opt = filledBy.selectedOptions[0];
-        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+        if (opt && opt.value) {
+          currentUser = { name: opt.value, email: opt.dataset.email || '' };
+          emailEl.value = currentUser.email;
+          emailEl.classList.add('locked');
+          lockBadge.style.display = 'inline-flex';
+        } else {
+          currentUser = null;
+          emailEl.value = '';
+          emailEl.classList.remove('locked');
+          lockBadge.style.display = 'none';
+        }
       }
-      filledBy.addEventListener('change', function () {
-        const opt = this.selectedOptions[0];
-        currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
-      });
+      setEmailFromSelection();
+      filledBy.addEventListener('change', setEmailFromSelection);
     } catch (err) {
       console.error('Failed to load employees:', err);
     }
 
-    // Load vehicles from Supabase
-    await loadVehicles();
-
-    // Default week commencing to this Monday
-    const weekInput = document.getElementById('week_commencing');
-    if (!weekInput.value) {
-      const d = new Date();
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      d.setDate(diff);
-      weekInput.value = d.toISOString().split('T')[0];
-    }
-
     renderChecklist();
     initSignaturePad();
+    initInfoModal();
+    initUrgencySelector();
+    initQuickActions();
   });
 
-  function waitForBromarHub() {
-    return new Promise(resolve => {
-      if (typeof BromarHub !== 'undefined') return resolve();
-      const iv = setInterval(() => {
-        if (typeof BromarHub !== 'undefined') { clearInterval(iv); resolve(); }
-      }, 50);
-    });
+  function getMondayOfWeek(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust if Sunday
+    date.setDate(diff);
+    return date.toISOString().split('T')[0];
   }
-
-  // ============================================================
-  // VEHICLE LOOKUP
-  // ============================================================
-  async function loadVehicles() {
-    const sel = document.getElementById('vehicle_select');
-    try {
-      const { data, error } = await window.sb
-        .from('vehicles')
-        .select('id, plant_no, plant_name, plant_type, rego_no, make, model, year')
-        .eq('status', 'active')
-        .order('plant_no');
-
-      if (error) throw error;
-
-      VEHICLES = data || [];
-      sel.innerHTML = '<option value="">Select vehicle…</option>' +
-        VEHICLES.map(v => {
-          const label = [v.plant_no, v.plant_name, v.rego_no].filter(Boolean).join(' — ');
-          return `<option value="${v.id}">${BromarHub.escapeHtml(label)}</option>`;
-        }).join('');
-    } catch (err) {
-      console.error('Failed to load vehicles:', err);
-      sel.innerHTML = '<option value="">Failed to load vehicles</option>';
-    }
-  }
-
-  document.getElementById('vehicle_select').addEventListener('change', function () {
-    const id = this.value;
-    const vehicle = VEHICLES.find(v => v.id === id);
-    selectedVehicle = vehicle || null;
-
-    const bar = document.getElementById('vehicleInfoBar');
-    if (vehicle) {
-      document.getElementById('infoMake').textContent    = vehicle.make    || '—';
-      document.getElementById('infoModel').textContent   = vehicle.model   || '—';
-      document.getElementById('infoPlantNo').textContent = vehicle.plant_no || '—';
-      document.getElementById('infoRego').textContent    = vehicle.rego_no  || '—';
-      document.getElementById('infoYear').textContent    = vehicle.year     || '—';
-      bar.classList.add('show');
-    } else {
-      bar.classList.remove('show');
-    }
-
-    document.getElementById('group-vehicle').classList.remove('has-error');
-    this.classList.remove('error');
-  });
 
   // ============================================================
   // CHECKLIST
   // ============================================================
   function renderChecklist() {
     const container = document.getElementById('checklistContainer');
-    container.innerHTML = '';
     CHECKS.forEach((check, idx) => {
       const item = document.createElement('div');
       item.className = 'check-item';
@@ -605,64 +685,142 @@
       item.innerHTML = `
         <div class="check-item-top">
           <div class="check-number">${idx + 1}</div>
-          <div class="check-text">${BromarHub.escapeHtml(check.text)}</div>
+          <div class="check-text-wrap">
+            <span class="check-text">${BromarHub.escapeHtml(check.text)}</span>
+            <button type="button" class="info-icon" data-info="${check.id}" aria-label="More info">i</button>
+          </div>
           <div class="status-buttons" data-check="${check.id}">
             <button type="button" class="status-btn" data-status="ok">OK</button>
             <button type="button" class="status-btn" data-status="fault">Fault</button>
             <button type="button" class="status-btn" data-status="na">N/A</button>
           </div>
         </div>
-        <textarea class="check-comment" data-check-comment="${check.id}" placeholder="Add comment (required for faults)…"></textarea>
+        <textarea class="check-comment" data-check-comment="${check.id}" placeholder="Describe the fault (required)..."></textarea>
       `;
       container.appendChild(item);
     });
 
-    container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.status-btn');
-      if (!btn) return;
-      const group  = btn.closest('.status-buttons');
-      const status = btn.dataset.status;
-      const checkId = group.dataset.check;
-      const item = document.querySelector(`[data-check-id="${checkId}"]`);
-      const wasActive = btn.classList.contains('active');
+    document.querySelectorAll('.status-buttons').forEach(group => {
+      group.addEventListener('click', (e) => {
+        const btn = e.target.closest('.status-btn');
+        if (!btn) return;
+        const status = btn.dataset.status;
+        const checkId = group.dataset.check;
+        const item = document.querySelector(`[data-check-id="${checkId}"]`);
 
-      group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
-      item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment');
+        const wasActive = btn.classList.contains('active');
+        group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
 
-      if (!wasActive) {
-        btn.classList.add('active', status);
-        item.classList.add(`status-${status}`);
-        if (status === 'fault') item.classList.add('show-comment');
-      }
-      updateStatusSummary();
-      document.getElementById('checksError').classList.remove('show');
+        if (!wasActive) {
+          btn.classList.add('active', status);
+          item.classList.add(`status-${status}`);
+          if (status === 'fault') item.classList.add('show-comment', 'comment-required');
+        }
+        updateStatusSummary();
+      });
     });
   }
 
   function updateStatusSummary() {
     let ok = 0, fault = 0, na = 0;
     document.querySelectorAll('.check-item').forEach(item => {
-      if (item.classList.contains('status-ok'))    ok++;
+      if (item.classList.contains('status-ok')) ok++;
       else if (item.classList.contains('status-fault')) fault++;
-      else if (item.classList.contains('status-na'))    na++;
+      else if (item.classList.contains('status-na')) na++;
     });
     const pending = CHECKS.length - ok - fault - na;
-    document.getElementById('countOk').textContent      = ok;
-    document.getElementById('countFault').textContent   = fault;
-    document.getElementById('countNa').textContent      = na;
+    document.getElementById('countOk').textContent = ok;
+    document.getElementById('countFault').textContent = fault;
+    document.getElementById('countNa').textContent = na;
     document.getElementById('countPending').textContent = pending;
     document.getElementById('faultPill').classList.toggle('has-faults', fault > 0);
+    if (pending === 0) document.getElementById('checksError').classList.remove('show');
   }
 
   function getCheckResults() {
     return CHECKS.map((check, idx) => {
-      const item      = document.querySelector(`[data-check-id="${check.id}"]`);
+      const item = document.querySelector(`[data-check-id="${check.id}"]`);
       const commentEl = document.querySelector(`[data-check-comment="${check.id}"]`);
       let status = 'PENDING';
-      if (item.classList.contains('status-ok'))    status = 'OK';
+      if (item.classList.contains('status-ok'))         status = 'OK';
       else if (item.classList.contains('status-fault')) status = 'FAULT';
-      else if (item.classList.contains('status-na'))    status = 'NA';
-      return { id: check.id, number: idx + 1, text: check.text, status, comment: commentEl?.value.trim() || '' };
+      else if (item.classList.contains('status-na'))    status = 'N/A';
+      return { number: idx + 1, label: check.label, text: check.text, status, comment: commentEl.value.trim() };
+    });
+  }
+
+  // ============================================================
+  // INFO MODAL
+  // ============================================================
+  function initInfoModal() {
+    const backdrop = document.getElementById('infoModalBackdrop');
+    const title = document.getElementById('infoModalTitle');
+    const body  = document.getElementById('infoModalBody');
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.info-icon');
+      if (!btn) return;
+      const id = btn.dataset.info;
+      const check = CHECKS.find(c => c.id === id);
+      if (!check) return;
+      title.textContent = check.label;
+      body.innerHTML = `<p>${BromarHub.escapeHtml(check.info)}</p><ul>` +
+        check.bullets.map(b => `<li>${BromarHub.escapeHtml(b)}</li>`).join('') +
+        `</ul>`;
+      backdrop.classList.add('show');
+    });
+
+    document.getElementById('infoModalClose').addEventListener('click', () => backdrop.classList.remove('show'));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.classList.remove('show'); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') backdrop.classList.remove('show'); });
+  }
+
+  // ============================================================
+  // URGENCY SELECTOR
+  // ============================================================
+  function initUrgencySelector() {
+    document.querySelectorAll('.urgency-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.urgency-option').forEach(o => {
+          o.classList.remove('selected', 'low', 'medium', 'high', 'critical');
+        });
+        opt.classList.add('selected', opt.dataset.urgency);
+        opt.querySelector('input').checked = true;
+      });
+    });
+  }
+
+  function getSelectedUrgency() {
+    const sel = document.querySelector('input[name="urgency"]:checked');
+    return sel ? sel.value : null;
+  }
+
+  // ============================================================
+  // QUICK ACTIONS
+  // ============================================================
+  function initQuickActions() {
+    document.getElementById('markAllOkBtn').addEventListener('click', () => {
+      if (!confirm('Mark all inspection items as OK? Any existing selections will be replaced.')) return;
+      CHECKS.forEach(check => {
+        const item = document.querySelector(`[data-check-id="${check.id}"]`);
+        const group = item.querySelector('.status-buttons');
+        group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
+        const okBtn = group.querySelector('[data-status="ok"]');
+        okBtn.classList.add('active', 'ok');
+        item.classList.add('status-ok');
+      });
+      updateStatusSummary();
+    });
+
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      if (!confirm('Clear all inspection selections?')) return;
+      document.querySelectorAll('.check-item').forEach(item => {
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
+      });
+      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+      updateStatusSummary();
     });
   }
 
@@ -678,34 +836,37 @@
     sigWrapper = document.getElementById('sigWrapper');
     sigCtx     = sigCanvas.getContext('2d');
 
-    sigCanvas.addEventListener('mousedown',  startSig);
-    sigCanvas.addEventListener('mousemove',  moveSig);
-    sigCanvas.addEventListener('mouseup',    endSig);
+    sigCanvas.addEventListener('mousedown', startSig);
+    sigCanvas.addEventListener('mousemove', moveSig);
+    sigCanvas.addEventListener('mouseup', endSig);
     sigCanvas.addEventListener('mouseleave', endSig);
     sigCanvas.addEventListener('touchstart', startSig, { passive: false });
-    sigCanvas.addEventListener('touchmove',  moveSig,  { passive: false });
-    sigCanvas.addEventListener('touchend',   endSig);
+    sigCanvas.addEventListener('touchmove', moveSig,  { passive: false });
+    sigCanvas.addEventListener('touchend', endSig);
+
     document.getElementById('clearSigBtn').addEventListener('click', clearSignature);
-    window.addEventListener('resize', () => setTimeout(resizeSigCanvas, 50));
+    window.addEventListener('resize', resizeSigCanvas);
     setTimeout(resizeSigCanvas, 50);
   }
 
   function resizeSigCanvas() {
     const ratio = window.devicePixelRatio || 1;
-    const rect  = sigCanvas.getBoundingClientRect();
-    let saved   = null;
-    if (sigHasContent) saved = sigCanvas.toDataURL();
+    const rect = sigCanvas.getBoundingClientRect();
+    let savedImage = null;
+    if (sigHasContent && sigCanvas.width > 0 && sigCanvas.height > 0) {
+      savedImage = sigCanvas.toDataURL();
+    }
     sigCanvas.width  = rect.width  * ratio;
     sigCanvas.height = rect.height * ratio;
     sigCtx.scale(ratio, ratio);
-    sigCtx.lineWidth  = 2;
-    sigCtx.lineCap    = 'round';
-    sigCtx.lineJoin   = 'round';
+    sigCtx.lineWidth = 2;
+    sigCtx.lineCap = 'round';
+    sigCtx.lineJoin = 'round';
     sigCtx.strokeStyle = '#111827';
-    if (saved) {
+    if (savedImage) {
       const img = new Image();
       img.onload = () => sigCtx.drawImage(img, 0, 0, rect.width, rect.height);
-      img.src = saved;
+      img.src = savedImage;
     }
   }
 
@@ -723,7 +884,7 @@
     sigLastX = pos.x; sigLastY = pos.y;
     if (!sigHasContent) {
       sigHasContent = true;
-      sigSignedAt   = new Date();
+      sigSignedAt = new Date();
       sigWrapper.classList.add('has-signature');
       updateSigDateDisplay();
       document.getElementById('group-signature').classList.remove('has-error');
@@ -744,15 +905,16 @@
   function endSig() { sigDrawing = false; }
 
   function updateSigDateDisplay() {
-    document.getElementById('sigDateDisplay').textContent = sigSignedAt
-      ? sigSignedAt.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const el = document.getElementById('sigDateDisplay');
+    el.textContent = sigSignedAt
+      ? sigSignedAt.toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
       : '—';
   }
 
   function clearSignature() {
     sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
     sigHasContent = false;
-    sigSignedAt   = null;
+    sigSignedAt = null;
     sigWrapper.classList.remove('has-signature');
     updateSigDateDisplay();
   }
@@ -762,27 +924,43 @@
   // ============================================================
   function validateForm() {
     let valid = true;
-
     function check(groupId, condition) {
       const grp = document.getElementById(groupId);
-      const inp = grp?.querySelector('input, select, textarea');
+      const inp = grp.querySelector('input, select, textarea');
       if (!condition) {
-        grp?.classList.add('has-error');
-        inp?.classList.add('error');
+        grp.classList.add('has-error');
+        if (inp) inp.classList.add('error');
         valid = false;
       } else {
-        grp?.classList.remove('has-error');
-        inp?.classList.remove('error');
+        grp.classList.remove('has-error');
+        if (inp) inp.classList.remove('error');
       }
     }
 
-    check('group-filled-by', document.getElementById('filled_by').value.trim().length > 0);
-    check('group-vehicle',   document.getElementById('vehicle_select').value.length > 0);
-    check('group-week',      document.getElementById('week_commencing').value.length > 0);
+    const filledBy = document.getElementById('filled_by').value.trim();
+    const week     = document.getElementById('week_commencing').value;
+    const plant    = document.getElementById('plant_name').value.trim();
 
+    check('group-filled-by',  filledBy.length > 0);
+    check('group-week',       week.length > 0);
+    check('group-plant-name', plant.length > 0);
+
+    // Inspection: all marked + fault items must have a comment
     const results = getCheckResults();
-    if (results.some(r => r.status === 'PENDING')) {
-      document.getElementById('checksError').classList.add('show');
+    const pending = results.filter(r => r.status === 'PENDING');
+    const faultMissingComment = results.filter(r => r.status === 'FAULT' && !r.comment);
+
+    if (pending.length > 0 || faultMissingComment.length > 0) {
+      const errBox = document.getElementById('checksError');
+      errBox.classList.add('show');
+      errBox.querySelector('span:last-child').textContent = pending.length > 0
+        ? 'Please mark all inspection items before submitting.'
+        : 'Please add a comment for each fault before submitting.';
+      // Highlight missing-comment fault items
+      faultMissingComment.forEach(r => {
+        const item = document.querySelector(`[data-check-id="check${r.number}"]`);
+        if (item) item.classList.add('comment-required');
+      });
       valid = false;
     } else {
       document.getElementById('checksError').classList.remove('show');
@@ -801,20 +979,20 @@
   // ============================================================
   // FORM SUBMIT
   // ============================================================
-  document.getElementById('auditForm').addEventListener('submit', async function (e) {
+  const auditForm = document.getElementById('auditForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  auditForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     e.stopImmediatePropagation();
-
-    const submitBtn = document.getElementById('submitBtn');
     if (submitBtn.disabled) return;
 
     if (!validateForm()) {
       const firstError = document.querySelector('.has-error') || document.getElementById('checksError');
-      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    // currentUser fallback
     if (!currentUser) {
       const sel = document.getElementById('filled_by');
       if (sel.value) {
@@ -828,74 +1006,26 @@
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting…';
-    BromarHub.showLoading('Submitting audit…', 'Saving to database and notifying admin…');
+    submitBtn.textContent = 'Sending…';
+    BromarHub.showLoading('Submitting audit', 'Sending your report to admin…');
 
     try {
-      const results        = getCheckResults();
-      const okCount        = results.filter(r => r.status === 'OK').length;
-      const faultCount     = results.filter(r => r.status === 'FAULT').length;
-      const naCount        = results.filter(r => r.status === 'NA').length;
       const weekCommencing = document.getElementById('week_commencing').value;
-      const currentKm      = document.getElementById('current_km_hours').value || null;
-      const nextServiceKm  = document.getElementById('next_service_km').value || null;
-      const operatorInit   = document.getElementById('operator_initial').value.trim() || null;
-      const defectReporter = document.getElementById('defect_reported_by').value.trim() || null;
-      const defectDate     = document.getElementById('defect_date').value || null;
-      const defectDetails  = document.getElementById('defect_details').value.trim() || null;
-      const notes          = document.getElementById('notes').value.trim() || null;
-      const signatureDataUrl = sigCanvas.toDataURL('image/png');
+      const plantName      = document.getElementById('plant_name').value.trim();
+      const plantType      = document.getElementById('plant_type').value.trim() || 'Not specified';
+      const plantNo        = document.getElementById('plant_no').value.trim() || 'Not specified';
+      const regNo          = document.getElementById('reg_no').value.trim() || 'Not specified';
+      const currentHours   = document.getElementById('current_hours').value.trim() || 'Not recorded';
+      const nextService    = document.getElementById('next_service').value.trim() || 'Not recorded';
+      const defectDetails  = document.getElementById('defect_details').value.trim() || 'No defects reported.';
+      const urgency        = getSelectedUrgency() || 'None';
+      const additionalNotes= document.getElementById('additional_notes').value.trim() || 'None';
+      const signoffDate    = document.getElementById('signoff_date').value;
 
-      // ── 1. Insert audit record ──
-      const { data: auditData, error: auditError } = await window.sb
-        .from('vehicle_audits')
-        .insert({
-          vehicle_id:        selectedVehicle.id,
-          audit_type_id:     CONFIG.auditTypeId,
-          operator_name:     currentUser.name,
-          operator_email:    currentUser.email,
-          operator_initial:  operatorInit,
-          week_commencing:   weekCommencing,
-          current_km_hours:  currentKm    ? parseFloat(currentKm)    : null,
-          next_service_km:   nextServiceKm ? parseFloat(nextServiceKm) : null,
-          total_checks:      CHECKS.length,
-          ok_count:          okCount,
-          fault_count:       faultCount,
-          na_count:          naCount,
-          defect_reported_by: defectReporter,
-          defect_date:        defectDate,
-          defect_details:     defectDetails,
-          signature_url:      signatureDataUrl,
-          signature_signed_at: sigSignedAt?.toISOString() || new Date().toISOString(),
-          revision:           CONFIG.revision,
-          notes:              notes,
-        })
-        .select('id')
-        .single();
-
-      if (auditError) throw auditError;
-      const auditId = auditData.id;
-
-      // ── 2. Insert check rows ──
-      const checkRows = results.map((r, idx) => ({
-        audit_id:   auditId,
-        sort_order: idx + 1,
-        item_text:  r.text,
-        status:     r.status === 'NA' ? 'NA' : r.status, // OK | FAULT | NA
-        comment:    r.comment || null,
-      }));
-
-      const { error: checksError } = await window.sb
-        .from('vehicle_audit_checks')
-        .insert(checkRows);
-
-      if (checksError) throw checksError;
-
-      // ── 3. EmailJS notification ──
-      const submitted = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
-      const signatureDate = sigSignedAt
-        ? sigSignedAt.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        : submitted;
+      const results    = getCheckResults();
+      const okCount    = results.filter(r => r.status === 'OK').length;
+      const faultCount = results.filter(r => r.status === 'FAULT').length;
+      const naCount    = results.filter(r => r.status === 'N/A').length;
 
       const checksSummary = results.map(r => {
         let line = `${r.number}. [${r.status}] ${r.text}`;
@@ -903,98 +1033,112 @@
         return line;
       }).join('\n');
 
-      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
-        audit_id:          auditId,
-        week_commencing:   weekCommencing,
-        plant_no:          selectedVehicle.plant_no  || '—',
-        plant_name:        selectedVehicle.plant_name || '—',
-        plant_type:        selectedVehicle.plant_type || '—',
-        rego_no:           selectedVehicle.rego_no    || '—',
-        make:              selectedVehicle.make        || '—',
-        model:             selectedVehicle.model       || '—',
-        current_km_hours:  currentKm    || 'Not recorded',
-        next_service_km:   nextServiceKm || 'Not recorded',
-        operator_name:     currentUser.name,
-        operator_email:    currentUser.email,
-        operator_initial:  operatorInit  || 'N/A',
-        checks_summary:    checksSummary,
-        ok_count:          okCount,
-        fault_count:       faultCount,
-        na_count:          naCount,
-        total_checks:      CHECKS.length,
-        defect_reported_by: defectReporter || 'N/A',
-        defect_date:        defectDate     || 'N/A',
-        defect_details:     defectDetails  || 'No defects reported.',
-        notes:              notes           || 'None',
-        signature_image:   signatureDataUrl,
-        signature_date:    signatureDate,
-        submitted_date:    submitted,
-        revision:          CONFIG.revision,
-        to_email:          currentUser.email,
-        admin_emails:      CONFIG.adminEmails.join(', '),
-      });
+      const checksSummaryHtml = results.map(r => {
+        const colour = r.status === 'OK' ? '#0e9f6e' : r.status === 'FAULT' ? '#ef4444' : '#6b7280';
+        let line = `<li><strong style="color:${colour}">[${r.status}]</strong> ${BromarHub.escapeHtml(r.text)}`;
+        if (r.comment) line += `<br><em style="color:#6b7280">Comment: ${BromarHub.escapeHtml(r.comment)}</em>`;
+        line += '</li>';
+        return line;
+      }).join('');
 
-      // ── 4. Success ──
+      const submitted = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+      const signatureDataUrl = sigCanvas.toDataURL('image/png');
+      const signatureDate = sigSignedAt
+        ? sigSignedAt.toLocaleString('en-AU', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })
+        : submitted;
+
+      const templateParams = {
+        week_commencing:     weekCommencing,
+        plant_name:          plantName,
+        plant_type:          plantType,
+        plant_no:            plantNo,
+        reg_no:              regNo,
+        current_hours:       currentHours,
+        next_service:        nextService,
+        operator_name:       currentUser.name,
+        operator_email:      currentUser.email,
+        checks_summary:      checksSummary,
+        checks_summary_html: `<ol>${checksSummaryHtml}</ol>`,
+        ok_count:            okCount,
+        fault_count:         faultCount,
+        na_count:            naCount,
+        total_checks:        results.length,
+        defect_details:      defectDetails,
+        urgency:             urgency.toUpperCase(),
+        additional_notes:    additionalNotes,
+        signoff_date:        signoffDate,
+        signature_image:     signatureDataUrl,
+        signature_date:      signatureDate,
+        submitted_date:      submitted,
+        revision:            CONFIG.revision,
+        admin_emails:        CONFIG.adminEmails.join(', '),
+        to_email:            currentUser.email,
+      };
+
+      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
+
       BromarHub.hideLoading();
-      BromarHub.showSuccess(faultCount > 0
-        ? `Audit submitted — ${faultCount} fault${faultCount > 1 ? 's' : ''} recorded and flagged for review.`
-        : 'Audit submitted successfully — all checks passed.'
-      );
+      BromarHub.showSuccess('Audit submitted successfully — a copy has been sent to your email and admin.');
 
-      // Reset form
-      document.getElementById('auditForm').reset();
-      document.querySelectorAll('.check-item').forEach(item =>
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment')
-      );
-      document.querySelectorAll('.status-btn').forEach(b =>
-        b.classList.remove('active', 'ok', 'fault', 'na')
-      );
+      // Reset form preserving user
+      auditForm.reset();
+      document.querySelectorAll('.check-item').forEach(item => {
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
+      });
+      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+      document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
       updateStatusSummary();
       clearSignature();
-      document.getElementById('vehicleInfoBar').classList.remove('show');
-      selectedVehicle = null;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Re-apply currentUser after reset
+      // Restore defaults
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('signoff_date').value = today;
+      document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
       if (currentUser) {
         const sel = document.getElementById('filled_by');
         for (const opt of sel.options) {
           if (opt.value === currentUser.name) { sel.value = opt.value; break; }
         }
+        document.getElementById('operator_email').value = currentUser.email;
       }
 
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Submit error:', err);
       BromarHub.hideLoading();
-      BromarHub.showInfo('Something went wrong — please try again or contact admin@bromar.com.au');
+      BromarHub.showInfo('Something went wrong — please contact management or admin directly.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Audit';
     }
   });
 
-  // ── Clear error state on input ──
+  // Clear error state on input change
   document.addEventListener('input', (e) => {
     const el = e.target;
     if (!el.matches('input, select, textarea')) return;
     el.classList.remove('error');
     const grp = el.closest('[id^="group-"]');
     if (grp) grp.classList.remove('has-error');
+    if (el.classList.contains('check-comment')) {
+      const item = el.closest('.check-item');
+      if (item && el.value.trim().length > 0) item.classList.remove('comment-required');
+    }
   });
 
-  // ── Reset handler ──
-  document.getElementById('auditForm').addEventListener('reset', () => {
+  // Reset handler
+  auditForm.addEventListener('reset', () => {
     setTimeout(() => {
-      document.querySelectorAll('.check-item').forEach(item =>
-        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment')
-      );
-      document.querySelectorAll('.status-btn').forEach(b =>
-        b.classList.remove('active', 'ok', 'fault', 'na')
-      );
+      document.querySelectorAll('.check-item').forEach(item => {
+        item.classList.remove('status-ok', 'status-fault', 'status-na', 'show-comment', 'comment-required');
+      });
+      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active', 'ok', 'fault', 'na'));
+      document.querySelectorAll('.urgency-option').forEach(o => o.classList.remove('selected', 'low', 'medium', 'high', 'critical'));
       updateStatusSummary();
       clearSignature();
-      document.getElementById('vehicleInfoBar').classList.remove('show');
-      selectedVehicle = null;
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('signoff_date').value = today;
+      document.getElementById('week_commencing').value = getMondayOfWeek(new Date());
     }, 0);
   });
 </script>
