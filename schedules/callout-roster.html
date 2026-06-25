@@ -38,7 +38,7 @@
       font-family: 'DM Sans', sans-serif;
       font-size: 0.93rem;
       color: var(--text-primary);
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       transition: all 0.2s;
     }
 
@@ -54,7 +54,7 @@
       left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-muted);
+      color: var(--text-secondary);
       pointer-events: none;
     }
 
@@ -65,7 +65,7 @@
       gap: 24px;
       margin-bottom: 24px;
       padding: 16px;
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       border-radius: var(--radius-sm);
     }
 
@@ -74,7 +74,7 @@
       height: 36px;
       border: 1.5px solid var(--input-border);
       border-radius: 6px;
-      background: var(--brand-white);
+      background: white;
       color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s;
@@ -85,9 +85,9 @@
     }
 
     .month-nav button:hover {
-      border-color: var(--brand-orange);
-      color: var(--brand-orange);
-      background: var(--brand-orange-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(234, 88, 12, 0.08);
     }
 
     .month-title {
@@ -109,7 +109,7 @@
     }
 
     .day-header {
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       padding: 12px 8px;
       text-align: center;
       font-weight: 700;
@@ -120,7 +120,7 @@
     }
 
     .day-cell {
-      background: var(--brand-white);
+      background: white;
       min-height: 120px;
       padding: 8px;
       position: relative;
@@ -129,7 +129,7 @@
     }
 
     .day-cell:hover {
-      background: var(--input-bg);
+      background: var(--bg-secondary);
     }
 
     .day-cell.other-month {
@@ -137,8 +137,8 @@
     }
 
     .day-cell.today {
-      background: var(--brand-orange-soft);
-      border: 2px solid var(--brand-orange);
+      background: rgba(234, 88, 12, 0.08);
+      border: 2px solid var(--accent);
     }
 
     .day-number {
@@ -149,12 +149,12 @@
     }
 
     .day-cell.weekend .day-number {
-      color: var(--brand-orange);
+      color: var(--accent);
     }
 
     .event-item {
-      background: var(--brand-orange-soft);
-      border-left: 3px solid var(--brand-orange);
+      background: rgba(234, 88, 12, 0.15);
+      border-left: 3px solid var(--accent);
       padding: 4px 6px;
       margin-bottom: 3px;
       border-radius: 3px;
@@ -191,7 +191,7 @@
       gap: 24px;
       margin-top: 24px;
       padding: 16px;
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       border-radius: var(--radius-sm);
       flex-wrap: wrap;
     }
@@ -301,7 +301,7 @@
 
     <div class="legend">
       <div class="legend-item">
-        <div class="legend-color" style="background: var(--brand-orange-soft); border-left-color: var(--brand-orange);"></div>
+        <div class="legend-color" style="background: rgba(234, 88, 12, 0.08); border-left-color: var(--accent);"></div>
         <span>On Call / Standby</span>
       </div>
       <div class="legend-item">
@@ -309,10 +309,10 @@
         <span>Highlighted (Search Match)</span>
       </div>
       <div class="legend-item">
-        <div style="width: 16px; height: 16px; background: var(--brand-orange-soft); border: 2px solid var(--brand-orange); border-radius: 3px;"></div>
+        <div style="width: 16px; height: 16px; background: rgba(234, 88, 12, 0.08); border: 2px solid var(--accent); border-radius: 3px;"></div>
         <span>Today</span>
       </div>
-      <div class="legend-item" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--divider); font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+      <div class="legend-item" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--divider); font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">
         Note: Calendar automatically filters events by shift type (Weekend Only shows Sat/Sun only, Weekday Only shows Mon-Fri only)
       </div>
     </div>
@@ -320,7 +320,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.13</div>
+      <div class="card-footer-version">Version V1.14</div>
     </div>
   </div>
 </div>
