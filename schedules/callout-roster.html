@@ -320,7 +320,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.12</div>
+      <div class="card-footer-version">Version V1.13</div>
     </div>
   </div>
 </div>
@@ -337,15 +337,15 @@
   let searchTerm = '';
 
   // ============================================================
-  // SUPABASE CONFIG (embedded like ops page - this works)
+  // SUPABASE CONFIG (embedded like ops page - renamed to avoid auth.js conflict)
   // ============================================================
-  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+  const SB_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
 
   function getHeaders() {
     return {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
       'Content-Type': 'application/json'
     };
   }
@@ -360,7 +360,7 @@
     
     try {
       const res = await fetch(
-        SUPABASE_URL + '/rest/v1/callout_roster?select=*&order=start_date.asc',
+        SB_URL + '/rest/v1/callout_roster?select=*&order=start_date.asc',
         { headers: getHeaders() }
       );
 
