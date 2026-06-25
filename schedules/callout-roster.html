@@ -320,7 +320,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.11</div>
+      <div class="card-footer-version">Version V1.12</div>
     </div>
   </div>
 </div>
@@ -337,7 +337,21 @@
   let searchTerm = '';
 
   // ============================================================
-  // LOAD ROSTER FROM SUPABASE
+  // SUPABASE CONFIG (embedded like ops page - this works)
+  // ============================================================
+  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+
+  function getHeaders() {
+    return {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  // ============================================================
+  // LOAD ROSTER FROM SUPABASE (direct fetch like ops page)
   // ============================================================
   async function loadRosterFromSupabase() {
     console.log('Loading roster from Supabase...');
@@ -345,31 +359,20 @@
     BromarHub.showLoading('Loading roster...', 'Fetching data from database');
     
     try {
-      // Wait for window.sb to be available
-      let attempts = 0;
-      while (!window.sb && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      if (!window.sb) {
-        throw new Error('Supabase client (window.sb) not available - bromar-hub.js may not be loaded');
-      }
-      
-      console.log('Using window.sb Supabase client...');
-      
-      // Use the Supabase client to query
-      const { data, error } = await window.sb
-        .from('callout_roster')
-        .select('*')
-        .order('start_date', { ascending: true });
+      const res = await fetch(
+        SUPABASE_URL + '/rest/v1/callout_roster?select=*&order=start_date.asc',
+        { headers: getHeaders() }
+      );
 
-      if (error) {
-        console.error('Supabase query error:', error);
-        throw new Error('Database error: ' + error.message);
+      console.log('Fetch response status:', res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error('HTTP ' + res.status + ': ' + errorText);
       }
 
-      console.log('Supabase data received:', data ? data.length : 0, 'entries');
+      const data = await res.json();
+      console.log('Supabase data received:', data.length, 'entries');
 
       if (!data || data.length === 0) {
         console.warn('No data returned from Supabase');
