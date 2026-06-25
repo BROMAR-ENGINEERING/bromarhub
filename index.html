@@ -336,6 +336,97 @@
             border: 1px solid var(--success-border);
         }
 
+        /* Logout Confirmation Modal */
+        .logout-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        .logout-modal.show {
+            display: flex;
+        }
+        .logout-modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 32px var(--shadow);
+            animation: pinSlideIn 0.3s ease;
+        }
+        .logout-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .logout-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .logout-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .logout-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.75rem;
+            line-height: 1.5;
+        }
+        .logout-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .logout-btn-modal {
+            flex: 1;
+            padding: 0.875rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        .logout-btn-cancel {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .logout-btn-cancel:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+        .logout-btn-confirm {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            border-color: transparent;
+        }
+        .logout-btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
+        }
+
         /* Logout button styled like control-btn */
         .logout-btn {
             width: 40px; height: 40px;
@@ -952,6 +1043,25 @@
         </footer>
     </div>
 
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="logout-modal">
+        <div class="logout-modal-content">
+            <div class="logout-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </div>
+            <div class="logout-title">Sign Out</div>
+            <div class="logout-subtitle">Are you sure you want to sign out of Bromar Hub?</div>
+            <div class="logout-buttons">
+                <button class="logout-btn-modal logout-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+                <button class="logout-btn-modal logout-btn-confirm" onclick="confirmLogout()">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
     <!-- PIN Lock Modal -->
     <div id="pinModal" class="pin-modal">
         <div class="pin-modal-content">
@@ -972,7 +1082,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.44</div>
+    <div class="revision-number">V1.45</div>
 
     <script>
         // SUPABASE AUTH
@@ -1043,10 +1153,23 @@
             }
         });
         
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            if (!confirm('Are you sure you want to log out?')) return;
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            document.getElementById('logoutModal').classList.add('show');
+        });
+
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').classList.remove('show');
+        }
+
+        async function confirmLogout() {
+            closeLogoutModal();
             const { error } = await supabaseClient.auth.signOut();
             if (!error) showLogin();
+        }
+
+        // Close logout modal on background click
+        document.getElementById('logoutModal').addEventListener('click', (e) => {
+            if (e.target.id === 'logoutModal') closeLogoutModal();
         });
         
         document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
