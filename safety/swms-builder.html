@@ -1,811 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<title>SWMS Builder — Bromar Hub</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SWMS Builder — Bromar Hub</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/tools/auth.js"></script>
-<link rel="stylesheet" href="../tools/bromar-hub.css"/>
-<script src="../tools/bromar-hub.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
 
-<style>
-.page-wrapper { margin-top: 90px; max-width: 1100px; }
-@media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
-/* Mode toggle */
-.mode-toggle { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
-.mode-toggle button { flex: 1; padding: 0.625rem; border: none; background: transparent; color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.875rem; border-radius: 7px; cursor: pointer; transition: all 0.2s; }
-.mode-toggle button.active { background: var(--bg-secondary); color: var(--accent); box-shadow: 0 1px 3px var(--shadow); }
+  <script src="../tools/swms-shared.js" defer></script>
+  <script src="js/swms-builder-core.js" defer></script>
+  <script src="js/tabs/sb-templates.js" defer></script>
+  <script src="js/tabs/sb-swms.js" defer></script>
+  <script src="js/swms-builder-boot.js" defer></script>
 
-/* Template picker */
-.template-picker { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; }
-.template-picker-row { display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap; }
-.template-picker-row .field-group { flex: 1; margin-bottom: 0; min-width: 220px; }
+  <style>
+    .page-wrapper { margin-top: 90px; max-width: 1100px; margin-left: auto; margin-right: auto; padding: 0 1.25rem; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; padding: 0 0.75rem; } }
 
-/* Template library list */
-.template-list { display: grid; gap: 0.625rem; margin-top: 0.875rem; }
-.template-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.75rem; align-items: center; padding: 0.875rem 1rem; background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; transition: all 0.2s; }
-.template-row:hover { border-color: var(--accent); background: var(--card-hover); }
-.template-info { min-width: 0; }
-.template-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 2px; }
-.template-meta { font-size: 0.75rem; color: var(--text-secondary); }
-.template-actions { display: flex; gap: 0.4rem; }
-.template-actions button { padding: 0.45rem 0.8rem; font-size: 0.78rem; }
+    .sb-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding: 0 0.5rem; }
+    .sb-tab { padding: 0.75rem 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.95rem; font-weight: 600; font-family: inherit; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .sb-tab:hover { color: var(--text-primary); }
+    .sb-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .sb-tab-count { display: inline-block; min-width: 22px; padding: 0 6px; height: 20px; line-height: 20px; text-align: center; font-size: 0.7rem; font-weight: 700; background: var(--card-hover); color: var(--accent); border-radius: 10px; }
 
-/* Hazard rows */
-.hazard-card { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; }
-.hazard-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-.hazard-card-step { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
-.hazard-card-step input { width: 60px; padding: 4px 8px; font-size: 0.85rem; text-align: center; }
-.hazard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-.hazard-grid .full { grid-column: 1 / -1; }
-.hazard-grid label { font-size: 0.75rem; }
-.hazard-grid input, .hazard-grid textarea, .hazard-grid select { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-.hazard-grid textarea { min-height: 60px; }
-@media (max-width: 720px) { .hazard-grid { grid-template-columns: 1fr; } }
+    .sb-job-picker { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .sb-job-picker-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .sb-job-picker-title { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .sb-job-search { position: relative; }
+    .sb-job-search input { width: 100%; padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+    .sb-job-search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .sb-job-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; max-height: 320px; overflow-y: auto; z-index: 20; display: none; box-shadow: 0 8px 24px var(--shadow); }
+    .sb-job-results.show { display: block; }
+    .sb-job-result { padding: 0.6rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .sb-job-result:last-child { border-bottom: none; }
+    .sb-job-result:hover, .sb-job-result.hl { background: var(--card-hover); }
+    .sb-job-result-num { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+    .sb-job-result-desc { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
 
-/* Phase divider */
-.phase-divider { display: flex; align-items: center; gap: 0.625rem; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; margin: 1rem 0 0.75rem; text-transform: uppercase; }
-.phase-divider input { background: transparent; border: none; color: white; font-weight: 700; flex: 1; text-transform: uppercase; padding: 0; font-size: 0.8rem; letter-spacing: 0.5px; }
-.phase-divider input::placeholder { color: rgba(255,255,255,0.7); }
-.phase-divider .remove-btn { color: white; background: rgba(255,255,255,0.2); padding: 4px 10px; }
-.phase-divider .remove-btn:hover { background: rgba(255,255,255,0.35); }
+    .sb-selected-job { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.9rem; background: var(--card-hover); border: 1px solid var(--accent); border-radius: 8px; gap: 0.5rem; flex-wrap: wrap; }
+    .sb-selected-job-info { flex: 1; min-width: 0; }
+    .sb-selected-job-num { font-weight: 700; color: var(--accent); font-size: 0.95rem; }
+    .sb-selected-job-desc { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
 
-/* Risk picker */
-.risk-picker { display: flex; gap: 4px; flex-wrap: wrap; }
-.risk-pick { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-secondary); cursor: pointer; font-size: 0.75rem; font-weight: 700; transition: all 0.15s; }
-.risk-pick:hover { border-color: var(--accent); }
-.risk-pick.selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
-.risk-low { background: #92d050 !important; color: #000; }
-.risk-mod { background: #ffff00 !important; color: #000; }
-.risk-high { background: #e30613 !important; color: #fff; }
+    .sb-list { display: flex; flex-direction: column; gap: 0.55rem; }
+    .sb-list-item { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; gap: 0.75rem; flex-wrap: wrap; transition: border-color 0.15s; }
+    .sb-list-item:hover { border-color: var(--accent); }
+    .sb-list-info { flex: 1; min-width: 0; }
+    .sb-list-title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
+    .sb-list-meta { font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; }
+    .sb-list-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
-/* ── Preview document — sized to true A4 landscape ──
-   A4 landscape = 297mm wide × 210mm tall.
-   With 10mm margins on all sides, the printable area is 277mm × 190mm. */
-.preview-wrap { display: none; }
-.preview-wrap.active { display: block; padding: 1rem 0; overflow-x: auto; }
-.swms-doc {
-  background: white; color: #000;
-  font-family: 'Calibri','Arial',sans-serif;
-  font-size: 8.5pt; line-height: 1.3;
-  width: 277mm;
-  margin: 0 auto;
-  padding: 0;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  border-radius: 4px;
-}
-.swms-doc * { box-sizing: border-box; }
-.swms-doc table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.swms-doc td, .swms-doc th { border: 1px solid #999; padding: 3px 5px; vertical-align: top; font-size: 8pt; word-wrap: break-word; overflow-wrap: break-word; }
-.swms-doc th { background: #f2f2f2; text-align: left; font-weight: 700; }
+    .form-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem 1.75rem; }
+    @media (max-width: 520px) { .form-card { padding: 1rem 1rem; } }
 
-/* Each section sits on its own page */
-.swms-doc .doc-section { page-break-after: always; padding: 6mm 8mm; }
-.swms-doc .doc-section:last-child { page-break-after: auto; }
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
 
-/* Header */
-.swms-doc .doc-header { display: flex; gap: 6px; margin-bottom: 4px; align-items: stretch; }
-.swms-doc .title-banner { flex: 2; background: #e30613; color: white; padding: 8px 12px; font-weight: 700; font-size: 11pt; display: flex; align-items: center; }
-.swms-doc .company-box { flex: 1; background: #f2f2f2; padding: 6px 10px; font-size: 8pt; line-height: 1.3; }
-.swms-doc .activity-banner { background: #7f7f7f; color: white; padding: 5px 10px; font-weight: 700; font-size: 9pt; margin-top: 4px; }
+    .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary); }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5; }
+    .empty-state-text { font-size: 0.95rem; }
 
-/* Info / two-col tables */
-.swms-doc .info-table td { width: 25%; }
-.swms-doc .two-col td { width: 50%; }
+    .tool-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.35rem; margin-bottom: 1rem; }
+    .tool-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tool-card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .tool-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-/* Section banner */
-.swms-doc h2.section-banner { background: #7f7f7f; color: white; padding: 6px 10px; font-size: 10pt; font-weight: 700; margin: 8px 0 0; }
+    .btn-add { padding: 0.55rem 1.1rem; border: none; border-radius: 8px; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 600; }
+    .btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(234, 88, 12, 0.25); }
 
-/* Risk matrix */
-.swms-doc .matrix { margin-top: 4px; }
-.swms-doc .matrix th, .swms-doc .matrix td { text-align: center; font-size: 8pt; padding: 5px 4px; }
-.swms-doc .matrix th { background: #7f7f7f; color: white; }
-.swms-doc .matrix .lh-label { background: #d9d9d9; font-weight: 700; writing-mode: vertical-rl; transform: rotate(180deg); width: 24px; }
-.swms-doc .matrix .row-label { background: white; font-weight: 700; text-align: left; padding-left: 8px; }
-.swms-doc .matrix .code { background: white; font-weight: 700; width: 30px; }
-.swms-doc .hoc-header { background: #7f7f7f; color: white; text-align: center; padding: 5px; font-weight: 700; font-size: 9pt; }
-.swms-doc .hoc-row td { background: white; font-weight: 700; text-align: center; font-size: 8pt; }
+    .swms-detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; }
+    .swms-detail-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .swms-detail-meta { font-size: 0.85rem; color: var(--text-secondary); margin-top: 3px; }
 
-/* HAZARDS TABLE — fixed column widths for A4 landscape (277mm printable). */
-.swms-doc .hazards-table { table-layout: fixed; }
-.swms-doc .hazards-table col.col-step     { width: 4%; }
-.swms-doc .hazards-table col.col-jobstep  { width: 12%; }
-.swms-doc .hazards-table col.col-hazard   { width: 12%; }
-.swms-doc .hazards-table col.col-risks    { width: 13%; }
-.swms-doc .hazards-table col.col-rating   { width: 5%; }
-.swms-doc .hazards-table col.col-controls { width: 26%; }
-.swms-doc .hazards-table col.col-hoc      { width: 8%; }
-.swms-doc .hazards-table col.col-residual { width: 5%; }
-.swms-doc .hazards-table col.col-resp     { width: 15%; }
-.swms-doc .hazards-table th { background: #7f7f7f; color: white; font-size: 7.5pt; padding: 4px 4px; }
-.swms-doc .hazards-table td { font-size: 7.5pt; padding: 3px 4px; }
-.swms-doc .hazards-table .step-col { text-align: center; font-weight: 700; background: #f2f2f2; }
-.swms-doc .phase-row td { background: #d9d9d9; font-weight: 700; padding: 4px 6px; font-size: 8.5pt; }
-.swms-doc .controls-list { margin: 0; padding-left: 12px; }
-.swms-doc .controls-list li { margin-bottom: 2px; }
-.swms-doc .rating-cell { text-align: center; font-weight: 700; font-size: 8pt; }
-
-/* Footer (in-document) */
-.swms-doc .doc-footer { text-align: center; font-size: 7.5pt; color: #666; margin-top: 10px; padding-top: 6px; border-top: 1px solid #ccc; }
-.swms-doc .doc-footer-warn { font-weight: 700; letter-spacing: 0.5px; margin-top: 3px; }
-
-/* Page-break behaviour */
-.swms-doc thead { display: table-header-group; }
-.swms-doc tr { page-break-inside: avoid; break-inside: avoid; }
-
-@media print {
-  body { background: white; padding: 0; }
-  .header, .control-btn, .form-card > *:not(.preview-wrap), .card-footer, #modeToggle, .submit-row, .info-banner, .success-banner, .preview-toolbar { display: none !important; }
-  .form-card { padding: 0; border: none; box-shadow: none; background: white; }
-  .page-wrapper { margin: 0; padding: 0; max-width: 100%; }
-  .preview-wrap { display: block !important; padding: 0; overflow: visible; }
-  .swms-doc { box-shadow: none; border-radius: 0; width: 100%; margin: 0; }
-  .swms-doc .doc-section { padding: 0; min-height: auto; }
-  @page { size: A4 landscape; margin: 10mm; }
-}
-
-/* Footer */
-.card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
-.card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
-@media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
-.card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
-.card-footer-link:hover { text-decoration: underline; }
-.card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
-
-/* Empty state */
-.empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-secondary); }
-.empty-state-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.4; }
-</style>
+    .field-group { margin-bottom: 0.85rem; }
+    .field-group label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 0.4rem; }
+    .field-group input, .field-group select { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-primary); font-family: inherit; font-size: 0.95rem; }
+    .required { color: var(--error); }
+    .status-active { background: var(--success-bg); color: var(--success); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .status-superseded, .status-archived { background: var(--card-hover); color: var(--text-secondary); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .status-draft { background: var(--info-bg); color: var(--info-text); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+  </style>
 </head>
 <body>
+  <div id="bromar-header"></div>
 
-<div id="bromar-header"></div>
+  <div class="page-title-wrapper" style="text-align:center;">
+    <h1>SWMS Builder</h1>
+    <p class="subtitle">Manage master templates and create job-specific SWMS</p>
+  </div>
 
-<div class="page-wrapper">
-  <div class="form-card">
-    <div class="header-card" style="text-align: center; margin-bottom: 1.5rem;">
-      <h1 style="font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em;">SWMS Builder</h1>
-      <p style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 300; margin-top: 0.25rem;">Create and manage SWMS templates. Use these in Job Manager to attach to a job.</p>
-    </div>
-
-    <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
-    <div class="success-banner" id="successBanner"><span id="successText"></span></div>
-
-    <div class="mode-toggle" id="modeToggle">
-      <button type="button" class="active" data-mode="library">📚 Template Library</button>
-      <button type="button" data-mode="edit">📝 Edit</button>
-      <button type="button" data-mode="preview">👁 Preview</button>
-    </div>
-
-    <!-- ========== LIBRARY MODE ========== -->
-    <div id="libraryView">
-      <div class="section-label">Templates</div>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: -0.5rem; margin-bottom: 1rem;">Reusable SWMS that workers can attach to a job from the Job Manager.</p>
-
-      <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" class="submit-btn" id="newTemplateBtn">+ New Template</button>
-        <button type="button" class="btn-secondary" id="refreshLibraryBtn">↻ Refresh</button>
+  <div class="page-wrapper">
+    <div class="form-card">
+      <div class="sb-tabs" id="sbTabs">
+        <button class="sb-tab active" data-tab="templates">📚 Templates <span class="sb-tab-count" id="cnt-templates">–</span></button>
+        <button class="sb-tab" data-tab="swms">🛡️ SWMS <span class="sb-tab-count" id="cnt-swms">–</span></button>
       </div>
 
-      <div id="templateList" class="template-list">
-        <div class="empty-state"><div class="empty-state-icon">📚</div>Loading templates…</div>
+      <div id="tabPanel"></div>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB — SWMS BUILDER</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.00</div>
       </div>
-    </div>
-
-    <!-- ========== EDIT MODE ========== -->
-    <form id="swmsForm" class="edit-wrap" style="display:none;">
-
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
-        <button type="button" class="btn-secondary" id="backToLibraryBtn">← Back to Library</button>
-        <div style="margin-left: auto; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center;" id="editingLabel">New template</div>
-      </div>
-
-      <div class="section-label">Template Identity</div>
-      <div class="field-row">
-        <div class="field-group">
-          <label>Filled by <span class="required">*</span></label>
-          <select id="filled_by" required></select>
-        </div>
-        <div class="field-group">
-          <label>Template name (internal) <span class="required">*</span></label>
-          <input type="text" id="template_name" placeholder="e.g. Machine Commissioning" required/>
-        </div>
-        <div class="field-group">
-          <label>Title (on document) <span class="required">*</span></label>
-          <input type="text" id="swms_title" placeholder="e.g. MACHINE COMMISSIONING" required/>
-        </div>
-        <div class="field-group">
-          <label>Category</label>
-          <select id="category">
-            <option value="">—</option>
-            <option>Electrical</option>
-            <option>Commissioning</option>
-            <option>Installation</option>
-            <option>Maintenance</option>
-            <option>Civil</option>
-            <option>Mechanical</option>
-            <option>General</option>
-          </select>
-        </div>
-        <div class="field-group full">
-          <label>Work activity description</label>
-          <input type="text" id="activity_description" placeholder="e.g. START UP AND COMMISSIONING OF A MACHINE/SYSTEM"/>
-        </div>
-        <div class="field-group">
-          <label>Default developed by</label>
-          <input type="text" id="default_developed_by"/>
-        </div>
-        <div class="field-group">
-          <label>Default reviewed by</label>
-          <input type="text" id="default_reviewed_by"/>
-        </div>
-      </div>
-
-      <div class="section-label">Compliance</div>
-      <div class="field-group">
-        <label>Legislation, Australian standards & codes of practice (one per line)</label>
-        <textarea id="legislation" rows="4" placeholder="AS/NZS3000:2018 Wiring Rules&#10;AS4024.2006-1603 Safety of Machinery"></textarea>
-      </div>
-      <div class="field-row">
-        <div class="field-group">
-          <label>Plant & equipment required (one per line)</label>
-          <textarea id="plant_required" rows="3"></textarea>
-        </div>
-        <div class="field-group">
-          <label>Plant & equipment inspections (one per line)</label>
-          <textarea id="plant_inspections" rows="3"></textarea>
-        </div>
-        <div class="field-group">
-          <label>Materials used</label>
-          <textarea id="materials_used" rows="2"></textarea>
-        </div>
-        <div class="field-group">
-          <label>MSDS required</label>
-          <textarea id="msds_required" rows="2"></textarea>
-        </div>
-        <div class="field-group">
-          <label>Personnel qualifications required</label>
-          <textarea id="qualifications" rows="2"></textarea>
-        </div>
-        <div class="field-group">
-          <label>Specific training required</label>
-          <textarea id="training_required" rows="2"></textarea>
-        </div>
-        <div class="field-group full">
-          <label>Relevant SWIs / SOPs / EPIs / Client Procedures</label>
-          <textarea id="relevant_procedures" rows="2"></textarea>
-        </div>
-      </div>
-
-      <div class="section-label">PPE</div>
-      <div class="field-row">
-        <div class="field-group">
-          <label>Mandatory site PPE (one per line)</label>
-          <textarea id="ppe_mandatory" rows="6">Hard Hat
-Steel capped boots (laced up with ankle support)
-Long sleeved shirt buttoned at the wrist
-Long trousers
-Safety glasses
-Gloves to be carried
-Site approved Hi Vis vest</textarea>
-        </div>
-        <div class="field-group">
-          <label>Additional PPE (one per line)</label>
-          <textarea id="ppe_additional" rows="6" placeholder="e.g. hearing protection, dust mask, goggles"></textarea>
-        </div>
-      </div>
-
-      <div class="section-label">Job Steps, Hazards & Controls</div>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: -0.5rem; margin-bottom: 1rem;">Add phases (PRE-WORKS, ENERGISATION, etc.) and hazard rows.</p>
-
-      <div id="hazardsContainer"></div>
-
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
-        <button type="button" class="add-btn" id="addPhaseBtn" style="margin-bottom: 0;">+ Add Phase</button>
-        <button type="button" class="add-btn" id="addHazardBtn" style="margin-bottom: 0;">+ Add Hazard Row</button>
-      </div>
-
-      <div class="form-divider"></div>
-
-      <div class="submit-row">
-        <span class="submit-note" id="templateVersionLabel">Version V1.00</span>
-        <button type="button" class="btn-secondary" id="archiveBtn" style="display:none;">Archive</button>
-        <button type="submit" class="submit-btn" id="saveBtn">Save Template</button>
-      </div>
-    </form>
-
-    <!-- ========== PREVIEW MODE ========== -->
-    <div class="preview-wrap" id="previewWrap">
-      <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" class="btn-secondary" id="printPreviewBtn">🖨 Print</button>
-        <button type="button" class="btn-secondary" id="pdfPreviewBtn">📄 Download PDF</button>
-      </div>
-      <div class="swms-doc" id="swmsDoc"></div>
-    </div>
-
-    <div class="card-footer">
-      <div class="card-footer-title">BROMAR HUB — SWMS BUILDER</div>
-      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
     </div>
   </div>
-</div>
-
-<script>
-/* ──────────────────────────────────────────────────────────
-   SWMS BUILDER — manages templates in swms_templates
-   ────────────────────────────────────────────────────────── */
-
-let currentUser = null;
-let currentTemplate = null;   // null = new, otherwise full template row
-let hazards = [];             // [{ type:'phase'|'row', ... }]
-
-const RISK_RATINGS = ['A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5','E1','E2','E3','E4','E5'];
-
-function ratingClass(r) {
-  const map = {
-    'A1':'risk-high','A2':'risk-high','A3':'risk-high','A4':'risk-high','A5':'risk-low',
-    'B1':'risk-high','B2':'risk-high','B3':'risk-high','B4':'risk-mod','B5':'risk-low',
-    'C1':'risk-high','C2':'risk-high','C3':'risk-mod','C4':'risk-mod','C5':'risk-low',
-    'D1':'risk-high','D2':'risk-high','D3':'risk-mod','D4':'risk-low','D5':'risk-low',
-    'E1':'risk-mod','E2':'risk-mod','E3':'risk-low','E4':'risk-low','E5':'risk-low',
-  };
-  return map[r] || '';
-}
-
-const esc = s => BromarHub.escapeHtml(s);
-
-/* ── LIBRARY ─────────────────────────────────────────────── */
-async function loadTemplates() {
-  const list = document.getElementById('templateList');
-  list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📚</div>Loading…</div>';
-  const { data, error } = await window.sb
-    .from('swms_templates')
-    .select('id, name, title, category, template_version, updated_at, is_archived')
-    .eq('is_archived', false)
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div>${esc(error.message)}</div>`;
-    return;
-  }
-
-  if (!data || !data.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📚</div>No templates yet. Click <strong>+ New Template</strong> to start.</div>';
-    return;
-  }
-
-  list.innerHTML = data.map(t => `
-    <div class="template-row">
-      <div class="template-info">
-        <div class="template-name">${esc(t.name)}</div>
-        <div class="template-meta">
-          ${esc(t.title || '')}${t.category ? ' · ' + esc(t.category) : ''}
-          · ${esc(t.template_version || 'V1.00')}
-          · Updated ${new Date(t.updated_at).toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' })}
-        </div>
-      </div>
-      <div class="template-actions">
-        <button class="btn-secondary" data-edit="${t.id}">Edit</button>
-        <button class="btn-secondary" data-preview="${t.id}">Preview</button>
-      </div>
-    </div>
-  `).join('');
-
-  list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editTemplate(b.dataset.edit)));
-  list.querySelectorAll('[data-preview]').forEach(b => b.addEventListener('click', () => previewTemplate(b.dataset.preview)));
-}
-
-async function loadTemplate(id) {
-  const { data, error } = await window.sb.from('swms_templates').select('*').eq('id', id).maybeSingle();
-  if (error) { BromarHub.showInfo('Load failed: ' + error.message); return null; }
-  return data;
-}
-
-async function editTemplate(id) {
-  const tpl = await loadTemplate(id);
-  if (!tpl) return;
-  currentTemplate = tpl;
-  populateForm(tpl);
-  switchMode('edit');
-}
-
-async function previewTemplate(id) {
-  const tpl = await loadTemplate(id);
-  if (!tpl) return;
-  currentTemplate = tpl;
-  populateForm(tpl);
-  switchMode('preview');
-}
-
-/* ── FORM POPULATION ─────────────────────────────────────── */
-function populateForm(tpl) {
-  document.getElementById('template_name').value = tpl.name || '';
-  document.getElementById('swms_title').value = tpl.title || '';
-  document.getElementById('category').value = tpl.category || '';
-  document.getElementById('activity_description').value = tpl.activity_description || '';
-  document.getElementById('default_developed_by').value = tpl.default_developed_by || '';
-  document.getElementById('default_reviewed_by').value = tpl.default_reviewed_by || '';
-  document.getElementById('legislation').value = tpl.legislation || '';
-  document.getElementById('plant_required').value = tpl.plant_required || '';
-  document.getElementById('plant_inspections').value = tpl.plant_inspections || '';
-  document.getElementById('materials_used').value = tpl.materials_used || '';
-  document.getElementById('msds_required').value = tpl.msds_required || '';
-  document.getElementById('qualifications').value = tpl.qualifications || '';
-  document.getElementById('training_required').value = tpl.training_required || '';
-  document.getElementById('relevant_procedures').value = tpl.relevant_procedures || '';
-  if (tpl.ppe_mandatory != null) document.getElementById('ppe_mandatory').value = tpl.ppe_mandatory;
-  document.getElementById('ppe_additional').value = tpl.ppe_additional || '';
-  hazards = Array.isArray(tpl.hazards_json) ? tpl.hazards_json : [];
-  renderHazards();
-  document.getElementById('editingLabel').textContent = tpl.name ? `Editing: ${tpl.name}` : 'New template';
-  document.getElementById('templateVersionLabel').textContent = 'Version ' + (tpl.template_version || 'V1.00');
-  document.getElementById('archiveBtn').style.display = tpl.id ? 'inline-block' : 'none';
-}
-
-function clearForm() {
-  currentTemplate = null;
-  document.getElementById('swmsForm').reset();
-  document.getElementById('ppe_mandatory').value = `Hard Hat
-Steel capped boots (laced up with ankle support)
-Long sleeved shirt buttoned at the wrist
-Long trousers
-Safety glasses
-Gloves to be carried
-Site approved Hi Vis vest`;
-  hazards = [
-    { type: 'phase', label: 'PRE-WORKS' },
-    { type: 'row', step: '01', jobStep: '', hazard: '', risks: '', riskRating: '', controls: '', hoc: '', residualRisk: '', responsibility: '' }
-  ];
-  renderHazards();
-  document.getElementById('editingLabel').textContent = 'New template';
-  document.getElementById('templateVersionLabel').textContent = 'Version V1.00';
-  document.getElementById('archiveBtn').style.display = 'none';
-}
-
-/* ── HAZARD ROWS UI ──────────────────────────────────────── */
-function renderHazards() {
-  const c = document.getElementById('hazardsContainer');
-  c.innerHTML = '';
-  hazards.forEach((h, i) => {
-    if (h.type === 'phase') {
-      const div = document.createElement('div');
-      div.className = 'phase-divider';
-      div.innerHTML = `
-        <input type="text" placeholder="PHASE NAME" value="${esc(h.label || '')}" data-idx="${i}" data-field="label"/>
-        <button type="button" class="remove-btn" data-remove="${i}">Remove</button>`;
-      c.appendChild(div);
-    } else {
-      const div = document.createElement('div');
-      div.className = 'hazard-card';
-      div.innerHTML = `
-        <div class="hazard-card-header">
-          <div class="hazard-card-step">STEP <input type="text" placeholder="01" value="${esc(h.step || '')}" data-idx="${i}" data-field="step"/></div>
-          <button type="button" class="remove-btn" data-remove="${i}">Remove</button>
-        </div>
-        <div class="hazard-grid">
-          <div class="field-group full" style="margin-bottom:0"><label>Job step</label><textarea data-idx="${i}" data-field="jobStep">${esc(h.jobStep || '')}</textarea></div>
-          <div class="field-group" style="margin-bottom:0"><label>Hazards</label><textarea data-idx="${i}" data-field="hazard">${esc(h.hazard || '')}</textarea></div>
-          <div class="field-group" style="margin-bottom:0"><label>Risks</label><textarea data-idx="${i}" data-field="risks">${esc(h.risks || '')}</textarea></div>
-          <div class="field-group" style="margin-bottom:0"><label>Risk rating</label>
-            <div class="risk-picker" data-picker="riskRating" data-idx="${i}">
-              ${RISK_RATINGS.map(r => `<div class="risk-pick ${ratingClass(r)} ${h.riskRating === r ? 'selected' : ''}" data-val="${r}">${r}</div>`).join('')}
-            </div>
-          </div>
-          <div class="field-group" style="margin-bottom:0"><label>Residual risk</label>
-            <div class="risk-picker" data-picker="residualRisk" data-idx="${i}">
-              ${RISK_RATINGS.map(r => `<div class="risk-pick ${ratingClass(r)} ${h.residualRisk === r ? 'selected' : ''}" data-val="${r}">${r}</div>`).join('')}
-            </div>
-          </div>
-          <div class="field-group full" style="margin-bottom:0"><label>Controls (one per line)</label><textarea data-idx="${i}" data-field="controls" rows="3">${esc(h.controls || '')}</textarea></div>
-          <div class="field-group" style="margin-bottom:0"><label>Hierarchy of control (one per line)</label><textarea data-idx="${i}" data-field="hoc" rows="2">${esc(h.hoc || '')}</textarea></div>
-          <div class="field-group" style="margin-bottom:0"><label>Responsibility (one per line)</label><textarea data-idx="${i}" data-field="responsibility" rows="2">${esc(h.responsibility || '')}</textarea></div>
-        </div>`;
-      c.appendChild(div);
-    }
-  });
-
-  c.querySelectorAll('[data-field]').forEach(el => {
-    el.addEventListener('input', e => {
-      hazards[+e.target.dataset.idx][e.target.dataset.field] = e.target.value;
-    });
-  });
-  c.querySelectorAll('.risk-picker').forEach(picker => {
-    picker.querySelectorAll('.risk-pick').forEach(pick => {
-      pick.addEventListener('click', () => {
-        const idx = +picker.dataset.idx;
-        const field = picker.dataset.picker;
-        hazards[idx][field] = hazards[idx][field] === pick.dataset.val ? '' : pick.dataset.val;
-        renderHazards();
-      });
-    });
-  });
-  c.querySelectorAll('[data-remove]').forEach(btn => {
-    btn.addEventListener('click', () => { hazards.splice(+btn.dataset.remove, 1); renderHazards(); });
-  });
-}
-
-/* ── MODE SWITCH ─────────────────────────────────────────── */
-function switchMode(mode) {
-  document.querySelectorAll('#modeToggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  document.getElementById('libraryView').style.display = mode === 'library' ? 'block' : 'none';
-  document.getElementById('swmsForm').style.display = mode === 'edit' ? 'block' : 'none';
-  document.getElementById('previewWrap').classList.toggle('active', mode === 'preview');
-  if (mode === 'preview') buildPreview();
-  if (mode === 'library') loadTemplates();
-}
-
-document.querySelectorAll('#modeToggle button').forEach(b => {
-  b.addEventListener('click', () => switchMode(b.dataset.mode));
-});
-
-document.getElementById('newTemplateBtn').addEventListener('click', () => { clearForm(); switchMode('edit'); });
-document.getElementById('refreshLibraryBtn').addEventListener('click', loadTemplates);
-document.getElementById('backToLibraryBtn').addEventListener('click', () => switchMode('library'));
-document.getElementById('addPhaseBtn').addEventListener('click', () => { hazards.push({ type: 'phase', label: '' }); renderHazards(); });
-document.getElementById('addHazardBtn').addEventListener('click', () => { hazards.push({ type: 'row', step: '', jobStep: '', hazard: '', risks: '', riskRating: '', controls: '', hoc: '', residualRisk: '', responsibility: '' }); renderHazards(); });
-
-/* ── PREVIEW BUILDER ─────────────────────────────────────── */
-const v = id => document.getElementById(id)?.value || '';
-const lines = id => v(id).split('\n').map(s => s.trim()).filter(Boolean);
-
-function buildPreview() {
-  const doc = document.getElementById('swmsDoc');
-  const legislation = lines('legislation');
-  const plantRequired = lines('plant_required');
-  const plantInspections = lines('plant_inspections');
-  const ppeMandatory = lines('ppe_mandatory');
-  const ppeAdditional = lines('ppe_additional');
-
-  /* ── PAGE 1: Header + Info + Compliance + Risk Matrix + PPE ── */
-  const maxPpe = Math.max(ppeMandatory.length, ppeAdditional.length, 1);
-  let ppeRows = '';
-  for (let i = 0; i < maxPpe; i++) ppeRows += `<tr><td>${esc(ppeMandatory[i] || '')}</td><td>${esc(ppeAdditional[i] || '')}</td></tr>`;
-
-  let html = `
-    <div class="doc-section">
-      <div class="doc-header">
-        <div class="title-banner">SAFE WORK METHOD STATEMENT – ${esc((v('swms_title') || 'TEMPLATE').toUpperCase())}</div>
-        <div class="company-box">Bromar Electrical Services (AUST) Pty Ltd<br/>ABN: 45 634 835 939<br/>LICENCE #: 17364</div>
-      </div>
-      <div class="activity-banner">WORK ACTIVITY DESCRIPTION: ${esc(v('activity_description').toUpperCase())}</div>
-      <table class="info-table">
-        <tr>
-          <td><strong>Template:</strong> ${esc(v('template_name'))}</td>
-          <td><strong>Category:</strong> ${esc(v('category'))}</td>
-          <td colspan="2"><em style="color:#666">Project, SWMS #, Date filled when attached to a job</em></td>
-        </tr>
-        <tr>
-          <td colspan="2"><strong>Default developed by:</strong> ${esc(v('default_developed_by'))}</td>
-          <td colspan="2"><strong>Default reviewed by:</strong> ${esc(v('default_reviewed_by'))}</td>
-        </tr>
-      </table>
-      <table class="two-col">
-        <tr><th>Legislation, Australian standards & codes of practice/consulted:</th><th>Personnel qualifications required for this activity:</th></tr>
-        <tr><td>${legislation.map(esc).join('<br/>')}</td><td>${esc(v('qualifications'))}</td></tr>
-        <tr><th>Plant and equipment required for this activity:</th><th>Plant and equipment inspections required: Daily/weekly pre-start checks:</th></tr>
-        <tr><td>${plantRequired.map(esc).join('<br/>')}</td><td>${plantInspections.map(esc).join('<br/>')}</td></tr>
-        <tr><th>Materials used:</th><th>MSDS required:</th></tr>
-        <tr><td>${esc(v('materials_used'))}</td><td>${esc(v('msds_required'))}</td></tr>
-        <tr><th>Specific training required for this activity:</th><th>Relevant SWIs / SOPs / EPIs / Client Procedures:</th></tr>
-        <tr><td>${esc(v('training_required'))}</td><td>${esc(v('relevant_procedures'))}</td></tr>
-      </table>
-    </div>
-
-    <div class="doc-section">
-      <h2 class="section-banner">FIGURE 1: RISK MANAGEMENT MATRIX</h2>
-      <table class="matrix">
-        <tr><td rowspan="7" class="lh-label">LIKELIHOOD</td><th></th><th></th><th colspan="5">CONSEQUENCES</th></tr>
-        <tr><th></th><th></th><th>Insignificant [5]</th><th>Minor [4]</th><th>Moderate [3]</th><th>Major [2]</th><th>Catastrophic [1]</th></tr>
-        <tr><td class="row-label">Almost Certain</td><td class="code">[A]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
-        <tr><td class="row-label">Likely</td><td class="code">[B]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
-        <tr><td class="row-label">Moderate</td><td class="code">[C]</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
-        <tr><td class="row-label">Unlikely</td><td class="code">[D]</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-high">High</td><td class="risk-high">High</td></tr>
-        <tr><td class="row-label">Rare</td><td class="code">[E]</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-low">Low</td><td class="risk-mod">Moderate</td><td class="risk-mod">Moderate</td></tr>
-        <tr><td colspan="8" class="hoc-header">HIERARCHY OF CONTROL</td></tr>
-        <tr class="hoc-row"><td></td><td></td><td></td><td>Elimination →</td><td>Isolation →</td><td>Engineering →</td><td>Administration →</td><td>PPE</td></tr>
-      </table>
-      <table class="two-col" style="margin-top:8px">
-        <tr><th>Mandatory Site PPE requirements</th><th>Additional PPE requirements</th></tr>
-        ${ppeRows}
-      </table>
-    </div>`;
-
-  /* ── PAGE 3+: Hazards table.
-     Group rows into chunks of ~6 rows per page so they break cleanly. */
-  let hazardRowsHtml = '';
-  hazards.forEach(h => {
-    if (h.type === 'phase') {
-      hazardRowsHtml += `<tr class="phase-row"><td colspan="9">${esc((h.label || '').toUpperCase())}</td></tr>`;
-    } else {
-      const ctrlList = (h.controls || '').split('\n').map(s => s.trim()).filter(Boolean);
-      const hocList = (h.hoc || '').split('\n').map(s => s.trim()).filter(Boolean);
-      const respList = (h.responsibility || '').split('\n').map(s => s.trim()).filter(Boolean);
-      hazardRowsHtml += `
-        <tr>
-          <td class="step-col">${esc(h.step || '')}</td>
-          <td>${esc(h.jobStep || '')}</td>
-          <td>${esc(h.hazard || '')}</td>
-          <td>${esc(h.risks || '')}</td>
-          <td class="rating-cell ${ratingClass(h.riskRating)}">${esc(h.riskRating || '')}</td>
-          <td><ul class="controls-list">${ctrlList.map(x => `<li>${esc(x)}</li>`).join('')}</ul></td>
-          <td>${hocList.map(esc).join('<br/>')}</td>
-          <td class="rating-cell ${ratingClass(h.residualRisk)}">${esc(h.residualRisk || '')}</td>
-          <td>${respList.map(esc).join('<br/>')}</td>
-        </tr>`;
-    }
-  });
-
-  const hazardsColgroup = `
-    <colgroup>
-      <col class="col-step"/>
-      <col class="col-jobstep"/>
-      <col class="col-hazard"/>
-      <col class="col-risks"/>
-      <col class="col-rating"/>
-      <col class="col-controls"/>
-      <col class="col-hoc"/>
-      <col class="col-residual"/>
-      <col class="col-resp"/>
-    </colgroup>`;
-
-  const hazardsHead = `
-    <thead>
-      <tr>
-        <th class="step-col">Step</th>
-        <th>Job step</th>
-        <th>Hazards</th>
-        <th>Risks</th>
-        <th>Risk rating</th>
-        <th>Controls</th>
-        <th>Hierarchy of control</th>
-        <th>Residual risk</th>
-        <th>Responsibility</th>
-      </tr>
-    </thead>`;
-
-  html += `
-    <div class="doc-section">
-      <table class="hazards-table">
-        ${hazardsColgroup}
-        ${hazardsHead}
-        <tbody>
-          ${hazardRowsHtml || '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">No hazards added yet</td></tr>'}
-        </tbody>
-      </table>
-      <div class="doc-footer">
-        Template preview — Bromar Electrical Services (AUST) Pty Ltd
-        <div class="doc-footer-warn">SIGN-ON AND JOB DETAILS ADDED WHEN ATTACHED TO A JOB</div>
-      </div>
-    </div>`;
-
-  doc.innerHTML = html;
-}
-
-/* ── PRINT / PDF ─────────────────────────────────────────── */
-document.getElementById('printPreviewBtn').addEventListener('click', () => window.print());
-document.getElementById('pdfPreviewBtn').addEventListener('click', async () => {
-  BromarHub.showLoading('Generating PDF', 'Please wait...');
-  try {
-    await html2pdf().set({
-      margin: [10, 10, 10, 10],
-      filename: `SWMS_TEMPLATE_${(v('template_name') || 'draft').replace(/\s+/g, '_')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1123 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.phase-row', '.doc-header'] }
-    }).from(document.getElementById('swmsDoc')).save();
-    BromarHub.hideLoading();
-    BromarHub.showSuccess('PDF downloaded');
-  } catch (err) {
-    BromarHub.hideLoading();
-    BromarHub.showInfo('PDF failed: ' + err.message);
-  }
-});
-
-/* ── SAVE / ARCHIVE ──────────────────────────────────────── */
-document.getElementById('swmsForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  if (!currentUser) {
-    const sel = document.getElementById('filled_by');
-    if (sel.value) {
-      const opt = sel.selectedOptions[0];
-      currentUser = { name: opt.value, email: opt.dataset.email || '' };
-    }
-  }
-  if (!currentUser) { BromarHub.showInfo('Please select who is filling out the form'); return; }
-  if (!v('template_name')) { BromarHub.showInfo('Template name is required'); return; }
-  if (!v('swms_title')) { BromarHub.showInfo('Title is required'); return; }
-
-  BromarHub.showLoading('Saving template', 'Please wait...');
-
-  // Bump version on save if existing template
-  let nextVersion = 'V1.00';
-  if (currentTemplate?.template_version) {
-    const m = currentTemplate.template_version.match(/V(\d+)\.(\d+)/);
-    if (m) {
-      const minor = (parseInt(m[2]) + 1).toString().padStart(2, '0');
-      nextVersion = `V${m[1]}.${minor}`;
-    }
-  }
-
-  const payload = {
-    name: v('template_name'),
-    title: v('swms_title'),
-    category: v('category') || null,
-    activity_description: v('activity_description'),
-    default_developed_by: v('default_developed_by'),
-    default_reviewed_by: v('default_reviewed_by'),
-    legislation: v('legislation'),
-    plant_required: v('plant_required'),
-    plant_inspections: v('plant_inspections'),
-    materials_used: v('materials_used'),
-    msds_required: v('msds_required'),
-    qualifications: v('qualifications'),
-    training_required: v('training_required'),
-    relevant_procedures: v('relevant_procedures'),
-    ppe_mandatory: v('ppe_mandatory'),
-    ppe_additional: v('ppe_additional'),
-    hazards_json: hazards,
-    template_version: nextVersion,
-    created_by_name: currentUser.name,
-    created_by_email: currentUser.email
-  };
-
-  try {
-    let result;
-    if (currentTemplate?.id) {
-      const { data, error } = await window.sb.from('swms_templates').update(payload).eq('id', currentTemplate.id).select().single();
-      if (error) throw error;
-      result = data;
-    } else {
-      const { data, error } = await window.sb.from('swms_templates').insert(payload).select().single();
-      if (error) throw error;
-      result = data;
-    }
-    currentTemplate = result;
-    BromarHub.hideLoading();
-    BromarHub.showSuccess(`Template saved as ${result.template_version}`);
-    document.getElementById('templateVersionLabel').textContent = 'Version ' + result.template_version;
-    document.getElementById('archiveBtn').style.display = 'inline-block';
-    document.getElementById('editingLabel').textContent = `Editing: ${result.name}`;
-  } catch (err) {
-    BromarHub.hideLoading();
-    BromarHub.showInfo('Save failed: ' + err.message);
-  }
-});
-
-document.getElementById('archiveBtn').addEventListener('click', async () => {
-  if (!currentTemplate?.id) return;
-  if (!confirm(`Archive template "${currentTemplate.name}"? It will be hidden from the library but kept for any SWMS using it.`)) return;
-  BromarHub.showLoading('Archiving', 'Please wait...');
-  const { error } = await window.sb.from('swms_templates').update({ is_archived: true }).eq('id', currentTemplate.id);
-  BromarHub.hideLoading();
-  if (error) { BromarHub.showInfo('Archive failed: ' + error.message); return; }
-  BromarHub.showSuccess('Template archived');
-  switchMode('library');
-});
-
-/* ── INIT ────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', async () => {
-  await BromarHub.loadEmployees('filled_by');
-  await BromarHub.autoSelectLoggedInUser('filled_by');
-  const filledBy = document.getElementById('filled_by');
-  if (filledBy.value) {
-    const opt = filledBy.selectedOptions[0];
-    currentUser = { name: opt.value, email: opt.dataset.email || '' };
-  }
-  filledBy.addEventListener('change', function() {
-    const opt = this.selectedOptions[0];
-    currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
-  });
-  loadTemplates();
-});
-</script>
-
 </body>
 </html>
