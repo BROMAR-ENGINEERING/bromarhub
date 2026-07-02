@@ -11,14 +11,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     /* PAGE-SPECIFIC ONLY */
-    .page-wrapper { margin-top: 90px; max-width: 720px; }
-    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+    .page-title-wrapper { margin: 80px auto 0; }
+    .page-wrapper { margin-top: 1rem; max-width: 720px; }
 
     .field-hint { font-size: 0.78rem; color: var(--text-secondary); opacity: 0.8; margin-top: 5px; }
     .error-msg { font-size: 0.78rem; color: var(--error); margin-top: 5px; display: none; }
     .field-group.has-error .error-msg { display: block; }
     .field-group.has-error input,
     .field-group.has-error textarea { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+
+    .logged-in-badge { color: var(--success); font-size: 0.72rem; font-weight: 600; margin-left: 6px; }
 
     /* Colour-coded chips (status + urgency) */
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -204,12 +206,12 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.02</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.00</div>
+<div class="revision-number">V1.02</div>
 
 <script>
   const CONFIG = {
@@ -220,6 +222,43 @@
   emailjs.init(CONFIG.emailjs.publicKey);
 
   document.getElementById('completion_date').max = new Date().toISOString().split('T')[0];
+
+  // ── Fix injected header for two-deep Tyrecycle pages + auto-fill user ──
+  document.addEventListener('DOMContentLoaded', () => {
+    // Home button → clients/index.html (relative to clients/tyrecycle/)
+    const homeBtn = document.querySelector('.header-controls a');
+    if (homeBtn) homeBtn.setAttribute('href', '../index.html');
+    // Logos load from site root (same as main index)
+    const light = document.querySelector('.light-logo');
+    const dark = document.querySelector('.dark-logo');
+    if (light) light.src = '/Bromar-Primary-Logo-Full-Colour.png';
+    if (dark) dark.src = '/Bromar-Primary-Logo-Reverse-White.png';
+    autofillUser();
+  });
+
+  async function autofillUser() {
+    if (!window.sb) return;
+    try {
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (!user?.email) return;
+      const nameInput = document.getElementById('technician_name');
+      const emailInput = document.getElementById('technician_email');
+      emailInput.value = user.email;
+      const { data } = await window.sb.from('employees').select('full_name, email').ilike('email', user.email).limit(1);
+      if (data && data.length) nameInput.value = data[0].full_name;
+      nameInput.readOnly = true;
+      emailInput.readOnly = true;
+      nameInput.style.opacity = '0.85';
+      emailInput.style.opacity = '0.85';
+      const label = document.querySelector('label[for="technician_name"]');
+      if (label && !label.querySelector('.logged-in-badge')) {
+        const b = document.createElement('span');
+        b.className = 'logged-in-badge';
+        b.textContent = '🔒 Logged in';
+        label.appendChild(b);
+      }
+    } catch (_) {}
+  }
 
   const newWOCheckbox = document.getElementById('new_work_order_required');
   const newWOSection = document.getElementById('newWorkOrderSection');
