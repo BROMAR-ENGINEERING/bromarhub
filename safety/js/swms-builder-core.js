@@ -1,5 +1,5 @@
 /* ============================================================
-   SWMS BUILDER — CORE — V1.00
+   SWMS BUILDER — CORE — V1.01
    Namespace, tab registry, shared helpers, ctx builder for
    SwmsShared. Load order: this → tab files → boot.
    ============================================================ */
@@ -12,7 +12,8 @@
     swmsInstances: [],
     selectedJob: null,
     allJobs: [],
-    currentUser: null
+    currentUser: null,
+    booted: false
   };
 
   const tabs = {};
@@ -20,6 +21,8 @@
   function registerTab(id, def) {
     tabs[id] = { id, ...def };
     if (!tabOrder.includes(id)) tabOrder.push(id);
+    // If we've already booted (tabs registered after boot ran), refresh the UI
+    if (state.booted && id === state.activeTab) renderActiveTab();
   }
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -45,8 +48,6 @@
     window.open(data.signedUrl, '_blank', 'noopener');
   }
 
-  /* ── SHARED CTX for SwmsShared ── */
-  // reloadKind: 'templates' | 'swms' — which list to refresh after save/cancel
   function sharedCtx(reloadKind, extras = {}) {
     return {
       sb: sb(),
@@ -58,18 +59,14 @@
       ensureCurrentUser,
       statusBadge,
       onSaved: async () => {
-        if (reloadKind === 'templates') await window.SwmsBuilder.reloadTemplates();
-        else if (reloadKind === 'swms') await window.SwmsBuilder.reloadSwms();
+        if (reloadKind === 'templates') await reloadTemplates();
+        else if (reloadKind === 'swms') await reloadSwms();
       },
-      onCancelled: () => {
-        if (reloadKind === 'templates') window.SwmsBuilder.renderActiveTab();
-        else if (reloadKind === 'swms') window.SwmsBuilder.renderActiveTab();
-      },
+      onCancelled: () => { renderActiveTab(); },
       ...extras
     };
   }
 
-  /* ── TAB BAR ── */
   function buildTabBar() {
     const bar = document.getElementById('sbTabs');
     if (!bar) return;
@@ -94,13 +91,12 @@
     if (!panel) return;
     const tab = tabs[state.activeTab];
     if (!tab || typeof tab.render !== 'function') {
-      panel.innerHTML = `<div class="empty-state"><div class="empty-state-text">Tab not available</div></div>`;
+      panel.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading tab...</div></div>`;
       return;
     }
     tab.render(panel);
   }
 
-  /* ── DATA LOADS ── */
   async function reloadTemplates() {
     const { data, error } = await sb().from('swms_templates').select('*').order('name');
     if (error) { BromarHub.showInfo('Load failed: ' + error.message); state.templates = []; }
@@ -136,6 +132,8 @@
     if (state.activeTab === 'swms') renderActiveTab();
   }
 
+  function markBooted() { state.booted = true; }
+
   window.SwmsBuilder = {
     state,
     sb, esc, fmtDate, statusBadge,
@@ -144,6 +142,7 @@
     sharedCtx,
     buildTabBar, renderActiveTab, updateCounts,
     reloadTemplates, reloadSwms, loadAllJobs,
+    markBooted,
     getTabs: () => tabs, getTabOrder: () => tabOrder
   };
 })();
