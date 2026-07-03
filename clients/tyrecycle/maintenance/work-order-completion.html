@@ -206,12 +206,12 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.05</div>
+      <div class="card-footer-version">Version V1.06</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.05</div>
+<div class="revision-number">V1.06</div>
 
 <script>
   const CONFIG = {
@@ -223,33 +223,42 @@
 
   document.getElementById('completion_date').max = new Date().toISOString().split('T')[0];
 
-  // ── Fix injected header for two-deep Tyrecycle pages + auto-fill user ──
-  document.addEventListener('DOMContentLoaded', () => {
-    // Left home button → main site index (site root)
+  // ── Fix injected header for Tyrecycle pages (waits for shared JS to inject it) ──
+  function whenHeaderReady(cb, tries) {
+    tries = tries || 0;
     const controls = document.querySelector('.header-controls');
-    const homeBtn = controls ? controls.querySelector('a') : null;
+    if (controls && controls.querySelector('a') && document.querySelector('.light-logo')) { cb(controls); return; }
+    if (tries > 120) return;
+    requestAnimationFrame(() => whenHeaderReady(cb, tries + 1));
+  }
+
+  whenHeaderReady((controls) => {
+    // Left home button → Tyrecycle home
+    const homeBtn = controls.querySelector('a');
     if (homeBtn) homeBtn.setAttribute('href', '/clients/tyrecycle/tyrecyclehome.html');
-    // Add a second top-right button: Tyrecycle Home, beside the theme toggle
-    const themeBtn = document.getElementById('themeToggle');
-    if (controls && themeBtn) {
-      const rightGroup = document.createElement('div');
-      rightGroup.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
-      const tyBtn = document.createElement('a');
-      tyBtn.className = 'control-btn';
-      tyBtn.setAttribute('href', '/index.html');
-      tyBtn.setAttribute('aria-label', 'Main Home');
-      tyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>';
-      controls.appendChild(rightGroup);
-      rightGroup.appendChild(tyBtn);
-      rightGroup.appendChild(themeBtn);
-    }
     // Logos load from site root (same as main index)
     const light = document.querySelector('.light-logo');
     const dark = document.querySelector('.dark-logo');
     if (light) light.src = '/Bromar-Primary-Logo-Full-Colour.png';
     if (dark) dark.src = '/Bromar-Primary-Logo-Reverse-White.png';
-    autofillUser();
+    // Second top-right button → main site index, beside the theme toggle
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn && !document.getElementById('mainHomeBtn')) {
+      const rightGroup = document.createElement('div');
+      rightGroup.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+      const mainBtn = document.createElement('a');
+      mainBtn.id = 'mainHomeBtn';
+      mainBtn.className = 'control-btn';
+      mainBtn.setAttribute('href', '/index.html');
+      mainBtn.setAttribute('aria-label', 'Main Home');
+      mainBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>';
+      controls.appendChild(rightGroup);
+      rightGroup.appendChild(mainBtn);
+      rightGroup.appendChild(themeBtn);
+    }
   });
+
+  document.addEventListener('DOMContentLoaded', autofillUser);
 
   async function autofillUser() {
     if (!window.sb) return;
