@@ -1,717 +1,332 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tyrecyle - Site Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #1f2937;
-            --primary-dark: #111827;
-            --accent: #f97316;
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
-            --border: #e2e8f0;
-            --shadow: rgba(0, 0, 0, 0.1);
-        }
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tyrecycle Portal — Bromar Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../../tools/bromar-hub.css"/>
+  <script src="../../tools/bromar-hub.js" defer></script>
+
+  <style>
+    /* ── PAGE-SPECIFIC LAYOUT ── */
+    .page-wrapper { margin-top: 90px; max-width: 1400px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* ── SEARCH ── */
+    .search-wrapper { max-width: 1400px; margin: 0 auto 2rem; padding: 0 1.5rem; }
+    .search-box { position: relative; }
+    .search-box svg {
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; stroke: var(--text-secondary);
+      stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .search-box input {
+      width: 100%; padding: 0.9rem 1rem 0.9rem 3rem;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--bg-secondary); color: var(--text-primary);
+      font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none;
+      transition: all 0.3s ease;
+    }
+    .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
+
+    /* ── SECTIONS ── */
+    .hub-section { max-width: 1400px; margin: 0 auto 2.5rem; padding: 0 1.5rem; }
+    .section-title {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--text-primary); margin-bottom: 1.25rem;
+    }
+    .section-title::before {
+      content: ''; width: 4px; height: 24px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+      border-radius: 4px;
+    }
+
+    /* ── CARD GRID ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .hub-card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem;
+      cursor: pointer; text-decoration: none; display: block;
+      transition: all 0.3s ease; position: relative; overflow: hidden;
+      animation: fadeIn 0.5s ease backwards;
+    }
+    .hub-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 12px 28px var(--shadow); }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: var(--card-hover); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
+    }
+    .card-icon svg { width: 24px; height: 24px; stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .card-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; letter-spacing: -0.01em; }
+    .card-desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 0.875rem;
+      font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+    }
+    .badge.locked { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); }
+
+    /* ── PIN MODAL ── */
+    .pin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9500; align-items: center; justify-content: center; padding: 1rem; }
+    .pin-modal.show { display: flex; }
+    .pin-content { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; max-width: 360px; width: 100%; text-align: center; }
+    .pin-content h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .pin-content p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .pin-input {
+      width: 100%; padding: 0.875rem; text-align: center; letter-spacing: 0.5em;
+      font-size: 1.5rem; font-family: 'JetBrains Mono', monospace;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg-main); color: var(--text-primary); outline: none; margin-bottom: 0.75rem;
+    }
+    .pin-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
+    .pin-error { color: var(--error); font-size: 0.85rem; margin-bottom: 0.75rem; min-height: 1.1rem; }
+    .pin-actions { display: flex; gap: 0.75rem; }
+    .pin-actions button { flex: 1; }
+
+    /* ── FOOTER ── */
+    .footer { max-width: 1400px; margin: 3rem auto 0; padding: 2rem 1.5rem; text-align: center; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── COMPACT DENSITY ── */
+    [data-density="compact"] .page-wrapper { margin-top: 78px; }
+    [data-density="compact"] .hub-section { margin-bottom: 1.5rem; }
+    [data-density="compact"] .section-title { font-size: 1.25rem; margin-bottom: 0.75rem; }
+    [data-density="compact"] .card-grid { gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    [data-density="compact"] .hub-card { padding: 1.125rem; border-radius: 12px; }
+    [data-density="compact"] .card-icon { width: 40px; height: 40px; margin-bottom: 0.75rem; }
+    [data-density="compact"] .card-icon svg { width: 20px; height: 20px; }
+    [data-density="compact"] .card-title { font-size: 1rem; }
+    [data-density="compact"] .card-desc { font-size: 0.82rem; }
+    [data-density="compact"] .badge { margin-top: 0.5rem; }
 
-        [data-theme="dark"] {
-            --bg-main: #000000;
-            --bg-card: #2d2d2d;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #404040;
-            --shadow: rgba(0, 0, 0, 0.5);
-        }
-
-        [data-theme="dark"] .header {
-            background: linear-gradient(135deg, #2d2d2d 0%, #2d2d2d 100%);
-        }
-
-        [data-theme="dark"] h1 {
-            color: #f1f5f9;
-        }
-
-        [data-theme="dark"] .subtitle {
-            color: #d1d5db;
-        }
-
-        [data-theme="dark"] .control-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #f1f5f9;
-        }
-
-        [data-theme="dark"] .control-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        [data-theme="dark"] .header::before {
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg-main);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #f5ebe0 0%, #eddcd2 100%);
-            padding: 2rem 2rem 4rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            opacity: 0.4;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        .home-link {
-            position: absolute;
-            top: 1rem;
-            left: 2rem;
-            z-index: 10;
-            font-size: 1.25rem;
-            text-decoration: none;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.6rem 0.75rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .home-link:hover {
-            background: rgba(0, 0, 0, 0.4);
-            color: rgba(255, 255, 255, 1);
-            transform: translateY(-1px);
-        }
-
-        [data-theme="dark"] .home-link {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        [data-theme="dark"] .home-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 1);
-        }
-
-        .header-controls {
-            position: absolute;
-            top: 1rem;
-            right: 2rem;
-            display: flex;
-            gap: 0.75rem;
-            z-index: 10;
-        }
-
-        .control-btn {
-            background: rgba(31, 41, 55, 0.1);
-            border: 1px solid rgba(31, 41, 55, 0.2);
-            color: #1f2937;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .control-btn:hover {
-            background: rgba(31, 41, 55, 0.15);
-            transform: translateY(-2px);
-        }
-
-        h1 {
-            color: #1f2937;
-            font-size: 3rem;
-            font-weight: 900;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-family: 'Arial Black', 'Arial Bold', sans-serif;
-        }
-
-        .subtitle {
-            color: #4b5563;
-            font-size: 1.25rem;
-            font-weight: 400;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: -3rem auto 3rem;
-            padding: 0 2rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .search-bar {
-            background: white;
-            border-radius: 16px;
-            padding: 1rem 1.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            margin-bottom: 3rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .search-bar input {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 1rem;
-            font-family: 'DM Sans', sans-serif;
-            color: var(--text-primary);
-            background: transparent;
-        }
-
-        .search-bar input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .search-results {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            margin-bottom: 3rem;
-            display: none;
-        }
-
-        .search-results.active {
-            display: block;
-        }
-
-        .search-results-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .search-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        [data-theme="dark"] .search-results {
-            background: var(--bg-card);
-        }
-
-        [data-theme="dark"] .search-bar {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-        }
-
-        [data-theme="dark"] .search-bar input {
-            color: var(--text-primary);
-        }
-
-        [data-theme="dark"] .search-bar input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        [data-theme="dark"] .search-icon {
-            color: var(--text-secondary);
-        }
-
-        .search-icon {
-            color: var(--text-secondary);
-            font-size: 1.25rem;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 28px;
-            background: var(--accent);
-            border-radius: 4px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .grid > a {
-            display: flex;
-            height: 100%;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 1.75rem;
-            border: 1px solid var(--border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            width: 100%;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-            border-color: var(--primary);
-        }
-
-        .card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #374151, #1f2937);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.4);
-            filter: contrast(1.2) brightness(1.1);
-        }
-
-        .card-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-
-        .card-description {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .footer {
-            background: #ea580c;
-            color: white;
-            padding: 2rem;
-            text-align: center;
-            margin-top: 4rem;
-        }
-
-        .footer p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.875rem;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card {
-            animation: fadeIn 0.5s ease-out backwards;
-        }
-
-        .grid .card:nth-child(1) { animation-delay: 0.05s; }
-        .grid .card:nth-child(2) { animation-delay: 0.1s; }
-        .grid .card:nth-child(3) { animation-delay: 0.15s; }
-        .grid .card:nth-child(4) { animation-delay: 0.2s; }
-        .grid .card:nth-child(5) { animation-delay: 0.25s; }
-        .grid .card:nth-child(6) { animation-delay: 0.3s; }
-        .grid .card:nth-child(7) { animation-delay: 0.35s; }
-        .grid .card:nth-child(8) { animation-delay: 0.4s; }
-        .grid .card:nth-child(9) { animation-delay: 0.45s; }
-        .grid .card:nth-child(10) { animation-delay: 0.5s; }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .subtitle {
-                font-size: 1rem;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                margin-top: -2rem;
-            }
-
-            .home-link {
-                position: static;
-                display: inline-flex;
-                margin-bottom: 1rem;
-            }
-
-            .header-controls {
-                position: static;
-                margin-top: 1rem;
-                justify-content: center;
-            }
-
-            .header-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-
-        @media print {
-            .header-controls,
-            .search-bar,
-            .footer {
-                display: none;
-            }
-
-            .card {
-                break-inside: avoid;
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-
-            .card:hover {
-                transform: none;
-            }
-
-            body {
-                background: white;
-            }
-
-            .header {
-                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
-    </style>
+    @media (max-width: 520px) { .card-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-content">
-            <button class="home-link" onclick="history.back()" title="Go Back">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-            </button>
-            <div class="header-controls">
-                <button class="control-btn" id="darkModeToggle">
-                    🌙 Dark Mode
-                </button>
-            </div>
-            <h1>Tyrecyle</h1>
-            <p class="subtitle">Site Hub — All resources and documentation in one place</p>
-        </div>
-    </header>
 
-    <div class="container">
-        <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search for forms, documentation, or resources...">
-        </div>
+  <div id="bromar-header"></div>
 
-        <div class="search-results" id="searchResults">
-            <h3 class="search-results-title">Search Results</h3>
-            <div class="search-results-grid" id="searchResultsGrid"></div>
-        </div>
+  <div class="page-title-wrapper">
+    <h1>Tyrecycle Portal</h1>
+    <p class="subtitle">Site information and resources</p>
+  </div>
 
-        <div id="allSections">
-        <section>
-            <h2 class="section-title">Maintenance Works</h2>
-            <div class="grid">
-                <a href="work-order-completion.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="maintenance">
-                        <div class="card-icon">✅</div>
-                        <h3 class="card-title">Work Order Completion Form</h3>
-                        <p class="card-description">Complete and submit finished work orders</p>
-                    </div>
-                </a>
-
-                <a href="work-order-suggestion.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="maintenance">
-                        <div class="card-icon">💡</div>
-                        <h3 class="card-title">Work Order Suggestion Request</h3>
-                        <p class="card-description">Submit suggestions for maintenance improvements</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Site Information</h2>
-            <div class="grid">
-                <a href="inductions.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="site-info">
-                        <div class="card-icon">🎓</div>
-                        <h3 class="card-title">Inductions</h3>
-                        <p class="card-description">Site safety inductions and training materials</p>
-                    </div>
-                </a>
-
-                <a href="site-requirements.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="site-info">
-                        <div class="card-icon">📋</div>
-                        <h3 class="card-title">Site Requirements</h3>
-                        <p class="card-description">Operational requirements and safety protocols</p>
-                    </div>
-                </a>
-
-                <a href="site-contacts.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="site-info">
-                        <div class="card-icon">👥</div>
-                        <h3 class="card-title">Site Contacts</h3>
-                        <p class="card-description">Emergency contacts and key personnel directory</p>
-                    </div>
-                </a>
-
-                <a href="site-map.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="site-info">
-                        <div class="card-icon">🗺️</div>
-                        <h3 class="card-title">Site Map</h3>
-                        <p class="card-description">Site layout and emergency exit routes</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Documentation</h2>
-            <div class="grid">
-                <a href="machine-drawings.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="documentation">
-                        <div class="card-icon">📐</div>
-                        <h3 class="card-title">Machine Drawings & Documentation</h3>
-                        <p class="card-description">Technical drawings and equipment documentation</p>
-                    </div>
-                </a>
-
-                <a href="vsd-parameters.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="documentation">
-                        <div class="card-icon">⚙️</div>
-                        <h3 class="card-title">VSD Parameter Sheets</h3>
-                        <p class="card-description">Variable Speed Drive settings and configurations</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Testing</h2>
-            <div class="grid">
-                <a href="low-voltage-test.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="testing">
-                        <div class="card-icon">⚡</div>
-                        <h3 class="card-title">Low Voltage Test Sheet</h3>
-                        <p class="card-description">Record low voltage testing results and compliance</p>
-                    </div>
-                </a>
-
-                <a href="exit-emergency-testing.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="testing">
-                        <div class="card-icon">🚨</div>
-                        <h3 class="card-title">Exit & Emergency Testing</h3>
-                        <p class="card-description">Emergency lighting and exit sign test records</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="section-title">Forms</h2>
-            <div class="grid">
-                <a href="drawing-update-submission.html" style="text-decoration: none; color: inherit;">
-                    <div class="card" data-category="forms">
-                        <div class="card-icon">📝</div>
-                        <h3 class="card-title">Drawing Update Submission</h3>
-                        <p class="card-description">Submit requests for drawing updates and revisions</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-        </div>
+  <div class="search-wrapper">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Search resources..." autocomplete="off"/>
     </div>
+  </div>
 
-    <footer class="footer">
-        <p>&copy; 2026 Bromar Electrical Services. This page is intended for Bromar employees only. For support, contact administration or management.</p>
-    </footer>
+  <div class="page-wrapper">
 
-    <script>
-        // Dark mode toggle with system preference detection
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const htmlElement = document.documentElement;
+    <!-- SITE INFORMATION -->
+    <section class="hub-section" data-section>
+      <h2 class="section-title">Site Information</h2>
+      <div class="card-grid">
+        <a class="hub-card locked-link" data-href="site-overview.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+          <div class="card-title">Site Overview</div>
+          <div class="card-desc">General site information and key details</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="site-map.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/></svg></div>
+          <div class="card-title">Site Map / Layout</div>
+          <div class="card-desc">Site layout and emergency exit routes</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="contact-directory.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div class="card-title">Contact Directory</div>
+          <div class="card-desc">Emergency contacts and key personnel</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="access-security.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="card-title">Access &amp; Security</div>
+          <div class="card-desc">Site access procedures and security info</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+      </div>
+    </section>
 
-        // Check for system preference first, then saved preference
-        function getInitialTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                return savedTheme;
-            }
-            // Detect system preference
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return 'dark';
-            }
-            return 'light';
+    <!-- OPERATIONS -->
+    <section class="hub-section" data-section>
+      <h2 class="section-title">Operations</h2>
+      <div class="card-grid">
+        <a class="hub-card locked-link" data-href="daily-operations.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+          <div class="card-title">Daily Operations Guide</div>
+          <div class="card-desc">Standard daily operating procedures</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="emergency-procedures.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="card-title">Emergency Procedures</div>
+          <div class="card-desc">Emergency response and evacuation steps</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="shutdown-procedures.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></div>
+          <div class="card-title">Shutdown Procedures</div>
+          <div class="card-desc">Safe plant shutdown and isolation steps</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- DOCUMENTATION -->
+    <section class="hub-section" data-section>
+      <h2 class="section-title">Documentation</h2>
+      <div class="card-grid">
+        <a class="hub-card locked-link" data-href="site-standards.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="card-title">Site Standards</div>
+          <div class="card-desc">Site-specific standards and compliance</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="equipment-manuals.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <div class="card-title">Equipment Manuals</div>
+          <div class="card-desc">Plant and equipment operating manuals</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="technical-drawings.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div>
+          <div class="card-title">Technical Drawings</div>
+          <div class="card-desc">Site and equipment technical drawings</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- REPORTING -->
+    <section class="hub-section" data-section>
+      <h2 class="section-title">Reporting</h2>
+      <div class="card-grid">
+        <a class="hub-card locked-link" data-href="incident-report.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+          <div class="card-title">Site Incident Report</div>
+          <div class="card-desc">Report incidents, hazards and near misses</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="maintenance-log.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+          <div class="card-title">Maintenance Log</div>
+          <div class="card-desc">Log and track maintenance activities</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="daily-reports.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="card-title">Daily Reports</div>
+          <div class="card-desc">Submit and review daily site reports</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="footer">
+    <p>© 2026 Bromar Electrical Services — Tyrecycle Client Site</p>
+    <p style="margin-top: 0.5rem;">
+      <a href="../../employee-resources/settings.html">Settings</a> |
+      <a href="../../employee-resources/suggestions-feedback.html">Report a Bug</a> |
+      <a href="../../index.html">← Back to Bromar Hub</a>
+    </p>
+  </footer>
+
+  <!-- PIN MODAL -->
+  <div class="pin-modal" id="pinModal">
+    <div class="pin-content">
+      <h2>🔒 Restricted Area</h2>
+      <p>This section is in development. Enter the PIN to preview.</p>
+      <input type="password" class="pin-input" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••"/>
+      <div class="pin-error" id="pinError"></div>
+      <div class="pin-actions">
+        <button class="btn-secondary" id="pinCancel">Cancel</button>
+        <button class="submit-btn" id="pinSubmit">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="revision-number">V1.00</div>
+
+  <script>
+    (function () {
+      const PIN = '1987';
+      const modal   = document.getElementById('pinModal');
+      const input   = document.getElementById('pinInput');
+      const errorEl = document.getElementById('pinError');
+      let pendingHref = null;
+
+      // Override injected home button to go two levels up
+      document.addEventListener('DOMContentLoaded', () => {
+        const homeBtn = document.querySelector('.header-controls a[aria-label="Home"]');
+        if (homeBtn) homeBtn.setAttribute('href', '../../index.html');
+      });
+
+      function isUnlocked() { return sessionStorage.getItem('tyrecycleUnlocked') === '1'; }
+
+      function openPin(href) {
+        pendingHref = href;
+        errorEl.textContent = '';
+        input.value = '';
+        modal.classList.add('show');
+        setTimeout(() => input.focus(), 50);
+      }
+      function closePin() { modal.classList.remove('show'); pendingHref = null; }
+
+      function submitPin() {
+        if (input.value === PIN) {
+          sessionStorage.setItem('tyrecycleUnlocked', '1');
+          const href = pendingHref;
+          closePin();
+          if (href) window.location.href = href;
+        } else {
+          errorEl.textContent = 'Incorrect PIN. Try again.';
+          input.value = '';
+          input.focus();
         }
+      }
 
-        // Set initial theme
-        const currentTheme = getInitialTheme();
-        htmlElement.setAttribute('data-theme', currentTheme);
-        updateDarkModeButton(currentTheme);
-
-        // Listen for system preference changes
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-                // Only auto-switch if user hasn't manually set a preference
-                if (!localStorage.getItem('theme')) {
-                    const newTheme = e.matches ? 'dark' : 'light';
-                    htmlElement.setAttribute('data-theme', newTheme);
-                    updateDarkModeButton(newTheme);
-                }
-            });
-        }
-
-        darkModeToggle.addEventListener('click', function() {
-            const theme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            htmlElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            updateDarkModeButton(theme);
+      document.querySelectorAll('.locked-link').forEach(card => {
+        card.addEventListener('click', e => {
+          e.preventDefault();
+          const href = card.getAttribute('data-href');
+          if (isUnlocked()) { window.location.href = href; }
+          else { openPin(href); }
         });
+      });
 
-        function updateDarkModeButton(theme) {
-            if (theme === 'dark') {
-                darkModeToggle.innerHTML = '☀️ Light Mode';
-            } else {
-                darkModeToggle.innerHTML = '🌙 Dark Mode';
-            }
-        }
+      document.getElementById('pinSubmit').addEventListener('click', submitPin);
+      document.getElementById('pinCancel').addEventListener('click', closePin);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+      modal.addEventListener('click', e => { if (e.target === modal) closePin(); });
 
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        const cardLinks = document.querySelectorAll('a[href$=".html"]');
-        const searchResults = document.getElementById('searchResults');
-        const searchResultsGrid = document.getElementById('searchResultsGrid');
-        const allSections = document.getElementById('allSections');
-
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-
-            if (searchTerm === '') {
-                // Show all sections, hide search results
-                allSections.style.display = 'block';
-                searchResults.classList.remove('active');
-                searchResultsGrid.innerHTML = '';
-            } else {
-                // Hide all sections, show search results area
-                allSections.style.display = 'none';
-                searchResults.classList.add('active');
-                searchResultsGrid.innerHTML = '';
-
-                let hasResults = false;
-
-                cardLinks.forEach(link => {
-                    const card = link.querySelector('.card');
-                    if (!card) return;
-                    
-                    const title = card.querySelector('.card-title').textContent.toLowerCase();
-                    const description = card.querySelector('.card-description').textContent.toLowerCase();
-
-                    if (title.includes(searchTerm) || description.includes(searchTerm)) {
-                        hasResults = true;
-                        // Clone the link and card to show in search results
-                        const clonedLink = link.cloneNode(true);
-                        searchResultsGrid.appendChild(clonedLink);
-                    }
-                });
-
-                if (!hasResults) {
-                    searchResultsGrid.innerHTML = '<div class="no-results">No results found. Try a different search term.</div>';
-                }
-            }
+      // Search filter
+      const search = document.getElementById('searchInput');
+      search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        document.querySelectorAll('[data-section]').forEach(section => {
+          let anyVisible = false;
+          section.querySelectorAll('.hub-card').forEach(card => {
+            const t = card.querySelector('.card-title').textContent.toLowerCase();
+            const d = card.querySelector('.card-desc').textContent.toLowerCase();
+            const match = !q || t.includes(q) || d.includes(q);
+            card.style.display = match ? '' : 'none';
+            if (match) anyVisible = true;
+          });
+          section.style.display = anyVisible ? '' : 'none';
         });
-    </script>
+      });
+    })();
+  </script>
+
 </body>
 </html>
