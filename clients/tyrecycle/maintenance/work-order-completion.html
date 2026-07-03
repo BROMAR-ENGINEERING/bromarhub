@@ -205,12 +205,12 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.08</div>
+      <div class="card-footer-version">Version V1.09</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.08</div>
+<div class="revision-number">V1.09</div>
 
 <script>
   const CONFIG = {
@@ -236,8 +236,8 @@
     // Logos load from site root (same as main index)
     const light = document.querySelector('.light-logo');
     const dark = document.querySelector('.dark-logo');
-    if (light) light.src = '/Bromar-Primary-Logo-Full-Colour.png';
-    if (dark) dark.src = '/Bromar-Primary-Logo-Reverse-White.png';
+    if (light) { light.onerror = () => { light.src = '/Bromar-Primary-Logo-Full-Colour.png'; light.onerror = null; }; light.src = '/Bromar-Primary-Logo-Full-Colour.png'; }
+    if (dark) { dark.onerror = () => { dark.src = '/Bromar-Primary-Logo-Reverse-White.png'; dark.onerror = null; }; dark.src = '/Bromar-Primary-Logo-Reverse-White.png'; }
     // Second top-right button → main site index, beside the theme toggle
     const themeBtn = document.getElementById('themeToggle');
     if (themeBtn && !document.getElementById('mainHomeBtn')) {
