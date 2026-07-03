@@ -6,8 +6,8 @@
   <title>Work Order Completion Submission</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
-  <link rel="stylesheet" href="../../tools/bromar-hub.css"/>
-  <script src="../../tools/bromar-hub.js" defer></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+  <script src="/tools/bromar-hub.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     /* PAGE-SPECIFIC ONLY */
@@ -206,12 +206,12 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.02</div>
+      <div class="card-footer-version">Version V1.04</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.02</div>
+<div class="revision-number">V1.04</div>
 
 <script>
   const CONFIG = {
@@ -225,9 +225,24 @@
 
   // ── Fix injected header for two-deep Tyrecycle pages + auto-fill user ──
   document.addEventListener('DOMContentLoaded', () => {
-    // Home button → clients/index.html (relative to clients/tyrecycle/)
-    const homeBtn = document.querySelector('.header-controls a');
-    if (homeBtn) homeBtn.setAttribute('href', '../index.html');
+    // Left home button → main site index (site root)
+    const controls = document.querySelector('.header-controls');
+    const homeBtn = controls ? controls.querySelector('a') : null;
+    if (homeBtn) homeBtn.setAttribute('href', '/index.html');
+    // Add a second top-right button: Tyrecycle Home, beside the theme toggle
+    const themeBtn = document.getElementById('themeToggle');
+    if (controls && themeBtn) {
+      const rightGroup = document.createElement('div');
+      rightGroup.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+      const tyBtn = document.createElement('a');
+      tyBtn.className = 'control-btn';
+      tyBtn.setAttribute('href', 'tyrecyclehome.html');
+      tyBtn.setAttribute('aria-label', 'Tyrecycle Home');
+      tyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>';
+      controls.appendChild(rightGroup);
+      rightGroup.appendChild(tyBtn);
+      rightGroup.appendChild(themeBtn);
+    }
     // Logos load from site root (same as main index)
     const light = document.querySelector('.light-logo');
     const dark = document.querySelector('.dark-logo');
