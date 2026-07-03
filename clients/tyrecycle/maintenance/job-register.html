@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Job Register — Tyrecycle</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css" />
+  <script src="/tools/bromar-hub.js" defer></script>
+  <style>
+    /* ── PAGE LAYOUT ── */
+    .page-title-wrapper { margin-top: 90px; }
+
+    /* ── FILTER CARD ── */
+    .filter-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .filter-btn {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(234,88,12,0.3); }
+
+    .clear-btn {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .clear-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .stat-chip .count { color: var(--text-primary); font-size: 1rem; }
+    .stat-chip.critical { border-color: rgba(220,38,38,0.3); color: #dc2626; }
+    .stat-chip.critical .count { color: #dc2626; }
+    .stat-chip.completed { border-color: rgba(21,128,61,0.3); color: var(--success); }
+    .stat-chip.completed .count { color: var(--success); }
+    .stat-chip.pending { border-color: rgba(234,88,12,0.3); color: var(--accent); }
+    .stat-chip.pending .count { color: var(--accent); }
+
+    /* ── RESULTS HEADER ── */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .results-count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .load-more-hint {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* ── JOB ROWS ── */
+    .jobs-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .job-row {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-left: 4px solid transparent;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .job-row:hover { border-color: var(--border); box-shadow: 0 2px 12px var(--shadow); }
+    .job-row.urgency-critical { border-left-color: #dc2626; }
+    .job-row.urgency-high     { border-left-color: var(--accent); }
+    .job-row.urgency-medium   { border-left-color: #ca8a04; }
+    .job-row.urgency-low      { border-left-color: var(--success); }
+    .job-row.urgency-none     { border-left-color: var(--border); }
+
+    .job-summary {
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 120px 120px 1fr 110px 110px 36px;
+      gap: 0.75rem;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .job-field { display: flex; flex-direction: column; gap: 2px; }
+
+    .jf-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .jf-value {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .jf-value.accent { color: var(--accent); font-weight: 600; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      width: fit-content;
+    }
+
+    .status-pill.completed   { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .status-pill.incomplete  { background: var(--error-bg);   color: var(--error);   border: 1px solid var(--error-border); }
+    .status-pill.in-progress { background: var(--info-bg);    color: var(--info-text); border: 1px solid var(--info-border); }
+
+    .expand-icon {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s;
+      border-radius: 6px;
+    }
+    .expand-icon:hover { color: var(--accent); background: var(--card-hover); }
+
+    /* ── JOB DETAIL ── */
+    .job-detail {
+      display: none;
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+      animation: fadeIn 0.2s ease;
+    }
+    .job-detail.open { display: block; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding-top: 1rem;
+    }
+
+    .detail-block { display: flex; flex-direction: column; gap: 4px; }
+
+    .detail-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .detail-value.empty { color: var(--text-secondary); font-style: italic; }
+
+    .full-width { grid-column: 1 / -1; }
+
+    .new-wo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--error-bg);
+      color: var(--error);
+      border: 1px solid var(--error-border);
+    }
+
+    /* ── LOAD MORE ── */
+    .load-more-row {
+      text-align: center;
+      padding: 1.5rem 0 0.5rem;
+    }
+
+    /* ── EMPTY / ERROR STATES ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty-state h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-primary); }
+    .empty-state p  { font-size: 0.875rem; }
+
+    /* ── CARD FOOTER ── */
+    .card-footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .filter-grid { grid-template-columns: 1fr 1fr; }
+      .filter-actions { grid-column: 1 / -1; }
+      .job-summary { grid-template-columns: 1fr 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .filter-grid { grid-template-columns: 1fr; }
+      .job-summary { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>Job Register</h1>
+  <p class="subtitle">Tyrecycle Somerton — Maintenance &amp; Work Order History</p>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Banners -->
+  <div class="success-banner" id="successBanner">
+    <span>✓</span> <span id="successText"></span>
+  </div>
+  <div class="info-banner" id="infoBanner">
+    <span>ℹ</span> <span id="infoBannerText"></span>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="filter-card">
+    <div class="section-label">Filter &amp; Search</div>
+    <div class="filter-grid">
+      <div class="field-group">
+        <label for="filterWO">Work Order #</label>
+        <input type="text" id="filterWO" placeholder="e.g. WO-0042" />
+      </div>
+      <div class="field-group">
+        <label for="filterAsset">Asset Number</label>
+        <input type="text" id="filterAsset" placeholder="e.g. PUMP-A04" />
+      </div>
+      <div class="field-group">
+        <label for="filterStatus">Status</label>
+        <select id="filterStatus">
+          <option value="">All statuses</option>
+          <option value="Completed">Completed</option>
+          <option value="Incomplete">Incomplete</option>
+          <option value="In Progress">In Progress</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="filter-btn" onclick="applyFilters()">Search</button>
+        <button class="clear-btn" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-top:0.75rem;">
+      <div class="field-group" style="margin:0">
+        <label for="filterTech">Technician</label>
+        <input type="text" id="filterTech" placeholder="Name…" />
+      </div>
+      <div class="field-group" style="margin:0">
+        <label for="filterDateFrom">Date From</label>
+        <input type="date" id="filterDateFrom" />
+      </div>
+      <div class="field-group" style="margin:0">
+        <label for="filterDateTo">Date To</label>
+        <input type="date" id="filterDateTo" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-chip"><span class="count" id="statTotal">—</span> Total</div>
+    <div class="stat-chip completed"><span class="count" id="statCompleted">—</span> Completed</div>
+    <div class="stat-chip pending"><span class="count" id="statIncomplete">—</span> Incomplete / In Progress</div>
+    <div class="stat-chip critical"><span class="count" id="statNewWO">—</span> New WO Required</div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-header">
+    <span class="results-count" id="resultsCount"></span>
+    <span class="load-more-hint" id="loadMoreHint"></span>
+  </div>
+
+  <div class="jobs-list" id="jobsList">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>Loading jobs…</h3>
+      <p>Fetching from database</p>
+    </div>
+  </div>
+
+  <div class="load-more-row" id="loadMoreRow" style="display:none;">
+    <button class="btn-secondary" onclick="loadMore()">Load more jobs</button>
+  </div>
+
+  <div class="card-footer">
+    <div class="card-footer-title">BROMAR HUB — JOB REGISTER</div>
+    <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+    <div class="card-footer-version">Version V1.00</div>
+  </div>
+
+</div>
+
+<script>
+  const PAGE_SIZE = 15;
+  let allJobs = [];
+  let displayedCount = 0;
+  let activeFilters = {};
+  let expandedIds = {};
+
+  // ── INIT ──────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadJobs();
+  });
+
+  // ── LOAD FROM SUPABASE ────────────────────────────────────
+  async function loadJobs() {
+    BromarHub.showLoading('Loading job register…', 'Fetching work orders');
+    try {
+      const { data, error } = await window.sb
+        .from('tyrecycle_work_orders')
+        .select('*')
+        .order('completion_date', { ascending: false });
+
+      if (error) throw error;
+
+      allJobs = data || [];
+      applyFilters();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('jobsList').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <h3>Could not load jobs</h3>
+          <p>${BromarHub.escapeHtml(err.message || 'Unknown error')}</p>
+        </div>`;
+    } finally {
+      BromarHub.hideLoading();
+    }
+  }
+
+  // ── FILTERS ───────────────────────────────────────────────
+  function applyFilters() {
+    activeFilters = {
+      wo:       document.getElementById('filterWO').value.trim().toLowerCase(),
+      asset:    document.getElementById('filterAsset').value.trim().toLowerCase(),
+      status:   document.getElementById('filterStatus').value,
+      tech:     document.getElementById('filterTech').value.trim().toLowerCase(),
+      dateFrom: document.getElementById('filterDateFrom').value,
+      dateTo:   document.getElementById('filterDateTo').value,
+    };
+    displayedCount = 0;
+    expandedIds = {};
+    renderJobs();
+  }
+
+  function clearFilters() {
+    ['filterWO','filterAsset','filterTech','filterDateFrom','filterDateTo'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('filterStatus').value = '';
+    applyFilters();
+  }
+
+  function getFiltered() {
+    return allJobs.filter(j => {
+      const f = activeFilters;
+      if (f.wo     && !j.work_order_number?.toLowerCase().includes(f.wo))       return false;
+      if (f.asset  && !j.asset_number?.toLowerCase().includes(f.asset))         return false;
+      if (f.status && j.completion_status !== f.status)                          return false;
+      if (f.tech   && !j.technician_name?.toLowerCase().includes(f.tech))        return false;
+      if (f.dateFrom && j.completion_date < f.dateFrom)                          return false;
+      if (f.dateTo   && j.completion_date > f.dateTo)                            return false;
+      return true;
+    });
+  }
+
+  // ── LOAD MORE ─────────────────────────────────────────────
+  function loadMore() {
+    displayedCount += PAGE_SIZE;
+    renderJobs(true);
+  }
+
+  // ── RENDER ────────────────────────────────────────────────
+  function renderJobs(append = false) {
+    const filtered = getFiltered();
+
+    // Stats (always over full filtered set)
+    document.getElementById('statTotal').textContent      = filtered.length;
+    document.getElementById('statCompleted').textContent  = filtered.filter(j => j.completion_status === 'Completed').length;
+    document.getElementById('statIncomplete').textContent = filtered.filter(j => j.completion_status !== 'Completed').length;
+    document.getElementById('statNewWO').textContent      = filtered.filter(j => j.new_work_order_required).length;
+
+    if (!displayedCount) displayedCount = PAGE_SIZE;
+    const slice = filtered.slice(0, displayedCount);
+
+    document.getElementById('resultsCount').textContent =
+      `Showing ${slice.length} of ${filtered.length} records`;
+
+    const remaining = filtered.length - slice.length;
+    const hint = document.getElementById('loadMoreHint');
+    const moreRow = document.getElementById('loadMoreRow');
+
+    if (remaining > 0) {
+      hint.textContent = `${remaining} more hidden`;
+      moreRow.style.display = 'block';
+    } else {
+      hint.textContent = '';
+      moreRow.style.display = 'none';
+    }
+
+    if (!filtered.length) {
+      document.getElementById('jobsList').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>No jobs found</h3>
+          <p>Try adjusting your filters.</p>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('jobsList').innerHTML = slice.map(j => buildJobRow(j)).join('');
+  }
+
+  // ── BUILD ROW HTML ────────────────────────────────────────
+  function buildJobRow(j) {
+    const urgencyClass = urgencyToClass(j.urgency_level);
+    const statusHtml   = statusPill(j.completion_status);
+    const isOpen       = expandedIds[j.id];
+    const dateStr      = j.completion_date
+      ? new Date(j.completion_date + 'T00:00:00').toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '—';
+
+    return `
+    <div class="job-row ${urgencyClass}" id="row-${j.id}">
+      <div class="job-summary" onclick="toggleExpand('${j.id}')">
+        <div class="job-field">
+          <span class="jf-label">Work Order</span>
+          <span class="jf-value accent">${BromarHub.escapeHtml(j.work_order_number || '—')}</span>
+        </div>
+        <div class="job-field">
+          <span class="jf-label">Asset</span>
+          <span class="jf-value">${BromarHub.escapeHtml(j.asset_number || '—')}</span>
+        </div>
+        <div class="job-field">
+          <span class="jf-label">Technician</span>
+          <span class="jf-value">${BromarHub.escapeHtml(j.technician_name || '—')}</span>
+        </div>
+        <div class="job-field">
+          <span class="jf-label">Date</span>
+          <span class="jf-value">${dateStr}</span>
+        </div>
+        <div class="job-field">
+          <span class="jf-label">Status</span>
+          ${statusHtml}
+        </div>
+        <button class="expand-icon" title="Expand">${isOpen ? '▲' : '▼'}</button>
+      </div>
+
+      <div class="job-detail ${isOpen ? 'open' : ''}" id="detail-${j.id}">
+        <div class="detail-grid">
+          <div class="detail-block">
+            <span class="detail-label">Work Order #</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.work_order_number || '—')}</span>
+          </div>
+          <div class="detail-block">
+            <span class="detail-label">Asset Number</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.asset_number || '—')}</span>
+          </div>
+          <div class="detail-block">
+            <span class="detail-label">Technician</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.technician_name || '—')}</span>
+          </div>
+          <div class="detail-block">
+            <span class="detail-label">Email</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.technician_email || '—')}</span>
+          </div>
+          <div class="detail-block">
+            <span class="detail-label">Completion Date</span>
+            <span class="detail-value">${dateStr}</span>
+          </div>
+          <div class="detail-block">
+            <span class="detail-label">Urgency Level</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.urgency_level || '—')}</span>
+          </div>
+          <div class="detail-block full-width">
+            <span class="detail-label">Remedial Works</span>
+            <span class="detail-value ${j.remedial_works ? '' : 'empty'}">${BromarHub.escapeHtml(j.remedial_works || 'None recorded')}</span>
+          </div>
+          ${j.remedial_description ? `
+          <div class="detail-block full-width">
+            <span class="detail-label">Remedial Description</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.remedial_description)}</span>
+          </div>` : ''}
+          ${j.improvement_suggestions ? `
+          <div class="detail-block full-width">
+            <span class="detail-label">Improvement Suggestions</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.improvement_suggestions)}</span>
+          </div>` : ''}
+          ${j.other_comments ? `
+          <div class="detail-block full-width">
+            <span class="detail-label">Other Comments</span>
+            <span class="detail-value">${BromarHub.escapeHtml(j.other_comments)}</span>
+          </div>` : ''}
+          ${j.new_work_order_required ? `
+          <div class="detail-block full-width">
+            <span class="new-wo-badge">⚠ New Work Order Required</span>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── TOGGLE EXPAND ─────────────────────────────────────────
+  function toggleExpand(id) {
+    expandedIds[id] = !expandedIds[id];
+    const detail = document.getElementById('detail-' + id);
+    const row    = document.getElementById('row-' + id);
+    if (!detail) return;
+    detail.classList.toggle('open', !!expandedIds[id]);
+    // flip chevron
+    const btn = row.querySelector('.expand-icon');
+    if (btn) btn.textContent = expandedIds[id] ? '▲' : '▼';
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function urgencyToClass(u) {
+    if (!u) return 'urgency-none';
+    const l = u.toLowerCase();
+    if (l.includes('critical')) return 'urgency-critical';
+    if (l.includes('high'))     return 'urgency-high';
+    if (l.includes('medium'))   return 'urgency-medium';
+    if (l.includes('low'))      return 'urgency-low';
+    return 'urgency-none';
+  }
+
+  function statusPill(s) {
+    if (!s) return '<span class="status-pill">—</span>';
+    const l = s.toLowerCase();
+    let cls = '';
+    if (l === 'completed')   cls = 'completed';
+    else if (l === 'incomplete') cls = 'incomplete';
+    else if (l.includes('progress')) cls = 'in-progress';
+    return `<span class="status-pill ${cls}">${BromarHub.escapeHtml(s)}</span>`;
+  }
+</script>
+</body>
+</html>
