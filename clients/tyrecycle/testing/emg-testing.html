@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emergency Lighting Test — Bromar Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+  <script src="/tools/bromar-hub.js" defer></script>
+
+  <style>
+    /* ── PAGE-SPECIFIC ── */
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* Area tabs */
+    .area-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .area-tab {
+      flex: 1; padding: 0.875rem 1rem; border: 2px solid var(--border);
+      border-radius: 10px; background: var(--bg-secondary); cursor: pointer;
+      font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.9rem;
+      color: var(--text-primary); transition: all 0.2s; text-align: center;
+    }
+    .area-tab .count { display: block; font-size: 0.72rem; font-weight: 500; color: var(--text-secondary); margin-top: 2px; }
+    .area-tab.active { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
+    .area-tab.active .count { color: var(--accent); }
+
+    /* Toolbar */
+    .el-toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .el-toolbar input[type="text"] { flex: 1; min-width: 180px; }
+    .quick-btn {
+      padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: 9px;
+      background: transparent; color: var(--text-secondary); cursor: pointer;
+      font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.8rem; transition: all 0.2s; white-space: nowrap;
+    }
+    .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card-hover); }
+
+    /* Sticky stats */
+    .stats-bar {
+      position: sticky; top: 66px; z-index: 50;
+      display: flex; gap: 0.5rem; margin-bottom: 1.25rem;
+      background: var(--bg-glass); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.75rem;
+    }
+    .stat { flex: 1; text-align: center; }
+    .stat-num { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 600; }
+    .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+    .stat.pass .stat-num { color: var(--success); }
+    .stat.fail .stat-num { color: var(--error); }
+
+    /* Fitting card */
+    .fitting { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 0.7rem; transition: border-color 0.2s; }
+    .fitting.is-pass { border-color: var(--success-border); }
+    .fitting.is-fail { border-color: var(--error-border); }
+    .fitting-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; }
+    .fitting-id { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+    .fitting-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.95rem; color: var(--accent); }
+    .fitting-loc { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
+    .fitting-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 0.5rem; }
+    .tag { padding: 2px 9px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; font-size: 0.68rem; color: var(--text-secondary); font-weight: 600; }
+    .tag.type { background: var(--card-hover); border-color: var(--accent); color: var(--accent); }
+    .tag.na { background: var(--error-bg); border-color: var(--error-border); color: var(--error); }
+
+    .pf-toggle { display: flex; gap: 0.5rem; }
+    .pf-btn { padding: 0.55rem 1.15rem; border: 2px solid var(--border); border-radius: 9px; background: var(--bg-main); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.82rem; color: var(--text-secondary); transition: all 0.15s; }
+    .pf-btn.pass.sel { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .pf-btn.fail.sel { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+
+    .fail-extra { display: none; margin-top: 0.85rem; gap: 0.75rem; grid-template-columns: 160px 1fr; }
+    .fitting.is-fail .fail-extra { display: grid; }
+    .fitting-notes { margin-top: 0.75rem; }
+    .fitting-notes textarea { min-height: 44px; font-size: 0.9rem; }
+    @media (max-width: 560px) {
+      .fail-extra { grid-template-columns: 1fr; }
+      .fitting-head { flex-direction: column; }
+      .pf-toggle { width: 100%; }
+      .pf-btn { flex: 1; }
+    }
+
+    /* In-card footer */
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="bromar-header"></div>
+
+  <div class="page-title-wrapper">
+    <h1>Emergency Lighting Test</h1>
+    <p class="subtitle">Discharge test log — AS/NZS 2293.2 (90 min duration)</p>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="form-card">
+      <div id="successBanner" class="success-banner"><span id="successText"></span></div>
+      <div id="infoBanner" class="info-banner"><span id="infoBannerText"></span></div>
+
+      <div class="section-label">Test Details</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="site">Site / Location<span class="required">*</span></label>
+          <input type="text" id="site" placeholder="e.g. Bromar Factory, Westmeadows"/>
+        </div>
+        <div class="field-group">
+          <label for="job_number">Job Number</label>
+          <input type="text" id="job_number" placeholder="Optional"/>
+        </div>
+        <div class="field-group">
+          <label for="test_date">Test Date<span class="required">*</span></label>
+          <input type="date" id="test_date"/>
+        </div>
+        <div class="field-group">
+          <label for="start_time">Discharge Start Time<span class="required">*</span></label>
+          <input type="time" id="start_time"/>
+        </div>
+        <div class="field-group full">
+          <label for="filled_by">Tested By<span class="required">*</span></label>
+          <select id="filled_by"><option value="">Select your name...</option></select>
+        </div>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="section-label">Fittings</div>
+
+      <div class="area-tabs">
+        <div class="area-tab active" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
+        <div class="area-tab" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
+      </div>
+
+      <div class="el-toolbar">
+        <input type="text" id="filter" placeholder="🔍 Filter by ref or location..."/>
+        <button type="button" class="quick-btn" id="allPass">✓ All Pass</button>
+        <button type="button" class="quick-btn" id="clearArea">Clear</button>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat pass"><div class="stat-num" id="s-pass">0</div><div class="stat-label">Pass</div></div>
+        <div class="stat fail"><div class="stat-num" id="s-fail">0</div><div class="stat-label">Fail</div></div>
+        <div class="stat"><div class="stat-num" id="s-rem">0</div><div class="stat-label">Remaining</div></div>
+      </div>
+
+      <div id="fittingList"></div>
+
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">Only fittings marked pass/fail are saved.</span>
+        <button type="button" class="submit-btn" id="submitBtn">Submit Test Log</button>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let EMPLOYEES = [];
+    let activeArea = 'factory';
+    const results = {}; // ref -> {status, duration, notes}
+
+    const FITTINGS = {
+      factory: [
+        {ref:'EM2-1',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-2',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-3',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-4',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-5',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-6',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-7',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-8',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-9',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-10',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-11',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-12',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-13',loc:'Factory Roof Row 5',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-14',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-15',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-16',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-17',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-18',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-19',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-20',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-21',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-22',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-23',loc:'Factory Roof Row 9',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-24',loc:'Factory Roof Row 10',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-25',loc:'Factory Roof Row 10',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-26',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-27',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-28',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-29',loc:'Factory Roof Row 12',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-30',loc:'Factory Roof Row 12',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-31',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-32',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-33',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-34',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-35',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-36',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-37',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-38',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-39',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-40',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-41',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-42',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-43',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-44',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-45',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-46',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-47',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-48',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
+        {ref:'EM2-49',loc:'Factory Ceiling Driveway West',type:'EXIT',db:'DB 2',ckt:'70',m:'M',brand:'',model:''},
+        {ref:'EM2-50',loc:'Factory Ceiling Driveway Centre',type:'EXIT',db:'DB 1',ckt:'83',m:'M',brand:'',model:''},
+        {ref:'EM2-51',loc:'South exit door near toilet block',type:'EXIT',db:'DB 1',ckt:'83',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
+        {ref:'EM2-52',loc:'South exit door into outdoor lunch area',type:'EXIT',db:'DB 2',ckt:'70',m:'M',brand:'24M',model:'FBEXITWB'},
+        {ref:'EM2-53',loc:'South exit door into amenities area',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'CWELED-WM-R'},
+        {ref:'EM2-54',loc:'West exit door near roller door',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
+        {ref:'EM2-55',loc:'North West Exit Door',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'CWELED-WM-RR'},
+        {ref:'EM2-56',loc:'North Centre Exit Door',type:'EXIT',db:'',ckt:'',m:'',brand:'',model:'',na:'REMOVED'},
+        {ref:'EM2-57',loc:'Pit Exit Door',type:'',db:'',ckt:'',m:'',brand:'',model:''},
+        {ref:'EM2-58',loc:'Pit Basement',type:'',db:'',ckt:'',m:'',brand:'',model:''},
+        {ref:'EM2-59',loc:'North East Exit Door',type:'EXIT',db:'DB 1',ckt:'79',m:'M',brand:'Clevertronics',model:'CWELED-WM'},
+        {ref:'EM2-60',loc:'East Exit Door',type:'EXIT',db:'',ckt:'',m:'M',brand:'E&E Lighting',model:'EXWAYBOX'},
+        {ref:'EM2-61',loc:'Incline Conveyor Exit Right Arrow',type:'EXIT',db:'DB 1',ckt:'79',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
+        {ref:'EM2-62',loc:'Pit',type:'',db:'',ckt:'',m:'',brand:'',model:''},
+        {ref:'EM2-63',loc:'Factory Ceiling Driveway East',type:'EXIT',db:'',ckt:'',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
+        {ref:'EM2-64',loc:'Tower Stairs',type:'',db:'',ckt:'',m:'',brand:'',model:''},
+        {ref:'EM2-65',loc:'Tower Stairs',type:'',db:'',ckt:'',m:'',brand:'',model:''}
+      ],
+      office: [
+        {ref:'EM1-1',loc:'Front reception exit to carpark (Airlock)',type:'EXIT',db:'Office DB',ckt:'9',m:'M',brand:'Ezy Fit',model:'EFSLB-CM'},
+        {ref:'EM1-2',loc:'Front reception exit to carpark (Office)',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'E&E',model:'EXLEDL'},
+        {ref:'EM1-3',loc:'Behind reception directing to carpark exit',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'Clevertronics',model:'ECFLED-L1'},
+        {ref:'EM1-4',loc:'Reception area ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'8',m:'NM',brand:'',model:''},
+        {ref:'EM1-5',loc:'Office area west ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''},
+        {ref:'EM1-6',loc:'Office area north ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'6',m:'NM',brand:'',model:''},
+        {ref:'EM1-7',loc:'Office area east ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''},
+        {ref:'EM1-8',loc:'Exit from office into amenities hallway',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
+        {ref:'EM1-9',loc:'Storage room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'6',m:'NM',brand:'',model:''},
+        {ref:'EM1-10',loc:'Operations office ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'14',m:'NM',brand:'',model:''},
+        {ref:'EM1-11',loc:'Operations office exit into factory',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
+        {ref:'EM1-12',loc:'Amenities hallway ceiling near toilets',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
+        {ref:'EM1-13',loc:'Amenities hallway ceiling outside changeroom',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
+        {ref:'EM1-14',loc:'Amenities hallway near cleaners room to factory door',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
+        {ref:'EM1-15',loc:'Amenities hallway exit directing to east exit',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'Clevertronics',model:'ECFLED-L1'},
+        {ref:'EM1-16',loc:'Amenities hallway east exit door',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
+        {ref:'EM1-17',loc:'Female toilets ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-18',loc:'Male toilet ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-19',loc:'Disabled toilet ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-20',loc:'Male changeroom ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-21',loc:'Server room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-22',loc:'Lunch room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
+        {ref:'EM1-23',loc:'West office conference room',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''}
+      ]
+    };
+
+    const esc = s => BromarHub.escapeHtml(s || '');
+
+    function areaOf(ref) { return ref.startsWith('EM1') ? 'office' : 'factory'; }
+
+    function renderList() {
+      const q = (document.getElementById('filter').value || '').toLowerCase();
+      const list = FITTINGS[activeArea].filter(f =>
+        !q || f.ref.toLowerCase().includes(q) || f.loc.toLowerCase().includes(q));
+      const html = list.map(f => {
+        const r = results[f.ref] || {};
+        const cls = r.status === 'pass' ? 'is-pass' : r.status === 'fail' ? 'is-fail' : '';
+        const tags = [];
+        if (f.db) tags.push(`<span class="tag">${esc(f.db)}</span>`);
+        if (f.ckt) tags.push(`<span class="tag">Ckt ${esc(f.ckt)}</span>`);
+        if (f.m) tags.push(`<span class="tag">${esc(f.m)}</span>`);
+        if (f.brand) tags.push(`<span class="tag">${esc(f.brand)} ${esc(f.model)}</span>`);
+        if (f.na) tags.push(`<span class="tag na">${esc(f.na)}</span>`);
+        return `
+        <div class="fitting ${cls}" data-ref="${esc(f.ref)}">
+          <div class="fitting-head">
+            <div>
+              <div class="fitting-id">
+                <span class="fitting-ref">${esc(f.ref)}</span>
+                ${f.type ? `<span class="tag type">${esc(f.type)}</span>` : ''}
+              </div>
+              <div class="fitting-loc">${esc(f.loc)}</div>
+              <div class="fitting-tags">${tags.join('')}</div>
+            </div>
+            <div class="pf-toggle">
+              <button type="button" class="pf-btn pass ${r.status==='pass'?'sel':''}" data-act="pass">PASS</button>
+              <button type="button" class="pf-btn fail ${r.status==='fail'?'sel':''}" data-act="fail">FAIL</button>
+            </div>
+          </div>
+          <div class="fail-extra">
+            <div><label>Duration to failure (min)</label>
+              <input type="number" min="0" step="1" class="f-duration" placeholder="e.g. 45" value="${esc(r.duration)}"/></div>
+            <div><label>Fault notes</label>
+              <input type="text" class="f-faultnote" placeholder="e.g. battery not holding charge" value="${esc(r.faultnote)}"/></div>
+          </div>
+          <div class="fitting-notes">
+            <label>Notes</label>
+            <textarea class="f-notes" placeholder="Optional notes...">${esc(r.notes)}</textarea>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('fittingList').innerHTML = html || '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">No matches.</p>';
+      updateStats();
+    }
+
+    function updateStats() {
+      let pass = 0, fail = 0;
+      Object.values(results).forEach(r => { if (r.status === 'pass') pass++; else if (r.status === 'fail') fail++; });
+      const total = FITTINGS.factory.length + FITTINGS.office.length;
+      document.getElementById('s-total').textContent = total;
+      document.getElementById('s-pass').textContent = pass;
+      document.getElementById('s-fail').textContent = fail;
+      document.getElementById('s-rem').textContent = total - pass - fail;
+      const cf = FITTINGS.factory.filter(f => results[f.ref]?.status).length;
+      const co = FITTINGS.office.filter(f => results[f.ref]?.status).length;
+      document.getElementById('cnt-factory').textContent = `${cf}/${FITTINGS.factory.length} done`;
+      document.getElementById('cnt-office').textContent = `${co}/${FITTINGS.office.length} done`;
+    }
+
+    function set(ref, patch) { results[ref] = Object.assign({status:'',duration:'',faultnote:'',notes:''}, results[ref], patch); }
+
+    document.getElementById('fittingList').addEventListener('click', e => {
+      const btn = e.target.closest('.pf-btn');
+      if (!btn) return;
+      const card = btn.closest('.fitting');
+      const ref = card.dataset.ref;
+      const act = btn.dataset.act;
+      const cur = results[ref]?.status;
+      set(ref, { status: cur === act ? '' : act });
+      renderList();
+    });
+
+    document.getElementById('fittingList').addEventListener('input', e => {
+      const card = e.target.closest('.fitting'); if (!card) return;
+      const ref = card.dataset.ref;
+      if (e.target.classList.contains('f-duration')) set(ref, { duration: e.target.value });
+      else if (e.target.classList.contains('f-faultnote')) set(ref, { faultnote: e.target.value });
+      else if (e.target.classList.contains('f-notes')) set(ref, { notes: e.target.value });
+    });
+
+    document.querySelectorAll('.area-tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.area-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      activeArea = t.dataset.area;
+      renderList();
+    }));
+
+    document.getElementById('filter').addEventListener('input', renderList);
+
+    document.getElementById('allPass').addEventListener('click', () => {
+      FITTINGS[activeArea].forEach(f => { if (!f.na && f.type) set(f.ref, { status: 'pass' }); });
+      renderList();
+    });
+    document.getElementById('clearArea').addEventListener('click', () => {
+      FITTINGS[activeArea].forEach(f => { delete results[f.ref]; });
+      renderList();
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', submitLog);
+
+    async function submitLog() {
+      if (!currentUser) {
+        const sel = document.getElementById('filled_by');
+        if (sel.value) { const o = sel.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
+      }
+      const site = document.getElementById('site').value.trim();
+      const testDate = document.getElementById('test_date').value;
+      const startTime = document.getElementById('start_time').value;
+      if (!site) return BromarHub.showInfo('Enter the site / location');
+      if (!testDate) return BromarHub.showInfo('Select the test date');
+      if (!startTime) return BromarHub.showInfo('Enter the discharge start time');
+      if (!currentUser) return BromarHub.showInfo('Select who tested');
+
+      const rows = [];
+      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
+        const r = results[f.ref];
+        if (r && r.status) rows.push({
+          ref: f.ref, area, location: f.loc, type: f.type, db: f.db, circuit: f.ckt,
+          maintained: f.m, brand: f.brand, model: f.model,
+          result: r.status, duration_min: r.status === 'fail' ? (r.duration || '') : '',
+          fault_note: r.faultnote || '', notes: r.notes || ''
+        });
+      }));
+      if (!rows.length) return BromarHub.showInfo('Mark at least one fitting pass or fail');
+
+      const passed = rows.filter(r => r.result === 'pass').length;
+      const failed = rows.filter(r => r.result === 'fail').length;
+
+      BromarHub.showLoading('Saving test log...', `${rows.length} fittings`);
+      try {
+        const { error } = await window.sb.from('emergency_lighting_tests').insert([{
+          test_date: testDate, site, job_number: document.getElementById('job_number').value.trim() || null,
+          tester: currentUser.name, start_time: startTime,
+          total: rows.length, passed, failed, results: rows
+        }]);
+        BromarHub.hideLoading();
+        if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
+        BromarHub.showSuccess(`Test log saved — ${passed} pass, ${failed} fail.`);
+      } catch (err) { BromarHub.hideLoading(); console.error(err); BromarHub.showInfo('Save failed. Check console.'); }
+    }
+
+    // Injected header hardcodes ../ paths; correct them to absolute for this deep folder
+    (function fixHeaderPaths(tries) {
+      const h = document.querySelector('.header');
+      if (!h) { if (tries < 40) return setTimeout(() => fixHeaderPaths(tries + 1), 25); return; }
+      const home = h.querySelector('a[aria-label="Home"]');
+      if (home) home.setAttribute('href', '/index.html');
+      const light = h.querySelector('.light-logo');
+      const dark = h.querySelector('.dark-logo');
+      if (light) light.src = '/Bromar-Primary-Logo-Full-Colour.png';
+      if (dark) dark.src = '/Bromar-Primary-Logo-Reverse-White.png';
+    })(0);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('test_date').value = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      document.getElementById('start_time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      renderList();
+      EMPLOYEES = await BromarHub.loadEmployees('filled_by');
+      await BromarHub.autoSelectLoggedInUser('filled_by');
+      const fb = document.getElementById('filled_by');
+      if (fb.value) { const o = fb.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
+      fb.addEventListener('change', function () {
+        const o = this.selectedOptions[0];
+        currentUser = o?.value ? { name: o.value, email: o.dataset.email || '' } : null;
+      });
+    });
+  </script>
+</body>
+</html>
