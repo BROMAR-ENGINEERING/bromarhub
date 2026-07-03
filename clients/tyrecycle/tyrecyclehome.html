@@ -273,7 +273,7 @@
     </div>
   </div>
 
-  <div class="revision-number">V1.08</div>
+  <div class="revision-number">V1.10</div>
 
   <script>
     (function () {
@@ -282,28 +282,6 @@
       const input   = document.getElementById('pinInput');
       const errorEl = document.getElementById('pinError');
       let pendingHref = null;
-
-      // Override injected home button to go two levels up
-      // Header is injected by bromar-hub.js assuming ONE level deep.
-      // This page is TWO levels deep, so correct home link + logo paths.
-      function fixHeaderPaths() {
-        const homeBtn = document.querySelector('.header-controls a[aria-label="Home"]');
-        const logos   = document.querySelectorAll('.header-content .logo-image');
-        if (!homeBtn || !logos.length) return false;
-        homeBtn.setAttribute('href', '../../index.html');
-        logos.forEach(img => {
-          const src = img.getAttribute('src');
-          if (src && src.startsWith('../') && !src.startsWith('../../')) {
-            img.setAttribute('src', '../' + src);
-          }
-        });
-        return true;
-      }
-      (function retryFix(n) {
-        if (fixHeaderPaths() || n <= 0) return;
-        setTimeout(() => retryFix(n - 1), 60);
-      })(20);
-      document.addEventListener('DOMContentLoaded', fixHeaderPaths);
 
       function isUnlocked() { return sessionStorage.getItem('tyrecycleUnlocked') === '1'; }
 
