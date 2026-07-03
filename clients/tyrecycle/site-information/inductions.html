@@ -38,6 +38,13 @@
 
     .muted { color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0; }
 
+    /* ── STAT TILES ── */
+    .stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-tile { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 4px 12px var(--shadow); }
+    .stat-num { font-size: 2.25rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .stat-tile.dim .stat-num { color: var(--text-secondary); }
+    .stat-label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
     /* ── IN-CARD FOOTER ── */
     .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
     .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
@@ -56,6 +63,11 @@
   </div>
 
   <div class="page-wrapper">
+
+    <div class="stat-tiles">
+      <div class="stat-tile"><div class="stat-num" id="statInducted">–</div><div class="stat-label">Inducted</div></div>
+      <div class="stat-tile dim"><div class="stat-num" id="statNot">–</div><div class="stat-label">Not inducted</div></div>
+    </div>
 
     <div class="success-banner" id="successBanner"><span>✅</span><span id="successText"></span></div>
     <div class="info-banner" id="infoBanner"><span>ℹ️</span><span id="infoBannerText"></span></div>
@@ -110,11 +122,6 @@
           <div class="file-list" id="fileList"></div>
         </div>
 
-        <div class="field-group full">
-          <label for="notes">Notes</label>
-          <textarea id="notes" placeholder="Any relevant details…"></textarea>
-        </div>
-
         <div class="form-divider"></div>
         <div class="submit-row">
           <span class="submit-note">Expiry is set to 1 year from the induction date.</span>
@@ -125,14 +132,14 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — TYRECYCLE SITE INDUCTIONS</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.00</div>
+        <div class="card-footer-version">Version V1.03</div>
       </div>
     </div>
   </div>
 
   <script>
     const SKYTRUST_URL = 'https://skytrust.co/app/Inductions/Guest/IndexQR.asp?UID=180694A785AD4649B626805FB17440C0';
-    const BUCKET = 'tyrecycle-inductions';
+    const BUCKET = 'Tyrecycle';
     let selectedFile = null;
     let loggedInName = '';
 
@@ -182,9 +189,25 @@
       const list = document.getElementById('inductionList');
       const { data, error } = await window.sb.from('tyrecycle_inductions').select('*');
       if (error) { list.innerHTML = '<div class="muted">Could not load inductions.</div>'; console.error(error); return; }
-      if (!data || !data.length) { list.innerHTML = '<div class="muted">No inductions recorded yet.</div>'; return; }
+
+      const rows = data || [];
+      const latest = latestPerPerson(rows);
+
+      // ── tiles: inducted vs not, against current employee list ──
+      const today = new Date(); today.setHours(0,0,0,0);
+      const empNames = new Set((window.EMPLOYEES || []).map(e => e.full_name));
+      const inductedNames = new Set();
+      latest.forEach(r => {
+        const exp = r.expiry_date || plusOneYear(r.induction_date);
+        if (empNames.has(r.full_name) && new Date(exp + 'T00:00:00') >= today) inductedNames.add(r.full_name);
+      });
+      const total = empNames.size;
+      document.getElementById('statInducted').textContent = inductedNames.size;
+      document.getElementById('statNot').textContent = Math.max(0, total - inductedNames.size);
+
+      if (!latest.length) { list.innerHTML = '<div class="muted">No inductions recorded yet.</div>'; return; }
       const esc = BromarHub.escapeHtml;
-      list.innerHTML = latestPerPerson(data).map(r => {
+      list.innerHTML = latest.map(r => {
         const exp = r.expiry_date || plusOneYear(r.induction_date);
         const s = statusFor(exp);
         const pdf = r.pdf_path
@@ -267,8 +290,11 @@
 
         const email = (window.EMPLOYEES || []).find(x => x.full_name === name)?.email || '';
         const expiry = plusOneYear(date);
+        const year = date.slice(0, 4);
         const safe = name.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-        const path = safe + '/' + Date.now() + '_' + selectedFile.name.replace(/[^a-z0-9._-]+/gi, '_');
+        const cleanName = selectedFile.name.replace(/[^a-z0-9._-]+/gi, '_');
+        // Files auto-sorted into year folders: Inductions/{year}/...
+        const path = 'Inductions/' + year + '/' + safe + '_' + Date.now() + '_' + cleanName;
 
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
@@ -280,7 +306,7 @@
             full_name: name, email, induction_date: date, expiry_date: expiry,
             provider: document.getElementById('provider').value.trim() || null,
             site: document.getElementById('site').value.trim() || null,
-            pdf_path: path, notes: document.getElementById('notes').value.trim() || null,
+            pdf_path: path,
             inducted_by: loggedInName || null
           });
           if (error) throw error;
