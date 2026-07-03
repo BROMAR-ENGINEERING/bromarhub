@@ -21,6 +21,10 @@
     .work-desc strong { color: var(--text-primary); }
     .site-line { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem; }
     .site-line span { color: var(--accent); }
+    .freq-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .freq-chk { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 140px; padding: 0.7rem 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; margin: 0; transition: all 0.2s; }
+    .freq-chk input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .freq-chk:has(input:checked) { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
 
     /* Mode tabs */
     .mode-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
@@ -153,17 +157,24 @@
         <strong>Scope:</strong> Pre-inspection of lights on mains power. Turn off the circuit at the circuit breaker and confirm each fitting maintains illumination for the full 90-minute discharge duration.
       </div>
       <div class="field-row">
-        <div class="field-group">
+        <div class="field-group full">
           <label for="test_date">Test Date<span class="required">*</span></label>
           <input type="date" id="test_date"/>
         </div>
         <div class="field-group">
-          <label for="start_time">Discharge Start Time<span class="required">*</span></label>
+          <label for="start_time">Start Time<span class="required">*</span></label>
           <input type="time" id="start_time"/>
         </div>
         <div class="field-group">
           <label for="finish_time">Finish Time<span class="required">*</span></label>
           <input type="time" id="finish_time"/>
+        </div>
+        <div class="field-group full">
+          <label>Test Frequency<span class="required">*</span></label>
+          <div class="freq-row">
+            <label class="freq-chk"><input type="checkbox" id="freq6" value="6 Monthly"/> 6 Monthly</label>
+            <label class="freq-chk"><input type="checkbox" id="freq12" value="12 Monthly"/> 12 Monthly</label>
+          </div>
         </div>
         <div class="field-group full">
           <label for="filled_by">Tested By<span class="required">*</span></label>
@@ -180,8 +191,8 @@
       </div>
 
       <div class="area-tabs">
-        <div class="area-tab active" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
-        <div class="area-tab" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
+        <div class="area-tab active" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
+        <div class="area-tab" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
       </div>
 
       <div class="el-toolbar">
@@ -225,7 +236,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.01</div>
+        <div class="card-footer-version">Version V1.02</div>
       </div>
     </div>
   </div>
@@ -233,7 +244,7 @@
   <script>
     let currentUser = null;
     let EMPLOYEES = [];
-    let activeArea = 'factory';
+    let activeArea = 'office';
     const results = {}; // ref -> {status, duration, notes}
 
     const FITTINGS = {
@@ -487,6 +498,11 @@
 
     document.getElementById('filter').addEventListener('input', renderList);
 
+    const f6 = document.getElementById('freq6'), f12 = document.getElementById('freq12');
+    f6.addEventListener('change', () => { if (f6.checked) f12.checked = false; });
+    f12.addEventListener('change', () => { if (f12.checked) f6.checked = false; });
+    function testFrequency() { return f6.checked ? '6 Monthly' : f12.checked ? '12 Monthly' : ''; }
+
     document.getElementById('allPass').addEventListener('click', () => {
       FITTINGS[activeArea].forEach(f => { if (!f.na && f.type) set(f.ref, { status: 'pass' }); });
       renderList();
@@ -509,6 +525,7 @@
       if (!document.getElementById('test_date').value) errs.push('Test date');
       if (!document.getElementById('start_time').value) errs.push('Discharge start time');
       if (!document.getElementById('finish_time').value) errs.push('Finish time');
+      if (!testFrequency()) errs.push('Test frequency (6 or 12 monthly)');
       if (!currentUser) errs.push('Tested by');
       return errs;
     }
@@ -566,6 +583,7 @@
           test_date: document.getElementById('test_date').value, site, tester: currentUser.name,
           start_time: document.getElementById('start_time').value,
           finish_time: document.getElementById('finish_time').value,
+          frequency: testFrequency(),
           total: rows.length, passed, failed, results: rows,
           report_notes: document.getElementById('test_notes').value.trim() || null
         }]);
