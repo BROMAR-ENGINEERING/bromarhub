@@ -338,6 +338,7 @@
         <label for="filterStatus">Status</label>
         <select id="filterStatus">
           <option value="">All statuses</option>
+          <option value="outstanding" selected>Outstanding (not completed)</option>
           <option value="Completed">Completed</option>
           <option value="Incomplete">Incomplete</option>
           <option value="In Progress">In Progress</option>
@@ -368,7 +369,7 @@
   <div class="stats-row" id="statsRow">
     <div class="stat-chip"><span class="count" id="statTotal">—</span> Total</div>
     <div class="stat-chip completed"><span class="count" id="statCompleted">—</span> Completed</div>
-    <div class="stat-chip pending"><span class="count" id="statIncomplete">—</span> Incomplete / In Progress</div>
+    <div class="stat-chip pending"><span class="count" id="statIncomplete">—</span> Outstanding</div>
     <div class="stat-chip critical"><span class="count" id="statNewWO">—</span> New WO Required</div>
   </div>
 
@@ -391,9 +392,9 @@
   </div>
 
   <div class="card-footer">
-    <div class="card-footer-title">BROMAR HUB — JOB REGISTER</div>
+    <div class="card-footer-title">TYRECYCLE PORTAL — JOB REGISTER</div>
     <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-    <div class="card-footer-version">Version V1.00</div>
+    <div class="card-footer-version">Version V1.01</div>
   </div>
 
 </div>
@@ -422,6 +423,7 @@
       if (error) throw error;
 
       allJobs = data || [];
+      document.getElementById('filterStatus').value = 'outstanding';
       applyFilters();
     } catch (err) {
       console.error(err);
@@ -455,7 +457,7 @@
     ['filterWO','filterAsset','filterTech','filterDateFrom','filterDateTo'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterStatus').value = 'outstanding';
     applyFilters();
   }
 
@@ -464,7 +466,11 @@
       const f = activeFilters;
       if (f.wo     && !j.work_order_number?.toLowerCase().includes(f.wo))       return false;
       if (f.asset  && !j.asset_number?.toLowerCase().includes(f.asset))         return false;
-      if (f.status && j.completion_status !== f.status)                          return false;
+      if (f.status === 'outstanding') {
+        if (j.completion_status === 'Completed') return false;
+      } else if (f.status) {
+        if (j.completion_status !== f.status) return false;
+      }
       if (f.tech   && !j.technician_name?.toLowerCase().includes(f.tech))        return false;
       if (f.dateFrom && j.completion_date < f.dateFrom)                          return false;
       if (f.dateTo   && j.completion_date > f.dateTo)                            return false;
@@ -482,11 +488,11 @@
   function renderJobs(append = false) {
     const filtered = getFiltered();
 
-    // Stats (always over full filtered set)
-    document.getElementById('statTotal').textContent      = filtered.length;
-    document.getElementById('statCompleted').textContent  = filtered.filter(j => j.completion_status === 'Completed').length;
-    document.getElementById('statIncomplete').textContent = filtered.filter(j => j.completion_status !== 'Completed').length;
-    document.getElementById('statNewWO').textContent      = filtered.filter(j => j.new_work_order_required).length;
+    // Stats always based on ALL jobs
+    document.getElementById('statTotal').textContent      = allJobs.length;
+    document.getElementById('statCompleted').textContent  = allJobs.filter(j => j.completion_status === 'Completed').length;
+    document.getElementById('statIncomplete').textContent = allJobs.filter(j => j.completion_status !== 'Completed').length;
+    document.getElementById('statNewWO').textContent      = allJobs.filter(j => j.new_work_order_required).length;
 
     if (!displayedCount) displayedCount = PAGE_SIZE;
     const slice = filtered.slice(0, displayedCount);
@@ -509,9 +515,9 @@
     if (!filtered.length) {
       document.getElementById('jobsList').innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon">🔍</div>
-          <h3>No jobs found</h3>
-          <p>Try adjusting your filters.</p>
+          <div class="empty-icon">✅</div>
+          <h3>No outstanding jobs</h3>
+          <p>All work orders are completed, or no records match your filters.</p>
         </div>`;
       return;
     }
