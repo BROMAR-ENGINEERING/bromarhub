@@ -102,6 +102,9 @@
     <div class="success-banner" id="successBanner">
       <span id="successText"></span>
     </div>
+    <div class="info-banner" id="infoBanner">
+      <span id="infoBannerText"></span>
+    </div>
 
     <form id="workOrderForm" novalidate>
 
@@ -219,12 +222,12 @@
       </div>
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.10</div>
+      <div class="card-footer-version">Version V1.11</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.10</div>
+<div class="revision-number">V1.11</div>
 
 <script>
   const CONFIG = {
@@ -347,6 +350,13 @@
     submitBtn.textContent = 'Sending…';
 
     if (!validateForm()) {
+      const firstErr = document.querySelector('.has-error');
+      if (firstErr) {
+        firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = firstErr.querySelector('input, textarea');
+        if (input) setTimeout(() => input.focus(), 300);
+      }
+      BromarHub.showInfo('Please complete the highlighted required field(s) before submitting.');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Completion';
       return;
