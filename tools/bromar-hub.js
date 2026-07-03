@@ -68,6 +68,53 @@
   // Apply immediately
   applyUserPreferences();
 
+  // ── SEARCH AUTOFILL PROTECTION ────────────────────────────
+  // Browsers (Edge, Chrome, Safari) aggressively autofill any input
+  // with the logged-in email. This clears email addresses from any
+  // #searchInput on any page, and prevents them being submitted.
+  function initSearchProtection() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+
+    // Set defensive attributes
+    searchInput.setAttribute('autocomplete', 'off');
+    searchInput.setAttribute('autocorrect', 'off');
+    searchInput.setAttribute('autocapitalize', 'off');
+    searchInput.setAttribute('spellcheck', 'false');
+    searchInput.setAttribute('data-lpignore', 'true');
+    searchInput.setAttribute('data-form-type', 'other');
+    if (!searchInput.name || searchInput.name === 'search') {
+      searchInput.name = 'search-no-autofill-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
+
+    // Clear on focus if autofilled with email
+    searchInput.addEventListener('focus', () => {
+      if (isEmail(searchInput.value)) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+
+    // Clear on input if autofill sneaks in
+    searchInput.addEventListener('input', (e) => {
+      if (isEmail(e.target.value)) {
+        e.target.value = '';
+      }
+    });
+
+    // Check periodically for delayed autofill (Safari does this)
+    let checkCount = 0;
+    const autofillCheck = setInterval(() => {
+      if (isEmail(searchInput.value)) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (++checkCount > 20) clearInterval(autofillCheck); // 2 seconds total
+    }, 100);
+  }
+
   // ── FAVICON ───────────────────────────────────────────────
   function initFavicon() {
     // Skip if favicon already exists
@@ -324,9 +371,10 @@
   
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    initHeader();         // inject header HTML (if placeholder present)
-    initTheme();          // apply saved theme + wire toggle
-    initLoadingOverlay(); // inject loading overlay if not already in HTML
+    initHeader();            // inject header HTML (if placeholder present)
+    initTheme();             // apply saved theme + wire toggle
+    initLoadingOverlay();    // inject loading overlay if not already in HTML
+    initSearchProtection();  // block browsers autofilling search bars with email
   });
 
   // ── PUBLIC API ────────────────────────────────────────────
