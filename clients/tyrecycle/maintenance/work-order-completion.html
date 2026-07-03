@@ -206,17 +206,19 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.06</div>
+      <div class="card-footer-version">Version V1.07</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.06</div>
+<div class="revision-number">V1.07</div>
 
 <script>
   const CONFIG = {
     emailjs: { publicKey: "4JW7VbCEAqZt9p4Jj", serviceId: "BromarEmail", templateId: "work_order_completion" },
-    managementEmails: ["ashleys@bromar.com.au"]
+    clientEmail: "REPLACE_WITH_CLIENT_EMAIL@tyrecycle.com.au",
+    managementEmails: ["ashleys@bromar.com.au"],
+    supabaseTable: "tyrecycle_work_orders"
   };
 
   emailjs.init(CONFIG.emailjs.publicKey);
@@ -348,32 +350,59 @@
     };
 
     const newWO = newWOCheckbox.checked;
-    const params = {
+    const rawDate = document.getElementById('completion_date').value;
+
+    // Row for Supabase (raw/typed values)
+    const dbRow = {
       technician_name: document.getElementById('technician_name').value.trim(),
       technician_email: document.getElementById('technician_email').value.trim(),
-      completion_date: formatDate(document.getElementById('completion_date').value),
+      completion_date: rawDate,
       work_order_number: document.getElementById('work_order_number').value.trim(),
       asset_number: document.getElementById('asset_number').value.trim(),
-      remedial_works: document.getElementById('remedial_works').value.trim() || 'None specified',
-      improvement_suggestions: document.getElementById('improvement_suggestions').value.trim() || 'None provided',
-      other_comments: document.getElementById('other_comments').value.trim() || 'None',
+      remedial_works: document.getElementById('remedial_works').value.trim() || null,
+      improvement_suggestions: document.getElementById('improvement_suggestions').value.trim() || null,
+      other_comments: document.getElementById('other_comments').value.trim() || null,
       completion_status: getStatus(),
+      new_work_order_required: newWO,
+      urgency_level: newWO ? getUrgency() : null,
+      remedial_description: newWO ? document.getElementById('remedial_description').value.trim() : null
+    };
+
+    // Params for EmailJS (formatted for readability)
+    const params = {
+      technician_name: dbRow.technician_name,
+      technician_email: dbRow.technician_email,
+      completion_date: formatDate(rawDate),
+      work_order_number: dbRow.work_order_number,
+      asset_number: dbRow.asset_number,
+      remedial_works: dbRow.remedial_works || 'None specified',
+      improvement_suggestions: dbRow.improvement_suggestions || 'None provided',
+      other_comments: dbRow.other_comments || 'None',
+      completion_status: dbRow.completion_status,
       new_work_order_required: newWO ? 'Yes' : 'No',
       urgency_level: newWO ? getUrgency() : 'N/A',
-      remedial_description: newWO ? document.getElementById('remedial_description').value.trim() : 'N/A',
+      remedial_description: newWO ? dbRow.remedial_description : 'N/A',
       submitted_date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      client_email: CONFIG.clientEmail,
       management_emails: CONFIG.managementEmails.join(', '),
-      to_email: document.getElementById('technician_email').value.trim()
+      to_email: CONFIG.clientEmail
     };
 
     try {
+      // 1) Insert into Supabase
+      if (window.sb) {
+        const { error: dbErr } = await window.sb.from(CONFIG.supabaseTable).insert(dbRow);
+        if (dbErr) console.error('Supabase insert error:', dbErr);
+      }
+      // 2) Email the client
       await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, params);
-      BromarHub.showSuccess('Work order completion submitted successfully — a confirmation has been sent to your email.');
+
+      BromarHub.showSuccess('Work order completion submitted successfully — the client has been notified.');
       form.reset();
       newWOSection.classList.remove('show');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      console.error('EmailJS error:', err);
+      console.error('Submit error:', err);
       BromarHub.showInfo('Something went wrong — please contact management directly.');
     } finally {
       submitBtn.disabled = false;
