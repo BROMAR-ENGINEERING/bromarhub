@@ -184,10 +184,19 @@
   function initHeader() {
     const placeholder = document.getElementById('bromar-header');
     if (!placeholder) return;
+    
+    // Determine home destination based on current path
+    let homeHref = '/index.html';
+    const path = window.location.pathname;
+    // If on a Tyrecycle sub-page (but not the home page itself), go to Tyrecycle home
+    if (path.includes('/clients/tyrecycle/') && !path.endsWith('/tyrecyclehome.html')) {
+      homeHref = '/clients/tyrecycle/tyrecyclehome.html';
+    }
+    
     placeholder.outerHTML = `
       <div class="header">
         <div class="header-controls">
-          <a href="../index.html" class="control-btn" aria-label="Home">
+          <a href="${homeHref}" class="control-btn" aria-label="Home">
             <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
           </a>
           <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
@@ -196,8 +205,8 @@
           </button>
         </div>
         <div class="header-content">
-          <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
-          <img src="../Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+          <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+          <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
         </div>
       </div>`;
   }
