@@ -47,23 +47,23 @@
     }
 
     /* ── CARD GRID ── */
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
     .hub-card {
       background: var(--bg-secondary); border: 1px solid var(--border);
-      border-radius: 16px; padding: 1.75rem;
+      border-radius: 14px; padding: 1.25rem;
       cursor: pointer; text-decoration: none; display: block;
       transition: all 0.3s ease; position: relative; overflow: hidden;
       animation: fadeIn 0.5s ease backwards;
     }
     .hub-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 12px 28px var(--shadow); }
     .card-icon {
-      width: 48px; height: 48px; border-radius: 12px;
+      width: 42px; height: 42px; border-radius: 10px;
       background: var(--card-hover); border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 0.875rem;
     }
-    .card-icon svg { width: 24px; height: 24px; stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .card-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; letter-spacing: -0.01em; }
-    .card-desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
+    .card-icon svg { width: 21px; height: 21px; stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; letter-spacing: -0.01em; }
+    .card-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
     .badge {
       display: inline-flex; align-items: center; gap: 4px; margin-top: 0.875rem;
       font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 12px;
@@ -160,15 +160,27 @@
       </div>
     </section>
 
-    <!-- TESTING -->
+    <!-- COMPLIANCE -->
     <section class="hub-section" data-section>
-      <h2 class="section-title">Testing</h2>
+      <h2 class="section-title">Compliance</h2>
       <div class="card-grid">
         <a class="hub-card" href="testing/emg-testing.html">
           <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></div>
           <div class="card-title">Emergency &amp; Exit Testing</div>
           <div class="card-desc">Emergency lighting and exit sign test records</div>
           <span class="badge active">✔ Active</span>
+        </a>
+        <a class="hub-card locked-link" data-href="testing/rcd-testing.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></div>
+          <div class="card-title">RCD Testing</div>
+          <div class="card-desc">Residual current device test records</div>
+          <span class="badge locked">🔒 In Development</span>
+        </a>
+        <a class="hub-card locked-link" data-href="testing/test-and-tag.html">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+          <div class="card-title">Test &amp; Tag</div>
+          <div class="card-desc">Appliance test and tag records</div>
+          <span class="badge locked">🔒 In Development</span>
         </a>
       </div>
     </section>
@@ -242,7 +254,7 @@
     </div>
   </div>
 
-  <div class="revision-number">V1.13</div>
+  <div class="revision-number">V1.15</div>
 
   <script>
     (function () {
