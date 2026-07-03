@@ -8,7 +8,6 @@
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="/tools/bromar-hub.css"/>
   <script src="/tools/bromar-hub.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     /* PAGE-SPECIFIC ONLY */
     .page-title-wrapper { margin: 80px auto 0; }
@@ -206,22 +205,18 @@
     <div class="card-footer">
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.07</div>
+      <div class="card-footer-version">Version V1.08</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.07</div>
+<div class="revision-number">V1.08</div>
 
 <script>
   const CONFIG = {
-    emailjs: { publicKey: "4JW7VbCEAqZt9p4Jj", serviceId: "BromarEmail", templateId: "work_order_completion" },
-    clientEmail: "REPLACE_WITH_CLIENT_EMAIL@tyrecycle.com.au",
-    managementEmails: ["ashleys@bromar.com.au"],
+    emailFunction: "/.netlify/functions/send-work-order",
     supabaseTable: "tyrecycle_work_orders"
   };
-
-  emailjs.init(CONFIG.emailjs.publicKey);
 
   document.getElementById('completion_date').max = new Date().toISOString().split('T')[0];
 
@@ -368,8 +363,8 @@
       remedial_description: newWO ? document.getElementById('remedial_description').value.trim() : null
     };
 
-    // Params for EmailJS (formatted for readability)
-    const params = {
+    // Payload sent to the Resend Netlify function
+    const payload = {
       technician_name: dbRow.technician_name,
       technician_email: dbRow.technician_email,
       completion_date: formatDate(rawDate),
@@ -382,10 +377,7 @@
       new_work_order_required: newWO ? 'Yes' : 'No',
       urgency_level: newWO ? getUrgency() : 'N/A',
       remedial_description: newWO ? dbRow.remedial_description : 'N/A',
-      submitted_date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      client_email: CONFIG.clientEmail,
-      management_emails: CONFIG.managementEmails.join(', '),
-      to_email: CONFIG.clientEmail
+      submitted_date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
 
     try {
@@ -394,8 +386,13 @@
         const { error: dbErr } = await window.sb.from(CONFIG.supabaseTable).insert(dbRow);
         if (dbErr) console.error('Supabase insert error:', dbErr);
       }
-      // 2) Email the client
-      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, params);
+      // 2) Email the client via Resend (Netlify function)
+      const res = await fetch(CONFIG.emailFunction, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Email send failed (' + res.status + ')');
 
       BromarHub.showSuccess('Work order completion submitted successfully — the client has been notified.');
       form.reset();
