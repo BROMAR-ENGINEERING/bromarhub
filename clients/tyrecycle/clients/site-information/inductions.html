@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Site Inductions — Tyrecycle | Bromar Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+  <script src="/tools/bromar-hub.js" defer></script>
+
+  <style>
+    /* ── PAGE-SPECIFIC ── */
+    .do-induction-card p { color: var(--text-secondary); margin-bottom: 1.1rem; font-size: 0.95rem; }
+
+    .induction-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 12px;
+      margin-bottom: 0.6rem; background: var(--bg-secondary); transition: border-color 0.2s;
+    }
+    .induction-row:hover { border-color: var(--accent); }
+    .induction-name { font-weight: 600; }
+    .induction-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+    .induction-side { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+
+    .chip { font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .chip-valid   { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .chip-soon    { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .chip-expired { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
+
+    .mini-btn {
+      font-family: 'Outfit', sans-serif; font-size: 0.75rem; font-weight: 600;
+      padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-main); color: var(--text-primary); cursor: pointer; transition: all 0.2s;
+    }
+    .mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .muted { color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0; }
+
+    /* ── IN-CARD FOOTER ── */
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.82rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="bromar-header"></div>
+
+  <div class="page-title-wrapper">
+    <h1>Site Inductions</h1>
+    <p class="subtitle">Tyrecycle Somerton — induction register</p>
+  </div>
+
+  <div class="page-wrapper">
+
+    <div class="success-banner" id="successBanner"><span>✅</span><span id="successText"></span></div>
+    <div class="info-banner" id="infoBanner"><span>ℹ️</span><span id="infoBannerText"></span></div>
+
+    <!-- COMPLETE AN INDUCTION -->
+    <div class="form-card do-induction-card">
+      <div class="section-label">Complete an Induction</div>
+      <p>New to site? Complete the Tyrecycle Somerton induction. This opens in your phone's browser.</p>
+      <button type="button" id="startInductionBtn" class="submit-btn">Start Induction →</button>
+    </div>
+
+    <!-- CURRENTLY INDUCTED -->
+    <div class="form-card">
+      <div class="section-label">Currently Inducted</div>
+      <div id="inductionList"><div class="muted">Loading…</div></div>
+    </div>
+
+    <!-- RECORD A COMPLETED INDUCTION -->
+    <div class="form-card">
+      <div class="section-label">Record a Completed Induction</div>
+      <form id="inductionForm">
+        <div class="field-row">
+          <div class="field-group">
+            <label for="inducted_name">Employee<span class="required">*</span></label>
+            <select id="inducted_name" required></select>
+          </div>
+          <div class="field-group">
+            <label for="induction_date">Induction date<span class="required">*</span></label>
+            <input type="date" id="induction_date" required/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="provider">Provider</label>
+            <input type="text" id="provider" value="SkyTrust"/>
+          </div>
+          <div class="field-group">
+            <label for="site">Site</label>
+            <input type="text" id="site" value="Tyrecycle Somerton"/>
+          </div>
+        </div>
+
+        <div class="field-group full">
+          <label>Induction certificate (PDF)<span class="required">*</span></label>
+          <div class="file-upload-area" id="fileUploadArea">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">Tap to upload the signed induction PDF</div>
+            <div class="upload-hint">PDF only · max ~10MB</div>
+            <input type="file" id="pdfInput" accept="application/pdf" hidden/>
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="field-group full">
+          <label for="notes">Notes</label>
+          <textarea id="notes" placeholder="Any relevant details…"></textarea>
+        </div>
+
+        <div class="form-divider"></div>
+        <div class="submit-row">
+          <span class="submit-note">Expiry is set to 1 year from the induction date.</span>
+          <button type="submit" class="submit-btn" id="submitBtn">Save Induction Record</button>
+        </div>
+      </form>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB — TYRECYCLE SITE INDUCTIONS</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SKYTRUST_URL = 'https://skytrust.co/app/Inductions/Guest/IndexQR.asp?UID=180694A785AD4649B626805FB17440C0';
+    const BUCKET = 'tyrecycle-inductions';
+    let selectedFile = null;
+    let loggedInName = '';
+
+    // Force-open a link in the phone's default browser (escape the PWA webview)
+    function openInBrowser(url) {
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function waitForSb() {
+      return new Promise(res => {
+        let n = 0;
+        (function poll(){ if (window.sb || n++ > 60) return res(); setTimeout(poll, 50); })();
+      });
+    }
+
+    function plusOneYear(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString().slice(0, 10);
+    }
+    function fmt(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso + 'T00:00:00');
+      return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+    }
+    function statusFor(expiryIso) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const exp = new Date(expiryIso + 'T00:00:00');
+      const days = Math.round((exp - today) / 86400000);
+      if (days < 0)  return { label: 'Expired', cls: 'chip-expired' };
+      if (days <= 30) return { label: 'Expires in ' + days + 'd', cls: 'chip-soon' };
+      return { label: 'Valid', cls: 'chip-valid' };
+    }
+
+    function latestPerPerson(rows) {
+      const map = new Map();
+      rows.forEach(r => {
+        const cur = map.get(r.full_name);
+        if (!cur || (r.induction_date || '') > (cur.induction_date || '')) map.set(r.full_name, r);
+      });
+      return [...map.values()].sort((a,b) => a.full_name.localeCompare(b.full_name));
+    }
+
+    async function loadInductions() {
+      const list = document.getElementById('inductionList');
+      const { data, error } = await window.sb.from('tyrecycle_inductions').select('*');
+      if (error) { list.innerHTML = '<div class="muted">Could not load inductions.</div>'; console.error(error); return; }
+      if (!data || !data.length) { list.innerHTML = '<div class="muted">No inductions recorded yet.</div>'; return; }
+      const esc = BromarHub.escapeHtml;
+      list.innerHTML = latestPerPerson(data).map(r => {
+        const exp = r.expiry_date || plusOneYear(r.induction_date);
+        const s = statusFor(exp);
+        const pdf = r.pdf_path
+          ? '<button class="mini-btn" data-path="' + esc(r.pdf_path) + '">PDF</button>' : '';
+        return '<div class="induction-row">' +
+          '<div><div class="induction-name">' + esc(r.full_name) + '</div>' +
+          '<div class="induction-meta">Inducted ' + fmt(r.induction_date) + ' · Expires ' + fmt(exp) + '</div></div>' +
+          '<div class="induction-side"><span class="chip ' + s.cls + '">' + s.label + '</span>' + pdf + '</div></div>';
+      }).join('');
+    }
+
+    async function viewPdf(path) {
+      const { data, error } = await window.sb.storage.from(BUCKET).createSignedUrl(path, 3600);
+      if (error || !data?.signedUrl) { BromarHub.showInfo('Could not open document'); return; }
+      openInBrowser(data.signedUrl);
+    }
+
+    function renderFile() {
+      const fl = document.getElementById('fileList');
+      if (!selectedFile) { fl.innerHTML = ''; return; }
+      const kb = (selectedFile.size / 1024).toFixed(0);
+      fl.innerHTML = '<div class="file-item"><div class="file-info"><span class="file-icon">📄</span>' +
+        '<div class="file-details"><div class="file-name">' + BromarHub.escapeHtml(selectedFile.name) + '</div>' +
+        '<div class="file-size">' + kb + ' KB</div></div></div>' +
+        '<button type="button" class="remove-btn" id="removeFileBtn">Remove</button></div>';
+      document.getElementById('removeFileBtn').addEventListener('click', () => {
+        selectedFile = null; document.getElementById('pdfInput').value = ''; renderFile();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await waitForSb();
+
+      document.getElementById('startInductionBtn').addEventListener('click', () => openInBrowser(SKYTRUST_URL));
+
+      // file upload wiring
+      const area = document.getElementById('fileUploadArea');
+      const input = document.getElementById('pdfInput');
+      area.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => {
+        const f = input.files[0];
+        if (f && f.type !== 'application/pdf') { BromarHub.showInfo('Please upload a PDF'); input.value=''; return; }
+        selectedFile = f || null; renderFile();
+      });
+      ['dragover','dragleave','drop'].forEach(ev => area.addEventListener(ev, e => {
+        e.preventDefault(); area.classList.toggle('dragover', ev === 'dragover');
+      }));
+      area.addEventListener('drop', e => {
+        const f = e.dataTransfer.files[0];
+        if (f && f.type === 'application/pdf') { selectedFile = f; renderFile(); }
+        else BromarHub.showInfo('Please upload a PDF');
+      });
+
+      // view-PDF delegation
+      document.getElementById('inductionList').addEventListener('click', e => {
+        const btn = e.target.closest('.mini-btn');
+        if (btn) viewPdf(btn.dataset.path);
+      });
+
+      // employees + logged-in recorder
+      await BromarHub.loadEmployees('inducted_name');
+      try {
+        const { data: { user } } = await window.sb.auth.getUser();
+        if (user?.email) {
+          const m = (window.EMPLOYEES || []).find(x => x.email?.toLowerCase() === user.email.toLowerCase());
+          loggedInName = m?.full_name || user.email;
+        }
+      } catch (_) {}
+
+      loadInductions();
+
+      // submit
+      document.getElementById('inductionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('inducted_name').value;
+        const date = document.getElementById('induction_date').value;
+        if (!name) { BromarHub.showInfo('Select the employee'); return; }
+        if (!date) { BromarHub.showInfo('Select the induction date'); return; }
+        if (!selectedFile) { BromarHub.showInfo('Attach the induction PDF'); return; }
+
+        const email = (window.EMPLOYEES || []).find(x => x.full_name === name)?.email || '';
+        const expiry = plusOneYear(date);
+        const safe = name.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+        const path = safe + '/' + Date.now() + '_' + selectedFile.name.replace(/[^a-z0-9._-]+/gi, '_');
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        BromarHub.showLoading('Saving induction…', 'Uploading certificate');
+        try {
+          const up = await window.sb.storage.from(BUCKET).upload(path, selectedFile, { contentType: 'application/pdf' });
+          if (up.error) throw up.error;
+          const { error } = await window.sb.from('tyrecycle_inductions').insert({
+            full_name: name, email, induction_date: date, expiry_date: expiry,
+            provider: document.getElementById('provider').value.trim() || null,
+            site: document.getElementById('site').value.trim() || null,
+            pdf_path: path, notes: document.getElementById('notes').value.trim() || null,
+            inducted_by: loggedInName || null
+          });
+          if (error) throw error;
+          BromarHub.hideLoading();
+          BromarHub.showSuccess('Induction recorded for ' + name);
+          e.target.reset();
+          document.getElementById('provider').value = 'SkyTrust';
+          document.getElementById('site').value = 'Tyrecycle Somerton';
+          selectedFile = null; renderFile();
+          loadInductions();
+        } catch (err) {
+          BromarHub.hideLoading();
+          console.error(err);
+          BromarHub.showInfo('Could not save: ' + (err.message || 'unknown error'));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
