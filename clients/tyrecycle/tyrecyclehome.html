@@ -14,6 +14,7 @@
     /* ── PAGE-SPECIFIC LAYOUT ── */
     .page-wrapper { margin-top: 90px; max-width: 1400px; }
     @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+    .page-title-wrapper { margin-top: 1rem; }
 
     /* ── SEARCH ── */
     .search-wrapper { max-width: 1400px; margin: 0 auto 2rem; padding: 0 1.5rem; }
@@ -93,10 +94,11 @@
     .footer a:hover { text-decoration: underline; }
 
     .back-to-hub {
-      display: inline-block; margin-top: 0.5rem;
+      margin: 78px 0 0 1.5rem;
       font-size: 0.85rem; font-weight: 600;
       color: var(--accent);
     }
+    @media (max-width: 520px) { .back-to-hub { margin: 70px 0 0 1rem; } }
 
     /* ── COMPACT DENSITY ── */
     [data-density="compact"] .page-wrapper { margin-top: 78px; }
@@ -117,10 +119,11 @@
 
   <div id="bromar-header"></div>
 
+  <p class="back-to-hub">← Back to Bromar Hub</p>
+
   <div class="page-title-wrapper">
     <h1>Tyrecycle Portal</h1>
     <p class="subtitle">Site information and resources</p>
-    <p class="back-to-hub">← Back to Bromar Hub</p>
   </div>
 
   <div class="search-wrapper">
@@ -270,7 +273,7 @@
     </div>
   </div>
 
-  <div class="revision-number">V1.07</div>
+  <div class="revision-number">V1.08</div>
 
   <script>
     (function () {
