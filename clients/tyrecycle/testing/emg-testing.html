@@ -161,6 +161,10 @@
           <label for="start_time">Discharge Start Time<span class="required">*</span></label>
           <input type="time" id="start_time"/>
         </div>
+        <div class="field-group">
+          <label for="finish_time">Finish Time<span class="required">*</span></label>
+          <input type="time" id="finish_time"/>
+        </div>
         <div class="field-group full">
           <label for="filled_by">Tested By<span class="required">*</span></label>
           <select id="filled_by"><option value="">Select your name...</option></select>
@@ -207,10 +211,21 @@
         <button type="button" class="submit-btn" id="submitBtn">Submit Test Log</button>
       </div>
 
+      <div class="modal-overlay" id="validateModal">
+        <div class="modal-content" style="max-width:520px;">
+          <h2 id="vmTitle">Check before submitting</h2>
+          <div id="vmBody"></div>
+          <div class="submit-row" style="margin-top:1.5rem;">
+            <button type="button" class="btn-secondary" id="vmClose">Go Back</button>
+            <button type="button" class="submit-btn" id="vmProceed">Submit Anyway</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.00</div>
+        <div class="card-footer-version">Version V1.01</div>
       </div>
     </div>
   </div>
@@ -482,19 +497,54 @@
     });
 
     document.getElementById('submitBtn').addEventListener('click', submitLog);
+    document.getElementById('vmClose').addEventListener('click', () => document.getElementById('validateModal').classList.remove('show'));
+    document.getElementById('vmProceed').addEventListener('click', () => { document.getElementById('validateModal').classList.remove('show'); doSave(); });
 
-    async function submitLog() {
+    function requiredFieldErrors() {
       if (!currentUser) {
         const sel = document.getElementById('filled_by');
         if (sel.value) { const o = sel.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
       }
-      const site = 'Tyrecycle — Somerton';
-      const testDate = document.getElementById('test_date').value;
-      const startTime = document.getElementById('start_time').value;
-      if (!testDate) return BromarHub.showInfo('Select the test date');
-      if (!startTime) return BromarHub.showInfo('Enter the discharge start time');
-      if (!currentUser) return BromarHub.showInfo('Select who tested');
+      const errs = [];
+      if (!document.getElementById('test_date').value) errs.push('Test date');
+      if (!document.getElementById('start_time').value) errs.push('Discharge start time');
+      if (!document.getElementById('finish_time').value) errs.push('Finish time');
+      if (!currentUser) errs.push('Tested by');
+      return errs;
+    }
 
+    function unmarkedFittings() {
+      const out = [];
+      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
+        if (f.na || !f.type) return; // skip removed/placeholder rows
+        if (!results[f.ref]?.status) out.push(f.ref);
+      }));
+      return out;
+    }
+
+    function submitLog() {
+      const errs = requiredFieldErrors();
+      const unmarked = unmarkedFittings();
+      if (!errs.length && !unmarked.length) return doSave();
+
+      const parts = [];
+      if (errs.length) {
+        parts.push('<p style="margin-bottom:.5rem;font-weight:600;color:var(--error);">Required fields missing:</p><ul class="summary-list">' +
+          errs.map(e => `<li>${e}</li>`).join('') + '</ul>');
+      }
+      if (unmarked.length) {
+        parts.push(`<p style="margin:${errs.length?'1rem':'0'} 0 .5rem;font-weight:600;">${unmarked.length} fitting(s) not marked pass or fail:</p>` +
+          `<p style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;">${unmarked.join(', ')}</p>`);
+      }
+      document.getElementById('vmBody').innerHTML = parts.join('');
+      // Hard errors must be fixed — hide "Submit Anyway"
+      document.getElementById('vmProceed').style.display = errs.length ? 'none' : '';
+      document.getElementById('vmClose').textContent = errs.length ? 'OK' : 'Go Back';
+      document.getElementById('validateModal').classList.add('show');
+    }
+
+    async function doSave() {
+      const site = 'Tyrecycle — Somerton';
       const rows = [];
       ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
         const r = results[f.ref];
@@ -513,7 +563,9 @@
       BromarHub.showLoading('Saving test log...', `${rows.length} fittings`);
       try {
         const { error } = await window.sb.from('emergency_lighting_tests').insert([{
-          test_date: testDate, site, tester: currentUser.name, start_time: startTime,
+          test_date: document.getElementById('test_date').value, site, tester: currentUser.name,
+          start_time: document.getElementById('start_time').value,
+          finish_time: document.getElementById('finish_time').value,
           total: rows.length, passed, failed, results: rows,
           report_notes: document.getElementById('test_notes').value.trim() || null
         }]);
