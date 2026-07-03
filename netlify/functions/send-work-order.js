@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     }
     rows += row('Submitted', d.submitted_date);
 
-    const LOGO = process.env.BROMAR_LOGO_URL || 'https://bromarhub.netlify.app/Bromar-Primary-Logo-Full-Colour.png';
+    const LOGO = process.env.BROMAR_LOGO_URL || 'https://bromarhub.netlify.app/Bromar-Primary-Logo-Reverse-White.png';
 
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
