@@ -12,8 +12,35 @@
 
   <style>
     /* ── PAGE-SPECIFIC ── */
-    .page-wrapper { margin-top: 90px; }
-    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+    .page-title-wrapper { margin: 84px auto 0.5rem; }
+    .page-wrapper { margin-top: 0; }
+    @media (max-width: 520px) { .page-title-wrapper { margin-top: 74px; } }
+
+    /* Work description */
+    .work-desc { background: var(--bg-main); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5; }
+    .work-desc strong { color: var(--text-primary); }
+    .site-line { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem; }
+    .site-line span { color: var(--accent); }
+
+    /* Mode tabs */
+    .mode-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+    .mode-tab { flex: 1; padding: 0.55rem 1rem; border: none; border-bottom: 2px solid var(--border); background: transparent; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); transition: all 0.2s; }
+    .mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Edit mode visibility */
+    body[data-mode="edit"] .testonly { display: none !important; }
+    body[data-mode="test"] .editonly { display: none !important; }
+    .edit-hint { font-size: 0.78rem; color: var(--text-secondary); background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; line-height: 1.5; }
+
+    /* Edit rows */
+    .edit-row { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem; margin-bottom: 0.5rem; }
+    .edit-row .er-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .edit-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+    .edit-grid .ef { display: flex; flex-direction: column; gap: 3px; }
+    .edit-grid label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary); margin: 0; }
+    .edit-grid input { padding: 0.45rem 0.6rem; font-size: 0.85rem; border-radius: 7px; }
+    .edit-grid .wide { grid-column: span 2; }
+    @media (max-width: 600px) { .edit-grid { grid-template-columns: repeat(2, 1fr); } .edit-grid .wide { grid-column: span 2; } }
 
     /* Area tabs */
     .area-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
@@ -51,27 +78,32 @@
     .stat.fail .stat-num { color: var(--error); }
 
     /* Fitting card */
-    .fitting { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 0.7rem; transition: border-color 0.2s; }
+    .fitting { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.8rem; margin-bottom: 0.4rem; transition: border-color 0.2s; }
     .fitting.is-pass { border-color: var(--success-border); }
     .fitting.is-fail { border-color: var(--error-border); }
     .fitting-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; }
     .fitting-id { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
     .fitting-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.95rem; color: var(--accent); }
     .fitting-loc { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
-    .fitting-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 0.5rem; }
-    .tag { padding: 2px 9px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; font-size: 0.68rem; color: var(--text-secondary); font-weight: 600; }
+    .fitting-loc { font-size: 0.88rem; }
+    .fitting-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 0.35rem; }
+    .tag { padding: 1px 7px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; font-size: 0.66rem; color: var(--text-secondary); font-weight: 600; }
     .tag.type { background: var(--card-hover); border-color: var(--accent); color: var(--accent); }
     .tag.na { background: var(--error-bg); border-color: var(--error-border); color: var(--error); }
 
-    .pf-toggle { display: flex; gap: 0.5rem; }
-    .pf-btn { padding: 0.55rem 1.15rem; border: 2px solid var(--border); border-radius: 9px; background: var(--bg-main); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.82rem; color: var(--text-secondary); transition: all 0.15s; }
+    .pf-toggle { display: flex; gap: 0.4rem; align-items: center; }
+    .pf-btn { padding: 0.4rem 0.9rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-main); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.78rem; color: var(--text-secondary); transition: all 0.15s; }
+    .note-btn { border: none; background: none; cursor: pointer; color: var(--text-secondary); font-size: 1.15rem; line-height: 1; padding: 0.25rem 0.4rem; border-radius: 6px; transition: all 0.15s; }
+    .note-btn:hover { color: var(--accent); background: var(--card-hover); }
+    .note-btn.has-note { color: var(--accent); }
     .pf-btn.pass.sel { border-color: var(--success); background: var(--success-bg); color: var(--success); }
     .pf-btn.fail.sel { border-color: var(--error); background: var(--error-bg); color: var(--error); }
 
     .fail-extra { display: none; margin-top: 0.85rem; gap: 0.75rem; grid-template-columns: 160px 1fr; }
     .fitting.is-fail .fail-extra { display: grid; }
-    .fitting-notes { margin-top: 0.75rem; }
-    .fitting-notes textarea { min-height: 44px; font-size: 0.9rem; }
+    .fitting-notes { display: none; margin-top: 0.6rem; }
+    .fitting-notes.show { display: block; }
+    .fitting-notes textarea { min-height: 40px; font-size: 0.88rem; }
     @media (max-width: 560px) {
       .fail-extra { grid-template-columns: 1fr; }
       .fitting-head { flex-direction: column; }
@@ -102,15 +134,11 @@
       <div id="infoBanner" class="info-banner"><span id="infoBannerText"></span></div>
 
       <div class="section-label">Test Details</div>
+      <div class="site-line">Site: <span>Tyrecycle — Somerton</span></div>
+      <div class="work-desc">
+        <strong>Scope:</strong> Pre-inspection of lights on mains power. Turn off the circuit at the circuit breaker and confirm each fitting maintains illumination for the full 90-minute discharge duration.
+      </div>
       <div class="field-row">
-        <div class="field-group">
-          <label for="site">Site / Location<span class="required">*</span></label>
-          <input type="text" id="site" placeholder="e.g. Bromar Factory, Westmeadows"/>
-        </div>
-        <div class="field-group">
-          <label for="job_number">Job Number</label>
-          <input type="text" id="job_number" placeholder="Optional"/>
-        </div>
         <div class="field-group">
           <label for="test_date">Test Date<span class="required">*</span></label>
           <input type="date" id="test_date"/>
@@ -128,6 +156,11 @@
       <div class="form-divider"></div>
       <div class="section-label">Fittings</div>
 
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab active" data-mode="test">Testing</button>
+        <button type="button" class="mode-tab" data-mode="edit">Edit Fittings</button>
+      </div>
+
       <div class="area-tabs">
         <div class="area-tab active" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
         <div class="area-tab" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
@@ -135,18 +168,24 @@
 
       <div class="el-toolbar">
         <input type="text" id="filter" placeholder="🔍 Filter by ref or location..."/>
-        <button type="button" class="quick-btn" id="allPass">✓ All Pass</button>
-        <button type="button" class="quick-btn" id="clearArea">Clear</button>
+        <button type="button" class="quick-btn testonly" id="allPass">✓ All Pass</button>
+        <button type="button" class="quick-btn testonly" id="clearArea">Clear</button>
       </div>
 
-      <div class="stats-bar">
+      <div class="stats-bar testonly">
         <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
         <div class="stat pass"><div class="stat-num" id="s-pass">0</div><div class="stat-label">Pass</div></div>
         <div class="stat fail"><div class="stat-num" id="s-fail">0</div><div class="stat-label">Fail</div></div>
         <div class="stat"><div class="stat-num" id="s-rem">0</div><div class="stat-label">Remaining</div></div>
       </div>
 
+      <div class="edit-hint editonly">Edit part numbers and details below. Changes save to this device and apply to the test list. Persistent (database) storage comes when the SQL is added.</div>
+
       <div id="fittingList"></div>
+
+      <div class="form-divider"></div>
+      <div class="section-label">Testing Notes</div>
+      <textarea id="test_notes" placeholder="Additional notes to include on the report (access, defects found, follow-up required, etc.)" style="min-height:90px;"></textarea>
 
       <div class="form-divider"></div>
       <div class="submit-row">
@@ -264,23 +303,68 @@
     };
 
     const esc = s => BromarHub.escapeHtml(s || '');
+    let mode = 'test';
+    const EDIT_KEY = 'emgFittingEdits';
+    const EDIT_FIELDS = ['loc','type','db','ckt','m','brand','model'];
+
+    // Apply any saved edits onto the base fittings
+    function applyEdits() {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(EDIT_KEY) || '{}'); } catch (_) {}
+      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
+        if (saved[f.ref]) EDIT_FIELDS.forEach(k => { if (saved[f.ref][k] !== undefined) f[k] = saved[f.ref][k]; });
+      }));
+    }
+    function persistEdit(ref, key, val) {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(EDIT_KEY) || '{}'); } catch (_) {}
+      saved[ref] = saved[ref] || {};
+      saved[ref][key] = val;
+      localStorage.setItem(EDIT_KEY, JSON.stringify(saved));
+    }
+    function fittingByRef(ref) { return [...FITTINGS.factory, ...FITTINGS.office].find(f => f.ref === ref); }
 
     function areaOf(ref) { return ref.startsWith('EM1') ? 'office' : 'factory'; }
 
     function renderList() {
       const q = (document.getElementById('filter').value || '').toLowerCase();
       const list = FITTINGS[activeArea].filter(f =>
-        !q || f.ref.toLowerCase().includes(q) || f.loc.toLowerCase().includes(q));
-      const html = list.map(f => {
-        const r = results[f.ref] || {};
-        const cls = r.status === 'pass' ? 'is-pass' : r.status === 'fail' ? 'is-fail' : '';
-        const tags = [];
-        if (f.db) tags.push(`<span class="tag">${esc(f.db)}</span>`);
-        if (f.ckt) tags.push(`<span class="tag">Ckt ${esc(f.ckt)}</span>`);
-        if (f.m) tags.push(`<span class="tag">${esc(f.m)}</span>`);
-        if (f.brand) tags.push(`<span class="tag">${esc(f.brand)} ${esc(f.model)}</span>`);
-        if (f.na) tags.push(`<span class="tag na">${esc(f.na)}</span>`);
-        return `
+        !q || f.ref.toLowerCase().includes(q) || (f.loc || '').toLowerCase().includes(q));
+      const html = (mode === 'edit' ? list.map(editRow) : list.map(testRow)).join('');
+      document.getElementById('fittingList').innerHTML = html || '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">No matches.</p>';
+      if (mode === 'test') updateStats();
+    }
+
+    function editRow(f) {
+      const field = (k, label, wide) => `
+        <div class="ef ${wide?'wide':''}"><label>${label}</label>
+          <input type="text" class="ei" data-ref="${esc(f.ref)}" data-key="${k}" value="${esc(f[k])}"/></div>`;
+      return `
+        <div class="edit-row">
+          <div class="er-ref">${esc(f.ref)}</div>
+          <div class="edit-grid">
+            ${field('loc','Location',true)}
+            ${field('type','Type')}
+            ${field('db','Board')}
+            ${field('ckt','CB#')}
+            ${field('m','M / NM')}
+            ${field('brand','Brand')}
+            ${field('model','Model / Part No.')}
+          </div>
+        </div>`;
+    }
+
+    function testRow(f) {
+      const r = results[f.ref] || {};
+      const cls = r.status === 'pass' ? 'is-pass' : r.status === 'fail' ? 'is-fail' : '';
+      const tags = [];
+      if (f.db) tags.push(`<span class="tag">${esc(f.db)}</span>`);
+      if (f.ckt) tags.push(`<span class="tag">CB ${esc(f.ckt)}</span>`);
+      if (f.m) tags.push(`<span class="tag">${esc(f.m)}</span>`);
+      if (f.brand) tags.push(`<span class="tag">${esc(f.brand)} ${esc(f.model)}</span>`);
+      if (f.na) tags.push(`<span class="tag na">${esc(f.na)}</span>`);
+      const hasNote = !!(r.notes && r.notes.trim());
+      return `
         <div class="fitting ${cls}" data-ref="${esc(f.ref)}">
           <div class="fitting-head">
             <div>
@@ -294,6 +378,7 @@
             <div class="pf-toggle">
               <button type="button" class="pf-btn pass ${r.status==='pass'?'sel':''}" data-act="pass">PASS</button>
               <button type="button" class="pf-btn fail ${r.status==='fail'?'sel':''}" data-act="fail">FAIL</button>
+              <button type="button" class="note-btn ${hasNote?'has-note':''}" data-note title="Add note">✎</button>
             </div>
           </div>
           <div class="fail-extra">
@@ -302,14 +387,10 @@
             <div><label>Fault notes</label>
               <input type="text" class="f-faultnote" placeholder="e.g. battery not holding charge" value="${esc(r.faultnote)}"/></div>
           </div>
-          <div class="fitting-notes">
-            <label>Notes</label>
-            <textarea class="f-notes" placeholder="Optional notes...">${esc(r.notes)}</textarea>
+          <div class="fitting-notes ${hasNote?'show':''}">
+            <textarea class="f-notes" placeholder="Note...">${esc(r.notes)}</textarea>
           </div>
         </div>`;
-      }).join('');
-      document.getElementById('fittingList').innerHTML = html || '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">No matches.</p>';
-      updateStats();
     }
 
     function updateStats() {
@@ -329,6 +410,13 @@
     function set(ref, patch) { results[ref] = Object.assign({status:'',duration:'',faultnote:'',notes:''}, results[ref], patch); }
 
     document.getElementById('fittingList').addEventListener('click', e => {
+      const noteBtn = e.target.closest('.note-btn');
+      if (noteBtn) {
+        const box = noteBtn.closest('.fitting').querySelector('.fitting-notes');
+        box.classList.toggle('show');
+        if (box.classList.contains('show')) box.querySelector('textarea').focus();
+        return;
+      }
       const btn = e.target.closest('.pf-btn');
       if (!btn) return;
       const card = btn.closest('.fitting');
@@ -340,12 +428,26 @@
     });
 
     document.getElementById('fittingList').addEventListener('input', e => {
+      if (e.target.classList.contains('ei')) {
+        const { ref, key } = e.target.dataset;
+        const f = fittingByRef(ref);
+        if (f) { f[key] = e.target.value; persistEdit(ref, key, e.target.value); }
+        return;
+      }
       const card = e.target.closest('.fitting'); if (!card) return;
       const ref = card.dataset.ref;
       if (e.target.classList.contains('f-duration')) set(ref, { duration: e.target.value });
       else if (e.target.classList.contains('f-faultnote')) set(ref, { faultnote: e.target.value });
       else if (e.target.classList.contains('f-notes')) set(ref, { notes: e.target.value });
     });
+
+    document.querySelectorAll('.mode-tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      mode = t.dataset.mode;
+      document.body.setAttribute('data-mode', mode);
+      renderList();
+    }));
 
     document.querySelectorAll('.area-tab').forEach(t => t.addEventListener('click', () => {
       document.querySelectorAll('.area-tab').forEach(x => x.classList.remove('active'));
@@ -372,10 +474,9 @@
         const sel = document.getElementById('filled_by');
         if (sel.value) { const o = sel.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
       }
-      const site = document.getElementById('site').value.trim();
+      const site = 'Tyrecycle — Somerton';
       const testDate = document.getElementById('test_date').value;
       const startTime = document.getElementById('start_time').value;
-      if (!site) return BromarHub.showInfo('Enter the site / location');
       if (!testDate) return BromarHub.showInfo('Select the test date');
       if (!startTime) return BromarHub.showInfo('Enter the discharge start time');
       if (!currentUser) return BromarHub.showInfo('Select who tested');
@@ -398,9 +499,9 @@
       BromarHub.showLoading('Saving test log...', `${rows.length} fittings`);
       try {
         const { error } = await window.sb.from('emergency_lighting_tests').insert([{
-          test_date: testDate, site, job_number: document.getElementById('job_number').value.trim() || null,
-          tester: currentUser.name, start_time: startTime,
-          total: rows.length, passed, failed, results: rows
+          test_date: testDate, site, tester: currentUser.name, start_time: startTime,
+          total: rows.length, passed, failed, results: rows,
+          report_notes: document.getElementById('test_notes').value.trim() || null
         }]);
         BromarHub.hideLoading();
         if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
@@ -421,6 +522,8 @@
     })(0);
 
     document.addEventListener('DOMContentLoaded', async () => {
+      document.body.setAttribute('data-mode', 'test');
+      applyEdits();
       document.getElementById('test_date').value = new Date().toISOString().slice(0, 10);
       const now = new Date();
       document.getElementById('start_time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
