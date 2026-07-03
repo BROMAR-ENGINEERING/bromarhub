@@ -54,14 +54,19 @@ exports.handler = async (event) => {
     }
     rows += row('Submitted', d.submitted_date);
 
+    const LOGO = process.env.BROMAR_LOGO_URL || 'https://bromarhub.netlify.app/Bromar-Primary-Logo-Full-Colour.png';
+
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
-        <h2 style="color:#c2440e;margin:0 0 4px;">Work Order Completion Submission</h2>
-        <p style="color:#6b7280;margin:0 0 18px;">WO ${esc(d.work_order_number)} — ${esc(d.completion_status)}</p>
+        <div style="text-align:center;padding:8px 0 16px;">
+          <img src="${LOGO}" alt="Bromar" style="height:44px;width:auto;" />
+        </div>
+        <h2 style="color:#c2440e;margin:0 0 4px;text-align:center;">Tyrecycle Work Order — Completed by Bromar</h2>
+        <p style="color:#6b7280;margin:0 0 18px;text-align:center;">WO ${esc(d.work_order_number)} — ${esc(d.completion_status)}</p>
         <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden;">
           ${rows}
         </table>
-        <p style="color:#9ca3af;font-size:12px;margin-top:18px;">Submitted via Bromar Hub — Tyrecycle Work Order Completion.</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:18px;text-align:center;">Completed by Bromar Electrical Services — submitted via Bromar Hub.</p>
       </div>`;
 
     const resp = await fetch('https://api.resend.com/emails', {
@@ -75,15 +80,18 @@ exports.handler = async (event) => {
         to: [TO],
         cc: CC,
         reply_to: d.technician_email || undefined,
-        subject: `Work Order ${d.work_order_number || ''} — ${d.completion_status || 'Completion'}`,
+        subject: `Tyrecycle Work Order ${d.work_order_number || ''} — ${d.completion_status || 'Completion'} (Bromar)`,
         html
       })
     });
 
     const data = await resp.json();
+    console.log('Resend request:', { from: FROM, to: TO, cc: CC });
     if (!resp.ok) {
+      console.error('Resend error:', resp.status, JSON.stringify(data));
       return { statusCode: resp.status, body: JSON.stringify({ error: data }) };
     }
+    console.log('Resend sent OK:', data.id);
     return { statusCode: 200, body: JSON.stringify({ ok: true, id: data.id }) };
 
   } catch (err) {
