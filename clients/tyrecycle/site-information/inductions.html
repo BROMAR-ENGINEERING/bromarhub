@@ -58,16 +58,11 @@
   <div id="bromar-header"></div>
 
   <div class="page-title-wrapper">
-    <h1>Site Inductions</h1>
+    <h1>Tyrecycle Inductions</h1>
     <p class="subtitle">Tyrecycle Somerton — induction register</p>
   </div>
 
   <div class="page-wrapper">
-
-    <div class="stat-tiles">
-      <div class="stat-tile"><div class="stat-num" id="statInducted">–</div><div class="stat-label">Inducted</div></div>
-      <div class="stat-tile dim"><div class="stat-num" id="statNot">–</div><div class="stat-label">Not inducted</div></div>
-    </div>
 
     <div class="success-banner" id="successBanner"><span>✅</span><span id="successText"></span></div>
     <div class="info-banner" id="infoBanner"><span>ℹ️</span><span id="infoBannerText"></span></div>
@@ -77,12 +72,6 @@
       <div class="section-label">Complete an Induction</div>
       <p>Please complete the induction every 12 months and upload the PDF certificate to keep compliance up to date. This opens in your phone's browser.</p>
       <button type="button" id="startInductionBtn" class="submit-btn">Start Induction →</button>
-    </div>
-
-    <!-- CURRENTLY INDUCTED -->
-    <div class="form-card">
-      <div class="section-label">Currently Inducted</div>
-      <div id="inductionList"><div class="muted">Loading…</div></div>
     </div>
 
     <!-- RECORD A COMPLETED INDUCTION -->
@@ -128,11 +117,23 @@
           <button type="submit" class="submit-btn" id="submitBtn">Save Induction Record</button>
         </div>
       </form>
+    </div>
+
+    <!-- STATUS TILES -->
+    <div class="stat-tiles">
+      <div class="stat-tile"><div class="stat-num" id="statInducted">–</div><div class="stat-label">Inducted</div></div>
+      <div class="stat-tile dim"><div class="stat-num" id="statNot">–</div><div class="stat-label">Not inducted</div></div>
+    </div>
+
+    <!-- CURRENTLY INDUCTED -->
+    <div class="form-card">
+      <div class="section-label">Currently Inducted</div>
+      <div id="inductionList"><div class="muted">Loading…</div></div>
 
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — TYRECYCLE SITE INDUCTIONS</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.04</div>
+        <div class="card-footer-version">Version V1.05</div>
       </div>
     </div>
   </div>
