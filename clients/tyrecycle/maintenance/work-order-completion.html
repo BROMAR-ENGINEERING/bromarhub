@@ -78,6 +78,15 @@
     .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
     .card-footer-link:hover { text-decoration: underline; }
     .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+
+    /* Bromar branding */
+    .bromar-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+    .bromar-brand img { height: 30px; width: auto; }
+    .bromar-brand .light-logo { display: block; }
+    .bromar-brand .dark-logo { display: none; }
+    [data-theme="dark"] .bromar-brand .light-logo { display: none; }
+    [data-theme="dark"] .bromar-brand .dark-logo { display: block; }
+    .bromar-brand span { font-size: 0.82rem; color: var(--text-secondary); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -203,14 +212,19 @@
     </div>
 
     <div class="card-footer">
+      <div class="bromar-brand">
+        <img class="light-logo" src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar"/>
+        <img class="dark-logo" src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar"/>
+        <span>Tyrecycle Work Order — completed by Bromar</span>
+      </div>
       <div class="card-footer-title">TYRECYCLE — WORK ORDER COMPLETION SUBMISSION</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.09</div>
+      <div class="card-footer-version">Version V1.10</div>
     </div>
   </div>
 </div>
 
-<div class="revision-number">V1.09</div>
+<div class="revision-number">V1.10</div>
 
 <script>
   const CONFIG = {
