@@ -32,7 +32,7 @@
       siteName: job?.site_name || '',
       employees: window.EMPLOYEES || [],
       currentUser: window.currentUser,
-      supabase: JM.sb(),
+      supabase: window.sb,
       onComplete: async () => { await JM.loadJobData(JM.state.selectedJob); JM.updateCounts(); goBack(); },
       onBack: goBack,
     };
