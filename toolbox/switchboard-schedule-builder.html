@@ -24,21 +24,21 @@
   .loadshed-row { display:flex; align-items:center; gap:0.625rem; padding:0.75rem 0; }
   .loadshed-row input[type="checkbox"] { width:20px; height:20px; accent-color:var(--accent); cursor:pointer; }
 
-  /* circuit + row editors */
   .sb-circuit-row, .sb-rowdef {
     display:grid; gap:0.5rem; align-items:end;
     background:var(--bg-main); border:1px solid var(--border);
     border-radius:10px; padding:0.75rem; margin-bottom:0.5rem;
   }
-  .sb-circuit-row { grid-template-columns: 70px 70px 1fr 130px 34px; }
+  .sb-circuit-row { grid-template-columns: 66px 60px 96px 66px 84px 34px; }
   .sb-rowdef      { grid-template-columns: 1fr 90px 34px; }
   .sb-circuit-row label, .sb-rowdef label { font-size:0.7rem; margin-bottom:0.25rem; }
-  .sb-circuit-row input, .sb-rowdef input { padding:0.5rem 0.625rem; font-size:0.9rem; }
+  .sb-circuit-row input, .sb-circuit-row select, .sb-rowdef input { padding:0.5rem 0.5rem; font-size:0.9rem; }
+  .c-desc-wrap { grid-column:1 / -1; }
   .row-x { background:none; border:none; color:var(--error); font-size:1.3rem; cursor:pointer; line-height:1; padding:0; }
   .row-x:hover { color:#ef4444; }
   @media (max-width:640px){
-    .sb-circuit-row { grid-template-columns: 1fr 1fr; }
-    .sb-circuit-row .c-desc, .sb-circuit-row .c-type { grid-column:1 / -1; }
+    .sb-circuit-row { grid-template-columns: 1fr 1fr 1fr; }
+    .sb-circuit-row .c-x { grid-column:1 / -1; justify-self:end; }
     .sb-rowdef { grid-template-columns: 1fr 90px; }
     .sb-rowdef .row-x { grid-column:1 / -1; justify-self:end; }
   }
@@ -71,7 +71,6 @@
   .sb-band td { background:#000; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
   .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
 
-  /* in-card footer */
   .card-footer { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); text-align:center; }
   .card-footer-title { font-weight:700; font-size:1.05rem; letter-spacing:0.8px; color:var(--text-primary); margin-bottom:10px; white-space:nowrap; }
   @media (max-width:420px){ .card-footer-title { font-size:0.85rem; letter-spacing:0.5px; } }
@@ -95,7 +94,6 @@
 
   <div class="form-card">
 
-    <!-- Load / New -->
     <div class="toolbar">
       <div class="field-group">
         <label for="loadSelect">Open a saved schedule</label>
@@ -105,29 +103,29 @@
       <button type="button" class="btn-secondary" id="deleteBtn">🗑 Delete</button>
     </div>
 
-    <!-- Board details -->
     <div class="section-label">Board Details</div>
     <div class="field-row">
       <div class="field-group full">
         <label for="board_name">Board Name <span class="required">*</span></label>
-        <input type="text" id="board_name" placeholder="THE ELASTOMERS - DB4-1"/>
+        <input type="text" id="board_name" placeholder="Distribution Board 1"/>
       </div>
-      <div class="field-group"><label for="project_number">Project Number</label><input type="text" id="project_number" placeholder="BE5559"/></div>
+      <div class="field-group autocomplete-wrapper">
+        <label for="job_number">Job Number</label>
+        <input type="text" id="job_number" autocomplete="off" placeholder="Search job register…"/>
+        <div class="autocomplete-results" id="jobResults"></div>
+      </div>
       <div class="field-group"><label for="schedule_date">Date</label><input type="date" id="schedule_date"/></div>
-      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="Kneaderline East Wall"/></div>
-      <div class="field-group"><label for="isolator_rating">Isolator Rating / Supply Capacity</label><input type="text" id="isolator_rating" placeholder="250A / 63A"/></div>
-      <div class="field-group"><label for="switchboard_type">Switchboard Type</label><input type="text" id="switchboard_type" placeholder="48 Pole Chassis"/></div>
-      <div class="field-group"><label for="brand">Brand</label><input type="text" id="brand" placeholder="NHP Din-t"/></div>
-      <div class="field-group"><label for="sub_main_size">Sub Main Size</label><input type="text" id="sub_main_size" placeholder="25mm² 4C&E O/C"/></div>
-      <div class="field-group"><label for="fed_from">Fed From</label><input type="text" id="fed_from" placeholder="DB4 - CB 19, 21, 23"/></div>
-      <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="Cable Tray at roof height"/></div>
+      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
+      <div class="field-group"><label for="isolator_rating">Isolator Rating / Supply Capacity</label><input type="text" id="isolator_rating" placeholder="e.g. 250A / 63A"/></div>
+      <div class="field-group"><label for="sub_main_size">Sub Main Size</label><input type="text" id="sub_main_size" placeholder="e.g. 25mm2 4C&E O/C"/></div>
+      <div class="field-group"><label for="fed_from">Fed From</label><input type="text" id="fed_from" placeholder="e.g. DB1 - CB 2,4,6"/></div>
+      <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
       <div class="field-group full"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes shown on schedule"/></div>
       <div class="field-group full">
         <div class="loadshed-row"><input type="checkbox" id="is_loadshed"/><label for="is_loadshed" style="margin:0;">Is this board loadshed?</label></div>
       </div>
     </div>
 
-    <!-- Chassis -->
     <div class="section-label">Chassis</div>
     <div class="job-number-toggle">
       <div class="radio-option"><input type="radio" name="layout" id="layout_dual" value="dual" checked/><label for="layout_dual">Dual — odd left / even right</label></div>
@@ -135,18 +133,21 @@
     </div>
     <div class="field-row">
       <div class="field-group"><label for="total_poles">Total Poles</label><input type="number" id="total_poles" min="1" max="200" value="48"/></div>
+      <div class="field-group"><label for="chassis_type">Chassis Type</label>
+        <select id="chassis_type"><option value="">Select…</option><option value="MCB">MCB</option><option value="MCCB">MCCB</option><option value="Hybrid">Hybrid</option></select>
+      </div>
+      <div class="field-group"><label for="switchboard_type">Switchboard Type</label><input type="text" id="switchboard_type" placeholder="e.g. 48 Pole Chassis"/></div>
+      <div class="field-group"><label for="brand">Brand</label><input type="text" id="brand" placeholder="e.g. NHP Din-t"/></div>
     </div>
 
-    <!-- Main isolator (single only) -->
     <div id="isoBlock" style="display:none;">
       <div class="loadshed-row"><input type="checkbox" id="iso_enabled"/><label for="iso_enabled" style="margin:0;">Include Main Isolator block</label></div>
       <div class="field-row" id="isoFields" style="display:none;">
         <div class="field-group"><label for="iso_desc">Isolator Description</label><input type="text" id="iso_desc" placeholder="Main switch"/></div>
-        <div class="field-group"><label for="iso_type">Type / Amps</label><input type="text" id="iso_type" placeholder="CB C80A"/></div>
+        <div class="field-group"><label for="iso_type">Type / Amps</label><input type="text" id="iso_type" placeholder="e.g. CB C80A"/></div>
       </div>
     </div>
 
-    <!-- Row sections (single only) -->
     <div id="rowsBlock" style="display:none;">
       <div class="section-label">Row Sections</div>
       <p class="submit-note" style="margin:0 0 0.75rem;">A banner is inserted at the row's start pole (e.g. ROW 1 at pole 1, ROW 2 at pole 12).</p>
@@ -154,9 +155,8 @@
       <button type="button" class="add-btn" id="addRowBtn">＋ Add row section</button>
     </div>
 
-    <!-- Circuits -->
     <div class="section-label">Circuits</div>
-    <p class="submit-note" style="margin:0 0 0.75rem;">First Pole = starting breaker. Poles = how many positions it occupies (dual counts same side, e.g. start 1 / 3 poles = 1,3,5).</p>
+    <p class="submit-note" style="margin:0 0 0.75rem;">First Pole = starting breaker. Poles = positions occupied (dual counts same side, e.g. start 1 / 3 poles = 1,3,5). Type builds from Device + Curve + Current.</p>
     <div id="circuitList"></div>
     <button type="button" class="add-btn" id="addCircuitBtn">＋ Add circuit</button>
 
@@ -173,7 +173,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
 
   </div>
@@ -185,71 +185,92 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // current record identity + revision
-  let currentId = null;
-  let revMajor = 1, revMinor = 0;
-
-  function revStr(){ return 'V' + revMajor + '.' + String(revMinor).padStart(2,'0'); }
-  function updateRevLabel(){ $('revLabel').textContent = 'Revision ' + revStr(); }
+  let currentId = null, revMajor = 1, revMinor = 0;
+  const revStr = () => 'V' + revMajor + '.' + String(revMinor).padStart(2,'0');
+  const updateRevLabel = () => { $('revLabel').textContent = 'Revision ' + revStr(); };
 
   function fmtDate(iso){
     if(!iso) return '';
     const [y,m,d] = iso.split('-');
     if(!y||!m||!d) return iso;
-    return `${d}-${MONTHS[(+m)-1]}-${String(y).slice(2)}`;
+    return d + '-' + MONTHS[(+m)-1] + '-' + String(y).slice(2);
   }
 
-  function dualPoles(start, span){ const a=[]; for(let i=0;i<span;i++) a.push(start + i*2); return a; }
-  function singlePoles(start, span){ const a=[]; for(let i=0;i<span;i++) a.push(start + i); return a; }
+  const dualPoles   = (start, n) => { const a=[]; for(let i=0;i<n;i++) a.push(start + i*2); return a; };
+  const singlePoles = (start, n) => { const a=[]; for(let i=0;i<n;i++) a.push(start + i);   return a; };
 
-  /* ---------- circuit / row editor rows ---------- */
+  function composeType(c){
+    const dev = c.device || '';
+    const cur = (c.current || '').toString().trim();
+    const amps = c.curve ? (c.curve + cur) : cur;
+    return [dev, amps].filter(Boolean).join(' ').trim();
+  }
+  const optSel = (v, cur) => 'value="' + v + '"' + (v === cur ? ' selected' : '');
+
+  /* ---------- editor rows ---------- */
   function circuitRow(c = {}){
+    const poles = c.poles ?? c.span ?? 1;
+    const dev = c.device ?? '';
     const div = document.createElement('div');
     div.className = 'sb-circuit-row';
-    div.innerHTML = `
-      <div><label>First Pole</label><input type="number" class="c-start" min="1" value="${c.start ?? ''}"/></div>
-      <div><label>Poles</label><input type="number" class="c-span" min="1" value="${c.span ?? 1}"/></div>
-      <div class="c-desc"><label>Description</label><input type="text" class="c-desci" value="${esc(c.description||'')}"/></div>
-      <div class="c-type"><label>Type / Amps</label><input type="text" class="c-typei" value="${esc(c.type_amps||'')}"/></div>
-      <button type="button" class="row-x" title="Remove">×</button>`;
-    div.querySelector('.row-x').addEventListener('click', ()=>{ div.remove(); schedulePreview(); });
+    div.dataset.legacy = c.type_amps || '';
+    div.innerHTML =
+      '<div><label>First Pole</label><input type="number" class="c-start" min="1" value="' + (c.start ?? '') + '"/></div>' +
+      '<div><label>Poles</label><select class="c-poles">' +
+        [1,2,3,4,5].map(n => '<option ' + optSel(String(n), String(poles)) + '>' + n + '</option>').join('') + '</select></div>' +
+      '<div><label>Device</label><select class="c-device">' +
+        [['','—'],['MCB','MCB'],['RCBO','RCBO'],['MCCB','MCCB']].map(o => '<option ' + optSel(o[0], dev) + '>' + o[1] + '</option>').join('') + '</select></div>' +
+      '<div><label>Curve</label><select class="c-curve">' +
+        [['','—'],['B','B'],['C','C'],['D','D']].map(o => '<option ' + optSel(o[0], c.curve || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
+      '<div><label>Current (A)</label><input type="text" class="c-current" value="' + esc(c.current || '') + '" placeholder="20"/></div>' +
+      '<button type="button" class="row-x c-x" title="Remove">×</button>' +
+      '<div class="c-desc-wrap"><label>Description</label><input type="text" class="c-desci" value="' + esc(c.description || '') + '" placeholder="e.g. GPO West Wall"/></div>';
+    div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
     return div;
   }
   function rowDefRow(r = {}){
     const div = document.createElement('div');
     div.className = 'sb-rowdef';
-    div.innerHTML = `
-      <div><label>Row Label</label><input type="text" class="r-label" value="${esc(r.label||'')}" placeholder="ROW 1"/></div>
-      <div><label>Start Pole</label><input type="number" class="r-start" min="1" value="${r.start ?? ''}"/></div>
-      <button type="button" class="row-x" title="Remove">×</button>`;
-    div.querySelector('.row-x').addEventListener('click', ()=>{ div.remove(); schedulePreview(); });
+    div.innerHTML =
+      '<div><label>Row Label</label><input type="text" class="r-label" value="' + esc(r.label || '') + '" placeholder="ROW 1"/></div>' +
+      '<div><label>Start Pole</label><input type="number" class="r-start" min="1" value="' + (r.start ?? '') + '"/></div>' +
+      '<button type="button" class="row-x" title="Remove">×</button>';
+    div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
     return div;
   }
+  const circuitRow0 = () => ({ start:1, poles:1, device:'MCB', curve:'', current:'', description:'' });
 
   function readCircuits(){
-    return [...document.querySelectorAll('#circuitList .sb-circuit-row')].map(r=>({
-      start: parseInt(r.querySelector('.c-start').value,10),
-      span:  Math.max(1, parseInt(r.querySelector('.c-span').value,10) || 1),
-      description: r.querySelector('.c-desci').value.trim(),
-      type_amps:   r.querySelector('.c-typei').value.trim()
-    })).filter(c => Number.isFinite(c.start));
+    return [...document.querySelectorAll('#circuitList .sb-circuit-row')].map(r => {
+      const c = {
+        start:   parseInt(r.querySelector('.c-start').value,10),
+        poles:   parseInt(r.querySelector('.c-poles').value,10) || 1,
+        device:  r.querySelector('.c-device').value,
+        curve:   r.querySelector('.c-curve').value,
+        current: r.querySelector('.c-current').value.trim(),
+        description: r.querySelector('.c-desci').value.trim()
+      };
+      c.type_amps = composeType(c) || (r.dataset.legacy || '');
+      return c;
+    }).filter(c => Number.isFinite(c.start));
   }
   function readRows(){
-    return [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r=>({
+    return [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r => ({
       label: r.querySelector('.r-label').value.trim(),
       start: parseInt(r.querySelector('.r-start').value,10)
-    })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b)=>a.start-b.start);
+    })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b) => a.start - b.start);
   }
 
   function collectState(){
     return {
       id: currentId,
       board_name: $('board_name').value.trim(),
-      project_number: $('project_number').value.trim(),
+      project_number: $('job_number').value.trim(),
       schedule_date: $('schedule_date').value || null,
       location: $('location').value.trim(),
       isolator_rating: $('isolator_rating').value.trim(),
       switchboard_type: $('switchboard_type').value.trim(),
+      chassis_type: $('chassis_type').value,
       sub_main_size: $('sub_main_size').value.trim(),
       brand: $('brand').value.trim(),
       fed_from: $('fed_from').value.trim(),
@@ -264,91 +285,71 @@
     };
   }
 
-  /* ---------- schedule page render ---------- */
+  /* ---------- schedule render ---------- */
   function cellSide(p, info, total){
-    if(p > total) return `<td class="cb"></td><td class="desc"></td><td class="type"></td>`;
+    if(p > total) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
     const it = info[p];
-    const cb = `<td class="cb">${p}</td>`;
-    if(!it) return cb + `<td class="desc"></td><td class="type"></td>`;
+    const cb = '<td class="cb">' + p + '</td>';
+    if(!it) return cb + '<td class="desc"></td><td class="type"></td>';
     if(it.first){
-      const rs = it.span>1 ? ` rowspan="${it.span}"` : '';
-      return cb + `<td class="desc"${rs}>${esc(it.c.description)}</td><td class="type"${rs}>${esc(it.c.type_amps)}</td>`;
+      const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
+      return cb + '<td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td>';
     }
-    return cb; // continuation covered by rowspan above
+    return cb;
   }
-
   function gridDual(s){
     const info = {};
-    s.circuits.forEach(c => dualPoles(c.start,c.span).forEach((p,i)=>{ info[p]={c, first:i===0, span:c.span}; }));
-    const nRows = Math.ceil(s.total_poles/2);
+    s.circuits.forEach(c => dualPoles(c.start, c.poles).forEach((p,i) => { info[p] = { c, first:i===0, span:c.poles }; }));
     let body = '';
-    for(let r=0;r<nRows;r++){
-      const lp = 2*r+1, rp = 2*r+2;
-      body += '<tr>' + cellSide(lp,info,s.total_poles) + cellSide(rp,info,s.total_poles) + '</tr>';
+    for(let r=0; r<Math.ceil(s.total_poles/2); r++){
+      body += '<tr>' + cellSide(2*r+1, info, s.total_poles) + cellSide(2*r+2, info, s.total_poles) + '</tr>';
     }
-    return `<table class="sb-grid">
-      <colgroup><col class="cb"><col><col class="type"><col class="cb"><col><col class="type"></colgroup>
-      <thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead>
-      <tbody>${body}</tbody></table>`;
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
-
   function gridSingle(s){
     const info = {};
-    s.circuits.forEach(c => singlePoles(c.start,c.span).forEach((p,i)=>{ info[p]={c, first:i===0, span:c.span}; }));
+    s.circuits.forEach(c => singlePoles(c.start, c.poles).forEach((p,i) => { info[p] = { c, first:i===0, span:c.poles }; }));
     const bandAt = {}; s.rows.forEach(r => bandAt[r.start] = r.label);
     let body = '';
     if(s.main_isolator.enabled){
-      body += `<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">${esc(s.main_isolator.description)}</td><td class="type">${esc(s.main_isolator.type_amps)}</td></tr>`;
+      body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
     }
-    for(let p=1;p<=s.total_poles;p++){
-      if(bandAt[p]) body += `<tr class="sb-band"><td colspan="3">${esc(bandAt[p])}</td></tr>`;
+    for(let p=1; p<=s.total_poles; p++){
+      if(bandAt[p]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[p]) + '</td></tr>';
       const it = info[p];
-      if(!it){ body += `<tr><td class="cb">${p}</td><td class="desc"></td><td class="type"></td></tr>`; }
-      else if(it.first){ const rs = it.span>1?` rowspan="${it.span}"`:''; body += `<tr><td class="cb">${p}</td><td class="desc"${rs}>${esc(it.c.description)}</td><td class="type"${rs}>${esc(it.c.type_amps)}</td></tr>`; }
-      else { body += `<tr><td class="cb">${p}</td></tr>`; }
+      if(!it) body += '<tr><td class="cb">' + p + '</td><td class="desc"></td><td class="type"></td></tr>';
+      else if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
+        body += '<tr><td class="cb">' + p + '</td><td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td></tr>'; }
+      else body += '<tr><td class="cb">' + p + '</td></tr>';
     }
-    return `<table class="sb-grid">
-      <colgroup><col class="cb"><col><col class="type"></colgroup>
-      <thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead>
-      <tbody>${body}</tbody></table>`;
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
-
   function metaHTML(s){
-    const loadshed = s.is_loadshed ? 'Yes' : 'No';
-    return `<table class="sb-meta">
-      <tr><td class="sb-boardname">${esc(s.board_name||'—')}</td><td class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>
-      <tr><td><b>Location:</b> ${esc(s.location)}</td><td><b>Is this board loadshed:</b> ${loadshed}</td></tr>
-      <tr><td><b>Isolator Rating / Supply Capacity:</b> ${esc(s.isolator_rating)}</td><td><b>Switchboard Type:</b> ${esc(s.switchboard_type)}</td></tr>
-      <tr><td><b>Sub Main Size:</b> ${esc(s.sub_main_size)}</td><td><b>Brand:</b> ${esc(s.brand)}</td></tr>
-      <tr><td colspan="2"><b>Fed from:</b> ${esc(s.fed_from)}</td></tr>
-      <tr><td><b>Cable Path:</b> ${esc(s.cable_path)}</td><td><b>Notes:</b> ${esc(s.notes)}</td></tr>
-    </table>`;
+    const ld = s.is_loadshed ? 'Yes' : 'No';
+    return '<table class="sb-meta">' +
+      '<tr><td class="sb-boardname">' + esc(s.board_name || '—') + '</td><td class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>' +
+      '<tr><td><b>Location:</b> ' + esc(s.location) + '</td><td><b>Is this board loadshed:</b> ' + ld + '</td></tr>' +
+      '<tr><td><b>Isolator Rating / Supply Capacity:</b> ' + esc(s.isolator_rating) + '</td><td><b>Switchboard Type:</b> ' + esc(s.switchboard_type) + '</td></tr>' +
+      '<tr><td><b>Sub Main Size:</b> ' + esc(s.sub_main_size) + '</td><td><b>Brand:</b> ' + esc(s.brand) + '</td></tr>' +
+      '<tr><td><b>Fed from:</b> ' + esc(s.fed_from) + '</td><td><b>Chassis Type:</b> ' + esc(s.chassis_type) + '</td></tr>' +
+      '<tr><td><b>Cable Path:</b> ' + esc(s.cable_path) + '</td><td><b>Notes:</b> ' + esc(s.notes) + '</td></tr>' +
+      '</table>';
   }
-
   function scheduleHTML(s){
     const grid = s.layout_type === 'single' ? gridSingle(s) : gridDual(s);
-    return `<div class="sb-page">
-      <div class="sb-head">
-        <img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/>
-        <div class="sb-title">Switchboard Schedule</div>
-      </div>
-      <div class="sb-subhead">
-        <div>2/98-108 Western Ave, Westmeadows, VIC 3049<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>
-        <div class="sb-proj">
-          <div><span>Date:</span><b>${fmtDate(s.schedule_date)}</b></div>
-          <div><span>PROJECT NUMBER#:</span><b>${esc(s.project_number)}</b></div>
-        </div>
-      </div>
-      ${metaHTML(s)}
-      ${grid}
-    </div>`;
+    return '<div class="sb-page">' +
+      '<div class="sb-head"><img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/><div class="sb-title">Switchboard Schedule</div></div>' +
+      '<div class="sb-subhead"><div>2/98-108 Western Ave, Westmeadows, VIC 3049<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
+      '<div class="sb-proj"><div><span>Date:</span><b>' + fmtDate(s.schedule_date) + '</b></div><div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div></div></div>' +
+      metaHTML(s) + grid + '</div>';
   }
 
   let previewTimer = null;
-  function schedulePreview(){ clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); }
-  function renderPreview(){ $('previewInner').innerHTML = scheduleHTML(collectState()); }
+  const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); };
+  const renderPreview = () => { $('previewInner').innerHTML = scheduleHTML(collectState()); };
 
-  /* ---------- layout toggle ---------- */
   function syncLayoutUI(){
     const single = document.querySelector('input[name="layout"]:checked').value === 'single';
     $('isoBlock').style.display  = single ? 'block' : 'none';
@@ -356,81 +357,107 @@
     $('isoFields').style.display = ($('iso_enabled').checked && single) ? 'grid' : 'none';
   }
 
+  /* ---------- mm2 -> mm² ---------- */
+  function mmFix(e){
+    const el = e.target;
+    if(!el || el.tagName !== 'INPUT' || el.type !== 'text') return;
+    if(el.value.indexOf('mm2') === -1) return;
+    const pos = el.selectionStart;
+    const removed = ((el.value.slice(0,pos).match(/mm2/g) || []).length) * 2;
+    el.value = el.value.replace(/mm2/g, 'mm\u00B2');
+    const np = Math.max(0, pos - removed);
+    try { el.setSelectionRange(np, np); } catch(_){}
+  }
+
+  /* ---------- job register lookup ---------- */
+  let jobTimer = null;
+  const hideJobs = () => $('jobResults').classList.remove('show');
+  async function searchJobs(q){
+    try {
+      const { data, error } = await window.sb.from('job_number_register')
+        .select('*').ilike('job_number', '%' + q + '%').order('job_number', { ascending:false }).limit(8);
+      if(error){ console.error(error); hideJobs(); return; }
+      renderJobs(data || []);
+    } catch(_){ hideJobs(); }
+  }
+  function renderJobs(rows){
+    const box = $('jobResults');
+    if(!rows.length){ hideJobs(); return; }
+    box.innerHTML = rows.map(r => {
+      const num = r.job_number || '';
+      const sub = r.client || r.client_name || r.site || r.description || '';
+      const px = (num.slice(0,2) || '').toUpperCase();
+      const badge = ['BE','BC','BA','BS','BM'].includes(px) ? '<span class="prefix-badge prefix-' + px + '">' + px + '</span>' : '';
+      return '<div class="autocomplete-item" data-num="' + esc(num) + '"><div class="autocomplete-item-number">' + esc(num) + badge + '</div>' +
+        (sub ? '<div class="autocomplete-item-client">' + esc(sub) + '</div>' : '') + '</div>';
+    }).join('');
+    box.classList.add('show');
+    box.querySelectorAll('.autocomplete-item').forEach(it => it.addEventListener('click', () => {
+      $('job_number').value = it.dataset.num; hideJobs(); schedulePreview();
+    }));
+  }
+
   /* ---------- supabase ---------- */
   async function loadList(){
     if(!window.sb) return;
     const { data, error } = await window.sb.from('switchboard_schedules')
-      .select('id, board_name, project_number, updated_at').order('updated_at',{ascending:false});
+      .select('id, board_name, project_number, updated_at').order('updated_at', { ascending:false });
     if(error){ console.error(error); return; }
-    const sel = $('loadSelect');
-    sel.innerHTML = '<option value="">— New schedule —</option>' +
-      (data||[]).map(r => `<option value="${r.id}">${esc(r.board_name||'Untitled')}${r.project_number?' · '+esc(r.project_number):''}</option>`).join('');
+    $('loadSelect').innerHTML = '<option value="">— New schedule —</option>' +
+      (data || []).map(r => '<option value="' + r.id + '">' + esc(r.board_name || 'Untitled') + (r.project_number ? ' · ' + esc(r.project_number) : '') + '</option>').join('');
   }
-
   function fillForm(r){
     currentId = r.id || null;
     revMajor = r.rev_major ?? 1; revMinor = r.rev_minor ?? 0;
     $('board_name').value = r.board_name || '';
-    $('project_number').value = r.project_number || '';
+    $('job_number').value = r.project_number || '';
     $('schedule_date').value = r.schedule_date || '';
     $('location').value = r.location || '';
     $('isolator_rating').value = r.isolator_rating || '';
     $('switchboard_type').value = r.switchboard_type || '';
+    $('chassis_type').value = r.chassis_type || '';
     $('sub_main_size').value = r.sub_main_size || '';
     $('brand').value = r.brand || '';
     $('fed_from').value = r.fed_from || '';
     $('cable_path').value = r.cable_path || '';
     $('notes').value = r.notes || '';
     $('is_loadshed').checked = !!r.is_loadshed;
-    document.querySelector(`input[name="layout"][value="${r.layout_type==='single'?'single':'dual'}"]`).checked = true;
+    document.querySelector('input[name="layout"][value="' + (r.layout_type === 'single' ? 'single' : 'dual') + '"]').checked = true;
     $('total_poles').value = r.total_poles || 48;
     const iso = r.main_isolator || {};
     $('iso_enabled').checked = !!iso.enabled;
     $('iso_desc').value = iso.description || '';
     $('iso_type').value = iso.type_amps || '';
-    $('rowsList').innerHTML = ''; (r.rows||[]).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
-    $('circuitList').innerHTML = ''; (r.circuits||[]).forEach(x => $('circuitList').appendChild(circuitRow(x)));
+    $('rowsList').innerHTML = ''; (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
+    $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
     syncLayoutUI(); updateRevLabel(); renderPreview();
   }
-
   function blankForm(){
-    fillForm({ layout_type:'dual', total_poles:48, schedule_date: new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
+    fillForm({ layout_type:'dual', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
     currentId = null; revMajor = 1; revMinor = 0; updateRevLabel();
   }
-  function circuitRow0(){ return { start:1, span:1, description:'', type_amps:'' }; }
 
   async function save(){
     const s = collectState();
     if(!s.board_name){ BromarHub.showInfo('Board Name is required'); return; }
     let created_by = null;
     try { const { data:{ user } } = await window.sb.auth.getUser(); created_by = user?.email || null; } catch(_){}
-
     BromarHub.showLoading('Saving…','Writing to database');
     try {
       if(currentId){
         revMinor += 1;
-        const { error } = await window.sb.from('switchboard_schedules').update({
-          ...s, rev_major:revMajor, rev_minor:revMinor
-        }).eq('id', currentId);
+        const { error } = await window.sb.from('switchboard_schedules').update({ ...s, rev_major:revMajor, rev_minor:revMinor }).eq('id', currentId);
         if(error) throw error;
       } else {
         revMajor = 1; revMinor = 0;
-        const { data, error } = await window.sb.from('switchboard_schedules').insert({
-          ...s, rev_major:1, rev_minor:0, created_by
-        }).select('id').single();
+        const { data, error } = await window.sb.from('switchboard_schedules').insert({ ...s, rev_major:1, rev_minor:0, created_by }).select('id').single();
         if(error) throw error;
         currentId = data.id;
       }
-      updateRevLabel();
-      await loadList();
-      $('loadSelect').value = currentId;
-      BromarHub.hideLoading();
-      BromarHub.showSuccess('Saved · ' + revStr());
-    } catch(err){
-      console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (err.message||err));
-    }
+      updateRevLabel(); await loadList(); $('loadSelect').value = currentId;
+      BromarHub.hideLoading(); BromarHub.showSuccess('Saved · ' + revStr());
+    } catch(err){ console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (err.message || err)); }
   }
-
   async function del(){
     if(!currentId){ blankForm(); return; }
     if(!confirm('Delete this schedule permanently?')) return;
@@ -460,32 +487,23 @@
       const imgW = pw, imgH = canvas.height * pw / canvas.width;
       const img = canvas.toDataURL('image/png');
       let heightLeft = imgH, position = 0;
-      pdf.addImage(img,'PNG',0,position,imgW,imgH);
-      heightLeft -= ph;
+      pdf.addImage(img,'PNG',0,position,imgW,imgH); heightLeft -= ph;
       while(heightLeft > 0){ position -= ph; pdf.addPage(); pdf.addImage(img,'PNG',0,position,imgW,imgH); heightLeft -= ph; }
-      const rev = revStr();
-      const pages = pdf.getNumberOfPages();
-      for(let i=1;i<=pages;i++){
-        pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(120);
-        pdf.text(rev, 10, 292);
-        pdf.text(String(i), 105, 292, { align:'center' });
-      }
-      const name = (s.board_name.replace(/[^\w-]+/g,'_') || 'switchboard') + '_' + rev + '.pdf';
-      pdf.save(name);
-      BromarHub.hideLoading();
-      BromarHub.showSuccess('PDF generated · ' + rev);
-    } catch(err){
-      console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('PDF failed: ' + (err.message||err));
-    } finally { holder.remove(); }
+      const rev = revStr(), pages = pdf.getNumberOfPages();
+      for(let i=1;i<=pages;i++){ pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(120); pdf.text(rev,10,292); pdf.text(String(i),105,292,{align:'center'}); }
+      pdf.save((s.board_name.replace(/[^\w-]+/g,'_') || 'switchboard') + '_' + rev + '.pdf');
+      BromarHub.hideLoading(); BromarHub.showSuccess('PDF generated · ' + rev);
+    } catch(err){ console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('PDF failed: ' + (err.message || err)); }
+    finally { holder.remove(); }
   }
 
   /* ---------- wire up ---------- */
   document.addEventListener('DOMContentLoaded', async () => {
-    $('addCircuitBtn').addEventListener('click', ()=>{ $('circuitList').appendChild(circuitRow(circuitRow0())); schedulePreview(); });
-    $('addRowBtn').addEventListener('click', ()=>{ $('rowsList').appendChild(rowDefRow({})); schedulePreview(); });
-    document.querySelectorAll('input[name="layout"]').forEach(el => el.addEventListener('change', ()=>{ syncLayoutUI(); schedulePreview(); }));
-    $('iso_enabled').addEventListener('change', ()=>{ syncLayoutUI(); schedulePreview(); });
-    $('newBtn').addEventListener('click', ()=>{ $('loadSelect').value=''; blankForm(); });
+    $('addCircuitBtn').addEventListener('click', () => { $('circuitList').appendChild(circuitRow(circuitRow0())); schedulePreview(); });
+    $('addRowBtn').addEventListener('click', () => { $('rowsList').appendChild(rowDefRow({})); schedulePreview(); });
+    document.querySelectorAll('input[name="layout"]').forEach(el => el.addEventListener('change', () => { syncLayoutUI(); schedulePreview(); }));
+    $('iso_enabled').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
+    $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
     $('deleteBtn').addEventListener('click', del);
     $('saveBtn').addEventListener('click', save);
     $('pdfBtn').addEventListener('click', makePDF);
@@ -497,7 +515,18 @@
       if(error){ BromarHub.showInfo('Could not load'); return; }
       fillForm(data);
     });
-    document.querySelector('.form-card').addEventListener('input', schedulePreview);
+
+    $('job_number').addEventListener('input', e => {
+      clearTimeout(jobTimer);
+      const q = e.target.value.trim();
+      if(q.length < 2){ hideJobs(); return; }
+      jobTimer = setTimeout(() => searchJobs(q), 250);
+    });
+    document.addEventListener('click', e => { if(!e.target.closest('.autocomplete-wrapper')) hideJobs(); });
+
+    const card = document.querySelector('.form-card');
+    card.addEventListener('input', mmFix, true);
+    card.addEventListener('input', schedulePreview);
 
     await loadList();
     blankForm();
