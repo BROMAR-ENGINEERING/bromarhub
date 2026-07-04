@@ -46,13 +46,11 @@
   #previewBox { margin-top:1.5rem; border:1px solid var(--border); border-radius:12px; background:#525659; padding:1rem; overflow:auto; max-height:820px; }
 
   /* ── SCHEDULE PAGE (preview + PDF capture): fixed light colours ── */
-  .sb-page { width:760px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:26px 26px 60px; box-sizing:border-box; }
-  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:8px; }
+  .sb-page { position:relative; width:760px; min-height:1074px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:26px 26px 64px; box-sizing:border-box; }
+  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:10px; }
   .sb-logo { max-height:46px; width:auto; }
-  .sb-center { flex:1; text-align:left; font-size:8px; color:#555; line-height:1.35; }
-  .sb-center .sb-dj { margin-top:2px; font-size:8px; color:#555; letter-spacing:.2px; }
-  .sb-center .sb-dj b { color:#1a1a1e; font-weight:700; }
-  .sb-title { background:#fff4ed; border:1px solid #f6c9a8; border-radius:10px; padding:12px 18px; font-size:15px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; line-height:1.05; text-align:center; }
+  .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8.5px; color:#555; line-height:1.45; }
+  .sb-title { font-size:17px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; white-space:nowrap; }
 
   .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
   .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 16px; background:#fff; }
@@ -83,7 +81,7 @@
   .sb-band td { background:#1a1a1e; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
   .sb-break td { background:#e6e6e6; color:#000; font-weight:700; text-align:center; letter-spacing:1px; font-size:9px; border-top:3px solid #000; border-bottom:3px solid #000; }
   .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
-  .sb-foot { display:flex; justify-content:space-between; gap:16px; margin-top:10px; padding-top:8px; border-top:1px solid #ececec; }
+  .sb-foot { position:absolute; left:26px; right:26px; bottom:34px; display:flex; justify-content:space-between; gap:16px; padding-top:8px; border-top:1px solid #ececec; }
   .sb-foot-item { display:flex; align-items:center; gap:6px; font-size:8.5px; color:#777; }
 
   .card-footer { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); text-align:center; }
@@ -158,6 +156,7 @@
     <div class="section-label">Board Details</div>
     <div class="field-row">
       <div class="field-group full"><label for="board_name">Board Name <span class="required">*</span></label><input type="text" id="board_name" placeholder="Distribution Board 1"/></div>
+      <div class="field-group"><label for="section">Section (optional)</label><input type="text" id="section" placeholder="e.g. Upper / Section 1"/></div>
       <div class="field-group"><label for="isolator_rating">Isolator / Main Switch Rating</label><input type="text" id="isolator_rating" placeholder="e.g. 250A"/></div>
       <div class="field-group"><label for="supply_capacity">Supply Capacity</label><input type="text" id="supply_capacity" placeholder="e.g. 63A"/></div>
       <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
@@ -221,7 +220,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.09</div>
+      <div class="card-footer-version">Version V1.10</div>
     </div>
 
   </div>
@@ -284,6 +283,16 @@
   const rowDefRow  = r => labelNumRow('r', { lbl:'Row Label', ph:'ROW 1' }, { lbl:'Start #' }, r);
   const breakRow   = r => labelNumRow('b', { lbl:'Break Label', ph:'CHASSIS BREAK', def:'CHASSIS BREAK' }, { lbl:'Before #' }, r);
   const circuitRow0 = () => ({ start:1, poles:1, device:'MCB', curve:'', current:'', description:'' });
+  function nextPole(){
+    const rows = [...document.querySelectorAll('#circuitList .sb-circuit-row')];
+    if(!rows.length) return 1;
+    const last = rows[rows.length-1];
+    const start = parseInt(last.querySelector('.c-start').value,10);
+    const poles = parseInt(last.querySelector('.c-poles').value,10) || 1;
+    if(!Number.isFinite(start)) return 1;
+    const step = $('layout_type').value === 'double_oddeven' ? 2 : 1;
+    return start + poles*step;
+  }
 
   function readCircuits(){
     return [...document.querySelectorAll('#circuitList .sb-circuit-row')].map(r => {
@@ -312,6 +321,7 @@
     return {
       id: currentId,
       board_name: $('board_name').value.trim(),
+      section: $('section').value.trim(),
       project_number: $('job_number').value.trim(),
       customer_name: $('customer_name').value.trim(),
       prepared_by: $('prepared_by').value.trim(),
@@ -434,7 +444,7 @@
   function metaHTML(s){
     const ld = s.is_loadshed ? 'Yes' : 'No';
     return '<div class="sb-info">' +
-      '<div class="sb-info-head"><div><div class="sb-info-title">' + esc(s.board_name || '—') + '</div>' +
+      '<div class="sb-info-head"><div><div class="sb-info-title">' + esc(boardTitle(s)) + '</div>' +
         (s.customer_name ? '<div class="sb-info-sub">' + esc(s.customer_name) + '</div>' : '') + '</div>' +
         '<div class="sb-info-warn">DO NOT REMOVE<br>FROM SWITCHBOARD</div></div>' +
       '<div class="sb-stats sb-stats-primary">' +
@@ -454,8 +464,12 @@
         sbStat('note','#ea580c','Notes', s.notes, 2) + '</div>' +
       '</div>';
   }
+  function boardTitle(s){
+    const b = s.board_name || '—';
+    return s.section ? (b + ' — ' + s.section) : b;
+  }
   function docName(s){
-    return [s.project_number, 'SWB-SCH', s.board_name, revStr()].map(x => String(x||'').trim()).filter(Boolean).join('-');
+    return [s.project_number, 'SWB-SCH', s.board_name, s.section, revStr()].map(x => String(x||'').trim()).filter(Boolean).join('-');
   }
   function footerHTML(s){
     return '<div class="sb-foot">' +
@@ -467,8 +481,10 @@
     return '<div class="sb-page">' +
       '<div class="sb-head">' +
         '<img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/>' +
-        '<div class="sb-center"><div class="sb-addr">2/98-108 Western Ave, Westmeadows, VIC 3049 &nbsp;·&nbsp; REC:30340<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
-        '<div class="sb-dj">Date: <b>' + fmtDate(s.schedule_date) + '</b> &nbsp;·&nbsp; Job Number#: <b>' + esc(s.project_number) + '</b></div></div>' +
+        '<div class="sb-center">2/98-108 Western Ave, Westmeadows, VIC 3049<br>' +
+          'Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322<br>' +
+          'Email: admin@bromar.com.au &nbsp;·&nbsp; REC:30340<br>' +
+          'Date: ' + fmtDate(s.schedule_date) + ' &nbsp;·&nbsp; Job Number: ' + esc(s.project_number) + '</div>' +
         '<div class="sb-title">Switchboard Schedule</div></div>' +
       metaHTML(s) + '<div class="sb-gridwrap">' + gridHTML(s) + '</div>' + footerHTML(s) + '</div>';
   }
@@ -558,15 +574,16 @@
   async function loadList(){
     if(!window.sb) return;
     const { data, error } = await window.sb.from('switchboard_schedules')
-      .select('id, board_name, project_number, updated_at').order('updated_at', { ascending:false });
+      .select('id, board_name, section, project_number, updated_at').order('updated_at', { ascending:false });
     if(error){ console.error(error); return; }
     $('loadSelect').innerHTML = '<option value="">— New schedule —</option>' +
-      (data || []).map(r => '<option value="' + r.id + '">' + esc(r.board_name || 'Untitled') + (r.project_number ? ' · ' + esc(r.project_number) : '') + '</option>').join('');
+      (data || []).map(r => '<option value="' + r.id + '">' + esc(r.board_name || 'Untitled') + (r.section ? ' (' + esc(r.section) + ')' : '') + (r.project_number ? ' · ' + esc(r.project_number) : '') + '</option>').join('');
   }
   function fillForm(r){
     currentId = r.id || null;
     revMajor = r.rev_major ?? 1; revMinor = r.rev_minor ?? 0;
     $('board_name').value = r.board_name || '';
+    $('section').value = r.section || '';
     $('job_number').value = r.project_number || '';
     $('customer_name').value = r.customer_name || '';
     $('prepared_by').value = r.prepared_by || '';
@@ -668,7 +685,7 @@
       while(heightLeft > 0){ position -= ph; pdf.addPage(); pdf.addImage(img,'PNG',0,position,imgW,imgH); heightLeft -= ph; }
       const rev = revStr(), pages = pdf.getNumberOfPages();
       for(let i=1;i<=pages;i++){ pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(120); pdf.text(rev,10,292); pdf.text(String(i),105,292,{align:'center'}); }
-      const fn = [s.project_number, 'SWB-SCH', s.board_name, rev].map(x => String(x||'').trim()).filter(Boolean).join('-').replace(/[^\w.-]+/g,'_');
+      const fn = [s.project_number, 'SWB-SCH', s.board_name, s.section, rev].map(x => String(x||'').trim()).filter(Boolean).join('-').replace(/[^\w.-]+/g,'_');
       pdf.save((fn || 'switchboard') + '.pdf');
       BromarHub.hideLoading(); BromarHub.showSuccess('PDF generated · ' + rev);
     } catch(err){ console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('PDF failed: ' + (err.message || err)); }
@@ -677,7 +694,7 @@
 
   /* ---------- wire up ---------- */
   document.addEventListener('DOMContentLoaded', async () => {
-    $('addCircuitBtn').addEventListener('click', () => { $('circuitList').appendChild(circuitRow(circuitRow0())); schedulePreview(); });
+    $('addCircuitBtn').addEventListener('click', () => { $('circuitList').appendChild(circuitRow({ start: nextPole(), poles:1, device:'MCB' })); schedulePreview(); });
     $('addRowBtn').addEventListener('click', () => { $('rowsList').appendChild(rowDefRow({})); schedulePreview(); });
     $('addBreakBtn').addEventListener('click', () => { $('breaksList').appendChild(breakRow({})); schedulePreview(); });
     $('layout_type').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
