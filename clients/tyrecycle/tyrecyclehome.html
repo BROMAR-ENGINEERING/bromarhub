@@ -1,507 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Tyrecycle Portal — Bromar Hub</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Site Overview — Bromar Hub</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
-  <link rel="stylesheet" href="../../tools/bromar-hub.css">
-  <script src="../../tools/bromar-hub.js" defer></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+  <script src="/tools/bromar-hub.js" defer></script>
 
   <style>
-    /* ── PAGE SPECIFIC (mirrors Bromar Hub index) ── */
-    body { padding-bottom: 0; }
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
 
-    .back-to-hub {
-      max-width: 1400px;
-      margin: 78px auto 0;
-      padding: 0 2rem;
-      font-size: 0.85rem;
-      font-weight: 600;
+    .overview-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.875rem;
+      overflow: hidden;
+      transition: border-color 0.3s ease;
+    }
+    .overview-section:hover { border-color: var(--accent); }
+
+    .overview-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; padding: 1.15rem 1.35rem; cursor: pointer;
+      user-select: none;
+    }
+    .overview-head-title {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+    .overview-head-title::before {
+      content: ''; width: 4px; height: 20px; border-radius: 4px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+    }
+    .chevron {
+      width: 20px; height: 20px; flex-shrink: 0;
+      stroke: var(--text-secondary); stroke-width: 2; fill: none;
+      stroke-linecap: round; stroke-linejoin: round;
+      transition: transform 0.3s ease;
+    }
+    .overview-section.open .chevron { transform: rotate(180deg); }
+
+    .overview-body {
+      display: none;
+      padding: 0 1.35rem 1.35rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem; line-height: 1.7;
+      border-top: 1px solid var(--border);
+      padding-top: 1.1rem;
+    }
+    .overview-section.open .overview-body { display: block; }
+    .overview-body p { margin-bottom: 0.85rem; }
+    .overview-body p:last-child { margin-bottom: 0; }
+    .overview-body strong { color: var(--text-primary); font-weight: 600; }
+    .placeholder-text { font-style: italic; opacity: 0.75; }
+
+    .info-callout {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.85rem 1.1rem;
+      margin: 0.85rem 0;
+      font-size: 0.9rem;
+    }
+
+    .req-list { list-style: none; margin: 0.5rem 0 0.85rem; padding: 0; }
+    .req-list li {
+      position: relative; padding-left: 1.6rem; margin-bottom: 0.6rem;
+      line-height: 1.6;
+    }
+    .req-list li::before {
+      content: ''; position: absolute; left: 0; top: 0.55em;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .area-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+    .area-chip {
+      padding: 0.4rem 0.9rem;
+      background: var(--card-hover);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600;
       color: var(--accent);
     }
 
-    .index-title {
-      text-align: center;
-      padding: 1rem 1.5rem 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
+    .lock-tag {
+      display: inline-block; padding: 1px 8px; border-radius: 5px;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.3px;
     }
-    .index-title h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: var(--text-primary);
-      margin-bottom: 0.25rem;
-    }
-    .index-title .subtitle {
-      color: var(--text-secondary);
-      font-size: 1rem;
-      font-weight: 300;
-    }
+    .lock-red { background: #fee2e2; color: #b91c1c; }
+    .lock-yellow { background: #fef3c7; color: #92400e; }
+    [data-theme="dark"] .lock-red { background: rgba(239,68,68,0.18); color: #fca5a5; }
+    [data-theme="dark"] .lock-yellow { background: rgba(245,158,11,0.18); color: #fcd34d; }
 
-    .container {
-      max-width: 1400px;
-      margin: 0 auto 3rem;
-      padding: 0 2rem;
+    .card-footer {
+      margin-top: 32px; padding-top: 24px;
+      border-top: 1px solid var(--border); text-align: center;
     }
-
-    .search-bar {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 1rem 1.5rem;
-      box-shadow: 0 4px 12px var(--shadow);
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      border: 1px solid var(--border);
-      transition: all 0.3s ease;
+    .card-footer-title {
+      font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px;
+      color: var(--text-primary); margin-bottom: 10px; white-space: nowrap;
     }
-    .search-bar:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; color: var(--accent); text-decoration: none;
+      font-weight: 600; margin-bottom: 14px;
     }
-    .search-icon { width: 20px; height: 20px; stroke: var(--text-secondary); stroke-width: 2; fill: none; }
-    .search-input {
-      flex: 1; border: none; outline: none;
-      font-size: 1rem; font-family: 'Outfit', sans-serif;
-      background: transparent; color: var(--text-primary);
-    }
-    .search-input::placeholder { color: var(--text-secondary); }
-
-    .search-results { display: none; }
-    .search-results.active { display: block; }
-    .no-results { text-align: center; padding: 3rem; color: var(--text-secondary); font-size: 1.125rem; }
-
-    section { margin-bottom: 3rem; animation: fadeIn 0.8s ease backwards; }
-    section:nth-child(1) { animation-delay: 0.1s; }
-    section:nth-child(2) { animation-delay: 0.2s; }
-    section:nth-child(3) { animation-delay: 0.3s; }
-    section:nth-child(4) { animation-delay: 0.4s; }
-
-    .section-title {
-      font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem;
-      letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.75rem;
-    }
-    .section-title::before {
-      content: ''; width: 4px; height: 24px;
-      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
-      border-radius: 4px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
-      grid-auto-rows: 1fr;
-    }
-
-    .card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    .card::before {
-      content: ''; position: absolute; inset: 0;
-      background: var(--card-hover); opacity: 0; transition: opacity 0.3s ease;
-    }
-    .card:hover::before { opacity: 1; }
-    .card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 12px 24px var(--shadow); }
-    .card > * { position: relative; z-index: 1; }
-
-    .card-icon {
-      width: 48px; height: 48px; margin-bottom: 1.25rem;
-      stroke: var(--accent); stroke-width: 1.5;
-      stroke-linecap: round; stroke-linejoin: round; fill: none;
-    }
-    .card-title {
-      font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;
-      letter-spacing: -0.01em; color: var(--text-primary);
-    }
-    .card-description { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5; font-weight: 300; }
-
-    .badge {
-      display: inline-block; padding: 0.375rem 0.875rem;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-      color: white; font-size: 0.75rem; font-weight: 600; border-radius: 20px;
-      margin-top: 1rem; letter-spacing: 0.02em; text-transform: uppercase;
-    }
-    .badge.locked {
-      background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-      display: inline-flex; align-items: center; gap: 4px;
-    }
-
-    .footer {
-      background: var(--accent); color: white; text-align: center;
-      padding: 2rem; margin-top: 4rem;
-    }
-    .footer p { margin: 0; font-size: 0.9rem; }
-    .footer a { color: white; text-decoration: underline; }
-    .footer a:hover { opacity: 0.85; }
-
-    /* ── PIN LOCK MODAL ── */
-    .pin-modal {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      z-index: 10000; align-items: center; justify-content: center; padding: 1rem;
-      backdrop-filter: blur(4px);
-    }
-    .pin-modal.show { display: flex; }
-    .pin-modal-content {
-      background: var(--bg-secondary); border-radius: 20px; padding: 2.5rem 2rem;
-      max-width: 400px; width: 100%; text-align: center;
-      border: 1px solid var(--border); box-shadow: 0 12px 32px var(--shadow);
-      animation: pinSlideIn 0.3s ease;
-    }
-    @keyframes pinSlideIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    .pin-icon {
-      width: 60px; height: 60px; margin: 0 auto 1.25rem;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;
-    }
-    .pin-icon svg { width: 28px; height: 28px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .pin-title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
-    .pin-subtitle { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; }
-    .pin-input {
-      width: 100%; padding: 1rem; font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;
-      border: 1px solid var(--border); border-radius: 10px; background: var(--bg-main);
-      color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem; transition: all 0.3s ease;
-    }
-    .pin-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1); }
-    .pin-input.error { border-color: var(--error); animation: shake 0.4s; }
-    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-    .pin-buttons { display: flex; gap: 0.75rem; }
-    .pin-btn { flex: 1; padding: 0.875rem; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); }
-    .pin-btn-cancel { background: transparent; color: var(--text-secondary); }
-    .pin-btn-cancel:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-    .pin-btn-submit { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; border-color: transparent; }
-    .pin-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3); }
-    .pin-error-msg { color: var(--error); font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; min-height: 1.2em; }
-
-    /* ── COMPACT VIEW (identical to Bromar Hub index) ── */
-    [data-density="compact"] .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.625rem; }
-    [data-density="compact"] .card { padding: 0.875rem; }
-    [data-density="compact"] .card-icon { width: 24px; height: 24px; margin-bottom: 0.5rem; }
-    [data-density="compact"] .card-title { font-size: 0.8rem; margin-bottom: 0; line-height: 1.3; }
-    [data-density="compact"] .card-description { display: none; }
-    [data-density="compact"] .badge { font-size: 0.6rem; padding: 0.2rem 0.5rem; margin-top: 0.5rem; }
-    [data-density="compact"] section { margin-bottom: 1.5rem; }
-    [data-density="compact"] .section-title { font-size: 1.1rem; margin-bottom: 0.875rem; }
-    [data-density="compact"] .section-title::before { height: 18px; }
-    [data-density="compact"] .back-to-hub { margin-top: 74px; }
-    [data-density="compact"] .index-title { padding: 0.5rem 1.5rem 1rem; }
-    [data-density="compact"] .index-title h1 { font-size: 1.75rem; }
-    [data-density="compact"] .index-title .subtitle { font-size: 0.85rem; }
-
-    @media (max-width: 768px) {
-      .back-to-hub { margin-top: 70px; padding: 0 1rem; }
-      .index-title { padding: 1rem 1rem 1.5rem; }
-      .index-title h1 { font-size: 1.75rem; }
-      .container { padding: 0 1rem; }
-      .grid { grid-template-columns: 1fr; }
-    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
   </style>
 </head>
 <body>
-
   <div id="bromar-header"></div>
 
-  <p class="back-to-hub">← Back to Bromar Hub</p>
-
-  <div class="index-title">
-    <h1>Tyrecycle Portal</h1>
-    <p class="subtitle">Site information and resources</p>
+  <div class="page-title-wrapper">
+    <h1>Site Overview</h1>
+    <p class="subtitle">Key site safety and location information</p>
   </div>
 
-  <div class="container">
-    <div class="search-bar">
-      <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-      <input type="search" id="searchInput" class="search-input" placeholder="Search resources..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="tyrecycle-search-no-autofill" data-lpignore="true" data-form-type="other">
-    </div>
+  <div class="page-wrapper">
+    <div class="form-card">
 
-    <div id="searchResults" class="search-results">
-      <h2 class="section-title">Search Results</h2>
-      <div id="searchResultsGrid" class="grid"></div>
-    </div>
-
-    <div id="allSections">
-
-      <!-- MAINTENANCE -->
-      <section>
-        <h2 class="section-title">Maintenance</h2>
-        <div class="grid">
-          <a href="maintenance/work-order-completion.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="maintenance" data-keywords="work order completion submit finished maintenance">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-              <h3 class="card-title">Work Order Completion</h3>
-              <p class="card-description">Complete and submit finished work orders</p>
-            </div>
-          </a>
-          <a href="maintenance/work-order-request.html" class="locked-link" data-href="maintenance/work-order-request.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="maintenance" data-keywords="work order request raise new maintenance">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-              <h3 class="card-title">Work Order Request</h3>
-              <p class="card-description">Raise a new maintenance work order request</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
-          <a href="maintenance/job-register.html" class="locked-link" data-href="maintenance/job-register.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="maintenance" data-keywords="job register records tracker list jobs">
-              <svg class="card-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"></rect><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="12" y2="17"></line></svg>
-              <h3 class="card-title">Job Register</h3>
-              <p class="card-description">View and track site job records</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">Permit to Work</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
         </div>
-      </section>
+        <div class="overview-body">
+          <p>As contractors, we <strong>must sign onto the weekly "Work Permit" before commencing any tasks</strong> on site. This applies to all planned maintenance work <strong>and call outs</strong> &mdash; no exceptions.</p>
 
-      <!-- COMPLIANCE -->
-      <section>
-        <h2 class="section-title">Compliance</h2>
-        <div class="grid">
-          <a href="testing/emg-testing.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="compliance" data-keywords="emergency exit testing lighting sign test records">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
-              <h3 class="card-title">Emergency &amp; Exit Testing</h3>
-              <p class="card-description">Emergency lighting and exit sign test records</p>
-            </div>
-          </a>
-          <a href="testing/rcd-testing.html" class="locked-link" data-href="testing/rcd-testing.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="compliance" data-keywords="rcd testing residual current device safety switch">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-              <h3 class="card-title">RCD Testing</h3>
-              <p class="card-description">Residual current device test records</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
-          <a href="testing/test-and-tag.html" class="locked-link" data-href="testing/test-and-tag.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="compliance" data-keywords="test and tag appliance electrical safety records">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-              <h3 class="card-title">Test &amp; Tag</h3>
-              <p class="card-description">Appliance test and tag records</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
+          <p>The permit book is located in the <strong>Maintenance Office / Electrical Container</strong> and runs for the full week. A single permit covers the week's work, so each worker only needs to sign on once for the week &mdash; but <strong>every worker on site must sign on</strong>.</p>
+
+          <div class="info-callout">
+            The process is straightforward. If you're unsure how to complete it, refer to a previously completed permit (for example, those filled out by <strong>Mike</strong>) as a guide.
+          </div>
+
+          <p><strong>At the end of the week</strong>, the permit must be signed off / closed out to mark completion. If a new week begins and work continues, a fresh permit is started.</p>
+
+          <p><strong>Quick summary:</strong></p>
+          <ul class="req-list">
+            <li>Sign on before starting any work &mdash; including call outs.</li>
+            <li>Permit book lives in the Maintenance Office / Electrical Container.</li>
+            <li>One permit per week; every worker signs on.</li>
+            <li>Sign off / close the permit at the end of the week.</li>
+            <li>Use Mike's completed permits as a reference if needed.</li>
+          </ul>
         </div>
-      </section>
-
-      <!-- SITE INFORMATION -->
-      <section>
-        <h2 class="section-title">Site Information</h2>
-        <div class="grid">
-          <a href="site-information/inductions.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="site-information" data-keywords="inductions site safety training materials">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-              <h3 class="card-title">Inductions</h3>
-              <p class="card-description">Site safety inductions and training materials</p>
-            </div>
-          </a>
-          <a href="site-information/site-overview.html" class="locked-link" data-href="site-information/site-overview.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="site-information" data-keywords="site overview general information details">
-              <svg class="card-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              <h3 class="card-title">Site Overview</h3>
-              <p class="card-description">General site information and key details</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
-          <a href="site-information/site-map.html" class="locked-link" data-href="site-information/site-map.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="site-information" data-keywords="site map layout emergency exit routes">
-              <svg class="card-icon" viewBox="0 0 24 24"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"></polygon><line x1="8" y1="3" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="21"></line></svg>
-              <h3 class="card-title">Site Map / Layout</h3>
-              <p class="card-description">Site layout and emergency exit routes</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
-          <a href="site-information/contact-directory.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="site-information" data-keywords="contact directory emergency personnel phone">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              <h3 class="card-title">Contact Directory</h3>
-              <p class="card-description">Emergency contacts and key personnel</p>
-            </div>
-          </a>
-        </div>
-      </section>
-
-      <!-- DOCUMENTATION -->
-      <section>
-        <h2 class="section-title">Documentation</h2>
-        <div class="grid">
-          <a href="documentation/equipment-manuals.html" class="locked-link" data-href="documentation/equipment-manuals.html" style="text-decoration: none; color: inherit;">
-            <div class="card" data-category="documentation" data-keywords="equipment manuals plant operating documentation">
-              <svg class="card-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-              <h3 class="card-title">Equipment Manuals</h3>
-              <p class="card-description">Plant and equipment operating manuals</p>
-              <span class="badge locked">🔒 In Development</span>
-            </div>
-          </a>
-        </div>
-      </section>
-
-    </div>
-  </div>
-
-  <footer class="footer">
-    <p>© 2026 Bromar Electrical Services — Tyrecycle Client Site</p>
-    <p style="margin-top: 0.5rem;">
-      <a href="../../employee-resources/settings.html">Settings</a>
-      &nbsp;|&nbsp;
-      <a href="../../employee-resources/suggestions-feedback.html">Report a Bug</a>
-      &nbsp;|&nbsp;
-      <a href="../../index.html">← Back to Bromar Hub</a>
-    </p>
-  </footer>
-
-  <!-- PIN Lock Modal -->
-  <div id="pinModal" class="pin-modal">
-    <div class="pin-modal-content">
-      <div class="pin-icon">
-        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
       </div>
-      <div class="pin-title">Page In Development</div>
-      <div class="pin-subtitle">This page is still being built. Enter the developer PIN to preview.</div>
-      <input type="password" id="pinInput" class="pin-input" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" autocomplete="off">
-      <div class="pin-error-msg" id="pinError"></div>
-      <div class="pin-buttons">
-        <button class="pin-btn pin-btn-cancel" onclick="closePinModal()">Cancel</button>
-        <button class="pin-btn pin-btn-submit" onclick="submitPin()">Unlock</button>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">SWMS</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p>A SWMS needs to be <strong>sent in weekly</strong> to accompany our Permit to Work.</p>
+
+          <p>There is a <strong>custom Tyrecycle maintenance template</strong> available that can be modified, with the option to <strong>add additional steps and hazards</strong> as required.</p>
+
+          <div class="info-callout">
+            Please note this template covers <strong>basic maintenance works</strong> only. You are encouraged to add further steps and hazards to suit other tasks being carried out.
+          </div>
+
+          <p>Tyrecycle also has their own <strong>Take 5 notebooks</strong>. We are encouraged to fill these out for <strong>at least one job a day</strong>. Plenty of books are available in the <strong>Maintenance Office / Electrical Container</strong>.</p>
+        </div>
       </div>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">LOTOTO</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p><strong>Lock Out &mdash; Tag Out &mdash; Try Out</strong></p>
+
+          <p>Tyrecycle has <strong>increased its safety requirements</strong> for maintenance work and entry into fortress-guarded areas. The following process must be followed whenever entering a fortress area.</p>
+
+          <p><strong>When entering a fortress area:</strong></p>
+          <ul class="req-list">
+            <li>Attach a <span class="lock-tag lock-red">RED</span> personal lock to the fortress key lock box.</li>
+            <li>Sign onto the <strong>LOTO register</strong> located at each area &mdash; and sign out at completion when removing your lock.</li>
+            <li>A Tyrecycle <strong>"LOTO Officer"</strong> must place a <span class="lock-tag lock-yellow">YELLOW</span> lock on the system before entry.</li>
+          </ul>
+
+          <div class="info-callout">
+            Most maintenance personnel and supervisors are authorised LOTO officers. <strong>Mike</strong> can assist if you don't have a lock, or if you'd like to know more about the process.
+          </div>
+
+          <p><strong>Areas that require LOTOTO:</strong></p>
+          <div class="area-chips">
+            <span class="area-chip">TGX</span>
+            <span class="area-chip">Truck Shredder</span>
+            <span class="area-chip">15L</span>
+            <span class="area-chip">Export Shredder</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">Maintenance Office / Electrical Container</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p>The Maintenance Office / Electrical Container is <strong>Michael's office</strong>. As it's a shared space, please ensure it is kept <strong>clean and tidy at all times</strong>.</p>
+
+          <div class="info-callout">
+            <strong>After-hours access to spare parts:</strong> a lock box will be installed on the side of the container holding an access key. The code is <strong>4383</strong>. Please ensure the key is <strong>returned after use</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB &mdash; SITE OVERVIEW</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.06</div>
+      </div>
+
     </div>
   </div>
-
-  <div class="revision-number">V1.19</div>
 
   <script>
-    // ── SEARCH ──
-    const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
-    const searchResultsGrid = document.getElementById('searchResultsGrid');
-    const allSections = document.getElementById('allSections');
-
-    let searchIndex = [];
-    function buildSearchIndex() {
-      searchIndex = [];
-      const seen = new Set();
-      document.querySelectorAll('#allSections > section').forEach(section => {
-        const sectionTitle = section.querySelector('.section-title')?.textContent.toLowerCase() || '';
-        const grid = section.querySelector('.grid');
-        if (!grid) return;
-        Array.from(grid.children).filter(c => c.nodeType === 1).forEach(child => {
-          const card = child.classList.contains('card') ? child : child.querySelector('.card');
-          if (!card) return;
-          const title = (card.querySelector('.card-title')?.textContent || '').trim();
-          const description = (card.querySelector('.card-description')?.textContent || '').trim();
-          const id = title + '|' + description;
-          if (seen.has(id)) return;
-          seen.add(id);
-          searchIndex.push({
-            element: child, sectionTitle,
-            title: title.toLowerCase(),
-            description: description.toLowerCase(),
-            keywords: (card.getAttribute('data-keywords') || '').toLowerCase(),
-            category: (card.getAttribute('data-category') || '').toLowerCase()
-          });
-        });
-      });
+    function toggleSection(head) {
+      head.closest('.overview-section').classList.toggle('open');
     }
-
-    let searchTimeout;
-    function debounceSearch(fn, delay = 100) {
-      return function (...a) { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => fn.apply(this, a), delay); };
-    }
-
-    function performSearch(term) {
-      term = term.toLowerCase().trim();
-      if (term === '') {
-        allSections.style.display = 'block';
-        searchResults.classList.remove('active');
-        searchResultsGrid.innerHTML = '';
-        return;
-      }
-      allSections.style.display = 'none';
-      searchResults.classList.add('active');
-      const words = term.split(/\s+/).filter(w => w.length > 0);
-      const results = searchIndex.map(item => {
-        let score = 0;
-        words.forEach(w => {
-          if (item.title === w) score += 100;
-          else if (item.title.startsWith(w)) score += 50;
-          else if (item.title.includes(w)) score += 30;
-          if (item.sectionTitle.includes(w)) score += 20;
-          if (item.description.includes(w)) score += 10;
-          if (item.keywords.includes(w)) score += 15;
-          if (item.category.includes(w)) score += 5;
-        });
-        return { item, score };
-      }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
-
-      searchResultsGrid.innerHTML = '';
-      if (results.length === 0) {
-        searchResultsGrid.innerHTML = '<div class="no-results">No results found. Try a different search term.</div>';
-        return;
-      }
-      const frag = document.createDocumentFragment();
-      results.forEach(r => frag.appendChild(r.item.element.cloneNode(true)));
-      searchResultsGrid.appendChild(frag);
-    }
-
-    buildSearchIndex();
-
-    searchInput.addEventListener('input', debounceSearch((e) => {
-      const v = e.target.value;
-      if (v.includes('@') && v.includes('.')) { e.target.value = ''; performSearch(''); return; }
-      performSearch(v);
-    }, 100));
-    searchInput.addEventListener('focus', () => {
-      const v = searchInput.value;
-      if (v.includes('@') && v.includes('.')) { searchInput.value = ''; performSearch(''); }
-    });
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { searchInput.value = ''; performSearch(''); }
-    });
-
-    // ── PIN LOCK SYSTEM (shared devUnlocked key with Bromar Hub) ──
-    const DEV_PIN = '1987';
-    let pendingUrl = null;
-    const pinModal = document.getElementById('pinModal');
-    const pinInput = document.getElementById('pinInput');
-    const pinError = document.getElementById('pinError');
-
-    document.addEventListener('click', (e) => {
-      const lockedLink = e.target.closest('.locked-link');
-      if (!lockedLink) return;
-      if (sessionStorage.getItem('devUnlocked') === 'true') return;
-      e.preventDefault();
-      pendingUrl = lockedLink.dataset.href || lockedLink.href;
-      openPinModal();
-    });
-
-    function openPinModal() { pinModal.classList.add('show'); pinError.textContent = ''; pinInput.value = ''; setTimeout(() => pinInput.focus(), 100); }
-    function closePinModal() { pinModal.classList.remove('show'); pendingUrl = null; }
-    function submitPin() {
-      if (pinInput.value.trim() === DEV_PIN) {
-        sessionStorage.setItem('devUnlocked', 'true');
-        pinModal.classList.remove('show');
-        if (pendingUrl) window.location.href = pendingUrl;
-      } else {
-        pinError.textContent = 'Incorrect PIN. Try again.';
-        pinInput.classList.add('error');
-        pinInput.value = '';
-        setTimeout(() => { pinInput.classList.remove('error'); pinInput.focus(); }, 400);
-      }
-    }
-    pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitPin(); if (e.key === 'Escape') closePinModal(); });
-    pinModal.addEventListener('click', (e) => { if (e.target === pinModal) closePinModal(); });
   </script>
 </body>
 </html>
