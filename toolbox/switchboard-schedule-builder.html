@@ -56,13 +56,26 @@
   .sb-proj > div { display:flex; justify-content:space-between; gap:24px; }
   .sb-proj span { color:#333; }
 
-  .sb-meta { width:100%; border-collapse:collapse; font-size:9.5px; margin-bottom:10px; }
-  .sb-meta td { border:1px solid #000; padding:2px 6px; vertical-align:top; }
-  .sb-meta .k { font-weight:700; background:#f2f2f2; white-space:nowrap; width:15%; }
-  .sb-meta .v { width:35%; }
-  .sb-customer { background:#f7f7f7; font-size:10px; }
-  .sb-boardname { color:#ef7d2e; font-size:17px; font-weight:700; }
-  .sb-warn { color:#d21f1f; font-weight:700; text-align:center; font-size:11px; }
+  .sb-info { border:1px solid #e2e2e2; border-radius:12px; overflow:hidden; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 18px; background:#fff; }
+  .sb-info-title { font-size:23px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; }
+  .sb-info-sub { font-size:10px; color:#8a8a8a; margin-top:3px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; }
+  .sb-info-warn { flex:none; background:#fdeaea; color:#d21f1f; border:1px solid #f3b4b4; border-radius:7px; padding:6px 11px; font-size:8.5px; font-weight:800; text-align:center; line-height:1.25; letter-spacing:.5px; }
+  .sb-stats { display:flex; }
+  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:9px; padding:11px 16px; }
+  .sb-stats .stat + .stat { border-left:1px solid rgba(255,255,255,0.25); }
+  .sb-stats-secondary .stat + .stat { border-left:1px solid #ececec; }
+  .sb-stats .stat-t { display:flex; flex-direction:column; line-height:1.2; }
+  .sb-stats .lbl { font-size:8px; text-transform:uppercase; letter-spacing:.6px; opacity:.85; font-weight:600; }
+  .sb-stats .val { font-size:13px; font-weight:800; }
+  .sb-stats-primary { background:linear-gradient(90deg,#ea580c 0%,#f97316 100%); color:#fff; }
+  .sb-stats-secondary { background:#f8f8f8; color:#1a1a1e; border-top:1px solid #ececec; }
+  .sb-stats-secondary .lbl { color:#9a9a9a; opacity:1; }
+  .sb-details { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid #ececec; background:#fff; }
+  .sb-details .det { padding:7px 16px; font-size:10px; color:#333; border-bottom:1px solid #f2f2f2; }
+  .sb-details .det:nth-child(odd) { border-right:1px solid #f2f2f2; }
+  .sb-details .det b { display:block; color:#9a9a9a; font-weight:700; text-transform:uppercase; font-size:7.5px; letter-spacing:.6px; margin-bottom:1px; }
+  .sb-details .det.full { grid-column:1 / -1; }
 
   .sb-grid { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
   .sb-grid th, .sb-grid td { border:1px solid #000; padding:3px 5px; }
@@ -210,7 +223,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.04</div>
+      <div class="card-footer-version">Version V1.05</div>
     </div>
 
   </div>
@@ -398,19 +411,42 @@
     if(s.layout_type === 'single_cb')    return gridSingleCb(s);
     return gridDouble(s);
   }
+  function sbIcon(name, color){
+    const P = {
+      switch:'<path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/>',
+      bolt:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      battery:'<rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/><line x1="6" y1="10" x2="6" y2="14"/>',
+      grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+      tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+      box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'
+    };
+    return '<svg viewBox="0 0 24 24" width="16" height="16" style="flex:none" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (P[name] || '') + '</svg>';
+  }
+  function sbStat(name, color, lbl, val){
+    return '<div class="stat">' + sbIcon(name, color) + '<div class="stat-t"><span class="lbl">' + lbl + '</span><span class="val">' + esc(val || '—') + '</span></div></div>';
+  }
+  function sbDet(lbl, val, full){
+    return '<div class="det' + (full ? ' full' : '') + '"><b>' + lbl + '</b>' + esc(val || '—') + '</div>';
+  }
   function metaHTML(s){
     const ld = s.is_loadshed ? 'Yes' : 'No';
-    const kv = (k,v,k2,v2) => '<tr><td class="k">' + k + '</td><td class="v">' + esc(v) + '</td><td class="k">' + k2 + '</td><td class="v">' + esc(v2) + '</td></tr>';
-    return '<table class="sb-meta">' +
-      '<tr><td colspan="4" class="sb-customer"><b>Customer / Site:</b> ' + esc(s.customer_name) + '</td></tr>' +
-      '<tr><td colspan="2" class="sb-boardname">' + esc(s.board_name || '—') + '</td><td colspan="2" class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>' +
-      kv('Location', s.location, 'Loadshed', ld) +
-      kv('Isolator / Main Switch', s.isolator_rating, 'Supply Capacity', s.supply_capacity) +
-      kv('Switchboard Type', s.switchboard_type, 'Chassis', s.chassis_type) +
-      kv('Sub Main Size', s.sub_main_size, 'Brand', s.brand) +
-      kv('Fed From', s.fed_from, 'Cable Path', s.cable_path) +
-      '<tr><td class="k">Notes</td><td class="v" colspan="3">' + esc(s.notes) + '</td></tr>' +
-      '</table>';
+    return '<div class="sb-info">' +
+      '<div class="sb-info-head"><div><div class="sb-info-title">' + esc(s.board_name || '—') + '</div>' +
+        (s.customer_name ? '<div class="sb-info-sub">' + esc(s.customer_name) + '</div>' : '') + '</div>' +
+        '<div class="sb-info-warn">DO NOT REMOVE<br>FROM SWITCHBOARD</div></div>' +
+      '<div class="sb-stats sb-stats-primary">' +
+        sbStat('switch','#fff','Isolator / Main Switch', s.isolator_rating) +
+        sbStat('bolt','#fff','Supply Capacity', s.supply_capacity) +
+        sbStat('battery','#fff','Loadshed', ld) + '</div>' +
+      '<div class="sb-stats sb-stats-secondary">' +
+        sbStat('grid','#ea580c','Chassis', s.chassis_type) +
+        sbStat('tag','#ea580c','Brand', s.brand) +
+        sbStat('box','#ea580c','Switchboard Type', s.switchboard_type) + '</div>' +
+      '<div class="sb-details">' +
+        sbDet('Location', s.location) + sbDet('Sub Main Size', s.sub_main_size) +
+        sbDet('Fed From', s.fed_from) + sbDet('Cable Path', s.cable_path) +
+        sbDet('Notes', s.notes, true) + '</div>' +
+      '</div>';
   }
   function scheduleHTML(s){
     return '<div class="sb-page">' +
