@@ -51,7 +51,7 @@
   .sb-logo { max-height:56px; width:auto; }
   .sb-title { color:#ef7d2e; font-size:30px; font-weight:400; line-height:1; margin-top:4px; }
   .sb-subhead { display:flex; justify-content:space-between; align-items:flex-start; font-size:8.5px; color:#333; border-bottom:1px solid #999; padding-bottom:6px; margin-bottom:10px; }
-  .sb-proj { text-align:left; min-width:210px; }
+  .sb-proj { text-align:left; min-width:230px; }
   .sb-proj > div { display:flex; justify-content:space-between; gap:24px; }
   .sb-proj span { color:#333; }
 
@@ -103,27 +103,31 @@
       <button type="button" class="btn-secondary" id="deleteBtn">🗑 Delete</button>
     </div>
 
-    <div class="section-label">Board Details</div>
+    <div class="section-label">Customer</div>
     <div class="field-row">
-      <div class="field-group full">
-        <label for="board_name">Board Name <span class="required">*</span></label>
-        <input type="text" id="board_name" placeholder="Distribution Board 1"/>
-      </div>
       <div class="field-group autocomplete-wrapper">
         <label for="job_number">Job Number</label>
         <input type="text" id="job_number" autocomplete="off" placeholder="Search job register…"/>
         <div class="autocomplete-results" id="jobResults"></div>
       </div>
+      <div class="field-group"><label for="customer_name">Customer Name</label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
       <div class="field-group"><label for="schedule_date">Date</label><input type="date" id="schedule_date"/></div>
-      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
-      <div class="field-group"><label for="isolator_rating">Isolator Rating / Supply Capacity</label><input type="text" id="isolator_rating" placeholder="e.g. 250A / 63A"/></div>
+    </div>
+
+    <div class="section-label">Submains</div>
+    <div class="field-row">
       <div class="field-group"><label for="sub_main_size">Sub Main Size</label><input type="text" id="sub_main_size" placeholder="e.g. 25mm2 4C&E O/C"/></div>
       <div class="field-group"><label for="fed_from">Fed From</label><input type="text" id="fed_from" placeholder="e.g. DB1 - CB 2,4,6"/></div>
       <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
+    </div>
+
+    <div class="section-label">Board Details</div>
+    <div class="field-row">
+      <div class="field-group full"><label for="board_name">Board Name <span class="required">*</span></label><input type="text" id="board_name" placeholder="Distribution Board 1"/></div>
+      <div class="field-group"><label for="isolator_rating">Isolator Rating / Supply Capacity</label><input type="text" id="isolator_rating" placeholder="e.g. 250A / 63A"/></div>
+      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
       <div class="field-group full"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes shown on schedule"/></div>
-      <div class="field-group full">
-        <div class="loadshed-row"><input type="checkbox" id="is_loadshed"/><label for="is_loadshed" style="margin:0;">Is this board loadshed?</label></div>
-      </div>
+      <div class="field-group full"><div class="loadshed-row"><input type="checkbox" id="is_loadshed"/><label for="is_loadshed" style="margin:0;">Is this board loadshed?</label></div></div>
     </div>
 
     <div class="section-label">Chassis</div>
@@ -173,7 +177,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.02</div>
     </div>
 
   </div>
@@ -266,6 +270,7 @@
       id: currentId,
       board_name: $('board_name').value.trim(),
       project_number: $('job_number').value.trim(),
+      customer_name: $('customer_name').value.trim(),
       schedule_date: $('schedule_date').value || null,
       location: $('location').value.trim(),
       isolator_rating: $('isolator_rating').value.trim(),
@@ -342,7 +347,9 @@
     return '<div class="sb-page">' +
       '<div class="sb-head"><img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/><div class="sb-title">Switchboard Schedule</div></div>' +
       '<div class="sb-subhead"><div>2/98-108 Western Ave, Westmeadows, VIC 3049<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
-      '<div class="sb-proj"><div><span>Date:</span><b>' + fmtDate(s.schedule_date) + '</b></div><div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div></div></div>' +
+      '<div class="sb-proj"><div><span>Date:</span><b>' + fmtDate(s.schedule_date) + '</b></div>' +
+      '<div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div>' +
+      '<div><span>CUSTOMER:</span><b>' + esc(s.customer_name) + '</b></div></div></div>' +
       metaHTML(s) + grid + '</div>';
   }
 
@@ -372,6 +379,7 @@
   /* ---------- job register lookup ---------- */
   let jobTimer = null;
   const hideJobs = () => $('jobResults').classList.remove('show');
+  const jobCust = r => r.client || r.client_name || r.customer || r.customer_name || r.site || '';
   async function searchJobs(q){
     try {
       const { data, error } = await window.sb.from('job_number_register')
@@ -385,15 +393,17 @@
     if(!rows.length){ hideJobs(); return; }
     box.innerHTML = rows.map(r => {
       const num = r.job_number || '';
-      const sub = r.client || r.client_name || r.site || r.description || '';
+      const sub = jobCust(r);
       const px = (num.slice(0,2) || '').toUpperCase();
       const badge = ['BE','BC','BA','BS','BM'].includes(px) ? '<span class="prefix-badge prefix-' + px + '">' + px + '</span>' : '';
-      return '<div class="autocomplete-item" data-num="' + esc(num) + '"><div class="autocomplete-item-number">' + esc(num) + badge + '</div>' +
+      return '<div class="autocomplete-item" data-num="' + esc(num) + '" data-cust="' + esc(sub) + '"><div class="autocomplete-item-number">' + esc(num) + badge + '</div>' +
         (sub ? '<div class="autocomplete-item-client">' + esc(sub) + '</div>' : '') + '</div>';
     }).join('');
     box.classList.add('show');
     box.querySelectorAll('.autocomplete-item').forEach(it => it.addEventListener('click', () => {
-      $('job_number').value = it.dataset.num; hideJobs(); schedulePreview();
+      $('job_number').value = it.dataset.num;
+      if(it.dataset.cust) $('customer_name').value = it.dataset.cust;
+      hideJobs(); schedulePreview();
     }));
   }
 
@@ -411,6 +421,7 @@
     revMajor = r.rev_major ?? 1; revMinor = r.rev_minor ?? 0;
     $('board_name').value = r.board_name || '';
     $('job_number').value = r.project_number || '';
+    $('customer_name').value = r.customer_name || '';
     $('schedule_date').value = r.schedule_date || '';
     $('location').value = r.location || '';
     $('isolator_rating').value = r.isolator_rating || '';
