@@ -289,8 +289,22 @@ window.BromarTest.ConstructionWiring = (function () {
       BromarHub.showLoading('Generating PDF...', 'Please wait');
       const pdfBlob = await generatePDF(data, jobNumber);
       await sb.storage.from(BUCKET).upload(`${jobNumber}/${FOLDER}/${rid}.pdf`, pdfBlob, { contentType: 'application/pdf', upsert: true });
-      BromarHub.hideLoading(); BromarHub.showSuccess('Construction wiring inspection saved');
-      if (cfg.onComplete) cfg.onComplete();
+      BromarHub.hideLoading();
+
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const fname = `${jobNumber}_Construction_Wiring_${data.date}.pdf`;
+      container.innerHTML = `
+        <div class="pdf-actions show">
+          <h3>✅ Construction Wiring Inspection Saved</h3>
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0.5rem;">PDF generated and uploaded to storage.</p>
+          <div class="pdf-actions-buttons">
+            <a href="${pdfUrl}" download="${fname}" class="pdf-btn" id="cwDownloadPdf">📥 Download PDF</a>
+            <button class="pdf-btn" id="cwViewPdf">👁 View PDF</button>
+            <button class="pdf-btn" id="cwDone">✓ Done</button>
+          </div>
+        </div>`;
+      container.querySelector('#cwViewPdf').addEventListener('click', () => { window.open(pdfUrl, '_blank'); });
+      container.querySelector('#cwDone').addEventListener('click', () => { URL.revokeObjectURL(pdfUrl); if (cfg.onComplete) cfg.onComplete(); });
     } catch (e) { console.error('[ConstructionWiring]', e); BromarHub.hideLoading(); BromarHub.showInfo('Error: ' + (e.message || e)); }
   }
 
