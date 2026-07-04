@@ -145,7 +145,7 @@ window.BromarTest.ConstructionWiring = (function () {
       ${cfg.onBack ? '<button class="cw-back" id="cwBack">← Back</button>' : ''}
       <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">🔧 Construction Wiring Inspection (AS3012)</h3>
       <div class="section-label">Job Details</div>
-      ${cfg.jobNumber ? '' : '<div class="field-row"><div class="field-group"><label>Job Number</label><input type="text" id="cwJobNumber" placeholder="e.g. BE5600"></div><div class="field-group"></div></div>'}
+      ${cfg.jobNumber ? '' : `<div class="field-row"><div class="field-group full" style="grid-column:1/-1;"><label>Job Number <span class="required">*</span></label><div class="autocomplete-wrapper"><input type="text" id="cwJobNumber" placeholder="Search job number, client, or site..." autocomplete="off"><div class="autocomplete-results" id="cwJobResults"></div></div></div></div>`}
       <div class="field-row"><div class="field-group"><label>Date <span class="required">*</span></label><input type="date" id="cwDate" value="${today}"></div><div class="field-group"><label>Inspector <span class="required">*</span></label><select id="cwInspector"><option value="">Select...</option></select></div></div>
       <div class="field-row"><div class="field-group"><label>Client</label><input type="text" id="cwClient" value="${esc(cfg.clientName || '')}"></div><div class="field-group"><label>Site Address</label><input type="text" id="cwSite" value="${esc(cfg.siteName || '')}"></div></div>
       <div class="field-row"><div class="field-group"><label>Area / Section</label><input type="text" id="cwArea" placeholder="e.g. Shed 3, Level 2"></div><div class="field-group"><label>Switchboard ID</label><input type="text" id="cwBoardId" placeholder="e.g. DB-01"></div></div>
@@ -163,6 +163,36 @@ window.BromarTest.ConstructionWiring = (function () {
     `;
 
     if (cfg.onBack) container.querySelector('#cwBack').addEventListener('click', cfg.onBack);
+
+    /* Job number autocomplete (standalone mode only) */
+    if (!cfg.jobNumber) {
+      const jobInput = container.querySelector('#cwJobNumber');
+      const jobResults = container.querySelector('#cwJobResults');
+      if (jobInput && jobResults && cfg.supabase) {
+        let _jobCache = [];
+        cfg.supabase.from('job_number_register').select('job_number, client_name, site_name, site_address').order('job_number', { ascending: false }).limit(500)
+          .then(({ data }) => { if (data) _jobCache = data; });
+        jobInput.addEventListener('input', () => {
+          const q = jobInput.value.trim().toLowerCase();
+          if (q.length < 2) { jobResults.classList.remove('show'); return; }
+          const matches = _jobCache.filter(j => (j.job_number||'').toLowerCase().includes(q) || (j.client_name||'').toLowerCase().includes(q) || (j.site_name||'').toLowerCase().includes(q)).slice(0, 8);
+          if (!matches.length) { jobResults.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--text-secondary);font-size:0.85rem;">No jobs found</div>'; jobResults.classList.add('show'); return; }
+          jobResults.innerHTML = matches.map(j => `<div class="autocomplete-item" data-jn="${esc(j.job_number)}" data-cn="${esc(j.client_name||'')}" data-sn="${esc(j.site_name||j.site_address||'')}"><div class="autocomplete-item-number">${esc(j.job_number)}</div><div class="autocomplete-item-client">${esc(j.client_name||'')}${j.site_name?' — '+esc(j.site_name):''}</div></div>`).join('');
+          jobResults.classList.add('show');
+          jobResults.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => {
+              jobInput.value = item.dataset.jn;
+              jobResults.classList.remove('show');
+              const clientEl = container.querySelector('#cwClient');
+              const siteEl = container.querySelector('#cwSite');
+              if (clientEl && !clientEl.value) clientEl.value = item.dataset.cn;
+              if (siteEl && !siteEl.value) siteEl.value = item.dataset.sn;
+            });
+          });
+        });
+        jobInput.addEventListener('blur', () => { setTimeout(() => jobResults.classList.remove('show'), 200); });
+      }
+    }
     const inspSel = container.querySelector('#cwInspector');
     (cfg.employees || []).forEach(e => { const o = document.createElement('option'); o.value = e.full_name; o.textContent = e.full_name; inspSel.appendChild(o); });
     (async () => {
