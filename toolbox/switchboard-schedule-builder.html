@@ -30,7 +30,7 @@
     border-radius:10px; padding:0.75rem; margin-bottom:0.5rem;
   }
   .sb-circuit-row { grid-template-columns: 66px 60px 96px 66px 84px 34px; }
-  .sb-rowdef      { grid-template-columns: 1fr 90px 34px; }
+  .sb-rowdef      { grid-template-columns: 1fr 110px 34px; }
   .sb-circuit-row label, .sb-rowdef label { font-size:0.7rem; margin-bottom:0.25rem; }
   .sb-circuit-row input, .sb-circuit-row select, .sb-rowdef input { padding:0.5rem 0.5rem; font-size:0.9rem; }
   .c-desc-wrap { grid-column:1 / -1; }
@@ -39,7 +39,7 @@
   @media (max-width:640px){
     .sb-circuit-row { grid-template-columns: 1fr 1fr 1fr; }
     .sb-circuit-row .c-x { grid-column:1 / -1; justify-self:end; }
-    .sb-rowdef { grid-template-columns: 1fr 90px; }
+    .sb-rowdef { grid-template-columns: 1fr 110px; }
     .sb-rowdef .row-x { grid-column:1 / -1; justify-self:end; }
   }
 
@@ -56,8 +56,9 @@
   .sb-proj span { color:#333; }
 
   .sb-meta { width:100%; border-collapse:collapse; font-size:10px; margin-bottom:10px; }
-  .sb-meta td { border:1px solid #000; padding:4px 7px; vertical-align:top; }
-  .sb-boardname { color:#ef7d2e; font-size:19px; font-weight:700; }
+  .sb-meta td { border:1px solid #000; padding:3px 7px; vertical-align:top; }
+  .sb-customer { background:#f3f3f3; }
+  .sb-boardname { color:#ef7d2e; font-size:18px; font-weight:700; }
   .sb-warn { color:#d21f1f; font-weight:700; text-align:center; font-size:12px; }
 
   .sb-grid { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
@@ -69,6 +70,7 @@
   .sb-grid col.cb   { width:6%; }
   .sb-grid col.type { width:14%; }
   .sb-band td { background:#000; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
+  .sb-break td { background:#e6e6e6; color:#000; font-weight:700; text-align:center; letter-spacing:1px; font-size:9px; border-top:3px solid #000; border-bottom:3px solid #000; }
   .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
 
   .card-footer { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); text-align:center; }
@@ -110,34 +112,57 @@
         <input type="text" id="job_number" autocomplete="off" placeholder="Search job register…"/>
         <div class="autocomplete-results" id="jobResults"></div>
       </div>
-      <div class="field-group"><label for="customer_name">Customer Name</label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
+      <div class="field-group"><label for="customer_name">Customer / Site Name</label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
       <div class="field-group"><label for="schedule_date">Date</label><input type="date" id="schedule_date"/></div>
     </div>
 
     <div class="section-label">Submains</div>
+    <div class="job-number-toggle">
+      <div class="radio-option"><input type="radio" name="supply" id="supply_sub" value="sub" checked/><label for="supply_sub">Sub Board</label></div>
+      <div class="radio-option"><input type="radio" name="supply" id="supply_main" value="main"/><label for="supply_main">Main Switchboard</label></div>
+    </div>
     <div class="field-row">
       <div class="field-group"><label for="sub_main_size">Sub Main Size</label><input type="text" id="sub_main_size" placeholder="e.g. 25mm2 4C&E O/C"/></div>
-      <div class="field-group"><label for="fed_from">Fed From</label><input type="text" id="fed_from" placeholder="e.g. DB1 - CB 2,4,6"/></div>
       <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
+    </div>
+    <div class="field-row" id="fedSubRow">
+      <div class="field-group"><label for="fed_switchboard">Fed From — Switchboard</label><input type="text" id="fed_switchboard" placeholder="e.g. DB1"/></div>
+      <div class="field-group"><label for="fed_circuit">Fed From — Circuit</label><input type="text" id="fed_circuit" placeholder="e.g. CB1"/></div>
+    </div>
+    <div class="field-row" id="fedMainRow" style="display:none;">
+      <div class="field-group full"><label for="fed_source">Main Supply Source</label>
+        <select id="fed_source">
+          <option value="">Select…</option>
+          <option>From Street Supply</option>
+          <option>Kiosk</option>
+          <option>Unmetered Main Switchboard</option>
+          <option>Customer Owned Kiosk</option>
+        </select>
+      </div>
     </div>
 
     <div class="section-label">Board Details</div>
     <div class="field-row">
       <div class="field-group full"><label for="board_name">Board Name <span class="required">*</span></label><input type="text" id="board_name" placeholder="Distribution Board 1"/></div>
-      <div class="field-group"><label for="isolator_rating">Isolator Rating / Supply Capacity</label><input type="text" id="isolator_rating" placeholder="e.g. 250A / 63A"/></div>
+      <div class="field-group"><label for="isolator_rating">Isolator / Main Switch Rating</label><input type="text" id="isolator_rating" placeholder="e.g. 250A"/></div>
+      <div class="field-group"><label for="supply_capacity">Supply Capacity</label><input type="text" id="supply_capacity" placeholder="e.g. 63A"/></div>
       <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
-      <div class="field-group full"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes shown on schedule"/></div>
+      <div class="field-group"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes"/></div>
       <div class="field-group full"><div class="loadshed-row"><input type="checkbox" id="is_loadshed"/><label for="is_loadshed" style="margin:0;">Is this board loadshed?</label></div></div>
     </div>
 
     <div class="section-label">Chassis</div>
-    <div class="job-number-toggle">
-      <div class="radio-option"><input type="radio" name="layout" id="layout_dual" value="dual" checked/><label for="layout_dual">Dual — odd left / even right</label></div>
-      <div class="radio-option"><input type="radio" name="layout" id="layout_single" value="single"/><label for="layout_single">Single sided — rows</label></div>
-    </div>
     <div class="field-row">
+      <div class="field-group"><label for="layout_type">Chassis Type</label>
+        <select id="layout_type">
+          <option value="single_phase">Single sided (Numbered per phase)</option>
+          <option value="single_cb">Single sided (Numbered per 3 phase CB)</option>
+          <option value="double_oddeven" selected>Double Sided (odd left / even right)</option>
+          <option value="double_sequential">Double Sided (Sequential Numbering)</option>
+        </select>
+      </div>
       <div class="field-group"><label for="total_poles">Total Poles</label><input type="number" id="total_poles" min="1" max="200" value="48"/></div>
-      <div class="field-group"><label for="chassis_type">Chassis Type</label>
+      <div class="field-group"><label for="chassis_type">Chassis Construction</label>
         <select id="chassis_type"><option value="">Select…</option><option value="MCB">MCB</option><option value="MCCB">MCCB</option><option value="Hybrid">Hybrid</option></select>
       </div>
       <div class="field-group"><label for="switchboard_type">Switchboard Type</label><input type="text" id="switchboard_type" placeholder="e.g. 48 Pole Chassis"/></div>
@@ -154,13 +179,18 @@
 
     <div id="rowsBlock" style="display:none;">
       <div class="section-label">Row Sections</div>
-      <p class="submit-note" style="margin:0 0 0.75rem;">A banner is inserted at the row's start pole (e.g. ROW 1 at pole 1, ROW 2 at pole 12).</p>
+      <p class="submit-note" style="margin:0 0 0.75rem;">Banner inserted at the given C/B number (e.g. ROW 1 at 1, ROW 2 at 12).</p>
       <div id="rowsList"></div>
       <button type="button" class="add-btn" id="addRowBtn">＋ Add row section</button>
     </div>
 
+    <div class="section-label">Chassis Breaks</div>
+    <p class="submit-note" style="margin:0 0 0.75rem;">Inserts a divider line before the given C/B number; numbering continues across the break.</p>
+    <div id="breaksList"></div>
+    <button type="button" class="add-btn" id="addBreakBtn">＋ Add chassis break</button>
+
     <div class="section-label">Circuits</div>
-    <p class="submit-note" style="margin:0 0 0.75rem;">First Pole = starting breaker. Poles = positions occupied (dual counts same side, e.g. start 1 / 3 poles = 1,3,5). Type builds from Device + Curve + Current.</p>
+    <p class="submit-note" style="margin:0 0 0.75rem;">First Pole = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
     <div id="circuitList"></div>
     <button type="button" class="add-btn" id="addCircuitBtn">＋ Add circuit</button>
 
@@ -177,7 +207,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.02</div>
+      <div class="card-footer-version">Version V1.03</div>
     </div>
 
   </div>
@@ -200,21 +230,16 @@
     return d + '-' + MONTHS[(+m)-1] + '-' + String(y).slice(2);
   }
 
-  const dualPoles   = (start, n) => { const a=[]; for(let i=0;i<n;i++) a.push(start + i*2); return a; };
-  const singlePoles = (start, n) => { const a=[]; for(let i=0;i<n;i++) a.push(start + i);   return a; };
-
   function composeType(c){
-    const dev = c.device || '';
     const cur = (c.current || '').toString().trim();
     const amps = c.curve ? (c.curve + cur) : cur;
-    return [dev, amps].filter(Boolean).join(' ').trim();
+    return [c.device || '', amps].filter(Boolean).join(' ').trim();
   }
   const optSel = (v, cur) => 'value="' + v + '"' + (v === cur ? ' selected' : '');
 
   /* ---------- editor rows ---------- */
   function circuitRow(c = {}){
     const poles = c.poles ?? c.span ?? 1;
-    const dev = c.device ?? '';
     const div = document.createElement('div');
     div.className = 'sb-circuit-row';
     div.dataset.legacy = c.type_amps || '';
@@ -223,7 +248,7 @@
       '<div><label>Poles</label><select class="c-poles">' +
         [1,2,3,4,5].map(n => '<option ' + optSel(String(n), String(poles)) + '>' + n + '</option>').join('') + '</select></div>' +
       '<div><label>Device</label><select class="c-device">' +
-        [['','—'],['MCB','MCB'],['RCBO','RCBO'],['MCCB','MCCB']].map(o => '<option ' + optSel(o[0], dev) + '>' + o[1] + '</option>').join('') + '</select></div>' +
+        [['','—'],['MCB','MCB'],['RCBO','RCBO'],['MCCB','MCCB']].map(o => '<option ' + optSel(o[0], c.device || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
       '<div><label>Curve</label><select class="c-curve">' +
         [['','—'],['B','B'],['C','C'],['D','D']].map(o => '<option ' + optSel(o[0], c.curve || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
       '<div><label>Current (A)</label><input type="text" class="c-current" value="' + esc(c.current || '') + '" placeholder="20"/></div>' +
@@ -232,16 +257,18 @@
     div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
     return div;
   }
-  function rowDefRow(r = {}){
+  function labelNumRow(cls, a, b, r = {}){
     const div = document.createElement('div');
     div.className = 'sb-rowdef';
     div.innerHTML =
-      '<div><label>Row Label</label><input type="text" class="r-label" value="' + esc(r.label || '') + '" placeholder="ROW 1"/></div>' +
-      '<div><label>Start Pole</label><input type="number" class="r-start" min="1" value="' + (r.start ?? '') + '"/></div>' +
+      '<div><label>' + a.lbl + '</label><input type="text" class="' + cls + '-label" value="' + esc(r.label || a.def || '') + '" placeholder="' + a.ph + '"/></div>' +
+      '<div><label>' + b.lbl + '</label><input type="number" class="' + cls + '-at" min="1" value="' + (r.at ?? r.start ?? '') + '"/></div>' +
       '<button type="button" class="row-x" title="Remove">×</button>';
     div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
     return div;
   }
+  const rowDefRow  = r => labelNumRow('r', { lbl:'Row Label', ph:'ROW 1' }, { lbl:'Start #' }, r);
+  const breakRow   = r => labelNumRow('b', { lbl:'Break Label', ph:'CHASSIS BREAK', def:'CHASSIS BREAK' }, { lbl:'Before #' }, r);
   const circuitRow0 = () => ({ start:1, poles:1, device:'MCB', curve:'', current:'', description:'' });
 
   function readCircuits(){
@@ -258,14 +285,16 @@
       return c;
     }).filter(c => Number.isFinite(c.start));
   }
-  function readRows(){
-    return [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r => ({
-      label: r.querySelector('.r-label').value.trim(),
-      start: parseInt(r.querySelector('.r-start').value,10)
-    })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b) => a.start - b.start);
+  const readRows   = () => [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r => ({ label:r.querySelector('.r-label').value.trim(), start:parseInt(r.querySelector('.r-at').value,10) })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b)=>a.start-b.start);
+  const readBreaks = () => [...document.querySelectorAll('#breaksList .sb-rowdef')].map(r => ({ label:r.querySelector('.b-label').value.trim() || 'CHASSIS BREAK', at:parseInt(r.querySelector('.b-at').value,10) })).filter(r => Number.isFinite(r.at)).sort((a,b)=>a.at-b.at);
+
+  function composeFed(){
+    if(document.querySelector('input[name="supply"]:checked').value === 'main') return $('fed_source').value;
+    return [$('fed_switchboard').value.trim(), $('fed_circuit').value.trim()].filter(Boolean).join(' - ');
   }
 
   function collectState(){
+    const supply_type = document.querySelector('input[name="supply"]:checked').value;
     return {
       id: currentId,
       board_name: $('board_name').value.trim(),
@@ -274,53 +303,68 @@
       schedule_date: $('schedule_date').value || null,
       location: $('location').value.trim(),
       isolator_rating: $('isolator_rating').value.trim(),
+      supply_capacity: $('supply_capacity').value.trim(),
       switchboard_type: $('switchboard_type').value.trim(),
       chassis_type: $('chassis_type').value,
       sub_main_size: $('sub_main_size').value.trim(),
       brand: $('brand').value.trim(),
-      fed_from: $('fed_from').value.trim(),
+      supply_type,
+      fed_switchboard: $('fed_switchboard').value.trim(),
+      fed_circuit: $('fed_circuit').value.trim(),
+      fed_source: $('fed_source').value,
+      fed_from: composeFed(),
       cable_path: $('cable_path').value.trim(),
       notes: $('notes').value.trim(),
       is_loadshed: $('is_loadshed').checked,
-      layout_type: document.querySelector('input[name="layout"]:checked').value,
+      layout_type: $('layout_type').value,
       total_poles: Math.max(1, parseInt($('total_poles').value,10) || 1),
       main_isolator: { enabled: $('iso_enabled').checked, description: $('iso_desc').value.trim(), type_amps: $('iso_type').value.trim() },
       rows: readRows(),
+      chassis_breaks: readBreaks(),
       circuits: readCircuits()
     };
   }
 
   /* ---------- schedule render ---------- */
+  function circuitInfo(s){
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const info = {};
+    s.circuits.forEach(c => { for(let i=0;i<c.poles;i++){ const p = c.start + i*step; info[p] = { c, first:i===0, span:c.poles }; } });
+    return info;
+  }
   function cellSide(p, info, total){
-    if(p > total) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
+    if(p > total || p < 1) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
     const it = info[p];
     const cb = '<td class="cb">' + p + '</td>';
     if(!it) return cb + '<td class="desc"></td><td class="type"></td>';
-    if(it.first){
-      const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
-      return cb + '<td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td>';
-    }
+    if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
+      return cb + '<td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td>'; }
     return cb;
   }
-  function gridDual(s){
-    const info = {};
-    s.circuits.forEach(c => dualPoles(c.start, c.poles).forEach((p,i) => { info[p] = { c, first:i===0, span:c.poles }; }));
+  function gridDouble(s){
+    const info = circuitInfo(s);
+    const half = Math.ceil(s.total_poles/2);
+    const seq = s.layout_type === 'double_sequential';
+    const leftPole  = r => seq ? (r+1)        : (2*r+1);
+    const rightPole = r => seq ? (half+r+1)   : (2*r+2);
+    const rowOf = p => seq ? (p<=half ? p-1 : p-half-1) : Math.floor((p-1)/2);
+    const breaks = {}; (s.chassis_breaks||[]).forEach(b => { const rr = rowOf(b.at); (breaks[rr] = breaks[rr] || []).push(b.label); });
     let body = '';
-    for(let r=0; r<Math.ceil(s.total_poles/2); r++){
-      body += '<tr>' + cellSide(2*r+1, info, s.total_poles) + cellSide(2*r+2, info, s.total_poles) + '</tr>';
+    for(let r=0; r<half; r++){
+      if(breaks[r]) breaks[r].forEach(lb => body += '<tr class="sb-break"><td colspan="6">' + esc(lb) + '</td></tr>');
+      body += '<tr>' + cellSide(leftPole(r), info, s.total_poles) + cellSide(rightPole(r), info, s.total_poles) + '</tr>';
     }
     return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"><col class="cb"><col><col class="type"></colgroup>' +
       '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
   function gridSingle(s){
-    const info = {};
-    s.circuits.forEach(c => singlePoles(c.start, c.poles).forEach((p,i) => { info[p] = { c, first:i===0, span:c.poles }; }));
-    const bandAt = {}; s.rows.forEach(r => bandAt[r.start] = r.label);
+    const info = circuitInfo(s);
+    const bandAt = {};  s.rows.forEach(r => bandAt[r.start] = r.label);
+    const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
     let body = '';
-    if(s.main_isolator.enabled){
-      body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
-    }
+    if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
     for(let p=1; p<=s.total_poles; p++){
+      if(brkAt[p])  brkAt[p].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
       if(bandAt[p]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[p]) + '</td></tr>';
       const it = info[p];
       if(!it) body += '<tr><td class="cb">' + p + '</td><td class="desc"></td><td class="type"></td></tr>';
@@ -331,26 +375,46 @@
     return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
       '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
+  function gridSingleCb(s){
+    const circuits = [...s.circuits].sort((a,b) => (a.start||0) - (b.start||0));
+    const bandAt = {};  s.rows.forEach(r => bandAt[r.start] = r.label);
+    const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
+    let body = '';
+    if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
+    circuits.forEach((c, idx) => {
+      const n = idx + 1;
+      if(brkAt[n])  brkAt[n].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
+      if(bandAt[n]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[n]) + '</td></tr>';
+      body += '<tr><td class="cb">' + n + '</td><td class="desc">' + esc(c.description) + '</td><td class="type">' + esc(c.type_amps) + '</td></tr>';
+    });
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function gridHTML(s){
+    if(s.layout_type === 'single_phase') return gridSingle(s);
+    if(s.layout_type === 'single_cb')    return gridSingleCb(s);
+    return gridDouble(s);
+  }
   function metaHTML(s){
     const ld = s.is_loadshed ? 'Yes' : 'No';
     return '<table class="sb-meta">' +
+      '<tr><td colspan="2" class="sb-customer"><b>Customer / Site:</b> ' + esc(s.customer_name) + '</td></tr>' +
       '<tr><td class="sb-boardname">' + esc(s.board_name || '—') + '</td><td class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>' +
       '<tr><td><b>Location:</b> ' + esc(s.location) + '</td><td><b>Is this board loadshed:</b> ' + ld + '</td></tr>' +
-      '<tr><td><b>Isolator Rating / Supply Capacity:</b> ' + esc(s.isolator_rating) + '</td><td><b>Switchboard Type:</b> ' + esc(s.switchboard_type) + '</td></tr>' +
+      '<tr><td><b>Isolator / Main Switch Rating:</b> ' + esc(s.isolator_rating) + '</td><td><b>Supply Capacity:</b> ' + esc(s.supply_capacity) + '</td></tr>' +
+      '<tr><td><b>Switchboard Type:</b> ' + esc(s.switchboard_type) + '</td><td><b>Chassis:</b> ' + esc(s.chassis_type) + '</td></tr>' +
       '<tr><td><b>Sub Main Size:</b> ' + esc(s.sub_main_size) + '</td><td><b>Brand:</b> ' + esc(s.brand) + '</td></tr>' +
-      '<tr><td><b>Fed from:</b> ' + esc(s.fed_from) + '</td><td><b>Chassis Type:</b> ' + esc(s.chassis_type) + '</td></tr>' +
-      '<tr><td><b>Cable Path:</b> ' + esc(s.cable_path) + '</td><td><b>Notes:</b> ' + esc(s.notes) + '</td></tr>' +
+      '<tr><td><b>Fed from:</b> ' + esc(s.fed_from) + '</td><td><b>Cable Path:</b> ' + esc(s.cable_path) + '</td></tr>' +
+      '<tr><td colspan="2"><b>Notes:</b> ' + esc(s.notes) + '</td></tr>' +
       '</table>';
   }
   function scheduleHTML(s){
-    const grid = s.layout_type === 'single' ? gridSingle(s) : gridDual(s);
     return '<div class="sb-page">' +
       '<div class="sb-head"><img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/><div class="sb-title">Switchboard Schedule</div></div>' +
       '<div class="sb-subhead"><div>2/98-108 Western Ave, Westmeadows, VIC 3049<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
       '<div class="sb-proj"><div><span>Date:</span><b>' + fmtDate(s.schedule_date) + '</b></div>' +
-      '<div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div>' +
-      '<div><span>CUSTOMER:</span><b>' + esc(s.customer_name) + '</b></div></div></div>' +
-      metaHTML(s) + grid + '</div>';
+      '<div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div></div></div>' +
+      metaHTML(s) + gridHTML(s) + '</div>';
   }
 
   let previewTimer = null;
@@ -358,10 +422,15 @@
   const renderPreview = () => { $('previewInner').innerHTML = scheduleHTML(collectState()); };
 
   function syncLayoutUI(){
-    const single = document.querySelector('input[name="layout"]:checked').value === 'single';
+    const single = $('layout_type').value.indexOf('single') === 0;
     $('isoBlock').style.display  = single ? 'block' : 'none';
     $('rowsBlock').style.display = single ? 'block' : 'none';
     $('isoFields').style.display = ($('iso_enabled').checked && single) ? 'grid' : 'none';
+  }
+  function syncSupplyUI(){
+    const main = document.querySelector('input[name="supply"]:checked').value === 'main';
+    $('fedMainRow').style.display = main ? 'flex' : 'none';
+    $('fedSubRow').style.display  = main ? 'none' : 'flex';
   }
 
   /* ---------- mm2 -> mm² ---------- */
@@ -392,8 +461,7 @@
     const box = $('jobResults');
     if(!rows.length){ hideJobs(); return; }
     box.innerHTML = rows.map(r => {
-      const num = r.job_number || '';
-      const sub = jobCust(r);
+      const num = r.job_number || '', sub = jobCust(r);
       const px = (num.slice(0,2) || '').toUpperCase();
       const badge = ['BE','BC','BA','BS','BM'].includes(px) ? '<span class="prefix-badge prefix-' + px + '">' + px + '</span>' : '';
       return '<div class="autocomplete-item" data-num="' + esc(num) + '" data-cust="' + esc(sub) + '"><div class="autocomplete-item-number">' + esc(num) + badge + '</div>' +
@@ -425,26 +493,34 @@
     $('schedule_date').value = r.schedule_date || '';
     $('location').value = r.location || '';
     $('isolator_rating').value = r.isolator_rating || '';
+    $('supply_capacity').value = r.supply_capacity || '';
     $('switchboard_type').value = r.switchboard_type || '';
     $('chassis_type').value = r.chassis_type || '';
     $('sub_main_size').value = r.sub_main_size || '';
     $('brand').value = r.brand || '';
-    $('fed_from').value = r.fed_from || '';
+    const st = (r.supply_type === 'main') ? 'main' : 'sub';
+    document.querySelector('input[name="supply"][value="' + st + '"]').checked = true;
+    $('fed_switchboard').value = r.fed_switchboard || '';
+    $('fed_circuit').value = r.fed_circuit || '';
+    $('fed_source').value = r.fed_source || '';
     $('cable_path').value = r.cable_path || '';
     $('notes').value = r.notes || '';
     $('is_loadshed').checked = !!r.is_loadshed;
-    document.querySelector('input[name="layout"][value="' + (r.layout_type === 'single' ? 'single' : 'dual') + '"]').checked = true;
+    let lt = r.layout_type || 'double_oddeven';
+    if(lt === 'dual') lt = 'double_oddeven'; if(lt === 'single') lt = 'single_phase';
+    $('layout_type').value = lt;
     $('total_poles').value = r.total_poles || 48;
     const iso = r.main_isolator || {};
     $('iso_enabled').checked = !!iso.enabled;
     $('iso_desc').value = iso.description || '';
     $('iso_type').value = iso.type_amps || '';
-    $('rowsList').innerHTML = ''; (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
+    $('rowsList').innerHTML = '';   (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
+    $('breaksList').innerHTML = ''; (r.chassis_breaks || []).forEach(x => $('breaksList').appendChild(breakRow(x)));
     $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
-    syncLayoutUI(); updateRevLabel(); renderPreview();
+    syncLayoutUI(); syncSupplyUI(); updateRevLabel(); renderPreview();
   }
   function blankForm(){
-    fillForm({ layout_type:'dual', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
+    fillForm({ layout_type:'double_oddeven', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
     currentId = null; revMajor = 1; revMinor = 0; updateRevLabel();
   }
 
@@ -512,8 +588,10 @@
   document.addEventListener('DOMContentLoaded', async () => {
     $('addCircuitBtn').addEventListener('click', () => { $('circuitList').appendChild(circuitRow(circuitRow0())); schedulePreview(); });
     $('addRowBtn').addEventListener('click', () => { $('rowsList').appendChild(rowDefRow({})); schedulePreview(); });
-    document.querySelectorAll('input[name="layout"]').forEach(el => el.addEventListener('change', () => { syncLayoutUI(); schedulePreview(); }));
+    $('addBreakBtn').addEventListener('click', () => { $('breaksList').appendChild(breakRow({})); schedulePreview(); });
+    $('layout_type').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
     $('iso_enabled').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
+    document.querySelectorAll('input[name="supply"]').forEach(el => el.addEventListener('change', () => { syncSupplyUI(); schedulePreview(); }));
     $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
     $('deleteBtn').addEventListener('click', del);
     $('saveBtn').addEventListener('click', save);
