@@ -145,10 +145,10 @@ window.BromarTest.ConstructionWiring = (function () {
       ${cfg.onBack ? '<button class="cw-back" id="cwBack">← Back</button>' : ''}
       <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">🔧 Construction Wiring Inspection (AS3012)</h3>
       <div class="section-label">Job Details</div>
-      <div class="field-row"><div class="field-group"><label>Job Number</label><input type="text" id="cwJobNumber" value="${esc(cfg.jobNumber || '')}" ${cfg.jobNumber ? 'readonly' : ''}></div><div class="field-group"><label>Date <span class="required">*</span></label><input type="date" id="cwDate" value="${today}"></div></div>
+      ${cfg.jobNumber ? '' : '<div class="field-row"><div class="field-group"><label>Job Number</label><input type="text" id="cwJobNumber" placeholder="e.g. BE5600"></div><div class="field-group"></div></div>'}
+      <div class="field-row"><div class="field-group"><label>Date <span class="required">*</span></label><input type="date" id="cwDate" value="${today}"></div><div class="field-group"><label>Inspector <span class="required">*</span></label><select id="cwInspector"><option value="">Select...</option></select></div></div>
       <div class="field-row"><div class="field-group"><label>Client</label><input type="text" id="cwClient" value="${esc(cfg.clientName || '')}"></div><div class="field-group"><label>Site Address</label><input type="text" id="cwSite" value="${esc(cfg.siteName || '')}"></div></div>
       <div class="field-row"><div class="field-group"><label>Area / Section</label><input type="text" id="cwArea" placeholder="e.g. Shed 3, Level 2"></div><div class="field-group"><label>Switchboard ID</label><input type="text" id="cwBoardId" placeholder="e.g. DB-01"></div></div>
-      <div class="field-row"><div class="field-group"><label>Inspector <span class="required">*</span></label><select id="cwInspector"><option value="">Select...</option></select></div><div class="field-group"></div></div>
       <div class="section-label">Inspection Items</div>
       <table class="cw-table"><thead><tr><th>Item</th><th>Description</th><th>Pass / Fail</th><th>N/A</th></tr></thead><tbody>${checklistHtml}</tbody></table>
       <div class="section-label">Non-Compliance / Issues Identified</div>
@@ -165,7 +165,14 @@ window.BromarTest.ConstructionWiring = (function () {
     if (cfg.onBack) container.querySelector('#cwBack').addEventListener('click', cfg.onBack);
     const inspSel = container.querySelector('#cwInspector');
     (cfg.employees || []).forEach(e => { const o = document.createElement('option'); o.value = e.full_name; o.textContent = e.full_name; inspSel.appendChild(o); });
-    if (cfg.currentUser?.name) inspSel.value = cfg.currentUser.name;
+    if (cfg.currentUser?.name) { inspSel.value = cfg.currentUser.name; }
+    else if (cfg.supabase) {
+      cfg.supabase.auth.getUser().then(({ data }) => {
+        if (!data?.user?.email) return;
+        const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === data.user.email.toLowerCase());
+        if (match) { inspSel.value = match.full_name; inspSel.disabled = true; }
+      }).catch(() => {});
+    }
 
     const issuesContainer = container.querySelector('#cwIssues');
     function renumList(cont) { cont.querySelectorAll('.cw-dyn-row').forEach((r, i) => { r.querySelector('.cw-dyn-num').textContent = i + 1; }); }
@@ -222,7 +229,7 @@ window.BromarTest.ConstructionWiring = (function () {
   async function submitInspection(container, cfg) {
     const data = collectData(container); const err = validate(data);
     if (err) { BromarHub.showInfo(err); return; }
-    const sb = cfg.supabase; const jobNumber = data.jobNumber || cfg.jobNumber || 'STANDALONE';
+    const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating inspection...', 'Creating PDF and saving');
     try {
       const record = { job_number: jobNumber, client_name: data.client, site_name: data.site, area: data.area, switchboard_id: data.boardId, tested_by: data.inspector, inspection_date: data.date, inspection_items: data.items, issues: data.issues, corrective_actions: data.actions, photos: [], status: 'completed' };
