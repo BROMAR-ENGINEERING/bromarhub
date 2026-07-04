@@ -52,19 +52,19 @@
   .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8px; color:#555; line-height:1.32; }
   .sb-title { font-size:22px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; white-space:nowrap; }
 
-  .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 16px; background:#fff; }
-  .sb-info-title { font-size:17px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; text-transform:uppercase; }
+  .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 16px; background:#fff; }
+  .sb-info-title { font-size:18px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; text-transform:uppercase; }
   .sb-info-sub { font-size:8.5px; color:#8a8a8a; margin-top:1px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; }
   .sb-info-warn { flex:none; background:#fdeaea; color:#d21f1f; border:1px solid #f3b4b4; border-radius:6px; padding:5px 10px; font-size:8px; font-weight:800; text-align:center; line-height:1.2; letter-spacing:.5px; }
   .sb-stats { display:flex; }
   .sb-stats + .sb-stats { border-top:1px solid rgba(0,0,0,0.07); }
-  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:8px; padding:3px 14px; min-width:0; }
+  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:8px; padding:5px 14px; min-width:0; }
   .sb-stats .stat + .stat { border-left:1px solid rgba(255,255,255,0.25); }
   .sb-stats-secondary .stat + .stat { border-left:1px solid #ececec; }
   .sb-stats .stat-t { display:flex; flex-direction:column; line-height:1.1; min-width:0; }
-  .sb-stats .lbl { font-size:6.5px; text-transform:uppercase; letter-spacing:.5px; opacity:.85; font-weight:600; }
-  .sb-stats .val { font-size:10.5px; font-weight:800; word-break:break-word; text-transform:uppercase; }
+  .sb-stats .lbl { font-size:7px; text-transform:uppercase; letter-spacing:.5px; opacity:.85; font-weight:600; }
+  .sb-stats .val { font-size:11px; font-weight:800; word-break:break-word; text-transform:uppercase; }
   .sb-stats-primary { background:linear-gradient(90deg,#ea580c 0%,#f97316 100%); color:#fff; }
   .sb-stats-secondary { background:#f8f8f8; color:#1a1a1e; }
   .sb-stats-secondary .lbl { color:#9a9a9a; opacity:1; }
@@ -134,8 +134,31 @@
       <div class="radio-option"><input type="radio" name="supply" id="supply_main" value="main"/><label for="supply_main">Main Switchboard</label></div>
     </div>
     <div class="field-row">
-      <div class="field-group"><label for="sub_main_size">Sub Main Size</label><input type="text" id="sub_main_size" placeholder="e.g. 25mm2 4C&E O/C"/></div>
+      <div class="field-group" id="sizeGroup"><label id="sizeLabel" for="submain_size">Sub Main Size</label>
+        <select id="submain_size"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+      <div class="field-group"><label for="cable_type">Cable Type</label>
+        <select id="cable_type">
+          <option value="Orange Circular 4C&E">Orange Circular 4C&amp;E</option>
+          <option value="XLPE 4x1C & 1x Earth">XLPE 4x1C &amp; 1x Earth</option>
+          <option value="XLPE Flex">XLPE Flex</option>
+          <option value="Fire Rated Cable">Fire Rated Cable</option>
+          <option value="Custom">Custom</option>
+        </select></div>
       <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
+    </div>
+    <div id="xlpeBlock" style="display:none;">
+      <div class="field-row">
+        <div class="field-group"><label for="xlpe_active">Active Conductor Size</label><select id="xlpe_active"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+        <div class="field-group"><label for="xlpe_earth">Earth Size</label><select id="xlpe_earth"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+        <div class="field-group" id="neutralSizeWrap" style="display:none;"><label for="xlpe_neutral">Neutral Size</label><select id="xlpe_neutral"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_parallel"/><label for="xlpe_parallel" style="margin:0;">Parallel conductors</label></div></div>
+        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_undersized_n"/><label for="xlpe_undersized_n" style="margin:0;">Undersized neutral</label></div></div>
+      </div>
+    </div>
+    <div class="field-row" id="customSizeRow" style="display:none;">
+      <div class="field-group full"><label for="submain_custom">Custom Submain Description</label><input type="text" id="submain_custom" placeholder="e.g. 25mm2 4C&E O/C"/></div>
     </div>
     <div class="field-row" id="fedSubRow">
       <div class="field-group"><label for="fed_switchboard">Fed From — Switchboard</label><input type="text" id="fed_switchboard" placeholder="e.g. DB1"/></div>
@@ -220,7 +243,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.11</div>
+      <div class="card-footer-version">Version V1.12</div>
     </div>
 
   </div>
@@ -231,6 +254,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const CURRENTS = [2,4,6,10,16,20,25,32,40,50,63,80,100,125,160,250,400,630];
 
   let currentId = null, revMajor = 1, revMinor = 0;
   const revStr = () => 'V' + revMajor + '.' + String(revMinor).padStart(2,'0');
@@ -249,6 +273,14 @@
     return [c.device || '', amps].filter(Boolean).join(' ').trim();
   }
   const optSel = (v, cur) => 'value="' + v + '"' + (v === cur ? ' selected' : '');
+  function currentSelectHTML(cur){
+    const inList = CURRENTS.map(String).includes(String(cur));
+    const isCustom = !!cur && !inList;
+    let o = '<option value=""' + (!cur ? ' selected' : '') + '>—</option>';
+    o += CURRENTS.map(v => '<option value="' + v + '"' + (String(v)===String(cur) ? ' selected' : '') + '>' + v + '</option>').join('');
+    o += '<option value="custom"' + (isCustom ? ' selected' : '') + '>Custom…</option>';
+    return { html:o, isCustom, custVal: isCustom ? cur : '' };
+  }
 
   /* ---------- editor rows ---------- */
   function circuitRow(c = {}){
@@ -264,7 +296,7 @@
         [['','—'],['MCB','MCB'],['RCBO','RCBO'],['MCCB','MCCB']].map(o => '<option ' + optSel(o[0], c.device || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
       '<div><label>Curve</label><select class="c-curve">' +
         [['','—'],['B','B'],['C','C'],['D','D']].map(o => '<option ' + optSel(o[0], c.curve || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
-      '<div><label>Current (A)</label><input type="text" class="c-current" value="' + esc(c.current || '') + '" placeholder="20"/></div>' +
+      (function(){ const cs = currentSelectHTML(c.current); return '<div><label>Current (A)</label><select class="c-current">' + cs.html + '</select><input type="text" class="c-current-cust" value="' + esc(cs.custVal) + '" placeholder="A" style="margin-top:4px;' + (cs.isCustom ? '' : 'display:none;') + '"/></div>'; })() +
       '<button type="button" class="row-x c-x" title="Remove">×</button>' +
       '<div class="c-desc-wrap"><label>Description</label><input type="text" class="c-desci" value="' + esc(c.description || '') + '" placeholder="e.g. GPO West Wall"/></div>';
     div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
@@ -301,7 +333,7 @@
         poles:   parseInt(r.querySelector('.c-poles').value,10) || 1,
         device:  r.querySelector('.c-device').value,
         curve:   r.querySelector('.c-curve').value,
-        current: r.querySelector('.c-current').value.trim(),
+        current: (r.querySelector('.c-current').value === 'custom' ? r.querySelector('.c-current-cust').value.trim() : r.querySelector('.c-current').value),
         description: r.querySelector('.c-desci').value.trim()
       };
       c.type_amps = composeType(c) || (r.dataset.legacy || '');
@@ -311,6 +343,29 @@
   const readRows   = () => [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r => ({ label:r.querySelector('.r-label').value.trim(), start:parseInt(r.querySelector('.r-at').value,10) })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b)=>a.start-b.start);
   const readBreaks = () => [...document.querySelectorAll('#breaksList .sb-rowdef')].map(r => ({ label:r.querySelector('.b-label').value.trim() || 'CHASSIS BREAK', at:parseInt(r.querySelector('.b-at').value,10) })).filter(r => Number.isFinite(r.at)).sort((a,b)=>a.at-b.at);
 
+  function composeSubmain(){
+    const type = $('cable_type').value;
+    if(type === 'Custom') return $('submain_custom').value.trim();
+    if(type === 'XLPE 4x1C & 1x Earth'){
+      const a = $('xlpe_active').value, e = $('xlpe_earth').value;
+      if(!a) return '';
+      if($('xlpe_undersized_n').checked){
+        const n = $('xlpe_neutral').value, ph = $('xlpe_parallel').checked ? 6 : 3, nc = $('xlpe_parallel').checked ? 2 : 1;
+        return 'XLPE ' + ph + 'x' + a + 'mm\u00B2 + ' + nc + 'x' + (n || '?') + 'mm\u00B2 N & 1x' + (e || '?') + 'mm\u00B2 earth';
+      }
+      const ac = $('xlpe_parallel').checked ? 8 : 4;
+      return 'XLPE ' + ac + 'x' + a + 'mm\u00B2' + (e ? ' & 1x' + e + 'mm\u00B2 earth' : '');
+    }
+    const sz = $('submain_size').value;
+    if(!sz) return '';
+    if(type === 'Orange Circular 4C&E') return sz + 'mm\u00B2 4C&E Orange Circular';
+    if(type === 'XLPE Flex') return 'XLPE Flex ' + sz + 'mm\u00B2';
+    if(type === 'Fire Rated Cable') return 'Fire Rated ' + sz + 'mm\u00B2';
+    return sz + 'mm\u00B2 ' + type;
+  }
+  function submainMeta(){
+    return { size:$('submain_size').value, type:$('cable_type').value, active:$('xlpe_active').value, earth:$('xlpe_earth').value, parallel:$('xlpe_parallel').checked, undersizedN:$('xlpe_undersized_n').checked, neutral:$('xlpe_neutral').value, custom:$('submain_custom').value.trim() };
+  }
   function composeFed(){
     if(document.querySelector('input[name="supply"]:checked').value === 'main') return $('fed_source').value;
     return [$('fed_switchboard').value.trim(), $('fed_circuit').value.trim()].filter(Boolean).join(' - ');
@@ -331,7 +386,8 @@
       supply_capacity: $('supply_capacity').value.trim(),
       switchboard_type: $('switchboard_type').value.trim(),
       chassis_type: $('chassis_type').value,
-      sub_main_size: $('sub_main_size').value.trim(),
+      sub_main_size: composeSubmain(),
+      submain: submainMeta(),
       brand: $('brand').value.trim(),
       supply_type,
       fed_switchboard: $('fed_switchboard').value.trim(),
@@ -457,11 +513,11 @@
         sbStat('box','#ea580c','Type / Model', s.switchboard_type) + '</div>' +
       '<div class="sb-stats sb-stats-primary">' +
         sbStat('map','#fff','Location', s.location) +
-        sbStat('trefoil','#fff','Sub Main Size', s.sub_main_size) +
+        sbStat('trefoil','#fff',(s.supply_type === 'main' ? 'Mains Size' : 'Sub Main Size'), s.sub_main_size) +
         sbStat('login','#fff','Fed From', s.fed_from) + '</div>' +
       '<div class="sb-stats sb-stats-secondary">' +
         sbStat('branch','#ea580c','Cable Path', s.cable_path) +
-        sbStat('note','#ea580c','Notes', s.notes, 2) + '</div>' +
+        sbStat('note','#ea580c','Notes', s.notes) + '</div>' +
       '</div>';
   }
   function boardTitle(s){
@@ -526,6 +582,15 @@
     const main = document.querySelector('input[name="supply"]:checked').value === 'main';
     $('fedMainRow').style.display = main ? 'flex' : 'none';
     $('fedSubRow').style.display  = main ? 'none' : 'flex';
+    $('sizeLabel').textContent = main ? 'Mains Size' : 'Sub Main Size';
+  }
+  function syncCableUI(){
+    const t = $('cable_type').value;
+    const xlpe = t === 'XLPE 4x1C & 1x Earth';
+    $('xlpeBlock').style.display = xlpe ? 'block' : 'none';
+    $('customSizeRow').style.display = t === 'Custom' ? 'flex' : 'none';
+    $('sizeGroup').style.display = (xlpe || t === 'Custom') ? 'none' : 'block';
+    $('neutralSizeWrap').style.display = (xlpe && $('xlpe_undersized_n').checked) ? 'block' : 'none';
   }
 
   /* ---------- mm2 -> mm² ---------- */
@@ -603,7 +668,22 @@
     $('supply_capacity').value = r.supply_capacity || '';
     $('switchboard_type').value = r.switchboard_type || '';
     $('chassis_type').value = r.chassis_type || '';
-    $('sub_main_size').value = r.sub_main_size || '';
+    const sm = r.submain || null;
+    if(sm){
+      $('cable_type').value = sm.type || 'Orange Circular 4C&E';
+      $('submain_size').value = sm.size || '';
+      $('xlpe_active').value = sm.active || '';
+      $('xlpe_earth').value = sm.earth || '';
+      $('xlpe_neutral').value = sm.neutral || '';
+      $('xlpe_parallel').checked = !!sm.parallel;
+      $('xlpe_undersized_n').checked = !!sm.undersizedN;
+      $('submain_custom').value = sm.custom || '';
+    } else {
+      $('cable_type').value = r.sub_main_size ? 'Custom' : 'Orange Circular 4C&E';
+      $('submain_custom').value = r.sub_main_size || '';
+      $('submain_size').value=''; $('xlpe_active').value=''; $('xlpe_earth').value=''; $('xlpe_neutral').value='';
+      $('xlpe_parallel').checked=false; $('xlpe_undersized_n').checked=false;
+    }
     $('brand').value = r.brand || '';
     const st = (r.supply_type === 'main') ? 'main' : 'sub';
     document.querySelector('input[name="supply"][value="' + st + '"]').checked = true;
@@ -624,7 +704,7 @@
     $('rowsList').innerHTML = '';   (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
     $('breaksList').innerHTML = ''; (r.chassis_breaks || []).forEach(x => $('breaksList').appendChild(breakRow(x)));
     $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
-    syncLayoutUI(); syncSupplyUI(); updateRevLabel(); renderPreview();
+    syncLayoutUI(); syncSupplyUI(); syncCableUI(); updateRevLabel(); renderPreview();
   }
   function blankForm(){
     fillForm({ layout_type:'double_oddeven', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
@@ -710,6 +790,8 @@
     $('layout_type').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
     $('iso_enabled').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
     document.querySelectorAll('input[name="supply"]').forEach(el => el.addEventListener('change', () => { syncSupplyUI(); schedulePreview(); }));
+    $('cable_type').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('xlpe_undersized_n').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
     $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
     $('deleteBtn').addEventListener('click', del);
     $('saveBtn').addEventListener('click', save);
