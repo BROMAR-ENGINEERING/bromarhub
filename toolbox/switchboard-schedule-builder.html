@@ -50,7 +50,7 @@
   .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:6px; }
   .sb-logo { max-height:42px; width:auto; }
   .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8px; color:#555; line-height:1.32; }
-  .sb-title { font-size:22px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; white-space:nowrap; }
+  .sb-title { font-size:26px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; line-height:1.0; text-align:right; }
 
   .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
   .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 16px; background:#fff; }
@@ -123,9 +123,9 @@
         <input type="text" id="job_number" autocomplete="off" placeholder="Search job register…"/>
         <div class="autocomplete-results" id="jobResults"></div>
       </div>
-      <div class="field-group"><label for="customer_name">Customer / Site Name</label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
+      <div class="field-group"><label for="customer_name">Customer / Site Name <span style="color:var(--text-secondary);font-weight:400;">(as shown on schedule)</span></label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
       <div class="field-group"><label for="schedule_date">Date</label><input type="date" id="schedule_date"/></div>
-      <div class="field-group"><label for="prepared_by">Schedule Prepared By</label><input type="text" id="prepared_by" placeholder="Auto-fills from login"/></div>
+      <div class="field-group"><label for="prepared_by">Schedule Prepared By <span id="pbBadge" style="display:none;color:var(--success);font-size:0.75rem;font-weight:600;margin-left:4px;">● Logged in</span></label><input type="text" id="prepared_by" placeholder="Auto-fills from login"/></div>
     </div>
 
     <div class="section-label">Submains</div>
@@ -153,7 +153,8 @@
         <div class="field-group" id="neutralSizeWrap" style="display:none;"><label for="xlpe_neutral">Neutral Size</label><select id="xlpe_neutral"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
       </div>
       <div class="field-row">
-        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_parallel"/><label for="xlpe_parallel" style="margin:0;">Parallel conductors</label></div></div>
+        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_parallel"/><label for="xlpe_parallel" style="margin:0;">Parallel mains</label></div></div>
+        <div class="field-group" id="groupsWrap" style="display:none;"><label for="xlpe_groups">Number of Groups</label><select id="xlpe_groups"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
         <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_undersized_n"/><label for="xlpe_undersized_n" style="margin:0;">Undersized neutral</label></div></div>
       </div>
     </div>
@@ -182,7 +183,7 @@
       <div class="field-group"><label for="section">Section (optional)</label><input type="text" id="section" placeholder="e.g. Upper / Section 1"/></div>
       <div class="field-group"><label for="isolator_rating">Isolator / Main Switch Rating</label><input type="text" id="isolator_rating" placeholder="e.g. 250A"/></div>
       <div class="field-group"><label for="supply_capacity">Supply Capacity</label><input type="text" id="supply_capacity" placeholder="e.g. 63A"/></div>
-      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
+      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="eg: East wall"/></div>
       <div class="field-group"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes"/></div>
       <div class="field-group"><label for="is_loadshed">Is this board loadshed?</label><select id="is_loadshed"><option value="no">No</option><option value="yes">Yes</option></select></div>
     </div>
@@ -201,8 +202,8 @@
       <div class="field-group"><label for="chassis_type">Chassis Construction</label>
         <select id="chassis_type"><option value="">Select…</option><option value="MCB">MCB</option><option value="MCCB">MCCB</option><option value="Hybrid">Hybrid</option></select>
       </div>
-      <div class="field-group"><label for="switchboard_type">Switchboard Type / Model</label><input type="text" id="switchboard_type" placeholder="e.g. 48 Pole Chassis"/></div>
-      <div class="field-group"><label for="brand">Brand</label><input type="text" id="brand" placeholder="e.g. NHP Din-t"/></div>
+      <div class="field-group"><label for="switchboard_type">Switchboard Type / Model</label><input type="text" id="switchboard_type" placeholder="eg: Concept Premier"/></div>
+      <div class="field-group"><label for="brand">Brand</label><input type="text" id="brand" placeholder="eg. NHP or Schneider"/></div>
     </div>
 
     <div id="isoBlock" style="display:none;">
@@ -220,10 +221,14 @@
       <button type="button" class="add-btn" id="addRowBtn">＋ Add row section</button>
     </div>
 
-    <div class="section-label">Chassis Breaks</div>
-    <p class="submit-note" style="margin:0 0 0.75rem;">Inserts a divider line before the given C/B number; numbering continues across the break.</p>
+    <div class="section-label">Chassis Breaks / Section Identifiers</div>
+    <p class="submit-note" style="margin:0 0 0.75rem;">Inserts a labelled divider before the given C/B number. Enable section numbering to restart the count at each break.</p>
+    <div class="field-row">
+      <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="restart_sections"/><label for="restart_sections" style="margin:0;">Restart numbering at each section</label></div></div>
+      <div class="field-group" id="topSecWrap" style="display:none;"><label for="top_section_id">Top Section Identifier</label><input type="text" id="top_section_id" placeholder="e.g. UPPER / SECTION 1"/></div>
+    </div>
     <div id="breaksList"></div>
-    <button type="button" class="add-btn" id="addBreakBtn">＋ Add chassis break</button>
+    <button type="button" class="add-btn" id="addBreakBtn">＋ Add break / section</button>
 
     <div class="section-label">Circuits</div>
     <p class="submit-note" style="margin:0 0 0.75rem;">Pole # = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
@@ -243,7 +248,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.12</div>
+      <div class="card-footer-version">Version V1.13</div>
     </div>
 
   </div>
@@ -349,11 +354,12 @@
     if(type === 'XLPE 4x1C & 1x Earth'){
       const a = $('xlpe_active').value, e = $('xlpe_earth').value;
       if(!a) return '';
+      const groups = $('xlpe_parallel').checked ? (parseInt($('xlpe_groups').value,10) || 2) : 1;
       if($('xlpe_undersized_n').checked){
-        const n = $('xlpe_neutral').value, ph = $('xlpe_parallel').checked ? 6 : 3, nc = $('xlpe_parallel').checked ? 2 : 1;
+        const n = $('xlpe_neutral').value, ph = groups*3, nc = groups*1;
         return 'XLPE ' + ph + 'x' + a + 'mm\u00B2 + ' + nc + 'x' + (n || '?') + 'mm\u00B2 N & 1x' + (e || '?') + 'mm\u00B2 earth';
       }
-      const ac = $('xlpe_parallel').checked ? 8 : 4;
+      const ac = groups*4;
       return 'XLPE ' + ac + 'x' + a + 'mm\u00B2' + (e ? ' & 1x' + e + 'mm\u00B2 earth' : '');
     }
     const sz = $('submain_size').value;
@@ -364,7 +370,7 @@
     return sz + 'mm\u00B2 ' + type;
   }
   function submainMeta(){
-    return { size:$('submain_size').value, type:$('cable_type').value, active:$('xlpe_active').value, earth:$('xlpe_earth').value, parallel:$('xlpe_parallel').checked, undersizedN:$('xlpe_undersized_n').checked, neutral:$('xlpe_neutral').value, custom:$('submain_custom').value.trim() };
+    return { size:$('submain_size').value, type:$('cable_type').value, active:$('xlpe_active').value, earth:$('xlpe_earth').value, parallel:$('xlpe_parallel').checked, groups:$('xlpe_groups').value, undersizedN:$('xlpe_undersized_n').checked, neutral:$('xlpe_neutral').value, custom:$('submain_custom').value.trim() };
   }
   function composeFed(){
     if(document.querySelector('input[name="supply"]:checked').value === 'main') return $('fed_source').value;
@@ -401,6 +407,8 @@
       total_poles: Math.max(1, parseInt($('total_poles').value,10) || 1),
       main_isolator: { enabled: $('iso_enabled').checked, description: $('iso_desc').value.trim(), type_amps: $('iso_type').value.trim() },
       rows: readRows(),
+      restart_sections: $('restart_sections').checked,
+      top_section_id: $('top_section_id').value.trim(),
       chassis_breaks: readBreaks(),
       circuits: readCircuits()
     };
@@ -413,10 +421,22 @@
     s.circuits.forEach(c => { for(let i=0;i<c.poles;i++){ const p = c.start + i*step; info[p] = { c, first:i===0, span:c.poles }; } });
     return info;
   }
-  function cellSide(p, info, total){
+  function sectionStarts(s){
+    return [1].concat((s.chassis_breaks||[]).map(b => b.at).filter(v => Number.isFinite(v))).sort((a,b) => a-b);
+  }
+  function displayNum(s, p){
+    if(!s.restart_sections) return p;
+    let base = 1;
+    sectionStarts(s).forEach(st => { if(st <= p) base = st; });
+    return p - base + 1;
+  }
+  function topBand(s, cols){
+    return (s.restart_sections && s.top_section_id) ? '<tr class="sb-band"><td colspan="' + cols + '">' + esc(s.top_section_id) + '</td></tr>' : '';
+  }
+  function cellSide(p, info, total, s){
     if(p > total || p < 1) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
     const it = info[p];
-    const cb = '<td class="cb">' + p + '</td>';
+    const cb = '<td class="cb">' + displayNum(s, p) + '</td>';
     if(!it) return cb + '<td class="desc"></td><td class="type"></td>';
     if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
       return cb + '<td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td>'; }
@@ -430,10 +450,10 @@
     const rightPole = r => seq ? (half+r+1)   : (2*r+2);
     const rowOf = p => seq ? (p<=half ? p-1 : p-half-1) : Math.floor((p-1)/2);
     const breaks = {}; (s.chassis_breaks||[]).forEach(b => { const rr = rowOf(b.at); (breaks[rr] = breaks[rr] || []).push(b.label); });
-    let body = '';
+    let body = topBand(s, 6);
     for(let r=0; r<half; r++){
       if(breaks[r]) breaks[r].forEach(lb => body += '<tr class="sb-break"><td colspan="6">' + esc(lb) + '</td></tr>');
-      body += '<tr>' + cellSide(leftPole(r), info, s.total_poles) + cellSide(rightPole(r), info, s.total_poles) + '</tr>';
+      body += '<tr>' + cellSide(leftPole(r), info, s.total_poles, s) + cellSide(rightPole(r), info, s.total_poles, s) + '</tr>';
     }
     return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"><col class="cb"><col><col class="type"></colgroup>' +
       '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
@@ -444,14 +464,16 @@
     const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
     let body = '';
     if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
+    body += topBand(s, 3);
     for(let p=1; p<=s.total_poles; p++){
       if(brkAt[p])  brkAt[p].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
       if(bandAt[p]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[p]) + '</td></tr>';
       const it = info[p];
-      if(!it) body += '<tr><td class="cb">' + p + '</td><td class="desc"></td><td class="type"></td></tr>';
+      const num = displayNum(s, p);
+      if(!it) body += '<tr><td class="cb">' + num + '</td><td class="desc"></td><td class="type"></td></tr>';
       else if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
-        body += '<tr><td class="cb">' + p + '</td><td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td></tr>'; }
-      else body += '<tr><td class="cb">' + p + '</td></tr>';
+        body += '<tr><td class="cb">' + num + '</td><td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td></tr>'; }
+      else body += '<tr><td class="cb">' + num + '</td></tr>';
     }
     return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
       '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
@@ -462,11 +484,12 @@
     const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
     let body = '';
     if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
+    body += topBand(s, 3);
     circuits.forEach((c, idx) => {
       const n = idx + 1;
       if(brkAt[n])  brkAt[n].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
       if(bandAt[n]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[n]) + '</td></tr>';
-      body += '<tr><td class="cb">' + n + '</td><td class="desc">' + esc(c.description) + '</td><td class="type">' + esc(c.type_amps) + '</td></tr>';
+      body += '<tr><td class="cb">' + displayNum(s, n) + '</td><td class="desc">' + esc(c.description) + '</td><td class="type">' + esc(c.type_amps) + '</td></tr>';
     });
     return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
       '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
@@ -541,7 +564,7 @@
           'Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322<br>' +
           'Email: admin@bromar.com.au &nbsp;·&nbsp; REC:30340<br>' +
           'Date: ' + fmtDate(s.schedule_date) + ' &nbsp;·&nbsp; Job Number: ' + esc(s.project_number) + '</div>' +
-        '<div class="sb-title">Switchboard Schedule</div></div>' +
+        '<div class="sb-title">Switchboard<br>Schedule</div></div>' +
       metaHTML(s) + '<div class="sb-gridwrap">' + gridHTML(s) + '</div>' + footerHTML(s) + '</div>';
   }
 
@@ -591,7 +614,9 @@
     $('customSizeRow').style.display = t === 'Custom' ? 'flex' : 'none';
     $('sizeGroup').style.display = (xlpe || t === 'Custom') ? 'none' : 'block';
     $('neutralSizeWrap').style.display = (xlpe && $('xlpe_undersized_n').checked) ? 'block' : 'none';
+    $('groupsWrap').style.display = (xlpe && $('xlpe_parallel').checked) ? 'block' : 'none';
   }
+  function syncSectionsUI(){ $('topSecWrap').style.display = $('restart_sections').checked ? 'block' : 'none'; }
 
   /* ---------- mm2 -> mm² ---------- */
   function capFirstDesc(e){
@@ -676,6 +701,7 @@
       $('xlpe_earth').value = sm.earth || '';
       $('xlpe_neutral').value = sm.neutral || '';
       $('xlpe_parallel').checked = !!sm.parallel;
+      $('xlpe_groups').value = sm.groups || '2';
       $('xlpe_undersized_n').checked = !!sm.undersizedN;
       $('submain_custom').value = sm.custom || '';
     } else {
@@ -702,9 +728,11 @@
     $('iso_desc').value = iso.description || '';
     $('iso_type').value = iso.type_amps || '';
     $('rowsList').innerHTML = '';   (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
+    $('restart_sections').checked = !!r.restart_sections;
+    $('top_section_id').value = r.top_section_id || '';
     $('breaksList').innerHTML = ''; (r.chassis_breaks || []).forEach(x => $('breaksList').appendChild(breakRow(x)));
     $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
-    syncLayoutUI(); syncSupplyUI(); syncCableUI(); updateRevLabel(); renderPreview();
+    syncLayoutUI(); syncSupplyUI(); syncCableUI(); syncSectionsUI(); updateRevLabel(); renderPreview();
   }
   function blankForm(){
     fillForm({ layout_type:'double_oddeven', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
@@ -792,6 +820,9 @@
     document.querySelectorAll('input[name="supply"]').forEach(el => el.addEventListener('change', () => { syncSupplyUI(); schedulePreview(); }));
     $('cable_type').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
     $('xlpe_undersized_n').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('xlpe_parallel').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('restart_sections').addEventListener('change', () => { syncSectionsUI(); schedulePreview(); });
+    $('prepared_by').addEventListener('input', () => { $('pbBadge').style.display='none'; });
     $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
     $('deleteBtn').addEventListener('click', del);
     $('saveBtn').addEventListener('click', save);
@@ -821,7 +852,7 @@
     await loadList();
     blankForm();
     const pb = await resolvePreparedBy();
-    if(pb && !$('prepared_by').value){ $('prepared_by').value = pb; renderPreview(); }
+    if(pb && !$('prepared_by').value){ $('prepared_by').value = pb; $('pbBadge').style.display='inline'; renderPreview(); }
   });
 })();
 </script>
