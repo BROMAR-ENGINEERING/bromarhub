@@ -27,7 +27,7 @@
 
   function makeConfig(job, goBack) {
     return {
-      jobNumber: JM.state.selectedJob,
+      jobNumber: String(JM.state.selectedJob || ''),
       clientName: job?.client_name || '',
       siteName: job?.site_name || '',
       employees: window.EMPLOYEES || [],
