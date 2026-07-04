@@ -46,32 +46,32 @@
   #previewBox { margin-top:1.5rem; border:1px solid var(--border); border-radius:12px; background:#525659; padding:1rem; overflow:auto; max-height:820px; }
 
   /* ── SCHEDULE PAGE (preview + PDF capture): fixed light colours ── */
-  .sb-page { position:relative; width:760px; min-height:1074px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:26px 26px 64px; box-sizing:border-box; }
-  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:10px; }
-  .sb-logo { max-height:46px; width:auto; }
-  .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8.5px; color:#555; line-height:1.45; }
-  .sb-title { font-size:17px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; white-space:nowrap; }
+  .sb-page { position:relative; width:760px; min-height:1074px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:24px 26px 70px; box-sizing:border-box; }
+  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:6px; }
+  .sb-logo { max-height:42px; width:auto; }
+  .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8px; color:#555; line-height:1.32; }
+  .sb-title { font-size:22px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; white-space:nowrap; }
 
-  .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 16px; background:#fff; }
-  .sb-info-title { font-size:20px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; }
-  .sb-info-sub { font-size:9px; color:#8a8a8a; margin-top:2px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; }
+  .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 16px; background:#fff; }
+  .sb-info-title { font-size:17px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; text-transform:uppercase; }
+  .sb-info-sub { font-size:8.5px; color:#8a8a8a; margin-top:1px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; }
   .sb-info-warn { flex:none; background:#fdeaea; color:#d21f1f; border:1px solid #f3b4b4; border-radius:6px; padding:5px 10px; font-size:8px; font-weight:800; text-align:center; line-height:1.2; letter-spacing:.5px; }
   .sb-stats { display:flex; }
   .sb-stats + .sb-stats { border-top:1px solid rgba(0,0,0,0.07); }
-  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:8px; padding:6px 14px; min-width:0; }
+  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:8px; padding:3px 14px; min-width:0; }
   .sb-stats .stat + .stat { border-left:1px solid rgba(255,255,255,0.25); }
   .sb-stats-secondary .stat + .stat { border-left:1px solid #ececec; }
-  .sb-stats .stat-t { display:flex; flex-direction:column; line-height:1.15; min-width:0; }
-  .sb-stats .lbl { font-size:7px; text-transform:uppercase; letter-spacing:.5px; opacity:.85; font-weight:600; }
-  .sb-stats .val { font-size:11.5px; font-weight:800; word-break:break-word; }
+  .sb-stats .stat-t { display:flex; flex-direction:column; line-height:1.1; min-width:0; }
+  .sb-stats .lbl { font-size:6.5px; text-transform:uppercase; letter-spacing:.5px; opacity:.85; font-weight:600; }
+  .sb-stats .val { font-size:10.5px; font-weight:800; word-break:break-word; text-transform:uppercase; }
   .sb-stats-primary { background:linear-gradient(90deg,#ea580c 0%,#f97316 100%); color:#fff; }
   .sb-stats-secondary { background:#f8f8f8; color:#1a1a1e; }
   .sb-stats-secondary .lbl { color:#9a9a9a; opacity:1; }
 
   .sb-gridwrap { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; }
-  .sb-grid { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
-  .sb-grid th, .sb-grid td { border:1px solid #e2e2e2; padding:3px 5px; }
+  .sb-grid { width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed; line-height:1.15; }
+  .sb-grid th, .sb-grid td { border:1px solid #e2e2e2; padding:1.5px 5px; }
   .sb-grid th { font-weight:700; text-align:center; background:#f8f8f8; color:#1a1a1e; }
   .sb-grid td.cb { text-align:center; font-weight:700; background:#f2f2f2; color:#1a1a1e; }
   .sb-grid td.type { text-align:center; }
@@ -81,7 +81,7 @@
   .sb-band td { background:#1a1a1e; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
   .sb-break td { background:#e6e6e6; color:#000; font-weight:700; text-align:center; letter-spacing:1px; font-size:9px; border-top:3px solid #000; border-bottom:3px solid #000; }
   .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
-  .sb-foot { position:absolute; left:26px; right:26px; bottom:34px; display:flex; justify-content:space-between; gap:16px; padding-top:8px; border-top:1px solid #ececec; }
+  .sb-foot { position:absolute; left:26px; right:26px; bottom:42px; display:flex; justify-content:space-between; gap:16px; padding-top:8px; border-top:1px solid #ececec; }
   .sb-foot-item { display:flex; align-items:center; gap:6px; font-size:8.5px; color:#777; }
 
   .card-footer { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); text-align:center; }
@@ -161,7 +161,7 @@
       <div class="field-group"><label for="supply_capacity">Supply Capacity</label><input type="text" id="supply_capacity" placeholder="e.g. 63A"/></div>
       <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="East Wall"/></div>
       <div class="field-group"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes"/></div>
-      <div class="field-group full"><div class="loadshed-row"><input type="checkbox" id="is_loadshed"/><label for="is_loadshed" style="margin:0;">Is this board loadshed?</label></div></div>
+      <div class="field-group"><label for="is_loadshed">Is this board loadshed?</label><select id="is_loadshed"><option value="no">No</option><option value="yes">Yes</option></select></div>
     </div>
 
     <div class="section-label">Chassis</div>
@@ -220,7 +220,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.10</div>
+      <div class="card-footer-version">Version V1.11</div>
     </div>
 
   </div>
@@ -340,7 +340,7 @@
       fed_from: composeFed(),
       cable_path: $('cable_path').value.trim(),
       notes: $('notes').value.trim(),
-      is_loadshed: $('is_loadshed').checked,
+      is_loadshed: $('is_loadshed').value === 'yes',
       layout_type: $('layout_type').value,
       total_poles: Math.max(1, parseInt($('total_poles').value,10) || 1),
       main_isolator: { enabled: $('iso_enabled').checked, description: $('iso_desc').value.trim(), type_amps: $('iso_type').value.trim() },
@@ -529,6 +529,16 @@
   }
 
   /* ---------- mm2 -> mm² ---------- */
+  function capFirstDesc(e){
+    const el = e.target;
+    if(!el.classList || !el.classList.contains('c-desci') || !el.value) return;
+    const first = el.value.charAt(0);
+    if(first !== first.toUpperCase()){
+      const pos = el.selectionStart;
+      el.value = first.toUpperCase() + el.value.slice(1);
+      try { el.setSelectionRange(pos, pos); } catch(_){}
+    }
+  }
   function mmFix(e){
     const el = e.target;
     if(!el || el.tagName !== 'INPUT' || el.type !== 'text') return;
@@ -602,7 +612,7 @@
     $('fed_source').value = r.fed_source || '';
     $('cable_path').value = r.cable_path || '';
     $('notes').value = r.notes || '';
-    $('is_loadshed').checked = !!r.is_loadshed;
+    $('is_loadshed').value = r.is_loadshed ? 'yes' : 'no';
     let lt = r.layout_type || 'double_oddeven';
     if(lt === 'dual') lt = 'double_oddeven'; if(lt === 'single') lt = 'single_phase';
     $('layout_type').value = lt;
@@ -723,6 +733,7 @@
 
     const card = document.querySelector('.form-card');
     card.addEventListener('input', mmFix, true);
+    card.addEventListener('input', capFirstDesc, true);
     card.addEventListener('input', schedulePreview);
 
     await loadList();
