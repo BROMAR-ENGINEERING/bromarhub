@@ -194,9 +194,10 @@ window.BromarTest.SwitchboardAudit = (function () {
       ${cfg.onBack ? '<button class="sa-back" id="saBack">← Back</button>' : ''}
       <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">🔌 Switchboard Inspection Audit</h3>
       <div class="section-label">Job Details</div>
+      ${cfg.jobNumber ? '' : '<div class="field-row"><div class="field-group"><label>Job Number</label><input type="text" id="saJobNumber" placeholder="e.g. BE5600"></div><div class="field-group"></div></div>'}
       <div class="field-row">
-        <div class="field-group"><label>Job Number</label><input type="text" id="saJobNumber" value="${esc(cfg.jobNumber || '')}" ${cfg.jobNumber ? 'readonly' : ''}></div>
         <div class="field-group"><label>Date <span class="required">*</span></label><input type="date" id="saDate" value="${today}"></div>
+        <div class="field-group"><label>Auditor <span class="required">*</span></label><select id="saAuditor"><option value="">Select...</option></select></div>
       </div>
       <div class="field-row">
         <div class="field-group"><label>Client</label><input type="text" id="saClient" value="${esc(cfg.clientName || '')}"></div>
@@ -205,10 +206,6 @@ window.BromarTest.SwitchboardAudit = (function () {
       <div class="field-row">
         <div class="field-group"><label>Switchboard ID <span class="required">*</span></label><input type="text" id="saBoardId" placeholder="e.g. Main Switchboard"></div>
         <div class="field-group"><label>Location within site</label><input type="text" id="saLocation" placeholder="e.g. Plant Room, Level 1"></div>
-      </div>
-      <div class="field-row">
-        <div class="field-group"><label>Auditor <span class="required">*</span></label><select id="saAuditor"><option value="">Select...</option></select></div>
-        <div class="field-group"></div>
       </div>
       <div class="section-label">Inspection Items</div>
       <table class="sa-table">
@@ -238,14 +235,22 @@ window.BromarTest.SwitchboardAudit = (function () {
     /* Wire back */
     if (cfg.onBack) container.querySelector('#saBack').addEventListener('click', cfg.onBack);
 
-    /* Populate auditor */
+    /* Populate auditor + auto-fill from logged-in user */
     const auditorSel = container.querySelector('#saAuditor');
     (cfg.employees || []).forEach(e => {
       const o = document.createElement('option');
       o.value = e.full_name; o.textContent = e.full_name; o.dataset.email = e.email || '';
       auditorSel.appendChild(o);
     });
-    if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
+    /* Try currentUser first, then fall back to auth session */
+    if (cfg.currentUser?.name) { auditorSel.value = cfg.currentUser.name; }
+    else if (cfg.supabase) {
+      cfg.supabase.auth.getUser().then(({ data }) => {
+        if (!data?.user?.email) return;
+        const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === data.user.email.toLowerCase());
+        if (match) { auditorSel.value = match.full_name; auditorSel.disabled = true; }
+      }).catch(() => {});
+    }
 
     /* Dynamic lists */
     const hazardsContainer = container.querySelector('#saHazards');
@@ -311,7 +316,7 @@ window.BromarTest.SwitchboardAudit = (function () {
   function collectData(container) {
     const g = id => (container.querySelector('#' + id) || {}).value || '';
     return {
-      jobNumber: g('saJobNumber').trim(), client: g('saClient').trim(), site: g('saSite').trim(),
+      jobNumber: g('saJobNumber').trim() || '', client: g('saClient').trim(), site: g('saSite').trim(),
       boardId: g('saBoardId').trim(), location: g('saLocation').trim(),
       auditor: g('saAuditor'), date: g('saDate'),
       items: ALL_ITEMS.map(item => {
@@ -340,7 +345,7 @@ window.BromarTest.SwitchboardAudit = (function () {
     if (err) { BromarHub.showInfo(err); return; }
 
     const sb = cfg.supabase;
-    const jobNumber = data.jobNumber || cfg.jobNumber || 'STANDALONE';
+    const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
 
     try {
