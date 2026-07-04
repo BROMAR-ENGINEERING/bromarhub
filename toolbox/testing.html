@@ -8,7 +8,6 @@
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
-  <!-- Shared testing modules -->
   <script src="../tools/testing/switchboard-audit.js" defer></script>
   <script src="../tools/testing/construction-wiring.js" defer></script>
   <style>
@@ -22,12 +21,26 @@
       background: var(--bg-secondary); transition: all 0.2s;
       font-family: 'Outfit', sans-serif;
     }
-    .test-type-card:hover { border-color: var(--accent); background: var(--card-hover); transform: translateY(-2px); }
+    .test-type-card:hover:not(.disabled) { border-color: var(--accent); background: var(--card-hover); transform: translateY(-2px); }
+    .test-type-card.disabled { opacity: 0.5; cursor: default; }
     .test-type-card .icon { font-size: 2rem; }
     .test-type-card .label { font-size: 0.9rem; font-weight: 600; text-align: center; color: var(--text-primary); }
     .test-type-card .desc { font-size: 0.75rem; color: var(--text-secondary); text-align: center; }
     .test-form-container { display: none; }
     .test-form-container.active { display: block; }
+    .job-lookup-section { margin-bottom: 1.5rem; }
+    .job-lookup-wrap { position: relative; }
+    .job-lookup-results { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 8px 24px var(--shadow); }
+    .job-lookup-results.show { display: block; }
+    .job-lookup-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .job-lookup-item:last-child { border-bottom: none; }
+    .job-lookup-item:hover { background: var(--card-hover); }
+    .job-lookup-number { font-weight: 600; color: var(--accent); font-size: 0.95rem; }
+    .job-lookup-client { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+    .job-selected-badge { display: none; align-items: center; gap: 8px; padding: 10px 14px; background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); border-radius: 8px; font-size: 0.85rem; font-weight: 600; margin-top: 10px; }
+    .job-selected-badge.show { display: flex; }
+    .job-selected-badge .clear-job { margin-left: auto; cursor: pointer; font-size: 0.8rem; opacity: 0.7; }
+    .job-selected-badge .clear-job:hover { opacity: 1; }
     .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--divider, #e5e7eb); text-align: center; }
     .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
     @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
@@ -50,69 +63,129 @@
     <div id="successBanner" class="success-banner"><span id="successText"></span></div>
     <div id="infoBanner" class="info-banner"><span id="infoBannerText"></span></div>
 
-    <!-- Landing: test type selector -->
     <div id="testLanding">
+      <!-- Job lookup -->
+      <div class="job-lookup-section">
+        <div class="section-label" style="margin-top:0;">Assign to Job</div>
+        <div class="job-lookup-wrap">
+          <input type="text" id="jobLookup" placeholder="Search job number, client, or site..." autocomplete="off">
+          <div class="job-lookup-results" id="jobLookupResults"></div>
+        </div>
+        <div class="job-selected-badge" id="jobSelectedBadge">
+          <span id="jobSelectedText"></span>
+          <span class="clear-job" id="clearJob">✕ Clear</span>
+        </div>
+      </div>
+
       <div class="section-label">Select Test Type</div>
       <div class="test-type-grid">
         <div class="test-type-card" data-type="switchboard_audit">
-          <span class="icon">🔌</span>
-          <span class="label">Switchboard Audit</span>
-          <span class="desc">Inspection audit checklist</span>
+          <span class="icon">🔌</span><span class="label">Switchboard Audit</span><span class="desc">Inspection audit checklist</span>
         </div>
         <div class="test-type-card" data-type="construction_wiring">
-          <span class="icon">🔧</span>
-          <span class="label">Construction Wiring</span>
-          <span class="desc">AS3012 compliance check</span>
+          <span class="icon">🔧</span><span class="label">Construction Wiring</span><span class="desc">AS3012 compliance check</span>
         </div>
-        <div class="test-type-card" data-type="circuit_testing" style="opacity:0.5;cursor:default;">
-          <span class="icon">⚡</span>
-          <span class="label">Circuit Testing</span>
-          <span class="desc">Coming soon</span>
+        <div class="test-type-card disabled" data-type="circuit_testing">
+          <span class="icon">⚡</span><span class="label">Circuit Testing</span><span class="desc">Coming soon</span>
         </div>
-        <div class="test-type-card" data-type="switchboard_itc" style="opacity:0.5;cursor:default;">
-          <span class="icon">📋</span>
-          <span class="label">Switchboard ITC</span>
-          <span class="desc">Coming soon</span>
+        <div class="test-type-card disabled" data-type="switchboard_itc">
+          <span class="icon">📋</span><span class="label">Switchboard ITC</span><span class="desc">Coming soon</span>
         </div>
-        <div class="test-type-card" data-type="field_device_itc" style="opacity:0.5;cursor:default;">
-          <span class="icon">📡</span>
-          <span class="label">Field Device ITC</span>
-          <span class="desc">Coming soon</span>
+        <div class="test-type-card disabled" data-type="field_device_itc">
+          <span class="icon">📡</span><span class="label">Field Device ITC</span><span class="desc">Coming soon</span>
         </div>
       </div>
     </div>
 
-    <!-- Form container (shared modules render here) -->
     <div id="testFormContainer" class="test-form-container"></div>
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — TESTING</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
   </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  /* Wait for Supabase */
   const waitFor = (fn, ms = 50, max = 60) => new Promise((resolve, reject) => {
     let n = 0;
-    const id = setInterval(() => { if (fn()) { clearInterval(id); resolve(); } else if (++n >= max) { clearInterval(id); reject(new Error('timeout')); } }, ms);
+    const id = setInterval(() => { if (fn()) { clearInterval(id); resolve(); } else if (++n >= max) { clearInterval(id); reject(); } }, ms);
   });
   await waitFor(() => window.sb);
 
-  /* Load employees */
-  const EMPLOYEES = await BromarHub.loadEmployees('__skip__');
+  await BromarHub.loadEmployees('__skip__');
   await BromarHub.autoSelectLoggedInUser('__skip__');
 
-  const landing = document.getElementById('testLanding');
-  const formContainer = document.getElementById('testFormContainer');
+  /* ── Job lookup state ── */
+  let selectedJob = null; // { job_number, client_name, site_name, site_address }
+  let jobCache = [];
 
+  /* Load job register for autocomplete */
+  async function loadJobs() {
+    try {
+      const { data, error } = await window.sb.from('job_number_register')
+        .select('job_number, client_name, site_name, site_address')
+        .order('job_number', { ascending: false })
+        .limit(500);
+      if (!error && data) jobCache = data;
+    } catch (_) {}
+  }
+  await loadJobs();
+
+  /* Job lookup autocomplete */
+  const jobInput = document.getElementById('jobLookup');
+  const jobResults = document.getElementById('jobLookupResults');
+  const jobBadge = document.getElementById('jobSelectedBadge');
+  const jobBadgeText = document.getElementById('jobSelectedText');
+  const clearJobBtn = document.getElementById('clearJob');
+
+  jobInput.addEventListener('input', () => {
+    const q = jobInput.value.trim().toLowerCase();
+    if (q.length < 2) { jobResults.classList.remove('show'); return; }
+    const matches = jobCache.filter(j =>
+      (j.job_number || '').toLowerCase().includes(q) ||
+      (j.client_name || '').toLowerCase().includes(q) ||
+      (j.site_name || '').toLowerCase().includes(q)
+    ).slice(0, 10);
+    if (!matches.length) { jobResults.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--text-secondary);font-size:0.85rem;">No jobs found</div>'; jobResults.classList.add('show'); return; }
+    jobResults.innerHTML = matches.map(j => `
+      <div class="job-lookup-item" data-job='${JSON.stringify(j).replace(/'/g, "&#39;")}'>
+        <div class="job-lookup-number">${j.job_number}</div>
+        <div class="job-lookup-client">${j.client_name || ''}${j.site_name ? ' — ' + j.site_name : ''}</div>
+      </div>`).join('');
+    jobResults.classList.add('show');
+    jobResults.querySelectorAll('.job-lookup-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectedJob = JSON.parse(item.dataset.job);
+        jobInput.value = '';
+        jobResults.classList.remove('show');
+        jobBadgeText.textContent = '✓ ' + selectedJob.job_number + ' — ' + (selectedJob.client_name || '') + (selectedJob.site_name ? ' — ' + selectedJob.site_name : '');
+        jobBadge.classList.add('show');
+        jobInput.style.display = 'none';
+      });
+    });
+  });
+
+  jobInput.addEventListener('blur', () => { setTimeout(() => jobResults.classList.remove('show'), 200); });
+
+  clearJobBtn.addEventListener('click', () => {
+    selectedJob = null;
+    jobBadge.classList.remove('show');
+    jobInput.style.display = '';
+    jobInput.value = '';
+    jobInput.focus();
+  });
+
+  /* ── Test type modules ── */
   const modules = {
     switchboard_audit: window.BromarTest?.SwitchboardAudit,
     construction_wiring: window.BromarTest?.ConstructionWiring,
   };
+
+  const landing = document.getElementById('testLanding');
+  const formContainer = document.getElementById('testFormContainer');
 
   function showLanding() {
     landing.style.display = '';
@@ -126,26 +199,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     landing.style.display = 'none';
     formContainer.classList.add('active');
     mod.renderForm(formContainer, {
-      jobNumber: '',
-      clientName: '',
-      siteName: '',
+      jobNumber: selectedJob?.job_number || '',
+      clientName: selectedJob?.client_name || '',
+      siteName: selectedJob?.site_name || selectedJob?.site_address || '',
       employees: window.EMPLOYEES || [],
       currentUser: window.currentUser,
       supabase: window.sb,
-      onComplete: () => {
-        showLanding();
-      },
-      onBack: () => {
-        showLanding();
-      },
+      onComplete: showLanding,
+      onBack: showLanding,
     });
   }
 
   document.querySelectorAll('.test-type-card').forEach(card => {
     card.addEventListener('click', () => {
-      const type = card.dataset.type;
-      if (card.style.opacity === '0.5') return;
-      showForm(type);
+      if (card.classList.contains('disabled')) return;
+      showForm(card.dataset.type);
     });
   });
 });
