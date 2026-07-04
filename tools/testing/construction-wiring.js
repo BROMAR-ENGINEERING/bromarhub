@@ -159,20 +159,24 @@ window.BromarTest.ConstructionWiring = (function () {
       <div class="file-upload-area" id="cwPhotoArea"><div class="upload-icon">📷</div><div class="upload-text">Tap to add photos</div><div class="upload-hint">JPEG, PNG</div><input type="file" id="cwPhotoInput" accept="image/*" multiple style="display:none;"></div>
       <div class="cw-photo-grid" id="cwPhotoGrid"></div>
       <div class="form-divider"></div>
-      <div class="submit-row"><button class="submit-btn" id="cwSubmit">Submit Inspection & Generate PDF</button></div>
+      <div class="submit-row"><button class="btn-secondary" id="cwSaveDraft" style="padding:0.875rem 1.5rem;">💾 Save Progress</button><button class="submit-btn" id="cwSubmit">Submit Inspection & Generate PDF</button></div>
     `;
 
     if (cfg.onBack) container.querySelector('#cwBack').addEventListener('click', cfg.onBack);
     const inspSel = container.querySelector('#cwInspector');
     (cfg.employees || []).forEach(e => { const o = document.createElement('option'); o.value = e.full_name; o.textContent = e.full_name; inspSel.appendChild(o); });
-    if (cfg.currentUser?.name) { inspSel.value = cfg.currentUser.name; }
-    else if (cfg.supabase) {
-      cfg.supabase.auth.getUser().then(({ data }) => {
-        if (!data?.user?.email) return;
-        const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === data.user.email.toLowerCase());
-        if (match) { inspSel.value = match.full_name; inspSel.disabled = true; }
-      }).catch(() => {});
-    }
+    (async () => {
+      try {
+        if (cfg.supabase) {
+          const { data: { user } } = await cfg.supabase.auth.getUser();
+          if (user?.email) {
+            const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase());
+            if (match) { inspSel.value = match.full_name; inspSel.disabled = true; return; }
+          }
+        }
+        if (cfg.currentUser?.name) inspSel.value = cfg.currentUser.name;
+      } catch (_) { if (cfg.currentUser?.name) inspSel.value = cfg.currentUser.name; }
+    })();
 
     const issuesContainer = container.querySelector('#cwIssues');
     function renumList(cont) { cont.querySelectorAll('.cw-dyn-row').forEach((r, i) => { r.querySelector('.cw-dyn-num').textContent = i + 1; }); }
@@ -202,7 +206,20 @@ window.BromarTest.ConstructionWiring = (function () {
       photoGrid.innerHTML = photos.map((p, i) => `<div class="cw-photo-card" data-idx="${i}"><img src="${p.dataUrl}" alt="Photo ${i+1}"><textarea placeholder="Description...">${esc(p.description)}</textarea><button class="remove-btn" type="button">Remove</button></div>`).join('');
       photoGrid.querySelectorAll('.cw-photo-card').forEach(card => { const idx = parseInt(card.dataset.idx); card.querySelector('textarea').addEventListener('input', e => { photos[idx].description = e.target.value; }); card.querySelector('.remove-btn').addEventListener('click', () => { photos.splice(idx, 1); renderPhotos(); }); });
     }
+    let _draftId = null;
     container.querySelector('#cwSubmit').addEventListener('click', () => submitInspection(container, cfg));
+    container.querySelector('#cwSaveDraft').addEventListener('click', async () => {
+      const data = collectData(container);
+      if (!data.inspector) { BromarHub.showInfo('Select an inspector before saving'); return; }
+      const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
+      BromarHub.showLoading('Saving draft...');
+      try {
+        const record = { job_number: jobNumber, client_name: data.client, site_name: data.site, area: data.area, switchboard_id: data.boardId, tested_by: data.inspector, inspection_date: data.date, inspection_items: data.items, issues: data.issues, corrective_actions: data.actions, photos: [], status: 'draft' };
+        if (_draftId) { await sb.from(TABLE).update(record).eq('id', _draftId); }
+        else { const { data: ins, error } = await sb.from(TABLE).insert(record).select('id').single(); if (error) throw error; _draftId = ins.id; }
+        BromarHub.hideLoading(); BromarHub.showSuccess('Draft saved');
+      } catch (e) { BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (e.message || e)); }
+    });
   }
 
   function collectData(container) {
