@@ -9,6 +9,9 @@
   <script src="/tools/auth.js"></script>
   <link rel="stylesheet" href="/tools/bromar-hub.css"/>
   <script src="/tools/bromar-hub.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="/tools/bromar-report-kit.js" defer></script>
 
   <style>
     /* ── PAGE-SPECIFIC ── */
@@ -219,6 +222,7 @@
       <div class="form-divider"></div>
       <div class="submit-row">
         <span class="submit-note">Only fittings marked pass/fail are saved.</span>
+        <button type="button" class="btn-secondary" id="pdfBtn">⬇ PDF Report</button>
         <button type="button" class="submit-btn" id="submitBtn">Submit Test Log</button>
       </div>
 
@@ -236,7 +240,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.02</div>
+        <div class="card-footer-version">Version V1.03</div>
       </div>
     </div>
   </div>
@@ -512,7 +516,108 @@
       renderList();
     });
 
-    document.getElementById('submitBtn').addEventListener('click', submitLog);
+    /* ── PDF REPORT (shared Bromar Report Kit) ── */
+    document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+
+    function fmtNice(v) { if (!v) return '-'; const d = new Date(v + 'T00:00:00'); return isNaN(d) ? v : window.BromarReportKit.formatDate(d); }
+    function realFittings() { return [...FITTINGS.office, ...FITTINGS.factory].filter(f => !f.na && f.type); }
+    const cPass = () => realFittings().filter(f => results[f.ref]?.status === 'pass').length;
+    const cFail = () => realFittings().filter(f => results[f.ref]?.status === 'fail').length;
+    const cUntested = () => realFittings().filter(f => !results[f.ref]?.status).length;
+
+    function setF(doc, s, st, rgb) { const K = window.BromarReportKit; doc.setFontSize(s); doc.setFont('helvetica', st || 'normal'); const c = rgb || K.PALETTE.charcoal.rgb; doc.setTextColor(c[0], c[1], c[2]); }
+
+    function headerSync(doc, rec) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE, F = K.FONT, C = K.COMPANY, M = L.margin;
+      doc.setFillColor(P.accent.rgb[0], P.accent.rgb[1], P.accent.rgb[2]);
+      doc.rect(0, 0, L.pageW, L.topBarH, 'F');
+      const rx = L.pageW - M; let y = L.topBarH + 8;
+      setF(doc, F.heading, 'bold', P.navy.rgb); doc.text(C.name, rx, y, { align: 'right' });
+      setF(doc, F.small, 'normal', P.charcoal.rgb);
+      y += 4.6; doc.text(C.address, rx, y, { align: 'right' });
+      y += 4.2; doc.text('PH: ' + C.phone + '     REC: ' + C.rec, rx, y, { align: 'right' });
+      y += 4.2; doc.text('WEB: ' + C.web, rx, y, { align: 'right' });
+      doc.setDrawColor(P.line.rgb[0], P.line.rgb[1], P.line.rgb[2]); doc.setLineWidth(0.3);
+      doc.line(M, L.headerH, L.pageW - M, L.headerH);
+      if (rec && rec.dataURL) {
+        const dim = K.fitBox(rec.w, rec.h, L.logoBox.w, L.logoBox.h);
+        const fmt = /^data:image\/png/i.test(rec.dataURL) ? 'PNG' : 'JPEG';
+        doc.addImage(rec.dataURL, fmt, M, L.topBarH + 5, dim.w, dim.h, undefined, 'FAST');
+      } else { setF(doc, F.title, 'bold', P.accent.rgb); doc.text('BROMAR', M, L.topBarH + 12); }
+    }
+
+    function drawMeta(doc) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE, F = K.FONT, M = L.margin;
+      let y = L.headerH + 8;
+      setF(doc, F.title, 'bold', P.navy.rgb);
+      doc.text('Emergency Lighting Discharge Test', M, y);
+      y += 7;
+      const leftX = M, rightX = L.pageW / 2 + 4;
+      const times = (document.getElementById('start_time').value || '-') + ' - ' + (document.getElementById('finish_time').value || '-');
+      const tester = currentUser ? currentUser.name : (document.getElementById('filled_by').value || '-');
+      const counts = cPass() + ' pass / ' + cFail() + ' fail / ' + cUntested() + ' not tested';
+      let yl = y, yr = y;
+      yl = K.pairRow(doc, leftX, yl, 'Site', 'Tyrecycle - Somerton', { labelW: 24, width: L.pageW / 2 - M - 24 });
+      yl = K.pairRow(doc, leftX, yl, 'Date', fmtNice(document.getElementById('test_date').value), { labelW: 24 });
+      yl = K.pairRow(doc, leftX, yl, 'Time', times, { labelW: 24 });
+      yr = K.pairRow(doc, rightX, yr, 'Frequency', testFrequency() || '-', { labelW: 26 });
+      yr = K.pairRow(doc, rightX, yr, 'Tested By', tester, { labelW: 26 });
+      yr = K.pairRow(doc, rightX, yr, 'Result', counts, { labelW: 26 });
+    }
+
+    async function generatePDF() {
+      const K = window.BromarReportKit;
+      if (!K || !window.jspdf) return BromarHub.showInfo('Report kit not loaded (check /tools/bromar-report-kit.js)');
+      BromarHub.showLoading('Building PDF...', 'Emergency lighting report');
+      try {
+        K.configure({ logoColour: '/Bromar-Primary-Logo-Full-Colour.png', logoReverse: '/Bromar-Primary-Logo-Reverse-White.png' });
+        const logoRec = await K.loadLogoAsset('/Bromar-Primary-Logo-Full-Colour.png').catch(() => null);
+        const doc = K.createDoc();
+        const L = K.LAYOUT;
+        const title = 'Emergency Lighting Test - Tyrecycle Somerton';
+        const ref = fmtNice(document.getElementById('test_date').value);
+        let metaDone = false;
+        const stamp = (data) => { headerSync(doc, logoRec); if (data.pageNumber === 1 && !metaDone) { drawMeta(doc); metaDone = true; } K.drawFooter(doc, { title, ref, pageNo: data.pageNumber }); };
+
+        const head = [['Ref', 'Location', 'Type', 'Board / CB', 'Fitting', 'Result', 'Dur', 'Notes']];
+        const mkBody = (area) => FITTINGS[area].map(f => {
+          const r = results[f.ref] || {};
+          const res = f.na ? 'REMOVED' : r.status === 'pass' ? 'PASS' : r.status === 'fail' ? 'FAIL' : '-';
+          const cb = [f.db, f.ckt ? ('CB ' + f.ckt) : ''].filter(Boolean).join(' \u00B7 ');
+          const fit = [f.brand, f.model].filter(Boolean).join(' ');
+          const note = [r.faultnote, r.notes].filter(Boolean).join(' - ');
+          return [f.ref, f.loc, f.type || '', cb, fit, res, r.status === 'fail' ? (r.duration || '') : '', note];
+        });
+        const common = {
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1.3, lineColor: K.PALETTE.line.rgb, lineWidth: 0.1, textColor: K.PALETTE.black.rgb, overflow: 'linebreak' },
+          headStyles: { fillColor: K.PALETTE.navy.rgb, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
+          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 42 }, 2: { cellWidth: 19 }, 3: { cellWidth: 20 }, 4: { cellWidth: 24 }, 5: { cellWidth: 14 }, 6: { cellWidth: 9 }, 7: { cellWidth: 39 } },
+          margin: { top: L.headerH + 6, left: L.margin, right: L.margin, bottom: 16 },
+          didParseCell: (d) => { if (d.section === 'body' && d.column.index === 5) { const v = d.cell.raw; if (v === 'PASS') { d.cell.styles.textColor = K.PALETTE.success.rgb; d.cell.styles.fontStyle = 'bold'; } else if (v === 'FAIL') { d.cell.styles.textColor = K.PALETTE.error.rgb; d.cell.styles.fontStyle = 'bold'; } } },
+          didDrawPage: stamp
+        };
+
+        K.sectionHeading(doc, L.margin, L.headerH + 48, 'Office (EM1)');
+        doc.autoTable(Object.assign({}, common, { head, body: mkBody('office'), startY: L.headerH + 52 }));
+
+        let y = doc.lastAutoTable.finalY + 8;
+        if (y > 250) { doc.addPage(); y = L.headerH + 12; }
+        K.sectionHeading(doc, L.margin, y, 'Factory (EM2)');
+        doc.autoTable(Object.assign({}, common, { head, body: mkBody('factory'), startY: y + 4 }));
+
+        const notes = document.getElementById('test_notes').value.trim();
+        if (notes) {
+          let ny = doc.lastAutoTable.finalY + 10;
+          if (ny > 245) { doc.addPage(); ny = L.headerH + 12; }
+          ny = K.sectionHeading(doc, L.margin, ny, 'Testing Notes');
+          K.para(doc, L.margin, ny + 1, notes);
+        }
+
+        doc.save('EMG-Test_Tyrecycle_' + (document.getElementById('test_date').value || 'report') + '.pdf');
+        BromarHub.hideLoading();
+      } catch (e) { BromarHub.hideLoading(); console.error(e); BromarHub.showInfo('PDF failed: ' + e.message); }
+    }
     document.getElementById('vmClose').addEventListener('click', () => document.getElementById('validateModal').classList.remove('show'));
     document.getElementById('vmProceed').addEventListener('click', () => { document.getElementById('validateModal').classList.remove('show'); doSave(); });
 
