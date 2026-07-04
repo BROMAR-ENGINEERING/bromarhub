@@ -36,6 +36,7 @@
   .c-desc-wrap { grid-column:1 / -1; }
   .row-x { background:none; border:none; color:var(--error); font-size:1.3rem; cursor:pointer; line-height:1; padding:0; }
   .row-x:hover { color:#ef4444; }
+  .sb-circuit-row.dup { border-color:var(--error); box-shadow:0 0 0 1px var(--error); }
   @media (max-width:640px){
     .sb-circuit-row { grid-template-columns: 1fr 1fr 1fr; }
     .sb-circuit-row .c-x { grid-column:1 / -1; justify-self:end; }
@@ -55,16 +56,18 @@
   .sb-proj > div { display:flex; justify-content:space-between; gap:24px; }
   .sb-proj span { color:#333; }
 
-  .sb-meta { width:100%; border-collapse:collapse; font-size:10px; margin-bottom:10px; }
-  .sb-meta td { border:1px solid #000; padding:3px 7px; vertical-align:top; }
-  .sb-customer { background:#f3f3f3; }
-  .sb-boardname { color:#ef7d2e; font-size:18px; font-weight:700; }
-  .sb-warn { color:#d21f1f; font-weight:700; text-align:center; font-size:12px; }
+  .sb-meta { width:100%; border-collapse:collapse; font-size:9.5px; margin-bottom:10px; }
+  .sb-meta td { border:1px solid #000; padding:2px 6px; vertical-align:top; }
+  .sb-meta .k { font-weight:700; background:#f2f2f2; white-space:nowrap; width:15%; }
+  .sb-meta .v { width:35%; }
+  .sb-customer { background:#f7f7f7; font-size:10px; }
+  .sb-boardname { color:#ef7d2e; font-size:17px; font-weight:700; }
+  .sb-warn { color:#d21f1f; font-weight:700; text-align:center; font-size:11px; }
 
   .sb-grid { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
   .sb-grid th, .sb-grid td { border:1px solid #000; padding:3px 5px; }
-  .sb-grid th { font-weight:700; text-align:center; }
-  .sb-grid td.cb { text-align:center; font-weight:700; }
+  .sb-grid th { font-weight:700; text-align:center; background:#f2f2f2; }
+  .sb-grid td.cb { text-align:center; font-weight:700; background:#000; color:#fff; }
   .sb-grid td.type { text-align:center; }
   .sb-grid td.desc { text-align:center; }
   .sb-grid col.cb   { width:6%; }
@@ -190,7 +193,7 @@
     <button type="button" class="add-btn" id="addBreakBtn">＋ Add chassis break</button>
 
     <div class="section-label">Circuits</div>
-    <p class="submit-note" style="margin:0 0 0.75rem;">First Pole = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
+    <p class="submit-note" style="margin:0 0 0.75rem;">Pole # = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
     <div id="circuitList"></div>
     <button type="button" class="add-btn" id="addCircuitBtn">＋ Add circuit</button>
 
@@ -207,7 +210,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.03</div>
+      <div class="card-footer-version">Version V1.04</div>
     </div>
 
   </div>
@@ -244,7 +247,7 @@
     div.className = 'sb-circuit-row';
     div.dataset.legacy = c.type_amps || '';
     div.innerHTML =
-      '<div><label>First Pole</label><input type="number" class="c-start" min="1" value="' + (c.start ?? '') + '"/></div>' +
+      '<div><label>Pole #</label><input type="number" class="c-start" min="1" value="' + (c.start ?? '') + '"/></div>' +
       '<div><label>Poles</label><select class="c-poles">' +
         [1,2,3,4,5].map(n => '<option ' + optSel(String(n), String(poles)) + '>' + n + '</option>').join('') + '</select></div>' +
       '<div><label>Device</label><select class="c-device">' +
@@ -397,15 +400,16 @@
   }
   function metaHTML(s){
     const ld = s.is_loadshed ? 'Yes' : 'No';
+    const kv = (k,v,k2,v2) => '<tr><td class="k">' + k + '</td><td class="v">' + esc(v) + '</td><td class="k">' + k2 + '</td><td class="v">' + esc(v2) + '</td></tr>';
     return '<table class="sb-meta">' +
-      '<tr><td colspan="2" class="sb-customer"><b>Customer / Site:</b> ' + esc(s.customer_name) + '</td></tr>' +
-      '<tr><td class="sb-boardname">' + esc(s.board_name || '—') + '</td><td class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>' +
-      '<tr><td><b>Location:</b> ' + esc(s.location) + '</td><td><b>Is this board loadshed:</b> ' + ld + '</td></tr>' +
-      '<tr><td><b>Isolator / Main Switch Rating:</b> ' + esc(s.isolator_rating) + '</td><td><b>Supply Capacity:</b> ' + esc(s.supply_capacity) + '</td></tr>' +
-      '<tr><td><b>Switchboard Type:</b> ' + esc(s.switchboard_type) + '</td><td><b>Chassis:</b> ' + esc(s.chassis_type) + '</td></tr>' +
-      '<tr><td><b>Sub Main Size:</b> ' + esc(s.sub_main_size) + '</td><td><b>Brand:</b> ' + esc(s.brand) + '</td></tr>' +
-      '<tr><td><b>Fed from:</b> ' + esc(s.fed_from) + '</td><td><b>Cable Path:</b> ' + esc(s.cable_path) + '</td></tr>' +
-      '<tr><td colspan="2"><b>Notes:</b> ' + esc(s.notes) + '</td></tr>' +
+      '<tr><td colspan="4" class="sb-customer"><b>Customer / Site:</b> ' + esc(s.customer_name) + '</td></tr>' +
+      '<tr><td colspan="2" class="sb-boardname">' + esc(s.board_name || '—') + '</td><td colspan="2" class="sb-warn">DO NOT REMOVE FROM SWITCHBOARD</td></tr>' +
+      kv('Location', s.location, 'Loadshed', ld) +
+      kv('Isolator / Main Switch', s.isolator_rating, 'Supply Capacity', s.supply_capacity) +
+      kv('Switchboard Type', s.switchboard_type, 'Chassis', s.chassis_type) +
+      kv('Sub Main Size', s.sub_main_size, 'Brand', s.brand) +
+      kv('Fed From', s.fed_from, 'Cable Path', s.cable_path) +
+      '<tr><td class="k">Notes</td><td class="v" colspan="3">' + esc(s.notes) + '</td></tr>' +
       '</table>';
   }
   function scheduleHTML(s){
@@ -417,9 +421,32 @@
       metaHTML(s) + gridHTML(s) + '</div>';
   }
 
+  function occupancy(s){
+    const dups = new Set();
+    if(s.layout_type === 'single_cb') return { dups };
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const count = {};
+    s.circuits.forEach(c => { if(!Number.isFinite(c.start)) return; for(let i=0;i<c.poles;i++){ const p=c.start+i*step; count[p]=(count[p]||0)+1; } });
+    Object.keys(count).forEach(p => { if(count[p] > 1) dups.add(+p); });
+    return { dups };
+  }
+  function markDuplicates(s){
+    const dups = occupancy(s).dups;
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const single_cb = s.layout_type === 'single_cb';
+    document.querySelectorAll('#circuitList .sb-circuit-row').forEach(r => {
+      const start = parseInt(r.querySelector('.c-start').value,10);
+      const n = parseInt(r.querySelector('.c-poles').value,10) || 1;
+      let clash = false;
+      if(!single_cb && Number.isFinite(start)) for(let i=0;i<n;i++){ if(dups.has(start+i*step)){ clash = true; break; } }
+      r.classList.toggle('dup', clash);
+    });
+    return dups;
+  }
+
   let previewTimer = null;
   const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); };
-  const renderPreview = () => { $('previewInner').innerHTML = scheduleHTML(collectState()); };
+  const renderPreview = () => { const s = collectState(); $('previewInner').innerHTML = scheduleHTML(s); markDuplicates(s); };
 
   function syncLayoutUI(){
     const single = $('layout_type').value.indexOf('single') === 0;
@@ -527,6 +554,8 @@
   async function save(){
     const s = collectState();
     if(!s.board_name){ BromarHub.showInfo('Board Name is required'); return; }
+    const dups = occupancy(s).dups;
+    if(dups.size){ markDuplicates(s); BromarHub.showInfo('Duplicate pole numbers: ' + [...dups].sort((a,b)=>a-b).join(', ')); return; }
     let created_by = null;
     try { const { data:{ user } } = await window.sb.auth.getUser(); created_by = user?.email || null; } catch(_){}
     BromarHub.showLoading('Saving…','Writing to database');
