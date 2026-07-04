@@ -228,6 +228,7 @@ window.BromarTest.SwitchboardAudit = (function () {
       <div class="sa-photo-grid" id="saPhotoGrid"></div>
       <div class="form-divider"></div>
       <div class="submit-row">
+        <button class="btn-secondary" id="saSaveDraft" style="padding:0.875rem 1.5rem;">💾 Save Progress</button>
         <button class="submit-btn" id="saSubmit">Submit Audit & Generate PDF</button>
       </div>
     `;
@@ -235,22 +236,28 @@ window.BromarTest.SwitchboardAudit = (function () {
     /* Wire back */
     if (cfg.onBack) container.querySelector('#saBack').addEventListener('click', cfg.onBack);
 
-    /* Populate auditor + auto-fill from logged-in user */
+    /* Populate auditor + auto-fill from auth session */
     const auditorSel = container.querySelector('#saAuditor');
     (cfg.employees || []).forEach(e => {
       const o = document.createElement('option');
       o.value = e.full_name; o.textContent = e.full_name; o.dataset.email = e.email || '';
       auditorSel.appendChild(o);
     });
-    /* Try currentUser first, then fall back to auth session */
-    if (cfg.currentUser?.name) { auditorSel.value = cfg.currentUser.name; }
-    else if (cfg.supabase) {
-      cfg.supabase.auth.getUser().then(({ data }) => {
-        if (!data?.user?.email) return;
-        const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === data.user.email.toLowerCase());
-        if (match) { auditorSel.value = match.full_name; auditorSel.disabled = true; }
-      }).catch(() => {});
-    }
+    /* Auto-fill: try auth session first (most reliable), then currentUser */
+    (async () => {
+      try {
+        if (cfg.supabase) {
+          const { data: { user } } = await cfg.supabase.auth.getUser();
+          if (user?.email) {
+            const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase());
+            if (match) { auditorSel.value = match.full_name; auditorSel.disabled = true; return; }
+          }
+        }
+        if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
+      } catch (_) {
+        if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
+      }
+    })();
 
     /* Dynamic lists */
     const hazardsContainer = container.querySelector('#saHazards');
@@ -308,8 +315,37 @@ window.BromarTest.SwitchboardAudit = (function () {
       });
     }
 
-    /* Submit */
+    /* Submit + Save Draft */
+    let _draftId = null;
     container.querySelector('#saSubmit').addEventListener('click', () => submitAudit(container, cfg));
+    container.querySelector('#saSaveDraft').addEventListener('click', async () => {
+      const data = collectData(container);
+      if (!data.auditor) { BromarHub.showInfo('Select an auditor before saving'); return; }
+      const sb = cfg.supabase;
+      const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
+      BromarHub.showLoading('Saving draft...');
+      try {
+        const record = {
+          job_number: jobNumber, client_name: data.client, site_name: data.site,
+          switchboard_id: data.boardId, location: data.location,
+          tested_by: data.auditor, audit_date: data.date,
+          inspection_items: data.items, hazards: data.hazards,
+          remedial_works: data.remedial, photos: [], status: 'draft',
+        };
+        if (_draftId) {
+          await sb.from(TABLE).update(record).eq('id', _draftId);
+        } else {
+          const { data: inserted, error } = await sb.from(TABLE).insert(record).select('id').single();
+          if (error) throw error;
+          _draftId = inserted.id;
+        }
+        BromarHub.hideLoading();
+        BromarHub.showSuccess('Draft saved');
+      } catch (e) {
+        BromarHub.hideLoading();
+        BromarHub.showInfo('Save failed: ' + (e.message || e));
+      }
+    });
   }
 
   /* ── Collect ── */
