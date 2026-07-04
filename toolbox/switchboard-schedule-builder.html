@@ -47,13 +47,12 @@
 
   /* ── SCHEDULE PAGE (preview + PDF capture): fixed light colours ── */
   .sb-page { width:760px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:26px 26px 60px; box-sizing:border-box; }
-  .sb-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
-  .sb-logo { max-height:56px; width:auto; }
-  .sb-title { background:#f8f8f8; border:1px solid #e2e2e2; border-radius:10px; padding:8px 16px; font-size:16px; font-weight:800; color:#1a1a1e; letter-spacing:-0.01em; line-height:1; }
-  .sb-subhead { display:flex; justify-content:space-between; align-items:flex-start; font-size:8.5px; color:#333; border-bottom:1px solid #e2e2e2; padding-bottom:6px; margin-bottom:10px; }
-  .sb-proj { text-align:left; min-width:230px; }
-  .sb-proj > div { display:flex; justify-content:space-between; gap:24px; }
-  .sb-proj span { color:#333; }
+  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:8px; }
+  .sb-logo { max-height:46px; width:auto; }
+  .sb-center { flex:1; text-align:center; font-size:8px; color:#555; line-height:1.35; }
+  .sb-center .sb-dj { margin-top:3px; font-size:9px; color:#1a1a1e; letter-spacing:.3px; }
+  .sb-center .sb-dj b { color:#1a1a1e; }
+  .sb-title { background:#f8f8f8; border:1px solid #e2e2e2; border-radius:10px; padding:7px 14px; font-size:14px; font-weight:800; color:#1a1a1e; letter-spacing:-0.01em; line-height:1.05; text-align:center; }
 
   .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
   .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 16px; background:#fff; }
@@ -219,7 +218,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.07</div>
+      <div class="card-footer-version">Version V1.08</div>
     </div>
 
   </div>
@@ -452,10 +451,11 @@
   }
   function scheduleHTML(s){
     return '<div class="sb-page">' +
-      '<div class="sb-head"><img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/><div class="sb-title">Switchboard Schedule</div></div>' +
-      '<div class="sb-subhead"><div>2/98-108 Western Ave, Westmeadows, VIC 3049 &nbsp;·&nbsp; REC:30340<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
-      '<div class="sb-proj"><div><span>Date:</span><b>' + fmtDate(s.schedule_date) + '</b></div>' +
-      '<div><span>JOB NUMBER#:</span><b>' + esc(s.project_number) + '</b></div></div></div>' +
+      '<div class="sb-head">' +
+        '<img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/>' +
+        '<div class="sb-center"><div class="sb-addr">2/98-108 Western Ave, Westmeadows, VIC 3049 &nbsp;·&nbsp; REC:30340<br>Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322 &nbsp;·&nbsp; Email: admin@bromar.com.au</div>' +
+        '<div class="sb-dj">Date: <b>' + fmtDate(s.schedule_date) + '</b> &nbsp;·&nbsp; Job Number#: <b>' + esc(s.project_number) + '</b></div></div>' +
+        '<div class="sb-title">Switchboard Schedule</div></div>' +
       metaHTML(s) + '<div class="sb-gridwrap">' + gridHTML(s) + '</div></div>';
   }
 
