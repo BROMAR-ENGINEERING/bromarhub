@@ -50,7 +50,7 @@
   .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:6px; }
   .sb-logo { max-height:42px; width:auto; }
   .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8px; color:#555; line-height:1.32; }
-  .sb-title { font-size:26px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; line-height:1.0; text-align:right; }
+  .sb-title { font-size:26px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; line-height:1.05; text-align:center; }
 
   .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
   .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 16px; background:#fff; }
@@ -79,7 +79,7 @@
   .sb-grid col.cb   { width:6%; }
   .sb-grid col.type { width:14%; }
   .sb-band td { background:#1a1a1e; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
-  .sb-break td { background:#e6e6e6; color:#000; font-weight:700; text-align:center; letter-spacing:1px; font-size:9px; border-top:3px solid #000; border-bottom:3px solid #000; }
+  .sb-break td { background:#1a1a1e; color:#fff; font-weight:800; text-align:center; letter-spacing:1px; font-size:10px; }
   .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
   .sb-foot { position:absolute; left:26px; right:26px; bottom:42px; display:flex; justify-content:space-between; gap:16px; padding-top:8px; border-top:1px solid #ececec; }
   .sb-foot-item { display:flex; align-items:center; gap:6px; font-size:8.5px; color:#777; }
@@ -134,33 +134,26 @@
       <div class="radio-option"><input type="radio" name="supply" id="supply_main" value="main"/><label for="supply_main">Main Switchboard</label></div>
     </div>
     <div class="field-row">
-      <div class="field-group" id="sizeGroup"><label id="sizeLabel" for="submain_size">Sub Main Size</label>
-        <select id="submain_size"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
       <div class="field-group"><label for="cable_type">Cable Type</label>
-        <select id="cable_type">
-          <option value="Orange Circular 4C&E">Orange Circular 4C&amp;E</option>
-          <option value="XLPE 4x1C & 1x Earth">XLPE 4x1C &amp; 1x Earth</option>
-          <option value="XLPE Flex">XLPE Flex</option>
-          <option value="Fire Rated Cable">Fire Rated Cable</option>
-          <option value="Custom">Custom</option>
-        </select></div>
+        <select id="cable_type"><option>XLPE</option><option>SDI</option><option>XLPE Flex</option><option>Orange Circular</option><option>TPS</option><option>Fire Rated</option><option>MICC</option><option>VSD Cable</option><option>Control Cable</option><option>Instrument Cable</option><option>Other</option></select></div>
+      <div class="field-group"><label for="cable_construction">Cable Construction</label>
+        <select id="cable_construction"><option value="Single Core">Single Core</option><option value="Multicore">Multicore</option></select></div>
       <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
     </div>
-    <div id="xlpeBlock" style="display:none;">
-      <div class="field-row">
-        <div class="field-group"><label for="xlpe_active">Active Conductor Size</label><select id="xlpe_active"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
-        <div class="field-group"><label for="xlpe_earth">Earth Size</label><select id="xlpe_earth"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
-        <div class="field-group" id="neutralSizeWrap" style="display:none;"><label for="xlpe_neutral">Neutral Size</label><select id="xlpe_neutral"><option value="">Select…</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="195">195mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
-      </div>
-      <div class="field-row">
-        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_parallel"/><label for="xlpe_parallel" style="margin:0;">Parallel mains</label></div></div>
-        <div class="field-group" id="groupsWrap" style="display:none;"><label for="xlpe_groups">Number of Groups</label><select id="xlpe_groups"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="xlpe_undersized_n"/><label for="xlpe_undersized_n" style="margin:0;">Undersized neutral</label></div></div>
-      </div>
+    <div class="field-row">
+      <div class="field-group" id="phasesWrap"><label for="cable_phases">Supply Type</label><select id="cable_phases"><option>Single Phase</option><option>Two Phase</option><option value="Three Phase" selected>Three Phase</option></select></div>
+      <div class="field-group" id="coreConfigWrap" style="display:none;"><label for="core_config">Core Configuration</label><select id="core_config"><option>2C</option><option>2C + E</option><option>3C</option><option>3C + E</option><option>4C</option><option value="4C + E" selected>4C + E</option></select></div>
+      <div class="field-group"><label id="sizeLabel" for="active_size">Active Conductor Size</label><select id="active_size"><option value="">Select…</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
     </div>
-    <div class="field-row" id="customSizeRow" style="display:none;">
-      <div class="field-group full"><label for="submain_custom">Custom Submain Description</label><input type="text" id="submain_custom" placeholder="e.g. 25mm2 4C&E O/C"/></div>
+    <div class="field-row">
+      <div class="field-group"><label for="earth_size">Earth Size</label><select id="earth_size"><option value="">Select…</option><option value="inside">Inside Multicore</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+      <div class="field-group" id="groupsWrap"><label for="parallel_groups">Parallel Cable Groups</label><select id="parallel_groups"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+      <div class="field-group" id="undersizedWrap"><label style="visibility:hidden;">.</label><div class="loadshed-row" style="padding:0;"><input type="checkbox" id="undersized_n"/><label for="undersized_n" style="margin:0;">Undersized Neutral</label></div></div>
     </div>
+    <div class="field-row" id="neutralRow" style="display:none;">
+      <div class="field-group"><label for="neutral_size">Neutral Size</label><select id="neutral_size"><option value="">Select…</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+    </div>
+    <div class="submit-note" style="margin:-0.25rem 0 0.75rem;">Cable description: <b id="submainPreview" style="color:var(--text-primary);">—</b></div>
     <div class="field-row" id="fedSubRow">
       <div class="field-group"><label for="fed_switchboard">Fed From — Switchboard</label><input type="text" id="fed_switchboard" placeholder="e.g. DB1"/></div>
       <div class="field-group"><label for="fed_circuit">Fed From — Circuit</label><input type="text" id="fed_circuit" placeholder="e.g. CB1"/></div>
@@ -198,7 +191,7 @@
           <option value="double_sequential">Double Sided (Sequential Numbering)</option>
         </select>
       </div>
-      <div class="field-group"><label for="total_poles">Total Poles</label><input type="number" id="total_poles" min="1" max="200" value="48"/></div>
+      <div class="field-group"><label for="total_poles">Total Poles</label><input type="number" id="total_poles" min="1" max="200" value="48"/><div id="totalPolesHint" style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;"></div></div>
       <div class="field-group"><label for="chassis_type">Chassis Construction</label>
         <select id="chassis_type"><option value="">Select…</option><option value="MCB">MCB</option><option value="MCCB">MCCB</option><option value="Hybrid">Hybrid</option></select>
       </div>
@@ -222,13 +215,19 @@
     </div>
 
     <div class="section-label">Chassis Breaks / Section Identifiers</div>
-    <p class="submit-note" style="margin:0 0 0.75rem;">Inserts a labelled divider before the given C/B number. Enable section numbering to restart the count at each break.</p>
-    <div class="field-row">
-      <div class="field-group"><div class="loadshed-row"><input type="checkbox" id="restart_sections"/><label for="restart_sections" style="margin:0;">Restart numbering at each section</label></div></div>
-      <div class="field-group" id="topSecWrap" style="display:none;"><label for="top_section_id">Top Section Identifier</label><input type="text" id="top_section_id" placeholder="e.g. UPPER / SECTION 1"/></div>
+    <div class="loadshed-row"><input type="checkbox" id="restart_sections"/><label for="restart_sections" style="margin:0;">Restart numbering at each section</label></div>
+    <div id="restartFields" style="display:none;">
+      <div class="field-row">
+        <div class="field-group"><label for="top_section_id">Section 1 Name</label><input type="text" id="top_section_id" placeholder="e.g. NORMAL SUPPLY / CHASSIS A"/></div>
+        <div class="field-group"><label for="break_after">Break After Pole #</label><input type="number" id="break_after" min="1" placeholder="e.g. 24"/></div>
+        <div class="field-group"><label for="section2_name">Section 2 Name</label><input type="text" id="section2_name" placeholder="e.g. ESSENTIAL SUPPLY / CHASSIS B"/></div>
+      </div>
     </div>
-    <div id="breaksList"></div>
-    <button type="button" class="add-btn" id="addBreakBtn">＋ Add break / section</button>
+    <div id="breaksWrap">
+      <p class="submit-note" style="margin:0.5rem 0 0.75rem;">Add a labelled chassis break before a C/B number; numbering continues across it.</p>
+      <div id="breaksList"></div>
+      <button type="button" class="add-btn" id="addBreakBtn">＋ Add chassis break</button>
+    </div>
 
     <div class="section-label">Circuits</div>
     <p class="submit-note" style="margin:0 0 0.75rem;">Pole # = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
@@ -248,7 +247,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.13</div>
+      <div class="card-footer-version">Version V1.14</div>
     </div>
 
   </div>
@@ -350,27 +349,30 @@
 
   function composeSubmain(){
     const type = $('cable_type').value;
-    if(type === 'Custom') return $('submain_custom').value.trim();
-    if(type === 'XLPE 4x1C & 1x Earth'){
-      const a = $('xlpe_active').value, e = $('xlpe_earth').value;
-      if(!a) return '';
-      const groups = $('xlpe_parallel').checked ? (parseInt($('xlpe_groups').value,10) || 2) : 1;
-      if($('xlpe_undersized_n').checked){
-        const n = $('xlpe_neutral').value, ph = groups*3, nc = groups*1;
-        return 'XLPE ' + ph + 'x' + a + 'mm\u00B2 + ' + nc + 'x' + (n || '?') + 'mm\u00B2 N & 1x' + (e || '?') + 'mm\u00B2 earth';
-      }
-      const ac = groups*4;
-      return 'XLPE ' + ac + 'x' + a + 'mm\u00B2' + (e ? ' & 1x' + e + 'mm\u00B2 earth' : '');
+    const mc = $('cable_construction').value === 'Multicore';
+    const size = $('active_size').value;
+    const earth = $('earth_size').value;
+    if(mc){
+      const cc = $('core_config').value;
+      if(!cc || !size) return '';
+      let out = cc + ' ' + size + ' mm² ' + type;
+      if(earth === 'inside') out += ' (Earth Included)';
+      else if(earth) out += ' & 1 × ' + earth + ' mm² earth';
+      return out;
     }
-    const sz = $('submain_size').value;
-    if(!sz) return '';
-    if(type === 'Orange Circular 4C&E') return sz + 'mm\u00B2 4C&E Orange Circular';
-    if(type === 'XLPE Flex') return 'XLPE Flex ' + sz + 'mm\u00B2';
-    if(type === 'Fire Rated Cable') return 'Fire Rated ' + sz + 'mm\u00B2';
-    return sz + 'mm\u00B2 ' + type;
+    if(!size) return '';
+    const phases = $('cable_phases').value;
+    const actPer = phases === 'Three Phase' ? 3 : 2;
+    const groups = parseInt($('parallel_groups').value,10) || 1;
+    const actQty = actPer * groups;
+    const nSize = $('undersized_n').checked ? ($('neutral_size').value || size) : size;
+    let out = actQty + ' × ' + size + ' mm² + ' + groups + ' × ' + nSize + ' mm² N ' + type;
+    if(earth === 'inside') out += ' (Earth Included)';
+    else if(earth) out += ' & 1 × ' + earth + ' mm² earth';
+    return out;
   }
   function submainMeta(){
-    return { size:$('submain_size').value, type:$('cable_type').value, active:$('xlpe_active').value, earth:$('xlpe_earth').value, parallel:$('xlpe_parallel').checked, groups:$('xlpe_groups').value, undersizedN:$('xlpe_undersized_n').checked, neutral:$('xlpe_neutral').value, custom:$('submain_custom').value.trim() };
+    return { type:$('cable_type').value, construction:$('cable_construction').value, phases:$('cable_phases').value, size:$('active_size').value, groups:$('parallel_groups').value, earth:$('earth_size').value, undersizedN:$('undersized_n').checked, neutral:$('neutral_size').value, coreConfig:$('core_config').value };
   }
   function composeFed(){
     if(document.querySelector('input[name="supply"]:checked').value === 'main') return $('fed_source').value;
@@ -409,6 +411,8 @@
       rows: readRows(),
       restart_sections: $('restart_sections').checked,
       top_section_id: $('top_section_id').value.trim(),
+      section2_name: $('section2_name').value.trim(),
+      break_after: parseInt($('break_after').value,10) || null,
       chassis_breaks: readBreaks(),
       circuits: readCircuits()
     };
@@ -422,16 +426,21 @@
     return info;
   }
   function sectionStarts(s){
-    return [1].concat((s.chassis_breaks||[]).map(b => b.at).filter(v => Number.isFinite(v))).sort((a,b) => a-b);
+    if(!s.restart_sections) return [];
+    const a = [1];
+    if(Number.isFinite(s.break_after) && s.break_after >= 1) a.push(s.break_after + 1);
+    return a;
   }
+  function sectionNameAt(s, start){ return start === 1 ? (s.top_section_id || 'SECTION 1') : (s.section2_name || 'SECTION 2'); }
   function displayNum(s, p){
     if(!s.restart_sections) return p;
     let base = 1;
     sectionStarts(s).forEach(st => { if(st <= p) base = st; });
     return p - base + 1;
   }
-  function topBand(s, cols){
-    return (s.restart_sections && s.top_section_id) ? '<tr class="sb-band"><td colspan="' + cols + '">' + esc(s.top_section_id) + '</td></tr>' : '';
+  function sectionBannerAt(s, p, cols){
+    if(!s.restart_sections) return '';
+    return sectionStarts(s).indexOf(p) === -1 ? '' : '<tr class="sb-band"><td colspan="' + cols + '">' + esc(sectionNameAt(s, p)) + '</td></tr>';
   }
   function cellSide(p, info, total, s){
     if(p > total || p < 1) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
@@ -450,8 +459,10 @@
     const rightPole = r => seq ? (half+r+1)   : (2*r+2);
     const rowOf = p => seq ? (p<=half ? p-1 : p-half-1) : Math.floor((p-1)/2);
     const breaks = {}; (s.chassis_breaks||[]).forEach(b => { const rr = rowOf(b.at); (breaks[rr] = breaks[rr] || []).push(b.label); });
-    let body = topBand(s, 6);
+    const secRow = {}; sectionStarts(s).forEach(st => { if(st >= 1 && st <= s.total_poles) secRow[rowOf(st)] = sectionNameAt(s, st); });
+    let body = '';
     for(let r=0; r<half; r++){
+      if(secRow[r] !== undefined) body += '<tr class="sb-band"><td colspan="6">' + esc(secRow[r]) + '</td></tr>';
       if(breaks[r]) breaks[r].forEach(lb => body += '<tr class="sb-break"><td colspan="6">' + esc(lb) + '</td></tr>');
       body += '<tr>' + cellSide(leftPole(r), info, s.total_poles, s) + cellSide(rightPole(r), info, s.total_poles, s) + '</tr>';
     }
@@ -464,8 +475,8 @@
     const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
     let body = '';
     if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
-    body += topBand(s, 3);
     for(let p=1; p<=s.total_poles; p++){
+      body += sectionBannerAt(s, p, 3);
       if(brkAt[p])  brkAt[p].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
       if(bandAt[p]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[p]) + '</td></tr>';
       const it = info[p];
@@ -484,9 +495,9 @@
     const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
     let body = '';
     if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
-    body += topBand(s, 3);
     circuits.forEach((c, idx) => {
       const n = idx + 1;
+      body += sectionBannerAt(s, n, 3);
       if(brkAt[n])  brkAt[n].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
       if(bandAt[n]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[n]) + '</td></tr>';
       body += '<tr><td class="cb">' + displayNum(s, n) + '</td><td class="desc">' + esc(c.description) + '</td><td class="type">' + esc(c.type_amps) + '</td></tr>';
@@ -593,7 +604,7 @@
 
   let previewTimer = null;
   const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); };
-  const renderPreview = () => { const s = collectState(); $('previewInner').innerHTML = scheduleHTML(s); markDuplicates(s); };
+  const renderPreview = () => { const s = collectState(); $('previewInner').innerHTML = scheduleHTML(s); markDuplicates(s); const sp = $('submainPreview'); if(sp) sp.textContent = composeSubmain() || '—'; const tph = $('totalPolesHint'); if(tph) tph.textContent = '(' + s.total_poles + ' total across all chassis)'; };
 
   function syncLayoutUI(){
     const single = $('layout_type').value.indexOf('single') === 0;
@@ -605,18 +616,22 @@
     const main = document.querySelector('input[name="supply"]:checked').value === 'main';
     $('fedMainRow').style.display = main ? 'flex' : 'none';
     $('fedSubRow').style.display  = main ? 'none' : 'flex';
-    $('sizeLabel').textContent = main ? 'Mains Size' : 'Sub Main Size';
   }
   function syncCableUI(){
-    const t = $('cable_type').value;
-    const xlpe = t === 'XLPE 4x1C & 1x Earth';
-    $('xlpeBlock').style.display = xlpe ? 'block' : 'none';
-    $('customSizeRow').style.display = t === 'Custom' ? 'flex' : 'none';
-    $('sizeGroup').style.display = (xlpe || t === 'Custom') ? 'none' : 'block';
-    $('neutralSizeWrap').style.display = (xlpe && $('xlpe_undersized_n').checked) ? 'block' : 'none';
-    $('groupsWrap').style.display = (xlpe && $('xlpe_parallel').checked) ? 'block' : 'none';
+    const mc = $('cable_construction').value === 'Multicore';
+    $('phasesWrap').style.display = mc ? 'none' : 'block';
+    $('coreConfigWrap').style.display = mc ? 'block' : 'none';
+    $('groupsWrap').style.display = mc ? 'none' : 'block';
+    $('undersizedWrap').style.display = mc ? 'none' : 'block';
+    $('neutralRow').style.display = (!mc && $('undersized_n').checked) ? 'flex' : 'none';
+    const lbl = $('sizeLabel'); if(lbl) lbl.textContent = mc ? 'Conductor Size' : 'Active Conductor Size';
+    const sp = $('submainPreview'); if(sp) sp.textContent = composeSubmain() || '—';
   }
-  function syncSectionsUI(){ $('topSecWrap').style.display = $('restart_sections').checked ? 'block' : 'none'; }
+  function syncSectionsUI(){
+    const on = $('restart_sections').checked;
+    $('restartFields').style.display = on ? 'block' : 'none';
+    $('breaksWrap').style.display = on ? 'none' : 'block';
+  }
 
   /* ---------- mm2 -> mm² ---------- */
   function capFirstDesc(e){
@@ -693,23 +708,16 @@
     $('supply_capacity').value = r.supply_capacity || '';
     $('switchboard_type').value = r.switchboard_type || '';
     $('chassis_type').value = r.chassis_type || '';
-    const sm = r.submain || null;
-    if(sm){
-      $('cable_type').value = sm.type || 'Orange Circular 4C&E';
-      $('submain_size').value = sm.size || '';
-      $('xlpe_active').value = sm.active || '';
-      $('xlpe_earth').value = sm.earth || '';
-      $('xlpe_neutral').value = sm.neutral || '';
-      $('xlpe_parallel').checked = !!sm.parallel;
-      $('xlpe_groups').value = sm.groups || '2';
-      $('xlpe_undersized_n').checked = !!sm.undersizedN;
-      $('submain_custom').value = sm.custom || '';
-    } else {
-      $('cable_type').value = r.sub_main_size ? 'Custom' : 'Orange Circular 4C&E';
-      $('submain_custom').value = r.sub_main_size || '';
-      $('submain_size').value=''; $('xlpe_active').value=''; $('xlpe_earth').value=''; $('xlpe_neutral').value='';
-      $('xlpe_parallel').checked=false; $('xlpe_undersized_n').checked=false;
-    }
+    const sm = r.submain || {};
+    $('cable_type').value = sm.type || 'XLPE';
+    $('cable_construction').value = sm.construction || 'Single Core';
+    $('cable_phases').value = sm.phases || 'Three Phase';
+    $('active_size').value = sm.size || '';
+    $('parallel_groups').value = sm.groups || '1';
+    $('earth_size').value = sm.earth || '';
+    $('undersized_n').checked = !!sm.undersizedN;
+    $('neutral_size').value = sm.neutral || '';
+    $('core_config').value = sm.coreConfig || '4C + E';
     $('brand').value = r.brand || '';
     const st = (r.supply_type === 'main') ? 'main' : 'sub';
     document.querySelector('input[name="supply"][value="' + st + '"]').checked = true;
@@ -730,6 +738,8 @@
     $('rowsList').innerHTML = '';   (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
     $('restart_sections').checked = !!r.restart_sections;
     $('top_section_id').value = r.top_section_id || '';
+    $('section2_name').value = r.section2_name || '';
+    $('break_after').value = r.break_after || '';
     $('breaksList').innerHTML = ''; (r.chassis_breaks || []).forEach(x => $('breaksList').appendChild(breakRow(x)));
     $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
     syncLayoutUI(); syncSupplyUI(); syncCableUI(); syncSectionsUI(); updateRevLabel(); renderPreview();
@@ -819,8 +829,8 @@
     $('iso_enabled').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
     document.querySelectorAll('input[name="supply"]').forEach(el => el.addEventListener('change', () => { syncSupplyUI(); schedulePreview(); }));
     $('cable_type').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
-    $('xlpe_undersized_n').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
-    $('xlpe_parallel').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('cable_construction').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('undersized_n').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
     $('restart_sections').addEventListener('change', () => { syncSectionsUI(); schedulePreview(); });
     $('prepared_by').addEventListener('input', () => { $('pbBadge').style.display='none'; });
     $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
