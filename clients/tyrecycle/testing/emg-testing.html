@@ -139,8 +139,8 @@
       </button>
     </div>
     <div class="header-content">
-      <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo" onerror="this.onerror=null;this.src='/Bromar-Primary-Logo-Reverse-White.png'"/>
-      <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo" onerror="this.onerror=null;this.src='/Bromar-Primary-Logo-Full-Colour.png'"/>
+      <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image light-logo" onerror="this.onerror=null;this.style.display='none'"/>
+      <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image dark-logo" onerror="this.onerror=null;this.style.display='none'"/>
     </div>
   </div>
 
@@ -240,7 +240,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.03</div>
+        <div class="card-footer-version">Version V1.04</div>
       </div>
     </div>
   </div>
@@ -570,8 +570,8 @@
       if (!K || !window.jspdf) return BromarHub.showInfo('Report kit not loaded (check /tools/bromar-report-kit.js)');
       BromarHub.showLoading('Building PDF...', 'Emergency lighting report');
       try {
-        K.configure({ logoColour: '/Bromar-Primary-Logo-Full-Colour.png', logoReverse: '/Bromar-Primary-Logo-Reverse-White.png' });
-        const logoRec = await K.loadLogoAsset('/Bromar-Primary-Logo-Full-Colour.png').catch(() => null);
+        K.configure({ logoColour: '/assets/logo/bromar-logo-colour.png', logoReverse: '/assets/logo/bromar-logo-colour.png' });
+        const logoRec = await K.loadLogoAsset('/assets/logo/bromar-logo-colour.png').catch(() => null);
         const doc = K.createDoc();
         const L = K.LAYOUT;
         const title = 'Emergency Lighting Test - Tyrecycle Somerton';
