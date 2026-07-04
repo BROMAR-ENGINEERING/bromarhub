@@ -122,7 +122,7 @@
     const link = document.createElement('link');
     link.rel  = 'icon';
     link.type = 'image/png';
-    link.href = '/favicon.png';
+    link.href = '/assets/icons/icon-32x32.png';
     document.head.appendChild(link);
   }
 
@@ -181,13 +181,13 @@
         const appleIcon = document.createElement('link');
         appleIcon.rel   = 'apple-touch-icon';
         appleIcon.sizes = size;
-        appleIcon.href  = `/icons/icon-${size}.png`;
+        appleIcon.href  = `/assets/icons/icon-${size}.png`;
         document.head.appendChild(appleIcon);
       });
       // Default (no size attribute) - iOS picks best
       const defaultIcon = document.createElement('link');
       defaultIcon.rel  = 'apple-touch-icon';
-      defaultIcon.href = '/icons/icon-192x192.png';
+      defaultIcon.href = '/assets/icons/icon-192x192.png';
       document.head.appendChild(defaultIcon);
     }
 
@@ -252,8 +252,8 @@
           </button>
         </div>
         <div class="header-content">
-          <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
-          <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+          <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image light-logo"/>
+          <img src="/assets/logo/bromar-logo-white.png" alt="Bromar" class="logo-image dark-logo"/>
         </div>
       </div>`;
   }
