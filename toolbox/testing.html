@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testing — Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <!-- Shared testing modules -->
+  <script src="../tools/testing/switchboard-audit.js" defer></script>
+  <script src="../tools/testing/construction-wiring.js" defer></script>
+  <style>
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+    .test-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+    .test-type-card {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 1.5rem 1rem; cursor: pointer;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--bg-secondary); transition: all 0.2s;
+      font-family: 'Outfit', sans-serif;
+    }
+    .test-type-card:hover { border-color: var(--accent); background: var(--card-hover); transform: translateY(-2px); }
+    .test-type-card .icon { font-size: 2rem; }
+    .test-type-card .label { font-size: 0.9rem; font-weight: 600; text-align: center; color: var(--text-primary); }
+    .test-type-card .desc { font-size: 0.75rem; color: var(--text-secondary); text-align: center; }
+    .test-form-container { display: none; }
+    .test-form-container.active { display: block; }
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--divider, #e5e7eb); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--brand-orange, #c2440e); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-faded, #9ca3af); font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-wrapper">
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">Testing</h1>
+    <p class="header-subtitle">Electrical testing & inspection sheets</p>
+  </div>
+
+  <div class="form-card">
+    <div id="successBanner" class="success-banner"><span id="successText"></span></div>
+    <div id="infoBanner" class="info-banner"><span id="infoBannerText"></span></div>
+
+    <!-- Landing: test type selector -->
+    <div id="testLanding">
+      <div class="section-label">Select Test Type</div>
+      <div class="test-type-grid">
+        <div class="test-type-card" data-type="switchboard_audit">
+          <span class="icon">🔌</span>
+          <span class="label">Switchboard Audit</span>
+          <span class="desc">Inspection audit checklist</span>
+        </div>
+        <div class="test-type-card" data-type="construction_wiring">
+          <span class="icon">🔧</span>
+          <span class="label">Construction Wiring</span>
+          <span class="desc">AS3012 compliance check</span>
+        </div>
+        <div class="test-type-card" data-type="circuit_testing" style="opacity:0.5;cursor:default;">
+          <span class="icon">⚡</span>
+          <span class="label">Circuit Testing</span>
+          <span class="desc">Coming soon</span>
+        </div>
+        <div class="test-type-card" data-type="switchboard_itc" style="opacity:0.5;cursor:default;">
+          <span class="icon">📋</span>
+          <span class="label">Switchboard ITC</span>
+          <span class="desc">Coming soon</span>
+        </div>
+        <div class="test-type-card" data-type="field_device_itc" style="opacity:0.5;cursor:default;">
+          <span class="icon">📡</span>
+          <span class="label">Field Device ITC</span>
+          <span class="desc">Coming soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form container (shared modules render here) -->
+    <div id="testFormContainer" class="test-form-container"></div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — TESTING</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  /* Wait for Supabase */
+  const waitFor = (fn, ms = 50, max = 60) => new Promise((resolve, reject) => {
+    let n = 0;
+    const id = setInterval(() => { if (fn()) { clearInterval(id); resolve(); } else if (++n >= max) { clearInterval(id); reject(new Error('timeout')); } }, ms);
+  });
+  await waitFor(() => window.sb);
+
+  /* Load employees */
+  const EMPLOYEES = await BromarHub.loadEmployees('__skip__');
+  await BromarHub.autoSelectLoggedInUser('__skip__');
+
+  const landing = document.getElementById('testLanding');
+  const formContainer = document.getElementById('testFormContainer');
+
+  const modules = {
+    switchboard_audit: window.BromarTest?.SwitchboardAudit,
+    construction_wiring: window.BromarTest?.ConstructionWiring,
+  };
+
+  function showLanding() {
+    landing.style.display = '';
+    formContainer.classList.remove('active');
+    formContainer.innerHTML = '';
+  }
+
+  function showForm(type) {
+    const mod = modules[type];
+    if (!mod) { BromarHub.showInfo('This test type is not built yet'); return; }
+    landing.style.display = 'none';
+    formContainer.classList.add('active');
+    mod.renderForm(formContainer, {
+      jobNumber: '',
+      clientName: '',
+      siteName: '',
+      employees: window.EMPLOYEES || [],
+      currentUser: window.currentUser,
+      supabase: window.sb,
+      onComplete: () => {
+        showLanding();
+      },
+      onBack: () => {
+        showLanding();
+      },
+    });
+  }
+
+  document.querySelectorAll('.test-type-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const type = card.dataset.type;
+      if (card.style.opacity === '0.5') return;
+      showForm(type);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
