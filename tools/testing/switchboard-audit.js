@@ -441,8 +441,22 @@ window.BromarTest.SwitchboardAudit = (function () {
       await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
       BromarHub.hideLoading();
-      BromarHub.showSuccess('Switchboard audit saved successfully');
-      if (cfg.onComplete) cfg.onComplete();
+
+      /* Show download panel */
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const fname = `${jobNumber}_Switchboard_Audit_${data.date}.pdf`;
+      container.innerHTML = `
+        <div class="pdf-actions show">
+          <h3>✅ Switchboard Audit Saved</h3>
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0.5rem;">PDF generated and uploaded to storage.</p>
+          <div class="pdf-actions-buttons">
+            <a href="${pdfUrl}" download="${fname}" class="pdf-btn" id="saDownloadPdf">📥 Download PDF</a>
+            <button class="pdf-btn" id="saViewPdf">👁 View PDF</button>
+            <button class="pdf-btn" id="saDone">✓ Done</button>
+          </div>
+        </div>`;
+      container.querySelector('#saViewPdf').addEventListener('click', () => { window.open(pdfUrl, '_blank'); });
+      container.querySelector('#saDone').addEventListener('click', () => { URL.revokeObjectURL(pdfUrl); if (cfg.onComplete) cfg.onComplete(); });
     } catch (e) {
       console.error('[SwitchboardAudit]', e);
       BromarHub.hideLoading();
