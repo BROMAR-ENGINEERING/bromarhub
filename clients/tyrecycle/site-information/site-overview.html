@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Site Overview — Bromar Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+
+  <style>
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    .overview-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.875rem;
+      overflow: hidden;
+      transition: border-color 0.3s ease;
+    }
+    .overview-section:hover { border-color: var(--accent); }
+
+    .overview-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; padding: 1.15rem 1.35rem; cursor: pointer;
+      user-select: none;
+    }
+    .overview-head-title {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+    .overview-head-title::before {
+      content: ''; width: 4px; height: 20px; border-radius: 4px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+    }
+    .chevron {
+      width: 20px; height: 20px; flex-shrink: 0;
+      stroke: var(--text-secondary); stroke-width: 2; fill: none;
+      stroke-linecap: round; stroke-linejoin: round;
+      transition: transform 0.3s ease;
+    }
+    .overview-section.open .chevron { transform: rotate(180deg); }
+
+    .overview-body {
+      display: none;
+      padding: 0 1.35rem 1.35rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem; line-height: 1.7;
+      border-top: 1px solid var(--border);
+      padding-top: 1.1rem;
+    }
+    .overview-section.open .overview-body { display: block; }
+    .overview-body p { margin-bottom: 0.85rem; }
+    .overview-body p:last-child { margin-bottom: 0; }
+    .overview-body strong { color: var(--text-primary); font-weight: 600; }
+    .placeholder-text { font-style: italic; opacity: 0.75; }
+
+    .info-callout {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.85rem 1.1rem;
+      margin: 0.85rem 0;
+      font-size: 0.9rem;
+    }
+
+    .req-list { list-style: none; margin: 0.5rem 0 0.85rem; padding: 0; }
+    .req-list li {
+      position: relative; padding-left: 1.6rem; margin-bottom: 0.6rem;
+      line-height: 1.6;
+    }
+    .req-list li::before {
+      content: ''; position: absolute; left: 0; top: 0.55em;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .area-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+    .area-chip {
+      padding: 0.4rem 0.9rem;
+      background: var(--card-hover);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--accent);
+    }
+
+    .lock-tag {
+      display: inline-block; padding: 1px 8px; border-radius: 5px;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .lock-red { background: #fee2e2; color: #b91c1c; }
+    .lock-yellow { background: #fef3c7; color: #92400e; }
+    [data-theme="dark"] .lock-red { background: rgba(239,68,68,0.18); color: #fca5a5; }
+    [data-theme="dark"] .lock-yellow { background: rgba(245,158,11,0.18); color: #fcd34d; }
+
+    .card-footer {
+      margin-top: 32px; padding-top: 24px;
+      border-top: 1px solid var(--border); text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px;
+      color: var(--text-primary); margin-bottom: 10px; white-space: nowrap;
+    }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; color: var(--accent); text-decoration: none;
+      font-weight: 600; margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="bromar-header"></div>
+
+  <div class="page-title-wrapper">
+    <h1>Site Overview</h1>
+    <p class="subtitle">Key site safety and location information</p>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="form-card">
+
+      <div class="overview-section open">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">Permit to Work</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p>As contractors, we <strong>must sign onto the weekly "Work Permit" before commencing any tasks</strong> on site. This applies to all planned maintenance work <strong>and call outs</strong> &mdash; no exceptions.</p>
+
+          <p>The permit book is located in the <strong>Maintenance Office / Electrical Container</strong> and runs for the full week. A single permit covers the week's work, so each worker only needs to sign on once for the week &mdash; but <strong>every worker on site must sign on</strong>.</p>
+
+          <div class="info-callout">
+            The process is straightforward. If you're unsure how to complete it, refer to a previously completed permit (for example, those filled out by <strong>Mike</strong>) as a guide.
+          </div>
+
+          <p><strong>At the end of the week</strong>, the permit must be signed off / closed out to mark completion. If a new week begins and work continues, a fresh permit is started.</p>
+
+          <p><strong>Quick summary:</strong></p>
+          <ul class="req-list">
+            <li>Sign on before starting any work &mdash; including call outs.</li>
+            <li>Permit book lives in the Maintenance Office / Electrical Container.</li>
+            <li>One permit per week; every worker signs on.</li>
+            <li>Sign off / close the permit at the end of the week.</li>
+            <li>Use Mike's completed permits as a reference if needed.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">SWMS</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p>A SWMS needs to be <strong>sent in weekly</strong> to accompany our Permit to Work.</p>
+
+          <p>There is a <strong>custom Tyrecycle maintenance template</strong> available that can be modified, with the option to <strong>add additional steps and hazards</strong> as required.</p>
+
+          <div class="info-callout">
+            Please note this template covers <strong>basic maintenance works</strong> only. You are encouraged to add further steps and hazards to suit other tasks being carried out.
+          </div>
+
+          <p>Tyrecycle also has their own <strong>Take 5 notebooks</strong>. We are encouraged to fill these out for <strong>at least one job a day</strong>. Plenty of books are available in the <strong>Maintenance Office / Electrical Container</strong>.</p>
+        </div>
+      </div>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">LOTOTO</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p><strong>Lock Out &mdash; Tag Out &mdash; Try Out</strong></p>
+
+          <p>Tyrecycle has <strong>increased its safety requirements</strong> for maintenance work and entry into fortress-guarded areas. The following process must be followed whenever entering a fortress area.</p>
+
+          <p><strong>When entering a fortress area:</strong></p>
+          <ul class="req-list">
+            <li>Attach a <span class="lock-tag lock-red">RED</span> personal lock to the fortress key lock box.</li>
+            <li>Sign onto the <strong>LOTO register</strong> located at each area &mdash; and sign out at completion when removing your lock.</li>
+            <li>A Tyrecycle <strong>"LOTO Officer"</strong> must place a <span class="lock-tag lock-yellow">YELLOW</span> lock on the system before entry.</li>
+          </ul>
+
+          <div class="info-callout">
+            Most maintenance personnel and supervisors are authorised LOTO officers. <strong>Mike</strong> can assist if you don't have a lock, or if you'd like to know more about the process.
+          </div>
+
+          <p><strong>Areas that require LOTOTO:</strong></p>
+          <div class="area-chips">
+            <span class="area-chip">TGX</span>
+            <span class="area-chip">Truck Shredder</span>
+            <span class="area-chip">15L</span>
+            <span class="area-chip">Export Shredder</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-section">
+        <div class="overview-head" onclick="toggleSection(this)">
+          <div class="overview-head-title">Maintenance Office / Electrical Container</div>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="overview-body">
+          <p>The Maintenance Office / Electrical Container is <strong>Michael's office</strong>. As it's a shared space, please ensure it is kept <strong>clean and tidy at all times</strong>.</p>
+
+          <div class="info-callout">
+            <strong>After-hours access to spare parts:</strong> a lock box will be installed on the side of the container holding an access key. The code is <strong>4383</strong>. Please ensure the key is <strong>returned after use</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB &mdash; SITE OVERVIEW</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.04</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function toggleSection(head) {
+      head.closest('.overview-section').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>
