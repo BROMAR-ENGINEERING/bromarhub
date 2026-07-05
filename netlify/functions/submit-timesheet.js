@@ -1,22 +1,43 @@
-const sgMail = require('@sendgrid/mail');
+// ============================================================
+// BROMAR HUB — TIMESHEET SUBMISSION (Resend)
+// Path: netlify/functions/submit-timesheet.js
+// Migrated from SendGrid → Resend.  Revision V1.00
+//
+// Netlify env vars:
+//   RESEND_API_KEY   — Resend API key
+//   SUPABASE_URL / SUPABASE_KEY
+//   FROM_EMAIL       — until domain verified MUST be
+//                      "Bromar Hub <onboarding@resend.dev>"
+//   TEST_TO          — (optional) route ALL mail to your inbox while
+//                      unverified. Remove after verifying the domain.
+// ============================================================
+
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
-// Initialize Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+// Resend send helper
+async function resendSend(payload) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY not configured');
+  const res = await fetch(RESEND_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const result = await res.json();
+  if (!res.ok) {
+    console.error('Resend error:', res.status, JSON.stringify(result));
+    throw new Error('Failed to send email');
+  }
+  return result;
+}
 
 exports.handler = async (event) => {
-  // Only allow POST
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
@@ -25,7 +46,6 @@ exports.handler = async (event) => {
     let pdfAttachment = null;
     const contentType = (event.headers['content-type'] || event.headers['Content-Type'] || '').toLowerCase();
 
-    // Netlify may base64-encode the body for binary or large payloads
     let rawBody = event.body || '';
     if (event.isBase64Encoded) {
       rawBody = Buffer.from(rawBody, 'base64').toString('utf8');
@@ -54,7 +74,6 @@ exports.handler = async (event) => {
       console.log('Parsed URL-encoded fields:', Object.keys(formData).length);
     }
 
-    // Extract employee details
     const employeeName = formData.employee_name;
     const employeeEmail = formData.employee_email;
     const employeeType = formData.employee_type;
@@ -64,7 +83,6 @@ exports.handler = async (event) => {
     const allowanceFirstAid = formData.allowance_first_aid === 'on';
     const allowanceConstructionWiring = formData.allowance_construction_wiring === 'on';
 
-    // Parse daily timesheet data
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const timesheetEntries = [];
     let totalNormalHours = 0;
@@ -86,11 +104,10 @@ exports.handler = async (event) => {
       const calloutFinish = formData[`${dayPrefix}_callout_finish`] || null;
 
       console.log(`\n--- Day ${dayIndex} (${days[dayIndex]}) ---`);
-      
-      // Find all jobs for this day - using the correct field naming: job-{dayIndex}-{jobIndex}
+
       let jobIndex = 0;
       let foundJobsForDay = 0;
-      
+
       while (formData[`job-${dayIndex}-${jobIndex}_type`]) {
         const jobPrefix = `job-${dayIndex}-${jobIndex}`;
         let type = formData[`${jobPrefix}_type`];
@@ -101,9 +118,9 @@ exports.handler = async (event) => {
         const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
         const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
         const travelHours = parseFloat(formData[`${jobPrefix}_travel_time`]) || 0;
-        
+
         console.log(`  Job ${jobIndex}: type="${type}", normal=${normalHours}, OT=${overtimeHours}, travel=${travelHours}`);
-        
+
         if (type && (normalHours > 0 || overtimeHours > 0 || travelHours > 0)) {
           foundJobsForDay++;
           const jobNumber = formData[`${jobPrefix}_number`] || '-';
@@ -148,7 +165,7 @@ exports.handler = async (event) => {
         } else {
           console.log(`    ✗ Skipped (no type or no hours)`);
         }
-        
+
         jobIndex++;
       }
       console.log(`  Total jobs found for ${days[dayIndex]}: ${foundJobsForDay}`);
@@ -163,10 +180,8 @@ exports.handler = async (event) => {
 
     const totalHours = totalNormalHours + totalOvertimeHours;
 
-    // ============================================
-    // SAVE TO SUPABASE
-    // ============================================
-    const { data: timesheetRecord, error: dbError} = await supabase
+    // ── SAVE TO SUPABASE ──────────────────────────────────
+    const { data: timesheetRecord, error: dbError } = await supabase
       .from('timesheets')
       .insert({
         employee_name: employeeName,
@@ -192,10 +207,7 @@ exports.handler = async (event) => {
       throw new Error('Failed to save to database');
     }
 
-    // ============================================
-    // UPLOAD PDF TO SUPABASE STORAGE
-    // Bucket: Timesheets, path: YYYY/MM/DD/<filename>.pdf
-    // ============================================
+    // ── UPLOAD PDF TO SUPABASE STORAGE ────────────────────
     let pdfStoragePath = null;
     if (pdfAttachment?.content) {
       try {
@@ -214,10 +226,7 @@ exports.handler = async (event) => {
         const { error: uploadErr } = await supabase
           .storage
           .from('Timesheets')
-          .upload(storagePath, pdfBuffer, {
-            contentType: 'application/pdf',
-            upsert: false
-          });
+          .upload(storagePath, pdfBuffer, { contentType: 'application/pdf', upsert: false });
 
         if (uploadErr) {
           console.error('PDF upload failed:', uploadErr);
@@ -225,7 +234,6 @@ exports.handler = async (event) => {
           pdfStoragePath = storagePath;
           console.log('PDF uploaded to storage:', storagePath);
 
-          // Best-effort: save path back to row if pdf_path column exists
           await supabase
             .from('timesheets')
             .update({ pdf_path: pdfStoragePath })
@@ -241,11 +249,7 @@ exports.handler = async (event) => {
       }
     }
 
-    // ============================================
-    // SEND EMAIL VIA SENDGRID
-    // ============================================
-    
-    // Build HTML table for email
+    // ── BUILD EMAIL HTML ──────────────────────────────────
     let timesheetHTML = '';
     timesheetEntries.forEach((entry, index) => {
       const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
@@ -276,8 +280,7 @@ exports.handler = async (event) => {
           <tr>
             <td align="center" style="padding:24px 16px;">
               <table width="680" cellpadding="0" cellspacing="0" border="0" style="max-width:680px;background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-                
-                <!-- Header -->
+
                 <tr>
                   <td style="padding:28px 32px;text-align:center;border-bottom:1px solid #e5e7eb;">
                     <h1 style="margin:0;font-size:24px;color:#111827;font-weight:700;">Employee Timesheet Submission</h1>
@@ -285,11 +288,9 @@ exports.handler = async (event) => {
                   </td>
                 </tr>
 
-                <!-- Body -->
                 <tr>
                   <td style="padding:28px 32px;">
-                    
-                    <!-- Employee Details -->
+
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Employee Information</p>
                     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px;">
                       <tr>
@@ -310,7 +311,6 @@ exports.handler = async (event) => {
                       </tr>
                     </table>
 
-                    <!-- Hours Summary -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Hours Summary</p>
                     <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
                       <div style="flex:1;min-width:150px;background:#eff6ff;border-left:4px solid #1a56db;border-radius:6px;padding:16px;">
@@ -344,7 +344,6 @@ exports.handler = async (event) => {
                     </div>
                     ` : ''}
 
-                    <!-- Timesheet Table -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Timesheet Details</p>
                     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
                       <thead>
@@ -369,7 +368,6 @@ exports.handler = async (event) => {
                   </td>
                 </tr>
 
-                <!-- Footer -->
                 <tr>
                   <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 32px;text-align:center;">
                     <p style="font-size:11px;color:#6b7280;margin:4px 0;">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
@@ -387,62 +385,51 @@ exports.handler = async (event) => {
       </html>
     `;
 
-    // Send two separate emails:
-    //   1. Employee — HTML confirmation only (no attachment)
-    //   2. Admin    — same HTML + PDF attachment
+    // ── SEND VIA RESEND ───────────────────────────────────
+    // Two emails: employee confirmation (no attachment), admin (with PDF).
+    // While unverified, TEST_TO routes both to your inbox.
+    const from = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>';
+    const testTo = process.env.TEST_TO;
     const subject = `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`;
 
     const employeeMsg = {
-      to: employeeEmail,
-      from: 'servicet@bromar.com.au', // Must be verified in SendGrid
-      replyTo: 'admin@bromar.com.au',
+      from,
+      to: [testTo || employeeEmail],
+      reply_to: 'admin@bromar.com.au',
       subject: `${subject} (Confirmation)`,
       html: emailHTML,
     };
 
     const adminMsg = {
-      to: 'servicet@bromar.com.au',
-      from: 'servicet@bromar.com.au',
-      replyTo: employeeEmail || 'admin@bromar.com.au',
+      from,
+      to: [testTo || 'servicet@bromar.com.au'],
+      reply_to: employeeEmail || 'admin@bromar.com.au',
       subject,
       html: emailHTML,
     };
 
     if (pdfAttachment?.content) {
       adminMsg.attachments = [{
-        content: pdfAttachment.content,
-        filename: pdfAttachment.filename || `timesheet-${employeeName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`,
-        type: 'application/pdf',
-        disposition: 'attachment'
+        content: pdfAttachment.content, // base64 string
+        filename: pdfAttachment.filename || `timesheet-${(employeeName || 'employee').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`,
       }];
       console.log('PDF attached to admin email:', adminMsg.attachments[0].filename);
     } else {
       console.log('No PDF attachment provided');
     }
 
-    await Promise.all([
-      sgMail.send(employeeMsg),
-      sgMail.send(adminMsg)
-    ]);
+    await Promise.all([ resendSend(employeeMsg), resendSend(adminMsg) ]);
 
-    // Return success
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        message: 'Timesheet submitted successfully',
-        id: timesheetRecord.id
-      })
+      body: JSON.stringify({ success: true, message: 'Timesheet submitted successfully', id: timesheetRecord.id })
     };
 
   } catch (error) {
     console.error('Function error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
-        error: 'Failed to submit timesheet', 
-        details: error.message 
-      })
+      body: JSON.stringify({ error: 'Failed to submit timesheet', details: error.message })
     };
   }
 };
