@@ -5,25 +5,32 @@
 
    Registers: window.BromarReportKit
    Requires : jsPDF 2.5.1 UMD (+ jspdf-autotable 3.8.2 for tables)
+              Style 2 also requires html2canvas 1.4.1 (rich card look)
    Pattern  : window-export, no build step, no framework.
 
-   VERSION V1.00
+   Two output styles:
+     STYLE 1 — jsPDF vector: drawHeader / drawFooter / pairRow /
+               sectionHeading / para. Sharp, selectable, small files.
+     STYLE 2 — BromarReportKit.style2.* : rich card look (orange
+               gradient stat cards, icons, rounded panels) built as
+               HTML and captured with html2canvas. Faithful but raster.
+
+   VERSION V1.02
    (+0.01 per change; major digit only bumps on explicit major change)
    ============================================================ */
 
 (function () {
   'use strict';
 
-  const VERSION = 'V1.00';
+  const VERSION = 'V1.02';
 
-  /* ── CONFIG (per-repo overrides) ──
-     Bromar Ops and Bromar Hub live in separate repos with different
-     asset paths. Keep this file identical in both; each repo calls
-     BromarReportKit.configure({...}) once at startup to set its paths.
-     Defaults below are the Bromar Ops paths. */
+  /* ── CONFIG ──
+     Bromar Ops and Bromar Hub are separate repos but run this file
+     byte-identical. Both repos must keep their logos at assets/logo/.
+     configure() remains available if a repo ever needs to override. */
   const config = {
-    logoColour:  'assets/Bromar-Primary-Logo-Full-Colour.png',
-    logoReverse: 'assets/Bromar-Primary-Logo-Reverse-White.png'
+    logoColour:  'assets/logo/bromar-logo-colour.png',
+    logoReverse: 'assets/logo/bromar-logo-white.png'
   };
 
   function configure(opts) {
@@ -310,6 +317,220 @@
     document.head.appendChild(style);
   }
 
+  /* ============================================================
+     STYLE 2 — rich card look (HTML + html2canvas)
+     Reusable building blocks that mirror the switchboard schedule:
+     header (logo left / company centre / big orange title right),
+     rounded info panel with optional badge, orange-gradient stat
+     cards with icons, boxed grid, footer. Compose then generate().
+     ============================================================ */
+
+  const S2_ID = 'brk2-css';
+
+  const S2_CSS =
+    ".brk2-page{position:relative;width:760px;min-height:1074px;margin:0 auto;background:#fff;color:#000;font-family:'Outfit',Arial,sans-serif;padding:24px 26px 70px;box-sizing:border-box;}" +
+    ".brk2-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:6px;}" +
+    ".brk2-logo{max-height:42px;width:auto;}" +
+    ".brk2-center{flex:1;text-align:left;padding-left:30px;font-size:8px;color:#555;line-height:1.32;}" +
+    ".brk2-title{font-size:26px;font-weight:800;color:" + PALETTE.accent.hex + ";letter-spacing:-0.01em;line-height:1.05;text-align:center;}" +
+    ".brk2-info{border:1px solid #e2e2e2;border-radius:10px;overflow:hidden;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,0.05);}" +
+    ".brk2-info-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 16px;background:#fff;}" +
+    ".brk2-info-title{font-size:18px;font-weight:800;color:#1a1a1e;letter-spacing:-0.02em;line-height:1.05;text-transform:uppercase;}" +
+    ".brk2-info-sub{font-size:8.5px;color:#8a8a8a;margin-top:1px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}" +
+    ".brk2-info-warn{flex:none;background:#fdeaea;color:#d21f1f;border:1px solid #f3b4b4;border-radius:6px;padding:5px 10px;font-size:8px;font-weight:800;text-align:center;line-height:1.2;letter-spacing:.5px;}" +
+    ".brk2-stats{display:flex;}" +
+    ".brk2-stats + .brk2-stats{border-top:1px solid rgba(0,0,0,0.07);}" +
+    ".brk2-stats .brk2-stat{flex:1;display:flex;align-items:center;gap:8px;padding:5px 14px;min-width:0;}" +
+    ".brk2-stats .brk2-stat + .brk2-stat{border-left:1px solid rgba(255,255,255,0.25);}" +
+    ".brk2-stats-secondary .brk2-stat + .brk2-stat{border-left:1px solid #ececec;}" +
+    ".brk2-stat-t{display:flex;flex-direction:column;line-height:1.1;min-width:0;}" +
+    ".brk2-lbl{font-size:7px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;font-weight:600;}" +
+    ".brk2-val{font-size:11px;font-weight:800;word-break:break-word;text-transform:uppercase;}" +
+    ".brk2-stats-primary{background:linear-gradient(90deg," + PALETTE.accent.hex + " 0%,#f97316 100%);color:#fff;}" +
+    ".brk2-stats-secondary{background:#f8f8f8;color:#1a1a1e;}" +
+    ".brk2-stats-secondary .brk2-lbl{color:#9a9a9a;opacity:1;}" +
+    ".brk2-gridwrap{border:1px solid #e2e2e2;border-radius:10px;overflow:hidden;}" +
+    ".brk2-grid{width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed;line-height:1.15;}" +
+    ".brk2-grid th,.brk2-grid td{border:1px solid #e2e2e2;padding:1.5px 5px;}" +
+    ".brk2-grid th{font-weight:700;text-align:center;background:#f8f8f8;color:#1a1a1e;}" +
+    ".brk2-grid td.cb{text-align:center;font-weight:700;background:#f2f2f2;color:#1a1a1e;}" +
+    ".brk2-grid td.ctr{text-align:center;}" +
+    ".brk2-band td{background:#1a1a1e;color:#fff;font-weight:700;text-align:center;letter-spacing:0.5px;}" +
+    ".brk2-break td{background:#1a1a1e;color:#fff;font-weight:800;text-align:center;letter-spacing:1px;font-size:10px;}" +
+    ".brk2-foot{position:absolute;left:26px;right:26px;bottom:42px;display:flex;justify-content:space-between;gap:16px;padding-top:8px;border-top:1px solid #ececec;}" +
+    ".brk2-foot-item{display:flex;align-items:center;gap:6px;font-size:8.5px;color:#777;}";
+
+  function s2InjectCSS() {
+    if (document.getElementById(S2_ID)) return;
+    const st = document.createElement('style');
+    st.id = S2_ID;
+    st.textContent = S2_CSS;
+    document.head.appendChild(st);
+  }
+
+  const S2_ICONS = {
+    switch:   '<path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/>',
+    bolt:     '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    battery:  '<rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/><line x1="6" y1="10" x2="6" y2="14"/>',
+    grid:     '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    tag:      '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+    box:      '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+    map:      '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+    trefoil:  '<circle cx="12" cy="7.5" r="4.2"/><circle cx="7.3" cy="15.5" r="4.2"/><circle cx="16.7" cy="15.5" r="4.2"/>',
+    login:    '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+    branch:   '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+    note:     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    person:   '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    check:    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+  };
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // inline icon (raw SVG). color defaults to accent.
+  function s2Icon(name, color, size) {
+    const sz = size || 15;
+    const col = color || PALETTE.accent.hex;
+    return '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" style="flex:none" fill="none" stroke="' + col + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (S2_ICONS[name] || '') + '</svg>';
+  }
+
+  // one stat card. label/value are escaped; icon is raw.
+  function s2StatCard(icon, label, value, color, grow) {
+    const st = grow ? ' style="flex:' + grow + '"' : '';
+    return '<div class="brk2-stat"' + st + '>' + (icon || '') +
+      '<div class="brk2-stat-t"><span class="brk2-lbl">' + escHtml(label) +
+      '</span><span class="brk2-val">' + (value ? escHtml(value) : '—') + '</span></div></div>';
+  }
+
+  // a row of stat cards. variant 'primary' (orange gradient) | 'secondary' (grey).
+  // cards = array of stat-card HTML strings (use s2StatCard).
+  function s2StatRow(variant, cards) {
+    const list = Array.isArray(cards) ? cards.join('') : (cards || '');
+    return '<div class="brk2-stats brk2-stats-' + (variant === 'primary' ? 'primary' : 'secondary') + '">' + list + '</div>';
+  }
+
+  // rounded info panel. { title, subtitle, badge, rows } where rows is
+  // pre-built stat-row HTML (use s2StatRow). title/subtitle/badge escaped.
+  function s2InfoPanel(cfg) {
+    cfg = cfg || {};
+    return '<div class="brk2-info"><div class="brk2-info-head"><div>' +
+      '<div class="brk2-info-title">' + escHtml(cfg.title || '') + '</div>' +
+      (cfg.subtitle ? '<div class="brk2-info-sub">' + escHtml(cfg.subtitle) + '</div>' : '') +
+      '</div>' +
+      (cfg.badge ? '<div class="brk2-info-warn">' + cfg.badge + '</div>' : '') +
+      '</div>' + (cfg.rows || '') + '</div>';
+  }
+
+  // footer strip. left/right are raw HTML (icon + text).
+  function s2Footer(leftHTML, rightHTML) {
+    return '<div class="brk2-foot"><div class="brk2-foot-item">' + (leftHTML || '') +
+      '</div><div class="brk2-foot-item">' + (rightHTML || '') + '</div></div>';
+  }
+
+  // company block used in the Style 2 header (single source of truth).
+  function s2CompanyBlock(extraLine) {
+    return COMPANY.address + '<br>Ph: ' + COMPANY.phone + ' &nbsp;&middot;&nbsp; REC: ' + COMPANY.rec +
+      '<br>WEB: ' + COMPANY.web + (extraLine ? '<br>' + extraLine : '');
+  }
+
+  // header: logo left, company centre, big orange title right.
+  // title is raw (allows <br>); logoDataURL supplied by page().
+  function s2Header(logoDataURL, title, extraLine) {
+    const logo = logoDataURL
+      ? '<img class="brk2-logo" src="' + logoDataURL + '" alt="Bromar"/>'
+      : '<div class="brk2-title" style="font-size:20px;text-align:left">BROMAR</div>';
+    return '<div class="brk2-head">' + logo +
+      '<div class="brk2-center">' + s2CompanyBlock(extraLine) + '</div>' +
+      '<div class="brk2-title">' + (title || '') + '</div></div>';
+  }
+
+  // build a full Style 2 page element (off-screen ready).
+  // cfg: { title, extraLine, body (raw HTML between header & footer),
+  //        footerLeft, footerRight, dark }
+  // returns a Promise<HTMLElement>.
+  function s2Page(cfg) {
+    cfg = cfg || {};
+    s2InjectCSS();
+    const url = cfg.dark ? config.logoReverse : config.logoColour;
+    return loadLogoAsset(url).then(function (rec) {
+      return (rec && rec.dataURL) || '';
+    }).catch(function () {
+      return '';
+    }).then(function (logoDataURL) {
+      const el = document.createElement('div');
+      el.className = 'brk2-page';
+      el.innerHTML =
+        s2Header(logoDataURL, cfg.title || '', cfg.extraLine) +
+        (cfg.body || '') +
+        s2Footer(cfg.footerLeft, cfg.footerRight);
+      return el;
+    });
+  }
+
+  // capture a Style 2 element to a multi-page A4 PDF and save.
+  // opts: { element (required), filename, rev, save (default true) }
+  // stamps optional revision bottom-left + page number centre on every page.
+  function s2Generate(opts) {
+    opts = opts || {};
+    if (!opts.element) return Promise.reject(new Error('style2.generate needs { element }'));
+    if (!window.html2canvas) return Promise.reject(new Error('html2canvas not loaded (required for Style 2)'));
+    const JsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!JsPDF) return Promise.reject(new Error('jsPDF not loaded'));
+
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;';
+    holder.appendChild(opts.element);
+    document.body.appendChild(holder);
+
+    return document.fonts.ready
+      .then(function () { return new Promise(function (r) { setTimeout(r, 250); }); })
+      .then(function () {
+        return window.html2canvas(opts.element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      })
+      .then(function (canvas) {
+        const pdf = new JsPDF('p', 'mm', 'a4');
+        const pw = LAYOUT.pageW, ph = LAYOUT.pageH;
+        const imgW = pw, imgH = canvas.height * pw / canvas.width;
+        const img = canvas.toDataURL('image/png');
+        let heightLeft = imgH, position = 0;
+        pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= ph;
+        while (heightLeft > 0) { position -= ph; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= ph; }
+        const pages = pdf.getNumberOfPages();
+        for (let i = 1; i <= pages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.setTextColor(120, 120, 120);
+          if (opts.rev) pdf.text(String(opts.rev), 10, 292);
+          pdf.text(String(i), 105, 292, { align: 'center' });
+        }
+        if (opts.save !== false) {
+          const fn = String(opts.filename || 'report').replace(/[^\w.-]+/g, '_');
+          pdf.save(fn.replace(/\.pdf$/i, '') + '.pdf');
+        }
+        return pdf;
+      })
+      .finally(function () { holder.remove(); });
+  }
+
+  const style2 = {
+    injectCSS: s2InjectCSS,
+    icon: s2Icon,
+    statCard: s2StatCard,
+    statRow: s2StatRow,
+    infoPanel: s2InfoPanel,
+    header: s2Header,
+    footer: s2Footer,
+    companyBlock: s2CompanyBlock,
+    page: s2Page,
+    generate: s2Generate,
+    escHtml: escHtml,
+    ICONS: S2_ICONS
+  };
+
   /* ── EXPORT ── */
   window.BromarReportKit = {
     version: VERSION,
@@ -328,6 +549,7 @@
     para: para,
     createDoc: createDoc,
     formatDate: formatDate,
-    injectPreviewVars: injectPreviewVars
+    injectPreviewVars: injectPreviewVars,
+    style2: style2
   };
 })();
