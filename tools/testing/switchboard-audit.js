@@ -268,6 +268,7 @@ window.BromarTest.SwitchboardAudit = (function () {
         <tbody>${checklistHtml}</tbody>
       </table>
       <div class="section-label">Hazards / Major Non-Compliance Identified</div>
+      <p style="font-size:0.8rem;color:var(--text-secondary);margin:-0.5rem 0 1rem;line-height:1.5;">Items marked as Fail are automatically added below. You can edit the text or add more detail as needed.</p>
       <div class="sa-dynamic-list" id="saHazards"></div>
       <button class="add-btn" id="saAddHazard">+ Add Hazard</button>
       <div class="section-label">Remedial Works Recommended</div>
@@ -451,19 +452,32 @@ window.BromarTest.SwitchboardAudit = (function () {
     };
   }
 
-  function validate(data) {
-    if (!data.boardId) return 'Switchboard ID is required';
-    if (!data.auditor) return 'Auditor is required';
-    if (!data.date) return 'Date is required';
+  function validate(data, container) {
+    if (!data.boardId) return { msg: 'Switchboard ID is required', el: '#saBoardId' };
+    if (!data.auditor) return { msg: 'Auditor is required', el: '#saAuditor' };
+    if (!data.date) return { msg: 'Date is required', el: '#saDate' };
     const un = data.items.filter(i => !i.result);
-    if (un.length) return `${un.length} inspection item(s) not answered (item ${un[0].num})`;
+    if (un.length) return { msg: `${un.length} inspection item(s) not answered (item ${un[0].num})`, el: `input[name="item_${un[0].num}"]` };
     return null;
+  }
+
+  function showValidationError(container, result) {
+    BromarHub.showInfo(result.msg);
+    if (result.el) {
+      const target = container.querySelector(result.el);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus?.();
+        target.style.outline = '2px solid var(--error)';
+        setTimeout(() => { target.style.outline = ''; }, 3000);
+      }
+    }
   }
 
   async function submitAudit(container, cfg) {
     const data = collectData(container);
-    const err = validate(data);
-    if (err) { BromarHub.showInfo(err); return; }
+    const err = validate(data, container);
+    if (err) { showValidationError(container, err); return; }
     const sb = cfg.supabase;
     const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
