@@ -6,6 +6,9 @@
   <title>Purchase Order - Bromar</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/tools/auth.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="/tools/bromar-report-kit.js"></script>
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
   <style>
@@ -512,6 +515,8 @@
     </div>
     <div class="po-summary-details" id="summaryDetails"></div>
     <div class="po-summary-actions">
+      <button type="button" class="submit-btn" id="summaryDownloadBtn">📄 Download PDF</button>
+      <button type="button" class="btn-secondary" id="summaryEmailBtn">✉️ Email to Supplier</button>
       <button type="button" class="btn-secondary" id="summaryNewBtn">+ New Purchase Order</button>
     </div>
   </div>
@@ -678,16 +683,17 @@
   </div>
 </div>
 
-<div class="revision-number">V1.16</div>
+<div class="revision-number">V1.17</div>
 
 <script>
-  const DOC_VERSION = 'V1.16';
+  const DOC_VERSION = 'V1.17';
 
   let currentUser = null;
   let EMPLOYEES = [];
   let selectedJobData = null;
   let selectedSupplier = null;
   let selectedBranch = null;
+  let lastSubmittedPO = null;
 
   // ============================================================
   // INIT
@@ -1448,6 +1454,35 @@
 
       BromarHub.hideLoading();
 
+      // Snapshot the submitted PO for PDF/email
+      lastSubmittedPO = {
+        po_number: inserted.po_number,
+        po_type: currentMode,
+        job_number: selectedJobData.job_number,
+        client_name: selectedJobData.client_name,
+        client_site: [selectedJobData.site_name, selectedJobData.site_address].filter(Boolean).join(' — '),
+        client_contact: [selectedJobData.contact_person, selectedJobData.contact_phone].filter(Boolean).join(' — '),
+        ordered_by_name: currentUser.name,
+        ordered_by_email: currentUser.email || '',
+        supplier: supplierName,
+        supplier_branch: (selectedBranch?.branch_name || branchSearch.value.trim() || ''),
+        supplier_branch_details: selectedBranch
+          ? [selectedBranch.address, [selectedBranch.suburb, selectedBranch.state, selectedBranch.postcode].filter(Boolean).join(' '), selectedBranch.phone, selectedBranch.email].filter(Boolean).join('\n')
+          : '',
+        required_by: document.getElementById('required_by')?.value || '',
+        delivery_type: document.querySelector('input[name="delivery_type"]:checked')?.value || 'Deliver',
+        delivery_address: document.getElementById('delivery_address')?.value?.trim() || '',
+        delivery_contact_name: document.getElementById('delivery_contact_name')?.value?.trim() || '',
+        delivery_contact_phone: document.getElementById('delivery_contact_phone')?.value?.trim() || '',
+        verbal_description: document.getElementById('verbal_description')?.value?.trim() || '',
+        general_notes: document.getElementById('general_notes')?.value?.trim() || '',
+        line_items: currentMode === 'standard' ? collectLineItems() : [],
+        subtotal: parseFloat(document.getElementById('subtotalDisplay').textContent.replace(/[^0-9.]/g,'')) || 0,
+        gst: parseFloat(document.getElementById('gstDisplay').textContent.replace(/[^0-9.]/g,'')) || 0,
+        total: parseFloat(document.getElementById('totalDisplay').textContent.replace(/[^0-9.]/g,'')) || 0,
+        created_at: new Date()
+      };
+
       // Build summary details
       const supplierDisplay = [supplierName, (selectedBranch?.branch_name || branchSearch.value.trim())]
         .filter(Boolean).join(' — ');
@@ -1516,6 +1551,279 @@
     document.getElementById('poFormCard').style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  document.getElementById('summaryDownloadBtn').addEventListener('click', async () => {
+    if (!lastSubmittedPO) return;
+    try { await generatePoPdf(lastSubmittedPO, true); }
+    catch (err) { BromarHub.showInfo('PDF generation failed: ' + err.message); }
+  });
+
+  document.getElementById('summaryEmailBtn').addEventListener('click', async () => {
+    if (!lastSubmittedPO) return;
+    const po = lastSubmittedPO;
+    let to = '';
+    if (selectedBranch?.email) to = selectedBranch.email;
+    if (!to) {
+      to = prompt('Supplier email address:', to) || '';
+      if (!to) return;
+    }
+    const subject = `Purchase Order ${po.po_number} — ${po.supplier}${po.supplier_branch ? ' (' + po.supplier_branch + ')' : ''}`;
+    const body = [
+      `Hi,`, ``,
+      `Please find purchase order ${po.po_number} attached (or download from the link on this page).`,
+      ``,
+      `Reference: ${po.po_number}`,
+      po.required_by ? `Required by: ${po.required_by}` : '',
+      ``,
+      `Regards,`,
+      `${po.ordered_by_name}`,
+      `Bromar Electrical Services Pty Ltd`,
+      `Ph: 03 9335 5344`
+    ].filter(Boolean).join('\n');
+    try {
+      await generatePoPdf(po, true); // download for attaching
+    } catch (err) { /* still open mailto even if PDF fails */ }
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+
+  // ============================================================
+  // PDF GENERATION (Bromar Report Kit — Style 1 vector)
+  // ============================================================
+  async function generatePoPdf(po, save = true) {
+    if (!window.BromarReportKit) throw new Error('Report kit not loaded');
+    const kit = window.BromarReportKit;
+    const { PALETTE, LAYOUT, FONT, normalize } = kit;
+    const M = LAYOUT.margin;
+
+    const doc = kit.createDoc();
+    await kit.drawHeader(doc);
+
+    let y = LAYOUT.headerH + 12;
+
+    // Big title
+    doc.setFontSize(FONT.title + 6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PALETTE.accent.rgb[0], PALETTE.accent.rgb[1], PALETTE.accent.rgb[2]);
+    doc.text('PURCHASE ORDER', LAYOUT.pageW - M, y, { align: 'right' });
+
+    // Meta block (right side)
+    y += 10;
+    const metaX = LAYOUT.pageW - M - 60;
+    const metaVX = LAYOUT.pageW - M;
+    const meta = [
+      ['Date:', kit.formatDate(new Date(po.created_at || Date.now()))],
+      ['P.O. #:', po.po_number],
+      ['Job:', po.job_number],
+      ['Type:', po.po_type === 'verbal' ? 'Verbal / Walk-In' : 'Standard PO']
+    ];
+    doc.setFontSize(FONT.body);
+    meta.forEach(([l, v]) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+      doc.text(l, metaX, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(PALETTE.black.rgb[0], PALETTE.black.rgb[1], PALETTE.black.rgb[2]);
+      doc.text(normalize(String(v)), metaVX, y, { align: 'right' });
+      y += 5.5;
+    });
+
+    // Vendor + Ship To (two columns)
+    y = LAYOUT.headerH + 40;
+    const colW = (LAYOUT.contentW - 10) / 2;
+    const col1X = M;
+    const col2X = M + colW + 10;
+
+    // labels
+    doc.setFontSize(FONT.label);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+    doc.text('VENDOR', col1X, y);
+    doc.text('SHIP TO', col2X, y);
+    y += 5;
+
+    doc.setDrawColor(PALETTE.line.rgb[0], PALETTE.line.rgb[1], PALETTE.line.rgb[2]);
+    doc.setLineWidth(0.2);
+    doc.line(col1X, y - 2, col1X + colW, y - 2);
+    doc.line(col2X, y - 2, col2X + colW, y - 2);
+
+    doc.setFontSize(FONT.body);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PALETTE.black.rgb[0], PALETTE.black.rgb[1], PALETTE.black.rgb[2]);
+    doc.text(normalize(po.supplier + (po.supplier_branch ? ' — ' + po.supplier_branch : '')), col1X, y + 2);
+
+    doc.text(normalize(po.ordered_by_name || ''), col2X, y + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(FONT.body - 1);
+    doc.setTextColor(PALETTE.charcoal.rgb[0], PALETTE.charcoal.rgb[1], PALETTE.charcoal.rgb[2]);
+
+    let cy1 = y + 7;
+    if (po.supplier_branch_details) {
+      const lines = doc.splitTextToSize(normalize(po.supplier_branch_details), colW);
+      lines.forEach(ln => { doc.text(ln, col1X, cy1); cy1 += 4.5; });
+    }
+
+    let cy2 = y + 7;
+    ['Bromar Electrical Services Pty Ltd', '2/98-108 Western Ave', 'Westmeadows, VIC 3049', po.ordered_by_email].filter(Boolean).forEach(ln => {
+      doc.text(normalize(ln), col2X, cy2); cy2 += 4.5;
+    });
+
+    y = Math.max(cy1, cy2) + 6;
+
+    // Shipping strip
+    doc.setDrawColor(PALETTE.line.rgb[0], PALETTE.line.rgb[1], PALETTE.line.rgb[2]);
+    doc.setFontSize(FONT.label);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+    const sw = LAYOUT.contentW / 3;
+    doc.text('SHIPPING METHOD', M, y);
+    doc.text('SHIPPING TERMS', M + sw, y);
+    doc.text('DELIVERY DATE', M + sw * 2, y);
+    y += 4;
+    doc.line(M, y, M + LAYOUT.contentW, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(FONT.body);
+    doc.setTextColor(PALETTE.black.rgb[0], PALETTE.black.rgb[1], PALETTE.black.rgb[2]);
+    const shipMethod = po.delivery_type === 'Pickup' ? 'Pickup' : 'Delivery';
+    const shipTerms = 'As per below';
+    const deliveryDate = po.required_by ? kit.formatDate(new Date(po.required_by)) : 'ASAP';
+    doc.text(normalize(shipMethod), M, y);
+    doc.text(normalize(shipTerms), M + sw, y);
+    doc.text(normalize(deliveryDate), M + sw * 2, y);
+    y += 8;
+
+    // Delivery address block (if delivering)
+    if (po.delivery_type === 'Deliver' && po.delivery_address) {
+      doc.setFontSize(FONT.small);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+      doc.text('DELIVER TO:', M, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(PALETTE.black.rgb[0], PALETTE.black.rgb[1], PALETTE.black.rgb[2]);
+      doc.setFontSize(FONT.body);
+      const addr = po.delivery_address + (po.delivery_contact_name ? '\nAttn: ' + po.delivery_contact_name : '') + (po.delivery_contact_phone ? ' — ' + po.delivery_contact_phone : '');
+      const addrLines = doc.splitTextToSize(normalize(addr), LAYOUT.contentW - 24);
+      addrLines.forEach((ln, i) => { doc.text(ln, M + 24, y + (i * 4.5)); });
+      y += Math.max(6, addrLines.length * 4.5) + 4;
+    }
+
+    // Line items / description
+    if (po.po_type === 'verbal') {
+      // Verbal: description block
+      y = kit.sectionHeading(doc, M, y + 2, 'Order Description');
+      y = kit.para(doc, M, y, po.verbal_description || '(No description)', { width: LAYOUT.contentW });
+      y += 6;
+    } else {
+      // Standard: line items table
+      const body = (po.line_items || []).map(li => [
+        String(li.qty),
+        li.part_number || '',
+        li.description || '',
+        '$ ' + Number(li.price_each).toFixed(2),
+        '$ ' + (Number(li.qty) * Number(li.price_each)).toFixed(2)
+      ]);
+      // Pad to at least 8 rows for the traditional PO look
+      while (body.length < 8) body.push(['', '', '', '', '']);
+
+      doc.autoTable({
+        startY: y,
+        head: [['Qty', 'Item #', 'Description', 'Unit Price', 'Line Total']],
+        body,
+        theme: 'grid',
+        margin: { left: M, right: M },
+        headStyles: {
+          fillColor: PALETTE.navy.rgb,
+          textColor: PALETTE.white.rgb,
+          fontStyle: 'bold',
+          fontSize: FONT.small
+        },
+        bodyStyles: {
+          fontSize: FONT.body - 1,
+          textColor: PALETTE.black.rgb,
+          lineColor: PALETTE.line.rgb,
+          cellPadding: 2
+        },
+        columnStyles: {
+          0: { cellWidth: 18, halign: 'right' },
+          1: { cellWidth: 34 },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 28, halign: 'right' },
+          4: { cellWidth: 28, halign: 'right' }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 4;
+
+      // Totals block, right-aligned
+      const totalsX = LAYOUT.pageW - M - 60;
+      const totalsVX = LAYOUT.pageW - M;
+      const totalsRows = [
+        ['Subtotal', '$ ' + po.subtotal.toFixed(2)],
+        ['Sales Tax (10%)', '$ ' + po.gst.toFixed(2)],
+        ['Total (inc GST)', '$ ' + po.total.toFixed(2)]
+      ];
+      doc.setFontSize(FONT.body);
+      totalsRows.forEach(([l, v], i) => {
+        const isTotal = i === totalsRows.length - 1;
+        doc.setFont('helvetica', isTotal ? 'bold' : 'normal');
+        doc.setTextColor(...(isTotal ? PALETTE.accent.rgb : PALETTE.charcoal.rgb));
+        doc.text(l, totalsX, y);
+        doc.text(v, totalsVX, y, { align: 'right' });
+        y += 6;
+      });
+      y += 3;
+    }
+
+    // Notes
+    if (po.general_notes) {
+      if (y > LAYOUT.footerY - 40) { doc.addPage(); await kit.drawHeader(doc); y = LAYOUT.headerH + 12; }
+      y = kit.sectionHeading(doc, M, y, 'Notes / Special Instructions');
+      y = kit.para(doc, M, y, po.general_notes, { width: LAYOUT.contentW });
+    }
+
+    // Standard notes footer (like the reference PO)
+    if (y > LAYOUT.footerY - 30) { doc.addPage(); await kit.drawHeader(doc); y = LAYOUT.headerH + 12; }
+    y += 4;
+    doc.setFontSize(FONT.small);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+    [
+      '1. Please send two copies of your invoice.',
+      '2. Enter this order in accordance with the prices, terms, delivery method, and specifications listed above.',
+      '3. Please notify us immediately if you are unable to ship as specified.',
+      `4. Reference PO ${po.po_number} on all correspondence and invoices.`
+    ].forEach(ln => { doc.text(normalize(ln), M, y); y += 4; });
+
+    // Authorised by
+    y += 6;
+    doc.setDrawColor(PALETTE.line.rgb[0], PALETTE.line.rgb[1], PALETTE.line.rgb[2]);
+    doc.line(M, y, M + 70, y);
+    doc.line(LAYOUT.pageW - M - 40, y, LAYOUT.pageW - M, y);
+    doc.setFontSize(FONT.small);
+    doc.setTextColor(PALETTE.muted.rgb[0], PALETTE.muted.rgb[1], PALETTE.muted.rgb[2]);
+    y += 4;
+    doc.text('Authorised by', M, y);
+    doc.text('Date', LAYOUT.pageW - M - 40, y);
+    y -= 6;
+    doc.setFontSize(FONT.body);
+    doc.setTextColor(PALETTE.black.rgb[0], PALETTE.black.rgb[1], PALETTE.black.rgb[2]);
+    doc.text(normalize(po.ordered_by_name), M, y);
+    doc.text(normalize(kit.formatDate(new Date(po.created_at || Date.now()))), LAYOUT.pageW - M, y, { align: 'right' });
+
+    // Footer on every page
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      kit.drawFooter(doc, {
+        title: 'Purchase Order',
+        ref: po.po_number,
+        pageNo: `${i} of ${pageCount}`
+      });
+    }
+
+    const filename = `PO-${po.po_number}.pdf`;
+    if (save) doc.save(filename);
+    return doc;
+  }
 </script>
 
 </body>
