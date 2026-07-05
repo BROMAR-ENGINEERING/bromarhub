@@ -27,12 +27,13 @@
 
   function makeConfig(job, goBack) {
     return {
-      jobNumber: JM.state.selectedJob,
+      jobNumber: String(JM.state.selectedJob || ''),
       clientName: job?.client_name || '',
       siteName: job?.site_name || '',
+      siteAddress: job?.site_address || '',
       employees: window.EMPLOYEES || [],
       currentUser: window.currentUser,
-      supabase: JM.sb(),
+      supabase: window.sb,
       onComplete: async () => { await JM.loadJobData(JM.state.selectedJob); JM.updateCounts(); goBack(); },
       onBack: goBack,
     };
