@@ -201,7 +201,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     mod.renderForm(formContainer, {
       jobNumber: selectedJob?.job_number || '',
       clientName: selectedJob?.client_name || '',
-      siteName: selectedJob?.site_name || selectedJob?.site_address || '',
+      siteName: selectedJob?.site_name || '',
+      siteAddress: selectedJob?.site_address || '',
       employees: window.EMPLOYEES || [],
       currentUser: window.currentUser,
       supabase: window.sb,
