@@ -241,8 +241,9 @@ window.BromarTest.SwitchboardAudit = (function () {
           <button class="sa-info-close" id="saInfoClose">Close</button>
         </div>
       </div>
-      ${cfg.onBack ? '<button class="sa-back" id="saBack">\u2190 Back</button>' : ''}
-      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">\uD83D\uDD0C Switchboard Inspection Audit</h3>
+      ${cfg.onBack ? '<button class="sa-back" id="saBack">\u2190 Back to Testing</button>' : ''}
+      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem;">\uD83D\uDD0C Switchboard Inspection Audit</h3>
+      ${cfg.editRecord ? '<div style="font-size:0.8rem;color:var(--accent);font-weight:600;margin-bottom:1rem;font-family:\'JetBrains Mono\',monospace;">Editing V' + (cfg.editRecord.rev_major||1) + '.' + String(cfg.editRecord.rev_minor||0).padStart(2,'0') + ' \u2192 New revision will be created on submit</div>' : ''}
       <div class="section-label">Job Details</div>
       ${cfg.jobNumber ? '' : '<div class="field-row"><div class="field-group full" style="grid-column:1/-1;"><label>Job Number <span class="required">*</span></label><div class="autocomplete-wrapper"><input type="text" id="saJobNumber" placeholder="Search job number, client, or site..." autocomplete="off"><div class="autocomplete-results" id="saJobResults"></div></div></div></div>'}
       <div class="field-row">
@@ -404,6 +405,33 @@ window.BromarTest.SwitchboardAudit = (function () {
         BromarHub.hideLoading(); BromarHub.showSuccess('Draft saved');
       } catch (e) { BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (e.message || e)); }
     });
+
+    /* ── Pre-fill form when editing ── */
+    if (cfg.editRecord) {
+      const r = cfg.editRecord;
+      const set = (id, v) => { const el = container.querySelector('#' + id); if (el && v) el.value = v; };
+      set('saClient', r.client_name);
+      set('saSiteName', r.site_name);
+      set('saSiteAddress', r.site_address);
+      set('saBoardId', r.switchboard_id);
+      set('saLocation', r.location);
+      set('saDate', r.audit_date);
+      if (r.tested_by && auditorSel) { auditorSel.value = r.tested_by; auditorSel.disabled = false; }
+      /* Check radios */
+      if (Array.isArray(r.inspection_items)) {
+        r.inspection_items.forEach(item => {
+          if (item.result) {
+            const radio = container.querySelector(`input[name="item_${item.num}"][value="${item.result}"]`);
+            if (radio) radio.checked = true;
+          }
+        });
+      }
+      /* Populate hazards */
+      if (Array.isArray(r.hazards)) r.hazards.forEach(h => addDynRow(hazardsContainer, h, null));
+      /* Populate remedial */
+      const remedialContainer = container.querySelector('#saRemedial');
+      if (Array.isArray(r.remedial_works)) r.remedial_works.forEach(rw => addDynRow(remedialContainer, rw, null));
+    }
   }
 
   function collectData(container) {
@@ -440,7 +468,16 @@ window.BromarTest.SwitchboardAudit = (function () {
     const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
     try {
-      const record = { job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'completed' };
+      /* Revision control */
+      let revMajor = 1, revMinor = 0, parentId = null;
+      if (cfg.editRecord) {
+        revMajor = cfg.editRecord.rev_major || 1;
+        revMinor = (cfg.editRecord.rev_minor || 0) + 1;
+        parentId = cfg.editRecord.parent_id || cfg.editRecord.id;
+      }
+      const revStr = 'V' + revMajor + '.' + String(revMinor).padStart(2, '0');
+
+      const record = { job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'completed', rev_major: revMajor, rev_minor: revMinor, parent_id: parentId };
       const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
       if (insertErr) throw insertErr;
       const recordId = inserted.id;
@@ -448,7 +485,7 @@ window.BromarTest.SwitchboardAudit = (function () {
       for (let i = 0; i < photos.length; i++) { const p = photos[i]; const ext = p.file.name.split('.').pop() || 'jpg'; const path = `${jobNumber}/${FOLDER}/${recordId}/photo_${i + 1}.${ext}`; const { error: upErr } = await sb.storage.from(BUCKET).upload(path, p.file, { upsert: true }); if (!upErr) photoPaths.push({ path, description: p.description }); }
       if (photoPaths.length) await sb.from(TABLE).update({ photos: photoPaths }).eq('id', recordId);
       BromarHub.showLoading('Generating PDF...', 'Please wait');
-      const pdfBlob = await generatePDF(data, jobNumber);
+      const pdfBlob = await generatePDF(data, jobNumber, revStr);
       const pdfPath = `${jobNumber}/${FOLDER}/${recordId}.pdf`;
       await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       BromarHub.hideLoading();
@@ -463,7 +500,8 @@ window.BromarTest.SwitchboardAudit = (function () {
   /* ══════════════════════════════════════════════════════════
      PDF GENERATION
      ══════════════════════════════════════════════════════════ */
-  async function generatePDF(data, jobNumber) {
+  async function generatePDF(data, jobNumber, auditRev) {
+    const docRev = auditRev || 'V1.00';
     await ensureJsPDF();
     const logo = await loadLogo();
     const { jsPDF } = window.jspdf;
@@ -480,7 +518,7 @@ window.BromarTest.SwitchboardAudit = (function () {
       doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...NAVY); doc.text(ORG.name, rx, 8, { align: 'right' });
       doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED); doc.text(ORG.addr, rx, 12, { align: 'right' }); doc.text(ORG.phoneRec, rx, 15.5, { align: 'right' }); doc.text('WEB: ' + ORG.web, rx, 19, { align: 'right' });
       doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED);
-      doc.text(VERSION, M, 290);
+      doc.text(docRev, M, 290);
       doc.text((data.boardId || 'Switchboard') + ' \u2014 Switchboard Inspection Audit', W / 2, 290, { align: 'center' });
       doc.text('Page ' + doc.internal.getNumberOfPages(), W - M, 290, { align: 'right' });
     }
