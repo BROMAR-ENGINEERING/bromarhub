@@ -1,9 +1,14 @@
 {
-  "name": "bromar-timesheet",
+  "name": "bromar-hub-functions",
   "version": "1.0.0",
-  "description": "Bromar Employee Timesheet System",
+  "description": "Bromar Hub — Netlify functions (Resend email + Supabase)",
+  "scripts": {
+    "dev": "netlify dev"
+  },
   "dependencies": {
-    "@sendgrid/mail": "^8.1.0",
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.38.4"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
   }
 }
