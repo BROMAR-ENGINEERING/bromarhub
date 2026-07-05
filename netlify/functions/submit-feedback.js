@@ -1,40 +1,45 @@
-const sgMail = require('@sendgrid/mail');
+// ============================================================
+// BROMAR HUB — FEEDBACK / BUG REPORT (Resend)
+// Path: netlify/functions/submit-feedback.js
+// Migrated from SendGrid → Resend.  Revision V1.00
+//
+// Netlify env vars:
+//   RESEND_API_KEY   — Resend API key
+//   SUPABASE_URL / SUPABASE_KEY
+//   FROM_EMAIL       — until domain verified MUST be
+//                      "Bromar Hub <onboarding@resend.dev>"
+//   TEST_TO          — (optional) route ALL mail to your inbox while
+//                      unverified. Remove after verifying the domain.
+// ============================================================
+
 const { createClient } = require('@supabase/supabase-js');
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
     const data = JSON.parse(event.body);
 
-    const userName = data.user_name;
-    const userEmail = data.user_email;
-    const reportType = data.report_type;
-    const subject = data.subject;
+    const userName    = data.user_name;
+    const userEmail   = data.user_email;
+    const reportType  = data.report_type;
+    const subject     = data.subject;
     const description = data.description;
-    const pageUrl = data.page_url || null;
-    const browser = data.browser || null;
-    const priority = data.priority || 'N/A';
+    const pageUrl     = data.page_url || null;
+    const browser     = data.browser || null;
+    const priority    = data.priority || 'N/A';
 
     const submittedFormatted = new Date().toLocaleDateString('en-AU', {
       day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
-    // ============================================================
-    // SAVE TO SUPABASE
-    // ============================================================
+    // ── SAVE TO SUPABASE ──────────────────────────────────
     const { data: feedbackRecord, error: dbError } = await supabase
       .from('feedback_reports')
       .insert({
@@ -56,11 +61,7 @@ exports.handler = async (event) => {
       throw new Error('Failed to save to database');
     }
 
-    // ============================================================
-    // BUILD EMAIL HTML
-    // ============================================================
-
-    // Icon based on report type
+    // ── BUILD EMAIL HTML ──────────────────────────────────
     const typeIcon = {
       'Bug Report': '🐛',
       'Feature Request': '💡',
@@ -68,13 +69,12 @@ exports.handler = async (event) => {
       'Other': '📝'
     }[reportType] || '📝';
 
-    // Priority badge color
     let priorityBadge = '';
     if (reportType === 'Bug Report') {
       const priorityColors = {
-        'Low': { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', emoji: '🟢' },
+        'Low':    { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', emoji: '🟢' },
         'Medium': { bg: '#fef9c3', border: '#fde047', text: '#854d0e', emoji: '🟡' },
-        'High': { bg: '#fee2e2', border: '#fecaca', text: '#991b1b', emoji: '🔴' }
+        'High':   { bg: '#fee2e2', border: '#fecaca', text: '#991b1b', emoji: '🔴' }
       };
       const colors = priorityColors[priority] || priorityColors['Medium'];
       priorityBadge = `
@@ -97,7 +97,6 @@ exports.handler = async (event) => {
             <td align="center" style="padding:24px 16px;">
               <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e0e0e0;">
 
-                <!-- HEADER -->
                 <tr>
                   <td style="background:#fff3ee;padding:28px 32px 22px;text-align:center;">
                     <img src="https://bromar-engineering.github.io/LEAVE_REQUEST/Bromar-Primary-Logo-Full-Colour.png"
@@ -108,7 +107,6 @@ exports.handler = async (event) => {
                   </td>
                 </tr>
 
-                <!-- BODY -->
                 <tr>
                   <td style="padding:28px 32px;">
 
@@ -117,7 +115,6 @@ exports.handler = async (event) => {
                       A new ${reportType.toLowerCase()} has been submitted from the Bromar Hub. Please review the details below.
                     </p>
 
-                    <!-- User Details -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Submitted By</p>
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
                       <tr>
@@ -130,7 +127,6 @@ exports.handler = async (event) => {
                       </tr>
                     </table>
 
-                    <!-- Report Details -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Report Details</p>
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
                       <tr>
@@ -154,14 +150,12 @@ exports.handler = async (event) => {
                       </tr>
                     </table>
 
-                    <!-- Description -->
                     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Description</p>
                     <div style="background:#fafafa;border-left:3px solid #c2440e;border-radius:0 6px 6px 0;padding:12px 14px;font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap;">${description}</div>
 
                   </td>
                 </tr>
 
-                <!-- FOOTER -->
                 <tr>
                   <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
                     <p style="font-size:11px;color:#9ca3af;margin:3px 0;">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
@@ -179,34 +173,43 @@ exports.handler = async (event) => {
       </html>
     `;
 
-    // Send email via SendGrid
-    const msg = {
-      to: ['ashleys@bromar.com.au', userEmail],
-      from: 'servicet@bromar.com.au',
-      replyTo: 'admin@bromar.com.au',
+    // ── SEND VIA RESEND ───────────────────────────────────
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error('RESEND_API_KEY not configured');
+
+    const from = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>';
+    const testTo = process.env.TEST_TO;
+
+    const emailBody = {
+      from,
+      to: testTo ? [testTo] : ['ashleys@bromar.com.au'],
       subject: `${typeIcon} ${reportType} — ${subject}`,
       html: emailHTML,
+      reply_to: 'admin@bromar.com.au',
     };
+    if (!testTo && userEmail) emailBody.cc = [userEmail];
 
-    await sgMail.send(msg);
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(emailBody),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      console.error('Resend error:', result);
+      throw new Error('Failed to send email');
+    }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        message: 'Feedback submitted successfully',
-        id: feedbackRecord.id
-      })
+      body: JSON.stringify({ success: true, message: 'Feedback submitted successfully', id: feedbackRecord.id, emailId: result.id })
     };
 
   } catch (error) {
     console.error('Function error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: 'Failed to submit feedback',
-        details: error.message
-      })
+      body: JSON.stringify({ error: 'Failed to submit feedback', details: error.message })
     };
   }
 };
