@@ -468,7 +468,7 @@
         </div>
       </div>
       <div style="text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider);">
-        <div style="font-size: 0.8rem; color: var(--text-faded); font-weight: 500;">Version V1.01</div>
+        <div style="font-size: 0.8rem; color: var(--text-faded); font-weight: 500;">Version V1.02</div>
       </div>
     </div>
   </div>
@@ -610,16 +610,8 @@
     uploadedFiles.forEach(file => addFileToList(file));
   }
 
-  // PDF Generation
-  async function generatePDF() {
-    if (!validateForm()) {
-      BromarHub.showInfo('Please fill in all required fields before generating PDF');
-      return;
-    }
-
-    BromarHub.showLoading('Generating PDF report...', 'Please wait');
-
-    try {
+  // Build the PDF document (returns jsPDF doc)
+  function buildPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       
@@ -748,15 +740,27 @@
       // Footer
       doc.setFontSize(8);
       doc.setFont(undefined, 'italic');
-      doc.text('BROMAR Incident Report V1.01', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('BROMAR Incident Report V1.02', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
-      // Save PDF
-      const fileName = `Incident_Report_${currentUser.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+      return doc;
+  }
 
+  function pdfFileName() {
+    return `Incident_Report_${currentUser.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  }
+
+  // Download PDF (button handler)
+  function generatePDF() {
+    if (!validateForm()) {
+      BromarHub.showInfo('Please fill in all required fields before generating PDF');
+      return;
+    }
+    BromarHub.showLoading('Generating PDF report...', 'Please wait');
+    try {
+      const doc = buildPDF();
+      doc.save(pdfFileName());
       BromarHub.hideLoading();
       BromarHub.showSuccess('PDF generated successfully');
-
     } catch (err) {
       console.error('PDF generation error:', err);
       BromarHub.hideLoading();
@@ -938,7 +942,7 @@
         information_confirmed: document.getElementById('information_correct').checked,
         attachments: fileUrls.length > 0 ? fileUrls : null,
         submitted_at: new Date().toISOString(),
-        revision: 'V1.01'
+        revision: 'V1.02'
       };
 
       // Insert into Supabase
@@ -948,6 +952,45 @@
         .select();
 
       if (error) throw error;
+
+      // Send email via Netlify function (with PDF attachment)
+      BromarHub.showLoading('Sending notification...', 'Please wait');
+      try {
+        const doc = buildPDF();
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+        const emailPayload = {
+          reporter_name: currentUser.name,
+          reporter_email: currentUser.email,
+          reporter_position: incidentData.reporter_position || '',
+          incident_type: incidentData.incident_type,
+          severity: incidentData.severity,
+          incident_date: incidentData.incident_date,
+          incident_time: incidentData.incident_time,
+          incident_location: incidentData.incident_location,
+          site_address: incidentData.site_address,
+          injured_person: incidentData.injured_person || 'None',
+          witness_names: incidentData.witness_names || 'None',
+          incident_description: incidentData.incident_description,
+          immediate_action: incidentData.immediate_action || 'Not specified',
+          root_cause: incidentData.root_cause || 'Not specified',
+          medical_attention: incidentData.medical_attention ? 'Yes' : 'No',
+          site_notified: incidentData.site_notified ? 'Yes' : 'No',
+          additional_notes: incidentData.additional_notes || 'None',
+          submitted_date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          pdf: { filename: pdfFileName(), content: pdfBase64 }
+        };
+
+        const res = await fetch('/.netlify/functions/submit-incident-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(emailPayload)
+        });
+        const out = await res.json();
+        if (!res.ok || !out.success) console.error('Email send failed:', out);
+      } catch (emailErr) {
+        console.error('Email function error:', emailErr);
+      }
 
       BromarHub.hideLoading();
       
