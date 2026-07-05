@@ -80,8 +80,16 @@
 
         <!-- EXISTING JOB -->
         <div id="existing-job-fields" class="job-number-fields active">
+          <!-- Quick pick: user's recent active jobs -->
+          <div class="field-group" id="myJobsWrapper" style="display:none; margin-bottom:0.75rem;">
+            <label for="myJobsSelect">My Recent Jobs <span style="font-weight:400; color:var(--text-secondary);">(up to 10)</span></label>
+            <select id="myJobsSelect">
+              <option value="">Select from your recent jobs...</option>
+            </select>
+          </div>
+
           <div class="field-group autocomplete-wrapper">
-            <label for="existing_job_number">Search by Job Number or Client <span class="required">*</span></label>
+            <label for="existing_job_number">Or search by Job Number or Client <span class="required">*</span></label>
             <input type="text" id="existing_job_number" placeholder="Start typing..." style="text-transform: uppercase;"/>
             <div class="autocomplete-results" id="autocompleteResults"></div>
           </div>
@@ -346,7 +354,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.63</div>
+<div class="revision-number">V1.64</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -425,8 +433,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   filledBy.addEventListener('change', function() {
     const opt = this.selectedOptions[0];
     currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
-    if (currentUser) checkForDraft();
+    if (currentUser) { checkForDraft(); loadMyRecentJobs(currentUser.name); }
   });
+  if (currentUser?.name) loadMyRecentJobs(currentUser.name);
 
   addTask(); addLabour(); setupSignatureCanvas(); initScanner();
   setPostJobSectionsVisible(false);
@@ -1002,6 +1011,61 @@ async function searchJobs(query) {
     }
   } catch (err) { BromarHub.showInfo('Search failed: ' + err.message); }
 }
+
+// ── MY RECENT JOBS QUICK-PICK ─────────────────────────────────
+async function loadMyRecentJobs(userName) {
+  if (!userName) return;
+  const wrapper = document.getElementById('myJobsWrapper');
+  const select = document.getElementById('myJobsSelect');
+  try {
+    // Jobs the user has a sheet on
+    const { data: sheets } = await window.sb.from('job_sheets')
+      .select('job_number, sheet_date, labour, created_by')
+      .order('sheet_date', { ascending: false }).limit(200);
+
+    const jobNumSet = new Set();
+    (sheets || []).forEach(s => {
+      if (s.created_by === userName) jobNumSet.add(s.job_number);
+      else if (Array.isArray(s.labour) && s.labour.some(l => l.employee === userName)) jobNumSet.add(s.job_number);
+    });
+
+    if (!jobNumSet.size) { wrapper.style.display = 'none'; return; }
+
+    // Fetch job register rows for those (active only), newest first
+    const { data: jobs } = await window.sb.from('job_number_register')
+      .select('job_number, client_name, site_name, site_address, prefix, status, created_at')
+      .in('job_number', [...jobNumSet])
+      .neq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!jobs?.length) { wrapper.style.display = 'none'; return; }
+
+    select.innerHTML = '<option value="">Select from your recent jobs...</option>' + jobs.map(j => {
+      const label = `${j.job_number} — ${j.client_name || ''}${j.site_name ? ' · ' + j.site_name : ''}`;
+      return `<option value='${JSON.stringify(j).replace(/'/g,"&#39;")}'>${esc(label)}</option>`;
+    }).join('');
+    wrapper.style.display = 'block';
+  } catch (err) {
+    console.error('[MyJobs] load failed', err);
+    wrapper.style.display = 'none';
+  }
+}
+
+// Wire once on load
+document.addEventListener('DOMContentLoaded', () => {
+  const s = document.getElementById('myJobsSelect');
+  if (!s) return;
+  s.addEventListener('change', function() {
+    if (!this.value) return;
+    try {
+      const job = JSON.parse(this.value.replace(/&#39;/g, "'"));
+      selectJob(job);
+      // reset so same job can be picked again if cleared
+      this.value = '';
+    } catch (e) { console.error('[MyJobs] pick parse failed', e); }
+  });
+});
 
 function selectJob(job) {
   // Warn if job is marked completed
@@ -1904,7 +1968,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.63`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.64`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
