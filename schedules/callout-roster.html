@@ -168,6 +168,9 @@
     @media (max-width: 600px) {
       .list-row { flex-wrap: wrap; gap: 8px; }
       .list-dates { width: 100%; order: 3; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .view-toggle { justify-content: center; }
+      .request-change-row { justify-content: center; margin: 4px 0 20px; }
     }
 
     .month-nav {
@@ -439,28 +442,10 @@
       <div id="rosterList"></div>
     </div>
 
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color" style="background: rgba(234, 88, 12, 0.08); border-left-color: var(--accent);"></div>
-        <span>On Call / Standby</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #fef3c7; border-left-color: #f59e0b;"></div>
-        <span>Highlighted (Search Match)</span>
-      </div>
-      <div class="legend-item">
-        <div style="width: 16px; height: 16px; background: rgba(234, 88, 12, 0.08); border: 2px solid var(--accent); border-radius: 3px;"></div>
-        <span>Today</span>
-      </div>
-      <div class="legend-item" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">
-        Note: Calendar automatically filters events by shift type (Weekend Only shows Sat/Sun only, Weekday Only shows Mon-Fri only)
-      </div>
-    </div>
-
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — CALL-OUT ROSTER CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.21</div>
+      <div class="card-footer-version">Version V1.22</div>
     </div>
   </div>
 </div>
@@ -872,15 +857,24 @@
   // INITIALIZE
   // ============================================================
   document.addEventListener('DOMContentLoaded', async () => {
-    // Set to current month
     currentDate = new Date();
-    
     try {
       await loadRosterFromSupabase();
       console.log(`Loaded ${allEvents.length} events from Supabase`);
     } catch (error) {
       console.error('Failed to load roster:', error);
       BromarHub.showInfo('Failed to load roster data. Check console for details.');
+    }
+  });
+
+  // Re-render (and re-fetch if needed) when page restored from back/forward cache
+  window.addEventListener('pageshow', async (e) => {
+    if (e.persisted || allEvents.length === 0) {
+      try {
+        if (allEvents.length === 0) await loadRosterFromSupabase();
+        else if (currentView === 'calendar') renderCalendar();
+        else renderList();
+      } catch (err) { console.error('pageshow reload failed:', err); }
     }
   });
 </script>
