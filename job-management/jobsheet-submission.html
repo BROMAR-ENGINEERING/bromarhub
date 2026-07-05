@@ -246,7 +246,7 @@
             <input type="email" id="signoff_email" placeholder="client@example.com"/>
             <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px;">A copy of the report will be sent to this address.</div>
           </div>
-          <div class="job-number-toggle" style="margin-bottom:0;">
+          <div class="job-number-toggle signoff-tiles" style="margin-bottom:0;">
             <div class="radio-option">
               <input type="radio" id="signoff_none"     name="signoff_method" value="none" checked/>
               <label for="signoff_none">⏭️ Skip Sign-Off<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Email PDF only</span></label>
@@ -260,6 +260,13 @@
               <label for="signoff_remote">📧 Email Link<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Client signs remotely</span></label>
             </div>
           </div>
+          <style>
+            @media (max-width: 520px) {
+              .signoff-tiles { flex-direction: column !important; }
+              .signoff-tiles .radio-option { width: 100%; }
+              .signoff-tiles label { text-align: left; padding: 0.75rem 1rem !important; }
+            }
+          </style>
         </div>
 
         <!-- JOB COMPLETION -->
@@ -339,7 +346,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.60</div>
+<div class="revision-number">V1.62</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1082,7 +1089,7 @@ function selectClient(id, name, contactEmail) {
   autofillReportEmail(contactEmail);
   loadSitesForClient(id);
   updateConfirmJobBtn();
-  checkAndCreateNewJob();
+  // NOTE: do not auto-create here — wait for site selection or explicit confirm
 }
 
 function autofillReportEmail(email) {
@@ -1124,21 +1131,29 @@ window.clearClientSelection = function() {
 
 async function loadSitesForClient(clientId) {
   const siteSelect = document.getElementById('site_select');
-  const { data: sitesRaw } = await window.sb.from('sites')
+  const wrapper = document.getElementById('siteSelectWrapper');
+  wrapper.style.display = 'block';
+  siteSelect.innerHTML = '<option value="">Loading sites...</option>';
+
+  const { data: sitesRaw, error } = await window.sb.from('sites')
     .select('id, name, address, is_active, site_contact_name, site_contact_email, site_contact_role')
     .eq('client_id', clientId).order('name');
+  console.log('[Sites] client', clientId, 'result:', sitesRaw, error);
   const sites = (sitesRaw || []).filter(s => s.is_active !== false);
 
   if (!sites.length) {
-    document.getElementById('siteSelectWrapper').style.display = 'none';
+    siteSelect.innerHTML = '<option value="">No sites for this client — job will be created against client only</option>';
+    siteSelect.disabled = true;
+    updateConfirmJobBtn();
     return;
   }
 
-  siteSelect.innerHTML = '<option value="">No specific site</option>' + sites.map(s => {
+  siteSelect.disabled = false;
+  siteSelect.innerHTML = '<option value="">Select a site...</option>' + sites.map(s => {
     const label = s.address ? `${s.name} — ${s.address}` : s.name;
     return `<option value="${s.id}" data-name="${esc(s.name)}" data-address="${esc(s.address||'')}" data-contact-name="${esc(s.site_contact_name||'')}" data-contact-email="${esc(s.site_contact_email||'')}" data-contact-role="${esc(s.site_contact_role||'')}">${esc(label)}</option>`;
   }).join('');
-  document.getElementById('siteSelectWrapper').style.display = 'block';
+  updateConfirmJobBtn();
 }
 
 function onSiteSelected(siteId) {
@@ -1168,12 +1183,8 @@ function updateConfirmJobBtn() {
 }
 
 function checkAndCreateNewJob() {
-  if (document.querySelector('input[name="job_type"]:checked').value !== 'new' || selectedJobData) return;
-  const prefix   = document.getElementById('new_prefix').value;
-  const clientId = document.getElementById('selected_client_id').value;
-  const siteId   = document.getElementById('selected_site_id').value;
-  if (!prefix || (!clientId && !siteId)) return;
-  createNewJobNow(prefix, clientId || null, siteId || null, document.getElementById('new_job_type').value.split('|')[1] || '');
+  // Deprecated auto-create — user now clicks the "Create Job & Continue" button
+  // to commit. Kept as a no-op so existing call sites don't error.
 }
 
 async function createNewJobNow(prefix, clientId, siteId, jobTypeLabel) {
@@ -1889,7 +1900,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.60`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.62`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
