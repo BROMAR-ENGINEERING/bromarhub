@@ -52,6 +52,19 @@
     .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
     .card-footer-link:hover { text-decoration: underline; }
     .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+
+    /* ── CONSISTENT SECTION SPACING ── */
+    .page-title-wrapper { margin-top: 76px; margin-bottom: 1rem; }
+    .page-wrapper > .form-card,
+    .page-wrapper > .stat-tiles { margin-bottom: 1.5rem; }
+    .page-wrapper > .form-card:last-child { margin-bottom: 0; }
+    .do-induction-card .submit-btn { display: block; width: fit-content; margin: 0 auto; }
+
+    @media (max-width: 720px) {
+      .page-title-wrapper { margin-top: 70px; }
+      .submit-row { flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+      .submit-note { margin-right: 0; }
+    }
   </style>
 </head>
 <body>
@@ -133,7 +146,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — TYRECYCLE SITE INDUCTIONS</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.05</div>
+        <div class="card-footer-version">Version V1.06</div>
       </div>
     </div>
   </div>
