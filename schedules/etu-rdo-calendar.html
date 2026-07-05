@@ -273,7 +273,11 @@
       .day-cell { min-height: 80px; padding: 4px; }
       .event-item { font-size: 0.65rem; padding: 2px 4px; }
       .month-title { font-size: 1.1rem; }
+      .toolbar { justify-content: center; }
+      .event-item.lockdown .lockdown-full { display: none; }
+      .event-item.lockdown .lockdown-short { display: inline; }
     }
+    .event-item.lockdown .lockdown-short { display: none; }
   </style>
 </head>
 <body>
@@ -346,7 +350,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — ETU RDO CALENDAR</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.02</div>
     </div>
   </div>
 </div>
@@ -613,7 +617,11 @@
     getEventsForDate(date).forEach(event => {
       const eventItem = document.createElement('div');
       eventItem.className = 'event-item ' + event.type;
-      eventItem.textContent = event.title;
+      if (event.type === 'lockdown') {
+        eventItem.innerHTML = '<span class="lockdown-full">' + BromarHub.escapeHtml(event.title) + '</span><span class="lockdown-short">L/D</span>';
+      } else {
+        eventItem.textContent = event.title;
+      }
       eventItem.title = event.title;
       cell.appendChild(eventItem);
     });
