@@ -49,14 +49,31 @@
     .edit-grid .wide { grid-column: span 2; }
     @media (max-width: 600px) { .edit-grid { grid-template-columns: repeat(2, 1fr); } .edit-grid .wide { grid-column: span 2; } }
 
+    /* Area rows (tile + map button) */
+    .area-tabs { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .area-row { display: flex; gap: 0.5rem; }
+    .map-btn { flex: 0 0 auto; padding: 0 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-secondary); cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.82rem; color: var(--text-secondary); transition: all 0.2s; white-space: nowrap; }
+    .map-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card-hover); }
+    .map-placeholder { border: 2px dashed var(--border); border-radius: 12px; padding: 3rem 1rem; text-align: center; color: var(--text-secondary); font-size: 1.1rem; line-height: 2; background: var(--bg-main); }
+    /* Edit row header + remove */
+    .er-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .er-del { border: 1px solid var(--error-border); background: var(--error-bg); color: var(--error); font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: 7px; cursor: pointer; }
+    .er-del:hover { filter: brightness(0.95); }
+    .er-hist { border: 1px solid var(--border); background: var(--bg-main); color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: 7px; cursor: pointer; }
+    .er-hist:hover { border-color: var(--accent); color: var(--accent); }
+    .hist-row { border: 1px solid var(--border); border-radius: 9px; padding: 0.7rem 0.9rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .hist-when { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+    .hist-diff { margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; line-height: 1.6; }
+    .hist-act { text-transform: uppercase; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 6px; margin-right: 4px; }
+    .hist-create { background: var(--success-bg); color: var(--success); }
+    .hist-update { background: var(--info-bg); color: var(--info-text); }
+    .hist-remove { background: var(--error-bg); color: var(--error); }
+
     /* Area tabs */
-    .area-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
-    .area-tab {
-      flex: 1; padding: 0.875rem 1rem; border: 2px solid var(--border);
+    .area-tab { flex: 1; padding: 0.875rem 1rem; border: 2px solid var(--border);
       border-radius: 10px; background: var(--bg-secondary); cursor: pointer;
       font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.9rem;
-      color: var(--text-primary); transition: all 0.2s; text-align: center;
-    }
+      color: var(--text-primary); transition: all 0.2s; text-align: center; }
     .area-tab .count { display: block; font-size: 0.72rem; font-weight: 500; color: var(--text-secondary); margin-top: 2px; }
     .area-tab.active { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
     .area-tab.active .count { color: var(--accent); }
@@ -194,8 +211,18 @@
       </div>
 
       <div class="area-tabs">
-        <div class="area-tab active" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
-        <div class="area-tab" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
+        <div class="area-row">
+          <div class="area-tab active" data-area="office">Office (EM1)<span class="count" id="cnt-office"></span></div>
+          <button type="button" class="map-btn" data-map="office">🗺 Map</button>
+        </div>
+        <div class="area-row">
+          <div class="area-tab" data-area="factory">Factory (EM2)<span class="count" id="cnt-factory"></span></div>
+          <button type="button" class="map-btn" data-map="factory">🗺 Map</button>
+        </div>
+        <div class="area-row">
+          <div class="area-tab" data-area="external">External (EM3)<span class="count" id="cnt-external"></span></div>
+          <button type="button" class="map-btn" data-map="external">🗺 Map</button>
+        </div>
       </div>
 
       <div class="el-toolbar">
@@ -211,7 +238,7 @@
         <div class="stat"><div class="stat-num" id="s-rem">0</div><div class="stat-label">Remaining</div></div>
       </div>
 
-      <div class="edit-hint editonly">Edit part numbers and details below. Changes save to this device and apply to the test list. Persistent (database) storage comes when the SQL is added.</div>
+      <div class="edit-hint editonly">Edit part numbers and details below. Every change is saved to the database and recorded in the change history for full traceability.</div>
 
       <div id="fittingList"></div>
 
@@ -224,6 +251,38 @@
         <span class="submit-note">Only fittings marked pass/fail are saved.</span>
         <button type="button" class="btn-secondary" id="pdfBtn">⬇ PDF Report</button>
         <button type="button" class="submit-btn" id="submitBtn">Submit Test Log</button>
+      </div>
+
+      <div class="modal-overlay" id="removeModal">
+        <div class="modal-content" style="max-width:460px;">
+          <h2>Remove fitting <span id="rmRef" style="color:var(--accent);"></span>?</h2>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1rem;">This removes the fitting from the register. To confirm, type <strong>REMOVE</strong> below.</p>
+          <input type="text" id="rmConfirm" placeholder="Type REMOVE to confirm" autocomplete="off"/>
+          <div class="submit-row" style="margin-top:1.25rem;">
+            <button type="button" class="btn-secondary" id="rmCancel">Cancel</button>
+            <button type="button" class="submit-btn" id="rmGo" style="background:var(--error);" disabled>Remove Fitting</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="historyModal">
+        <div class="modal-content" style="max-width:560px;">
+          <h2 id="histTitle">Change History</h2>
+          <div id="histBody" style="max-height:60vh;overflow-y:auto;"></div>
+          <div class="submit-row" style="margin-top:1.25rem;">
+            <button type="button" class="btn-secondary" id="histClose">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="mapModal">
+        <div class="modal-content" style="max-width:640px;">
+          <h2 id="mapTitle">Fitting Map</h2>
+          <div class="map-placeholder">🗺<br>Map coming soon</div>
+          <div class="submit-row" style="margin-top:1.25rem;">
+            <button type="button" class="btn-secondary" id="mapClose">Close</button>
+          </div>
+        </div>
       </div>
 
       <div class="modal-overlay" id="validateModal">
@@ -240,7 +299,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.04</div>
+        <div class="card-footer-version">Version V1.06</div>
       </div>
     </div>
   </div>
@@ -251,130 +310,74 @@
     let activeArea = 'office';
     const results = {}; // ref -> {status, duration, notes}
 
-    const FITTINGS = {
-      factory: [
-        {ref:'EM2-1',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-2',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-3',loc:'Factory Roof Row 1',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-4',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-5',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-6',loc:'Factory Roof Row 2',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-7',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-8',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-9',loc:'Factory Roof Row 3',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-10',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-11',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-12',loc:'Factory Roof Row 4',type:'EMG BATTEN',db:'DB 2',ckt:'75',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-13',loc:'Factory Roof Row 5',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-14',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-15',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-16',loc:'Factory Roof Row 6',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-17',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-18',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-19',loc:'Factory Roof Row 7',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-20',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-21',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-22',loc:'Factory Roof Row 8',type:'EMG BATTEN',db:'DB 2',ckt:'70',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-23',loc:'Factory Roof Row 9',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-24',loc:'Factory Roof Row 10',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-25',loc:'Factory Roof Row 10',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-26',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-27',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-28',loc:'Factory Roof Row 11',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-29',loc:'Factory Roof Row 12',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-30',loc:'Factory Roof Row 12',type:'EMG BATTEN',db:'DB 1',ckt:'80',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-31',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-32',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-33',loc:'Factory Roof Row 13',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-34',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-35',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-36',loc:'Factory Roof Row 14',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-37',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-38',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-39',loc:'Factory Roof Row 15',type:'EMG BATTEN',db:'DB 1',ckt:'83',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-40',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-41',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-42',loc:'Factory Roof Row 16',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-43',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-44',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-45',loc:'Factory Roof Row 17',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-46',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-47',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-48',loc:'Factory Roof Row 18',type:'EMG BATTEN',db:'DB 1',ckt:'79',m:'NM',brand:'Clevertronics',model:'EWB4LEDS-P-LI'},
-        {ref:'EM2-49',loc:'Factory Ceiling Driveway West',type:'EXIT',db:'DB 2',ckt:'70',m:'M',brand:'',model:''},
-        {ref:'EM2-50',loc:'Factory Ceiling Driveway Centre',type:'EXIT',db:'DB 1',ckt:'83',m:'M',brand:'',model:''},
-        {ref:'EM2-51',loc:'South exit door near toilet block',type:'EXIT',db:'DB 1',ckt:'83',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
-        {ref:'EM2-52',loc:'South exit door into outdoor lunch area',type:'EXIT',db:'DB 2',ckt:'70',m:'M',brand:'24M',model:'FBEXITWB'},
-        {ref:'EM2-53',loc:'South exit door into amenities area',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'CWELED-WM-R'},
-        {ref:'EM2-54',loc:'West exit door near roller door',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
-        {ref:'EM2-55',loc:'North West Exit Door',type:'EXIT',db:'DB 2',ckt:'75',m:'M',brand:'Clevertronics',model:'CWELED-WM-RR'},
-        {ref:'EM2-56',loc:'North Centre Exit Door',type:'EXIT',db:'',ckt:'',m:'',brand:'',model:'',na:'REMOVED'},
-        {ref:'EM2-57',loc:'Pit Exit Door',type:'',db:'',ckt:'',m:'',brand:'',model:''},
-        {ref:'EM2-58',loc:'Pit Basement',type:'',db:'',ckt:'',m:'',brand:'',model:''},
-        {ref:'EM2-59',loc:'North East Exit Door',type:'EXIT',db:'DB 1',ckt:'79',m:'M',brand:'Clevertronics',model:'CWELED-WM'},
-        {ref:'EM2-60',loc:'East Exit Door',type:'EXIT',db:'',ckt:'',m:'M',brand:'E&E Lighting',model:'EXWAYBOX'},
-        {ref:'EM2-61',loc:'Incline Conveyor Exit Right Arrow',type:'EXIT',db:'DB 1',ckt:'79',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
-        {ref:'EM2-62',loc:'Pit',type:'',db:'',ckt:'',m:'',brand:'',model:''},
-        {ref:'EM2-63',loc:'Factory Ceiling Driveway East',type:'EXIT',db:'',ckt:'',m:'M',brand:'Clevertronics',model:'ECFLED-LI'},
-        {ref:'EM2-64',loc:'Tower Stairs',type:'',db:'',ckt:'',m:'',brand:'',model:''},
-        {ref:'EM2-65',loc:'Tower Stairs',type:'',db:'',ckt:'',m:'',brand:'',model:''}
-      ],
-      office: [
-        {ref:'EM1-1',loc:'Front reception exit to carpark (Airlock)',type:'EXIT',db:'Office DB',ckt:'9',m:'M',brand:'Ezy Fit',model:'EFSLB-CM'},
-        {ref:'EM1-2',loc:'Front reception exit to carpark (Office)',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'E&E',model:'EXLEDL'},
-        {ref:'EM1-3',loc:'Behind reception directing to carpark exit',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'Clevertronics',model:'ECFLED-L1'},
-        {ref:'EM1-4',loc:'Reception area ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'8',m:'NM',brand:'',model:''},
-        {ref:'EM1-5',loc:'Office area west ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''},
-        {ref:'EM1-6',loc:'Office area north ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'6',m:'NM',brand:'',model:''},
-        {ref:'EM1-7',loc:'Office area east ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''},
-        {ref:'EM1-8',loc:'Exit from office into amenities hallway',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
-        {ref:'EM1-9',loc:'Storage room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'6',m:'NM',brand:'',model:''},
-        {ref:'EM1-10',loc:'Operations office ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'14',m:'NM',brand:'',model:''},
-        {ref:'EM1-11',loc:'Operations office exit into factory',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
-        {ref:'EM1-12',loc:'Amenities hallway ceiling near toilets',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
-        {ref:'EM1-13',loc:'Amenities hallway ceiling outside changeroom',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
-        {ref:'EM1-14',loc:'Amenities hallway near cleaners room to factory door',type:'RECESSED EMG',db:'Office DB',ckt:'5',m:'NM',brand:'',model:''},
-        {ref:'EM1-15',loc:'Amenities hallway exit directing to east exit',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'Clevertronics',model:'ECFLED-L1'},
-        {ref:'EM1-16',loc:'Amenities hallway east exit door',type:'EXIT',db:'Office DB',ckt:'8',m:'M',brand:'',model:''},
-        {ref:'EM1-17',loc:'Female toilets ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-18',loc:'Male toilet ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-19',loc:'Disabled toilet ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-20',loc:'Male changeroom ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-21',loc:'Server room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-22',loc:'Lunch room ceiling',type:'RECESSED EMG',db:'Office DB',ckt:'3',m:'NM',brand:'',model:''},
-        {ref:'EM1-23',loc:'West office conference room',type:'RECESSED EMG',db:'Office DB',ckt:'9',m:'NM',brand:'',model:''}
-      ]
-    };
+    const FITTINGS = { office: [], factory: [], external: [] };
 
     const esc = s => BromarHub.escapeHtml(s || '');
     let mode = 'test';
-    const EDIT_KEY = 'emgFittingEdits';
-    const EDIT_FIELDS = ['loc','type','db','ckt','m','brand','model'];
+    const AREAS = ['office','factory','external'];
+    const PREFIX = { office: 'EM1', factory: 'EM2', external: 'EM3' };
+    const FIT_TABLE = 'emergency_lighting_fittings';
+    const AUDIT_TABLE = 'emergency_lighting_fitting_audit';
+    const idByRef = {}; // ref -> row id
 
-    // Apply any saved edits onto the base fittings
-    function applyEdits() {
-      let saved = {};
-      try { saved = JSON.parse(localStorage.getItem(EDIT_KEY) || '{}'); } catch (_) {}
-      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
-        if (saved[f.ref]) EDIT_FIELDS.forEach(k => { if (saved[f.ref][k] !== undefined) f[k] = saved[f.ref][k]; });
-      }));
+    function currentEditor() {
+      if (currentUser) return currentUser.name;
+      const sel = document.getElementById('filled_by');
+      return sel && sel.value ? sel.value : 'Unknown';
     }
-    function persistEdit(ref, key, val) {
-      let saved = {};
-      try { saved = JSON.parse(localStorage.getItem(EDIT_KEY) || '{}'); } catch (_) {}
-      saved[ref] = saved[ref] || {};
-      saved[ref][key] = val;
-      localStorage.setItem(EDIT_KEY, JSON.stringify(saved));
-    }
-    function fittingByRef(ref) { return [...FITTINGS.factory, ...FITTINGS.office].find(f => f.ref === ref); }
 
-    function areaOf(ref) { return ref.startsWith('EM1') ? 'office' : 'factory'; }
+    // Load active fittings from the database into FITTINGS
+    async function loadFittings() {
+      AREAS.forEach(a => FITTINGS[a] = []);
+      const { data, error } = await window.sb.from(FIT_TABLE)
+        .select('id, ref, area, location, type, board, circuit, maintained, brand, model')
+        .eq('active', true).order('area').order('sort_order');
+      if (error) { console.error(error); BromarHub.showInfo('Could not load fittings: ' + error.message); return; }
+      (data || []).forEach(row => {
+        const f = { ref: row.ref, loc: row.location || '', type: row.type || '', db: row.board || '',
+          ckt: row.circuit || '', m: row.maintained || '', brand: row.brand || '', model: row.model || '' };
+        idByRef[row.ref] = row.id;
+        (FITTINGS[row.area] || (FITTINGS[row.area] = [])).push(f);
+      });
+    }
+
+    const KEY_TO_COL = { loc: 'location', type: 'type', db: 'board', ckt: 'circuit', m: 'maintained', brand: 'brand', model: 'model' };
+    async function persistEdit(ref, key, val) {
+      const f = fittingByRef(ref); if (f) f[key] = val;
+      const patch = {}; patch[KEY_TO_COL[key]] = val; patch.updated_by = currentEditor();
+      const { error } = await window.sb.from(FIT_TABLE).update(patch).eq('ref', ref);
+      if (error) { console.error(error); BromarHub.showInfo('Save failed: ' + error.message); }
+    }
+
+    async function nextRef(area) {
+      const { data } = await window.sb.from(FIT_TABLE).select('ref').eq('area', area);
+      let max = 0;
+      (data || []).forEach(r => { const n = parseInt((r.ref.split('-')[1] || '0'), 10); if (n > max) max = n; });
+      return PREFIX[area] + '-' + (max + 1);
+    }
+    async function addFitting(area) {
+      const ref = await nextRef(area);
+      const { data } = await window.sb.from(FIT_TABLE).select('sort_order').eq('area', area).order('sort_order', { ascending: false }).limit(1);
+      const sort = (data && data[0] ? data[0].sort_order : 0) + 1;
+      const { error } = await window.sb.from(FIT_TABLE).insert([{ ref, area, sort_order: sort, active: true, updated_by: currentEditor() }]);
+      if (error) { console.error(error); return BromarHub.showInfo('Add failed: ' + error.message); }
+      await loadFittings(); renderList();
+    }
+    async function removeFitting(ref) {
+      const { error } = await window.sb.from(FIT_TABLE).update({ active: false, updated_by: currentEditor() }).eq('ref', ref);
+      if (error) { console.error(error); return BromarHub.showInfo('Remove failed: ' + error.message); }
+      delete results[ref]; await loadFittings(); renderList();
+    }
+    function fittingByRef(ref) { return AREAS.flatMap(a => FITTINGS[a]).find(f => f.ref === ref); }
+
+    function areaOf(ref) { return ref.startsWith('EM1') ? 'office' : ref.startsWith('EM3') ? 'external' : 'factory'; }
 
     function renderList() {
       const q = (document.getElementById('filter').value || '').toLowerCase();
       const list = FITTINGS[activeArea].filter(f =>
         !q || f.ref.toLowerCase().includes(q) || (f.loc || '').toLowerCase().includes(q));
-      const html = (mode === 'edit' ? list.map(editRow) : list.map(testRow)).join('');
+      let html = (mode === 'edit' ? list.map(editRow) : list.map(testRow)).join('');
+      if (mode === 'edit') html += `<button type="button" class="add-btn" id="addFitting">+ Add Fitting to ${PREFIX[activeArea]}</button>`;
       document.getElementById('fittingList').innerHTML = html || '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">No matches.</p>';
       if (mode === 'test') updateStats();
     }
@@ -385,7 +388,13 @@
           <input type="text" class="ei" data-ref="${esc(f.ref)}" data-key="${k}" value="${esc(f[k])}"/></div>`;
       return `
         <div class="edit-row">
-          <div class="er-ref">${esc(f.ref)}</div>
+          <div class="er-top">
+            <div class="er-ref">${esc(f.ref)}</div>
+            <div style="display:flex;gap:0.4rem;">
+              <button type="button" class="er-hist" data-hist="${esc(f.ref)}" title="Change history">History</button>
+              <button type="button" class="er-del" data-del="${esc(f.ref)}" title="Remove fitting">Remove</button>
+            </div>
+          </div>
           <div class="edit-grid">
             ${field('loc','Location',true)}
             ${field('type','Type')}
@@ -440,20 +449,25 @@
     function updateStats() {
       let pass = 0, fail = 0;
       Object.values(results).forEach(r => { if (r.status === 'pass') pass++; else if (r.status === 'fail') fail++; });
-      const total = FITTINGS.factory.length + FITTINGS.office.length;
+      const total = FITTINGS.office.length + FITTINGS.factory.length + FITTINGS.external.length;
       document.getElementById('s-total').textContent = total;
       document.getElementById('s-pass').textContent = pass;
       document.getElementById('s-fail').textContent = fail;
       document.getElementById('s-rem').textContent = total - pass - fail;
-      const cf = FITTINGS.factory.filter(f => results[f.ref]?.status).length;
-      const co = FITTINGS.office.filter(f => results[f.ref]?.status).length;
-      document.getElementById('cnt-factory').textContent = `${cf}/${FITTINGS.factory.length} done`;
-      document.getElementById('cnt-office').textContent = `${co}/${FITTINGS.office.length} done`;
+      AREAS.forEach(a => {
+        const done = FITTINGS[a].filter(f => results[f.ref]?.status).length;
+        document.getElementById('cnt-' + a).textContent = `${done}/${FITTINGS[a].length} done`;
+      });
     }
 
     function set(ref, patch) { results[ref] = Object.assign({status:'',duration:'',faultnote:'',notes:''}, results[ref], patch); }
 
     document.getElementById('fittingList').addEventListener('click', e => {
+      if (e.target.id === 'addFitting') { addFitting(activeArea); return; }
+      const hist = e.target.closest('.er-hist');
+      if (hist) { openHistory(hist.dataset.hist); return; }
+      const del = e.target.closest('.er-del');
+      if (del) { askRemove(del.dataset.del); return; }
       const noteBtn = e.target.closest('.note-btn');
       if (noteBtn) {
         const box = noteBtn.closest('.fitting').querySelector('.fitting-notes');
@@ -474,8 +488,7 @@
     document.getElementById('fittingList').addEventListener('input', e => {
       if (e.target.classList.contains('ei')) {
         const { ref, key } = e.target.dataset;
-        const f = fittingByRef(ref);
-        if (f) { f[key] = e.target.value; persistEdit(ref, key, e.target.value); }
+        const f = fittingByRef(ref); if (f) f[key] = e.target.value; // local only; DB save on blur
         return;
       }
       const card = e.target.closest('.fitting'); if (!card) return;
@@ -483,6 +496,13 @@
       if (e.target.classList.contains('f-duration')) set(ref, { duration: e.target.value });
       else if (e.target.classList.contains('f-faultnote')) set(ref, { faultnote: e.target.value });
       else if (e.target.classList.contains('f-notes')) set(ref, { notes: e.target.value });
+    });
+
+    document.getElementById('fittingList').addEventListener('change', e => {
+      if (e.target.classList.contains('ei')) {
+        const { ref, key } = e.target.dataset;
+        persistEdit(ref, key, e.target.value);
+      }
     });
 
     document.querySelectorAll('.mode-tab').forEach(t => t.addEventListener('click', () => {
@@ -499,6 +519,59 @@
       activeArea = t.dataset.area;
       renderList();
     }));
+
+    document.querySelectorAll('.map-btn').forEach(b => b.addEventListener('click', () => openMap(b.dataset.map)));
+
+    // ── REMOVE FITTING (guarded, two-step) ──
+    let pendingRemove = null;
+    function askRemove(ref) {
+      pendingRemove = ref;
+      document.getElementById('rmRef').textContent = ref;
+      document.getElementById('rmConfirm').value = '';
+      document.getElementById('rmGo').disabled = true;
+      document.getElementById('removeModal').classList.add('show');
+    }
+    document.getElementById('rmConfirm').addEventListener('input', e => {
+      document.getElementById('rmGo').disabled = e.target.value.trim().toUpperCase() !== 'REMOVE';
+    });
+    document.getElementById('rmCancel').addEventListener('click', () => document.getElementById('removeModal').classList.remove('show'));
+    document.getElementById('rmGo').addEventListener('click', () => {
+      if (pendingRemove) removeFitting(pendingRemove);
+      pendingRemove = null;
+      document.getElementById('removeModal').classList.remove('show');
+    });
+
+    // ── MAP (placeholder) ──
+    function openMap(area) {
+      const names = { office: 'Office (EM1)', factory: 'Factory (EM2)', external: 'External (EM3)' };
+      document.getElementById('mapTitle').textContent = names[area] + ' — Fitting Map';
+      document.getElementById('mapModal').classList.add('show');
+    }
+    document.getElementById('mapClose').addEventListener('click', () => document.getElementById('mapModal').classList.remove('show'));
+
+    // ── CHANGE HISTORY ──
+    async function openHistory(ref) {
+      document.getElementById('histTitle').textContent = 'Change History — ' + ref;
+      document.getElementById('histBody').innerHTML = '<p style="color:var(--text-secondary);">Loading...</p>';
+      document.getElementById('historyModal').classList.add('show');
+      const { data, error } = await window.sb.from(AUDIT_TABLE)
+        .select('action, changed_by, changed_at, before, after')
+        .eq('fitting_ref', ref).order('changed_at', { ascending: false });
+      if (error) { document.getElementById('histBody').innerHTML = '<p style="color:var(--error);">' + esc(error.message) + '</p>'; return; }
+      if (!data || !data.length) { document.getElementById('histBody').innerHTML = '<p style="color:var(--text-secondary);">No changes recorded.</p>'; return; }
+      const COLS = { location: 'Location', type: 'Type', board: 'Board', circuit: 'CB#', maintained: 'M/NM', brand: 'Brand', model: 'Model', active: 'Active' };
+      document.getElementById('histBody').innerHTML = data.map(h => {
+        let changes = '';
+        if (h.action === 'update' && h.before && h.after) {
+          const diffs = Object.keys(COLS).filter(k => (h.before[k] ?? '') !== (h.after[k] ?? ''))
+            .map(k => `${COLS[k]}: "${esc(h.before[k] ?? '')}" → "${esc(h.after[k] ?? '')}"`);
+          changes = diffs.length ? '<div class="hist-diff">' + diffs.join('<br>') + '</div>' : '';
+        }
+        const when = new Date(h.changed_at).toLocaleString();
+        return `<div class="hist-row"><div><span class="hist-act hist-${esc(h.action)}">${esc(h.action)}</span> by ${esc(h.changed_by || 'Unknown')}</div><div class="hist-when">${esc(when)}</div>${changes}</div>`;
+      }).join('');
+    }
+    document.getElementById('histClose').addEventListener('click', () => document.getElementById('historyModal').classList.remove('show'));
 
     document.getElementById('filter').addEventListener('input', renderList);
 
@@ -606,6 +679,11 @@
         K.sectionHeading(doc, L.margin, y, 'Factory (EM2)');
         doc.autoTable(Object.assign({}, common, { head, body: mkBody('factory'), startY: y + 4 }));
 
+        let ye = doc.lastAutoTable.finalY + 8;
+        if (ye > 250) { doc.addPage(); ye = L.headerH + 12; }
+        K.sectionHeading(doc, L.margin, ye, 'External (EM3)');
+        doc.autoTable(Object.assign({}, common, { head, body: mkBody('external'), startY: ye + 4 }));
+
         const notes = document.getElementById('test_notes').value.trim();
         if (notes) {
           let ny = doc.lastAutoTable.finalY + 10;
@@ -637,7 +715,7 @@
 
     function unmarkedFittings() {
       const out = [];
-      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
+      AREAS.forEach(area => FITTINGS[area].forEach(f => {
         if (f.na || !f.type) return; // skip removed/placeholder rows
         if (!results[f.ref]?.status) out.push(f.ref);
       }));
@@ -668,7 +746,7 @@
     async function doSave() {
       const site = 'Tyrecycle — Somerton';
       const rows = [];
-      ['factory','office'].forEach(area => FITTINGS[area].forEach(f => {
+      AREAS.forEach(area => FITTINGS[area].forEach(f => {
         const r = results[f.ref];
         if (r && r.status) rows.push({
           ref: f.ref, area, location: f.loc, type: f.type, db: f.db, circuit: f.ckt,
@@ -700,11 +778,10 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       document.body.setAttribute('data-mode', 'test');
-      applyEdits();
       document.getElementById('test_date').value = new Date().toISOString().slice(0, 10);
       const now = new Date();
       document.getElementById('start_time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      renderList();
+      document.getElementById('fittingList').innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">Loading fittings...</p>';
       EMPLOYEES = await BromarHub.loadEmployees('filled_by');
       await BromarHub.autoSelectLoggedInUser('filled_by');
       const fb = document.getElementById('filled_by');
@@ -713,6 +790,8 @@
         const o = this.selectedOptions[0];
         currentUser = o?.value ? { name: o.value, email: o.dataset.email || '' } : null;
       });
+      await loadFittings();
+      renderList();
     });
   </script>
 </body>
