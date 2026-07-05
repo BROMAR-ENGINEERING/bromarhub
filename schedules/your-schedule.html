@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Schedule - Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* ── Quick reference ── */
+    .quick-ref { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 520px) { .quick-ref { grid-template-columns: 1fr; } }
+    .qr-card { background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+    .qr-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin-bottom: 10px; }
+    .qr-label span { color: var(--text-primary); font-weight: 700; letter-spacing: 0; text-transform: none; margin-left: 6px; font-size: 0.78rem; }
+    .qr-list { display: flex; flex-direction: column; gap: 7px; }
+    .qr-item { display: flex; align-items: center; gap: 9px; font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
+    .qr-item .qr-sub { font-weight: 400; color: var(--text-secondary); font-size: 0.8rem; }
+    .qr-empty { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Toolbar / view toggle ── */
+    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+    .view-toggle { display: flex; gap: 8px; }
+    .view-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .view-btn svg { width: 16px; height: 16px; }
+    .view-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .view-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Month nav ── */
+    .month-nav { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; }
+    .month-nav button { width: 36px; height: 36px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .month-nav button:hover { border-color: var(--accent); color: var(--accent); background: rgba(234, 88, 12, 0.08); }
+    .month-title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); min-width: 200px; text-align: center; }
+
+    /* ── Calendar grid ── */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .day-header { background: var(--bg-secondary); padding: 12px 8px; text-align: center; font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .day-cell { background: var(--bg-secondary); min-height: 110px; padding: 8px; position: relative; transition: all 0.2s; }
+    .day-cell.other-month { opacity: 0.4; }
+    .day-cell.today { background: rgba(234, 88, 12, 0.08); border: 2px solid var(--accent); }
+    .day-cell.has-events { cursor: pointer; }
+    .day-cell.has-events:hover { background: var(--card-hover); }
+    .day-number { font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+    .day-cell.weekend .day-number { color: var(--accent); }
+    .day-dots { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .day-dots .dot { width: 9px; height: 9px; }
+    .day-more { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
+
+    @media (max-width: 768px) {
+      .calendar-grid { font-size: 0.8rem; }
+      .day-cell { min-height: 74px; padding: 4px; }
+      .month-title { font-size: 1.1rem; }
+      .toolbar { justify-content: center; }
+    }
+
+    /* ── List view ── */
+    .list-group { margin-bottom: 24px; }
+    .list-month-header { font-size: 1rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+    .list-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; transition: all 0.2s; }
+    .list-row:hover { border-color: var(--accent); }
+    .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .list-main { flex: 1; min-width: 120px; }
+    .list-emp-name { font-weight: 600; color: var(--text-primary); }
+    .list-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 1px; }
+    .list-type-badge { font-size: 0.62rem; font-weight: 700; padding: 3px 9px; border-radius: 10px; color: #fff; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+    .list-dates { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+    @media (max-width: 600px) {
+      .list-row { flex-wrap: wrap; gap: 8px; }
+      .list-dates { width: 100%; order: 3; }
+    }
+
+    /* ── Legend ── */
+    .legend { display: flex; gap: 24px; margin-top: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); }
+    .legend-color { width: 16px; height: 16px; border-radius: 50%; }
+
+    /* ── Day modal detail ── */
+    .day-modal-empty { text-align: center; padding: 2rem; color: var(--text-secondary); }
+    .assign-block { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; background: var(--bg-main); }
+    .assign-block:last-child { margin-bottom: 0; }
+    .assign-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .type-badge { display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.4px; }
+    .assign-title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
+    .detail-row { display: flex; gap: 10px; font-size: 0.85rem; padding: 3px 0; }
+    .detail-label { color: var(--text-secondary); min-width: 84px; font-weight: 600; }
+    .detail-value { color: var(--text-primary); flex: 1; }
+
+    /* ── Card footer ── */
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+    @media (max-width: 420px) { .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; } }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <div id="bromar-header"></div>
+
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">Your Schedule</h1>
+    <p class="header-subtitle">Your booked jobs and site assignments</p>
+  </div>
+
+  <div class="form-card">
+
+    <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+    <div class="success-banner" id="successBanner"><span id="successText"></span></div>
+
+    <!-- Quick reference -->
+    <div class="quick-ref">
+      <div class="qr-card">
+        <div class="qr-label">Today <span id="qrTodayDate"></span></div>
+        <div class="qr-list" id="qrToday"></div>
+      </div>
+      <div class="qr-card">
+        <div class="qr-label">Tomorrow <span id="qrTomorrowDate"></span></div>
+        <div class="qr-list" id="qrTomorrow"></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="view-toggle">
+        <button id="viewCalendarBtn" class="view-btn active" data-view="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Calendar
+        </button>
+        <button id="viewListBtn" class="view-btn" data-view="list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          List
+        </button>
+      </div>
+    </div>
+
+    <div id="calendarView">
+      <div class="month-nav">
+        <button id="prevMonth">←</button>
+        <div class="month-title" id="monthTitle"></div>
+        <button id="nextMonth">→</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <div id="listView" style="display:none">
+      <div id="scheduleList"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-color" style="background:#16a34a"></div><span>Job</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>Site Assignment</span></div>
+      <div class="legend-item"><div style="width:16px;height:16px;background:rgba(234,88,12,0.08);border:2px solid var(--accent);border-radius:4px"></div><span>Today</span></div>
+    </div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — YOUR SCHEDULE</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<!-- Day modal -->
+<div class="modal-overlay" id="dayModal">
+  <div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 id="dayModalTitle" style="font-size:1.25rem;font-weight:600;">Bookings</h2>
+      <button id="dayModalClose" style="background:none;border:none;font-size:1.75rem;color:var(--text-secondary);cursor:pointer;line-height:1;padding:0;width:32px;height:32px;">×</button>
+    </div>
+    <div id="dayModalBody"></div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const TYPE_COLOURS = { job: '#16a34a', site: '#2563eb' };
+  const TYPE_LABELS  = { job: 'Job', site: 'Site' };
+  const SCHED_LABELS = { oneoff: 'One-off', duration: 'Fixed duration', indefinite: 'Ongoing' };
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let currentDate = new Date();
+  let currentView = 'calendar';
+  let assignments = [];
+  let employeeName = null;
+
+  // ── Helpers ──
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  function fmtShort(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dt = new Date(y, m - 1, d);
+    return days[dt.getDay()] + ' ' + d + ' ' + months[m - 1] + ' ' + y;
+  }
+  function fmtLong(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  }
+  function skipsOf(a) {
+    const s = a.skip_dates;
+    if (Array.isArray(s)) return s;
+    if (typeof s === 'string') { try { const p = JSON.parse(s); return Array.isArray(p) ? p : []; } catch { return []; } }
+    return [];
+  }
+  function activeOn(a, dateStr) {
+    if (a.is_active === false) return false;
+    if (dateStr < a.start_date) return false;
+    if (skipsOf(a).includes(dateStr)) return false;
+    if (a.schedule === 'oneoff')   return dateStr <= (a.end_date || a.start_date);
+    if (a.schedule === 'duration') return a.end_date ? dateStr <= a.end_date : true;
+    return true; // indefinite
+  }
+  function assignmentsOn(dateStr) { return assignments.filter(a => activeOn(a, dateStr)); }
+  function colourFor(a) { return TYPE_COLOURS[a.type] || '#6b7280'; }
+  function labelFor(a) {
+    if (a.type === 'job') return a.job_number || 'Job';
+    return a.site_name || a.client_name || 'Site assignment';
+  }
+  function subFor(a) {
+    if (a.type === 'job') return [a.client_name, a.site_name].filter(Boolean).join(' · ');
+    return (a.client_name && a.site_name) ? a.client_name : '';
+  }
+  function rangeText(a) {
+    if (a.schedule === 'indefinite') return fmtShort(a.start_date) + ' — ongoing';
+    if (a.schedule === 'duration')   return fmtShort(a.start_date) + ' — ' + (a.end_date ? fmtShort(a.end_date) : '?');
+    return (a.end_date && a.end_date !== a.start_date) ? fmtShort(a.start_date) + ' — ' + fmtShort(a.end_date) : fmtShort(a.start_date);
+  }
+  const esc = s => BromarHub.escapeHtml(s == null ? '' : s);
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  async function loadData() {
+    BromarHub.showLoading('Loading your schedule', 'Fetching bookings');
+    try {
+      const { data: { user } } = await window.sb.auth.getUser();
+      if (user?.email) {
+        const { data: emp } = await window.sb.from('employees').select('full_name').eq('email', user.email).maybeSingle();
+        employeeName = emp?.full_name || null;
+      }
+      if (!employeeName) { BromarHub.hideLoading(); BromarHub.showInfo('Could not match your account to an employee record.'); return; }
+
+      const { data, error } = await window.sb
+        .from('schedule_assignments')
+        .select('*')
+        .eq('employee_name', employeeName)
+        .eq('is_active', true)
+        .order('start_date');
+      if (error) { console.error('[Schedule]', error); BromarHub.showInfo('Could not load your schedule.'); }
+      assignments = data || [];
+    } catch (e) {
+      console.error('[Schedule]', e);
+      BromarHub.showInfo('Could not load your schedule.');
+    }
+    BromarHub.hideLoading();
+  }
+
+  // ============================================================
+  // QUICK REFERENCE
+  // ============================================================
+  function renderQuickRef() {
+    const today = new Date();
+    const tom = new Date(); tom.setDate(tom.getDate() + 1);
+    document.getElementById('qrTodayDate').textContent = fmtShort(isoDate(today));
+    document.getElementById('qrTomorrowDate').textContent = fmtShort(isoDate(tom));
+    fillRef('qrToday', isoDate(today));
+    fillRef('qrTomorrow', isoDate(tom));
+  }
+  function fillRef(elId, dateStr) {
+    const list = assignmentsOn(dateStr);
+    const el = document.getElementById(elId);
+    if (!list.length) { el.innerHTML = '<span class="qr-empty">Nothing booked</span>'; return; }
+    el.innerHTML = list.map(a => {
+      const sub = subFor(a);
+      return '<div class="qr-item"><span class="dot" style="background:' + colourFor(a) + '"></span>' +
+             '<span>' + esc(labelFor(a)) + (sub ? ' <span class="qr-sub">' + esc(sub) + '</span>' : '') + '</span></div>';
+    }).join('');
+  }
+
+  // ============================================================
+  // CALENDAR
+  // ============================================================
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    document.getElementById('monthTitle').textContent =
+      currentDate.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const prevMonthDays = startDay === 0 ? 6 : startDay - 1;
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(day => {
+      const h = document.createElement('div'); h.className = 'day-header'; h.textContent = day; grid.appendChild(h);
+    });
+    for (let i = prevMonthDays; i > 0; i--) grid.appendChild(createDayCell(new Date(year, month - 1, prevMonthLastDay - i + 1), true));
+    for (let day = 1; day <= daysInMonth; day++) grid.appendChild(createDayCell(new Date(year, month, day), false));
+    const totalCells = prevMonthDays + daysInMonth;
+    const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
+    for (let day = 1; day <= remaining; day++) grid.appendChild(createDayCell(new Date(year, month + 1, day), true));
+  }
+
+  function createDayCell(date, isOtherMonth) {
+    const dateStr = isoDate(date);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (isOtherMonth) cell.classList.add('other-month');
+    const dow = date.getDay();
+    if (dow === 0 || dow === 6) cell.classList.add('weekend');
+    if (date.toDateString() === new Date().toDateString()) cell.classList.add('today');
+
+    const num = document.createElement('div');
+    num.className = 'day-number';
+    num.textContent = date.getDate();
+    cell.appendChild(num);
+
+    const items = assignmentsOn(dateStr);
+    if (items.length) {
+      cell.classList.add('has-events');
+      const dots = document.createElement('div');
+      dots.className = 'day-dots';
+      items.slice(0, 6).forEach(a => {
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        dot.style.background = colourFor(a);
+        dot.title = labelFor(a);
+        dots.appendChild(dot);
+      });
+      if (items.length > 6) {
+        const more = document.createElement('span');
+        more.className = 'day-more';
+        more.textContent = '+' + (items.length - 6);
+        dots.appendChild(more);
+      }
+      cell.appendChild(dots);
+      cell.addEventListener('click', () => openDayModal(dateStr));
+    }
+    return cell;
+  }
+
+  // ============================================================
+  // DAY MODAL
+  // ============================================================
+  function openDayModal(dateStr) {
+    document.getElementById('dayModalTitle').textContent = fmtLong(dateStr);
+    const body = document.getElementById('dayModalBody');
+    const items = assignmentsOn(dateStr);
+    if (!items.length) {
+      body.innerHTML = '<div class="day-modal-empty">Nothing booked.</div>';
+    } else {
+      body.innerHTML = items.map(a => {
+        const rows = [];
+        if (a.job_number)  rows.push(row('Job No.', a.job_number));
+        if (a.client_name) rows.push(row('Client', a.client_name));
+        if (a.site_name)   rows.push(row('Site', a.site_name));
+        rows.push(row('Schedule', SCHED_LABELS[a.schedule] || a.schedule));
+        rows.push(row('Dates', rangeText(a)));
+        if (a.notes)       rows.push(row('Notes', a.notes));
+        return '<div class="assign-block">' +
+          '<div class="assign-head">' +
+            '<span class="type-badge" style="background:' + colourFor(a) + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' +
+            '<span class="assign-title">' + esc(labelFor(a)) + '</span>' +
+          '</div>' + rows.join('') + '</div>';
+      }).join('');
+    }
+    document.getElementById('dayModal').classList.add('show');
+  }
+  function row(label, value) {
+    return '<div class="detail-row"><span class="detail-label">' + esc(label) + '</span><span class="detail-value">' + esc(value) + '</span></div>';
+  }
+  function closeDayModal() { document.getElementById('dayModal').classList.remove('show'); }
+  document.getElementById('dayModalClose').addEventListener('click', closeDayModal);
+  document.getElementById('dayModal').addEventListener('click', e => { if (e.target.id === 'dayModal') closeDayModal(); });
+
+  // ============================================================
+  // LIST VIEW
+  // ============================================================
+  function renderList() {
+    const container = document.getElementById('scheduleList');
+    const todayStr = isoDate(new Date());
+    const entries = assignments
+      .filter(a => a.schedule === 'indefinite' || (a.end_date || a.start_date) >= todayStr)
+      .slice()
+      .sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+    if (!entries.length) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-secondary)">No current or upcoming bookings.</div>';
+      return;
+    }
+
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const groups = {};
+    entries.forEach(e => { const k = e.start_date.slice(0, 7); (groups[k] = groups[k] || []).push(e); });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      html += '<div class="list-group"><div class="list-month-header">' + months[m - 1] + ' ' + y + '</div>';
+      groups[key].forEach(a => {
+        const sub = subFor(a);
+        html += '<div class="list-row">' +
+          '<span class="list-emp-dot" style="background:' + colourFor(a) + '"></span>' +
+          '<div class="list-main"><div class="list-emp-name">' + esc(labelFor(a)) + '</div>' +
+          (sub ? '<div class="list-sub">' + esc(sub) + '</div>' : '') + '</div>' +
+          '<span class="list-type-badge" style="background:' + colourFor(a) + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' +
+          '<span class="list-dates">' + rangeText(a) + '</span>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  // ============================================================
+  // VIEW TOGGLE / NAV
+  // ============================================================
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+    document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('viewCalendarBtn').classList.toggle('active', view === 'calendar');
+    document.getElementById('viewListBtn').classList.toggle('active', view === 'list');
+    view === 'calendar' ? renderCalendar() : renderList();
+  }
+  document.getElementById('viewCalendarBtn').addEventListener('click', () => switchView('calendar'));
+  document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
+  document.getElementById('prevMonth').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+  document.getElementById('nextMonth').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadData();
+    renderQuickRef();
+    renderCalendar();
+  });
+</script>
+
+</body>
+</html>
