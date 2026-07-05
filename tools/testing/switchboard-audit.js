@@ -1,575 +1,883 @@
-/* ══════════════════════════════════════════════════════════════
-   BROMAR HUB — SHARED TESTING MODULE: Switchboard Audit
-   Location: /tools/testing/switchboard-audit.js
-   API: window.BromarTest.SwitchboardAudit.renderForm(container, config)
-   ══════════════════════════════════════════════════════════════ */
-window.BromarTest = window.BromarTest || {};
-window.BromarTest.SwitchboardAudit = (function () {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Switchboard Schedule Generator — Bromar Hub</title>
 
-  const VERSION = 'V1.02';
-  const TABLE = 'testing_switchboard_audit';
-  const BUCKET = 'testing';
-  const FOLDER = 'switchboard-audit';
-  const NAVY = [36, 59, 107], ORANGE = [234, 88, 12], MUTED = [107, 114, 128];
-  const ORG = { name: 'Bromar Electrical Services Pty Ltd', addr: '2/98-108 Western Ave, Westmeadows 3049', phoneRec: 'PH: 9335 5344    REC: 40430', web: 'www.bromar.com.au' };
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/tools/auth.js"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<script src="/tools/bromar-hub.js" defer></script>
 
-  const CATEGORIES = [
-    { name: 'General Access & Location', items: [
-      { num: 1, desc: '600mm radius of door opening obtained',
-        criteria: 'Confirm a minimum 600mm clear working space is available in front of the switchboard with the door fully open. Ensure no permanent obstructions reduce safe access.',
-        report: '600mm radius of door opening not achieved: Adequate clearance allows safe operation, maintenance and emergency isolation of the switchboard.' },
-      { num: 2, desc: 'Obstructions to door opening',
-        criteria: 'Ensure the switchboard door can fully open without obstruction from equipment, stored materials, piping or building structures.',
-        report: 'Obstructions prevent the switchboard door from fully opening: Unrestricted access is required for safe operation, maintenance and emergency isolation.' },
-      { num: 3, desc: 'Lockable to restrict unauthorised personnel',
-        criteria: 'Verify the switchboard can be locked where required and that locking provisions are functional.',
-        report: 'Switchboard is not capable of being secured against unauthorised access: Restricting access reduces the risk of electric shock and unauthorised interference.' },
-    ]},
-    { name: 'Labelling', items: [
-      { num: 4, desc: 'Switchboard identification label',
-        criteria: 'Confirm the switchboard has a permanent identification label matching site drawings or nomenclature.',
-        report: 'Switchboard identification label missing or incorrect: Clear identification assists maintenance personnel and emergency responders.' },
-      { num: 5, desc: 'Sub-circuit labelling / schedule',
-        criteria: 'Verify every protective device is labelled and matches the circuit schedule. Ensure labels are legible and redundant circuits are identified or removed.',
-        report: 'Circuit labelling or schedule is incomplete or inaccurate: Accurate circuit identification improves safety and reduces maintenance time.' },
-      { num: 6, desc: 'Main switch / isolator label',
-        criteria: 'Confirm all main switches, isolators and incoming supplies are clearly labelled.',
-        report: 'Main switch or isolator is not clearly labelled: Clearly identifying isolation points allows power to be safely disconnected when required.' },
-      { num: 7, desc: 'Emergency lighting labels',
-        criteria: 'Verify emergency lighting circuits are clearly labelled. Where an emergency lighting test switch or test kit is fitted, confirm it is labelled and all associated emergency lighting circuits can be readily identified.',
-        report: 'Emergency lighting circuits or test facilities are not correctly labelled: Correct labelling allows emergency lighting systems to be safely tested and maintained.' },
-      { num: 8, desc: 'Solar warning labels',
-        criteria: 'Where a solar PV system exists, verify all required warning labels are fitted including Main Switch (Grid Supply), Main Switch (Inverter Supply), Dual Supply Warning, Inverter Shutdown Procedure, PV Array Isolation, Rooftop PV Warning and Battery Storage warnings where applicable.',
-        report: 'Required solar warning labels are missing or incomplete: Correct warning labels alert personnel that multiple energy sources may remain energised.' },
-    ]},
-    { name: 'Enclosure', items: [
-      { num: 9, desc: 'Enclosure condition',
-        criteria: 'Inspect the enclosure for corrosion, dents, cracks, damage, unauthorised modifications or deterioration.',
-        report: 'Switchboard enclosure is damaged or deteriorated: A damaged enclosure may reduce electrical safety and environmental protection.' },
-      { num: 10, desc: 'Pole fillers',
-        criteria: 'Confirm all unused module spaces are fitted with approved blanking plates and no live parts are accessible.',
-        report: 'Unused switchgear openings are not fitted with approved pole fillers: Blanking plates prevent accidental contact with live electrical components.' },
-      { num: 11, desc: 'Enclosure fixings',
-        criteria: 'Check the enclosure is securely fixed to the wall, floor or supporting structure. Inspect hinges, covers, chassis fixings, mounting bolts and screws for security and damage.',
-        report: 'Switchboard enclosure is not securely mounted or fixed: A securely mounted switchboard maintains its structural integrity and electrical safety.' },
-      { num: 12, desc: 'No openings bigger than 5mm',
-        criteria: 'Inspect for holes, gaps or missing covers that could allow access to live parts or ingress of foreign objects.',
-        report: 'Enclosure contains openings that may expose live parts or compromise protection: Maintaining enclosure integrity reduces electrical hazards.' },
-      { num: 13, desc: 'Seals and gaskets satisfactory',
-        criteria: 'Inspect door seals and gaskets for deterioration, damage or missing sections. Ensure doors seal correctly.',
-        report: 'Door seals or gaskets are damaged or missing: Good seals help protect electrical equipment from dust and moisture.' },
-      { num: 14, desc: 'Degree of IP protection maintained',
-        criteria: 'Confirm any modifications, cable entries or equipment additions have not compromised the enclosure\'s environmental protection.',
-        report: 'Enclosure IP protection has been compromised: Maintaining the enclosure\'s protection reduces the likelihood of equipment failure.' },
-      { num: 15, desc: 'No undue accumulation of dust and dirt',
-        criteria: 'Inspect internally and externally for excessive dust, debris, moisture or contamination.',
-        report: 'Excessive dust, dirt or contamination present within the switchboard: Contamination can contribute to overheating and premature equipment failure.' },
-      { num: 16, desc: 'Fire rating maintained where required',
-        criteria: 'Verify penetrations are appropriately sealed and that the fire rating of the wall, floor or barrier has been maintained.',
-        report: 'Fire-rated penetrations have not been correctly sealed: Maintaining fire barriers helps limit the spread of fire throughout the building.' },
-      { num: 17, desc: 'Protection against corrosion, weather, vibration and adverse factors',
-        criteria: 'Assess the installation for corrosion, UV damage, water ingress, excessive vibration, chemical exposure or other environmental deterioration.',
-        report: 'Switchboard is inadequately protected from environmental conditions: Environmental damage can reduce equipment reliability and service life.' },
-    ]},
-    { name: 'Cabling', items: [
-      { num: 18, desc: 'Cables entering board have adequate mechanical protection',
-        criteria: 'Verify incoming and outgoing cables are protected from abrasion and mechanical damage using glands, bushes, conduit or equivalent protection. Look for unprotected cables entering the bottom of the switchboard.',
-        report: 'Incoming or outgoing cables lack adequate mechanical protection: Mechanical protection reduces cable damage and improves long-term reliability.' },
-      { num: 19, desc: 'Cables on sharp edges',
-        criteria: 'Ensure cables do not contact sharp metal edges and that edge protection is fitted where required.',
-        report: 'Cables are in contact with sharp edges or lack edge protection: Protecting cable insulation reduces the likelihood of electrical faults.' },
-    ]},
-    { name: 'Glandplate', items: [
-      { num: 20, desc: 'Non-ferrous gland plate used',
-        criteria: 'Where single-core cables are installed, confirm gland plates are manufactured from non-ferrous material (aluminium or stainless steel) or are otherwise suitable to prevent induced heating. Alternatively, cable entry openings may be slotted in accordance with AS/NZS 3000 provided the slot dimensions comply and the remaining opening is suitably sealed.',
-        report: 'Cable entry arrangement is unsuitable for single-core cables: Correct gland plate construction prevents induced heating and maintains enclosure protection.' },
-      { num: 21, desc: 'Gland plate and glands tight & secured',
-        criteria: 'Check gland plates are secure and cable glands are correctly tightened, sealed and provide strain relief.',
-        report: 'Cable glands or gland plate are loose or inadequately secured: Secure cable entries maintain enclosure protection and prevent cable movement.' },
-    ]},
-    { name: 'Switchgear', items: [
-      { num: 22, desc: 'Discrimination / Coordination',
-        criteria: 'Review available drawings and protection settings to confirm upstream and downstream protective devices are appropriately coordinated where practical.',
-        report: 'Protective devices may not be correctly coordinated: Correct coordination helps minimise unnecessary power outages during electrical faults.' },
-      { num: 23, desc: 'Switchgear selection (suited to switchboard)',
-        criteria: 'Confirm protective devices are correctly rated for voltage, current, fault level and intended application.',
-        report: 'Installed switchgear is not appropriately selected for the application: Correctly selected equipment improves the safety and reliability of the installation.' },
-      { num: 24, desc: 'Switchgear orientation',
-        criteria: 'Verify devices are installed in the manufacturer\'s approved orientation and have adequate ventilation and clearance. Check that MCBs and RCBOs have not been installed backwards. Breaker toggle orientation may differ provided ON and OFF positions are clearly labelled, however consistent orientation is best practice.',
-        report: 'Switchgear is incorrectly orientated or installed: Correct installation ensures switchgear operates safely and as intended.' },
-      { num: 25, desc: 'Switchgear condition',
-        criteria: 'Inspect breakers, contactors, isolators and RCDs for cracks, overheating, discolouration, damaged terminals, missing handles or evidence of arcing.',
-        report: 'Switchgear shows signs of damage or deterioration: Damaged switchgear increases the risk of equipment failure and electrical faults.' },
-    ]},
-    { name: 'Chassis & Busbars', items: [
-      { num: 26, desc: 'Insulation on busbars in good condition',
-        criteria: 'Inspect visible busbar insulation for cracking, deterioration, tracking or exposed conductive parts.',
-        report: 'Busbar insulation is damaged or deteriorated: Damaged insulation increases the risk of electrical faults and electric shock.' },
-      { num: 27, desc: 'Phase to earth clearance',
-        criteria: 'Verify adequate clearance is maintained between live conductors and earth or grounded metalwork.',
-        report: 'Insufficient phase-to-earth clearance observed: Adequate clearances reduce the risk of flashover and electrical faults.' },
-      { num: 28, desc: 'Phase to phase clearance',
-        criteria: 'Verify adequate separation is maintained between live conductors of different phases.',
-        report: 'Insufficient phase-to-phase clearance observed: Correct conductor spacing reduces the likelihood of phase-to-phase faults.' },
-      { num: 29, desc: 'Shrouds fitted',
-        criteria: 'Confirm all required barriers, covers and shrouds are fitted and securely installed over live components.',
-        report: 'Required shrouds or protective barriers are missing: Protective barriers reduce the risk of accidental contact with live parts.' },
-    ]},
-    { name: 'Terminations', items: [
-      { num: 30, desc: 'Exposed copper on terminations',
-        criteria: 'Inspect all terminations for excessive exposed conductor and ensure insulation extends close to the terminal.',
-        report: 'Excessive exposed copper identified at terminations: Correct terminations minimise the risk of short circuits and accidental contact.' },
-      { num: 31, desc: 'Loose connections',
-        criteria: 'Inspect accessible terminations for loose conductors, overheating, discolouration or evidence of arcing. Use thermal imaging where available.',
-        report: 'Loose or overheated electrical connections identified: Loose electrical connections are a common cause of overheating and equipment failure.' },
-      { num: 32, desc: 'Visual indications',
-        criteria: 'Verify indicator lamps, voltmeters, ammeters, selector switches, mimic diagrams and mechanical position indicators are present, legible and operating correctly.',
-        report: 'Visual indicators are missing, damaged or not operating correctly: Visual indicators assist operators in identifying equipment status and faults.' },
-    ]},
-    { name: 'Residual Current Devices', items: [
-      { num: 33, desc: 'RCD fitted where required',
-        criteria: 'Verify RCD protection is installed where required and has not been bypassed or removed.',
-        report: 'Residual current protection is not installed where required: RCD protection provides additional protection against electric shock.' },
-      { num: 34, desc: 'Correct RCD type',
-        criteria: 'Verify all installed RCDs and RCBOs are Type A devices. Type AC devices are not acceptable for new installations or replacements.',
-        report: 'Type AC RCDs identified or incorrect RCD type installed: Type A RCDs provide improved protection for modern electrical installations.' },
-      { num: 35, desc: 'ESV approved RCD',
-        criteria: 'Verify each installed RCD/RCBO appears on the current Energy Safe Victoria approved RCD register where applicable.',
-        report: 'Non-approved RCD identified: Approved products provide confidence the protective devices meet Victorian regulatory requirements.' },
-      { num: 36, desc: 'Correct RCD sensitivity',
-        criteria: 'Confirm the residual operating current (e.g. 30mA, 100mA or 300mA) is appropriate for the protected circuit and application.',
-        report: 'Incorrect RCD sensitivity installed for the application: Correct RCD sensitivity provides the intended level of electrical protection while reducing nuisance tripping.' },
-    ]},
-    { name: 'Overcurrent Protection', items: [
-      { num: 37, desc: 'Protection settings and device sizing',
-        criteria: 'Verify protective device ratings and adjustable settings are appropriate for the connected cables and equipment. Check settings where adjustable protection devices are installed.',
-        report: 'Protective device ratings or settings are incorrect: Correct protection settings help safeguard cables, equipment and personnel from overloads and electrical faults.' },
-    ]},
-  ];
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  const ALL_ITEMS = CATEGORIES.flatMap(c => c.items);
-  let photos = [];
-  let _logoData = null;
+<style>
+  .page-wrapper { margin-top: 0; }
 
-  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  .toolbar { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1.5rem; }
+  .toolbar .field-group { margin-bottom:0; flex:1; min-width:200px; }
+  .toolbar .btn-secondary, .toolbar .submit-btn { white-space:nowrap; }
 
-  function injectStyles() {
-    if (document.getElementById('bromar-test-sa-styles')) return;
-    const st = document.createElement('style'); st.id = 'bromar-test-sa-styles';
-    st.textContent = `
-      .sa-back{display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:1.25rem;background:none;border:none;padding:4px 0;}.sa-back:hover{text-decoration:underline;}
-      .sa-table{width:100%;border-collapse:collapse;margin-bottom:1.5rem;}
-      .sa-table th{background:var(--bg-main);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);padding:8px;text-align:left;border-bottom:2px solid var(--border);}
-      .sa-item-row td{border-bottom:1px solid var(--border);vertical-align:middle;}.sa-cat-row td{border-bottom:1px solid var(--border);background:var(--bg-main);}
-      .sa-radio-group{display:flex;gap:4px;justify-content:center;}.sa-radio{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;cursor:pointer;border:1px solid var(--border);transition:all 0.15s;font-size:0.8rem;}
-      .sa-radio input{position:absolute;opacity:0;pointer-events:none;}.sa-radio span{font-weight:700;}
-      .sa-radio.pass:has(input:checked){background:#d1fae5;border-color:#15803d;color:#15803d;}.sa-radio.fail:has(input:checked){background:#fee2e2;border-color:#dc2626;color:#dc2626;}.sa-radio.na:has(input:checked){background:var(--bg-main);border-color:var(--accent);color:var(--accent);}
-      .sa-info-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg-main);color:var(--text-secondary);font-size:0.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;transition:all 0.15s;flex-shrink:0;vertical-align:middle;}
-      .sa-info-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--card-hover);}
-      .sa-info-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9500;align-items:center;justify-content:center;padding:1rem;}
-      .sa-info-overlay.show{display:flex;}
-      .sa-info-content{background:var(--bg-secondary);border-radius:14px;max-width:520px;width:100%;padding:1.5rem;box-shadow:0 12px 40px rgba(0,0,0,0.3);}
-      .sa-info-title{font-size:0.95rem;font-weight:700;color:var(--accent);margin-bottom:0.75rem;}
-      .sa-info-body{font-size:0.85rem;line-height:1.6;color:var(--text-primary);}
-      .sa-info-close{margin-top:1rem;padding:0.5rem 1.25rem;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer;font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:600;}
-      .sa-info-close:hover{border-color:var(--accent);color:var(--accent);}
-      .sa-desc-cell{display:flex;align-items:center;}
-      .sa-desc-text{flex:1;}
-      .sa-dynamic-list .sa-dyn-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
-      .sa-dyn-row span.sa-dyn-num{min-width:24px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:var(--text-secondary);}
-      .sa-dyn-row textarea{flex:1;min-height:56px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.85rem;background:var(--bg-secondary);color:var(--text-primary);resize:vertical;}
-      .sa-dyn-row .remove-btn{margin-top:6px;}
-      .sa-dyn-row[data-auto-item] textarea{border-left:3px solid var(--accent);}
-      .sa-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-top:1rem;}
-      .sa-photo-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-secondary);}
-      .sa-photo-card img{width:100%;height:140px;object-fit:cover;display:block;}
-      .sa-photo-card textarea{width:100%;border:none;border-top:1px solid var(--border);padding:8px;font-family:'Outfit',sans-serif;font-size:0.8rem;resize:none;min-height:50px;background:var(--bg-secondary);color:var(--text-primary);}
-      .sa-photo-card .remove-btn{width:100%;text-align:center;padding:6px;border-top:1px solid var(--border);}
-    `;
-    document.head.appendChild(st);
+  .loadshed-row { display:flex; align-items:center; gap:0.625rem; padding:0.75rem 0; }
+  .loadshed-row input[type="checkbox"] { width:20px; height:20px; accent-color:var(--accent); cursor:pointer; }
+
+  .sb-circuit-row, .sb-rowdef {
+    display:grid; gap:0.5rem; align-items:end;
+    background:var(--bg-main); border:1px solid var(--border);
+    border-radius:10px; padding:0.75rem; margin-bottom:0.5rem;
+  }
+  .sb-circuit-row { grid-template-columns: 66px 60px 96px 66px 84px 34px; }
+  .sb-rowdef      { grid-template-columns: 1fr 110px 34px; }
+  .sb-circuit-row label, .sb-rowdef label { font-size:0.7rem; margin-bottom:0.25rem; }
+  .sb-circuit-row input, .sb-circuit-row select, .sb-rowdef input { padding:0.5rem 0.5rem; font-size:0.9rem; }
+  .c-desc-wrap { grid-column:1 / -1; }
+  .row-x { background:none; border:none; color:var(--error); font-size:1.3rem; cursor:pointer; line-height:1; padding:0; }
+  .row-x:hover { color:#ef4444; }
+  .sb-circuit-row.dup { border-color:var(--error); box-shadow:0 0 0 1px var(--error); }
+  @media (max-width:640px){
+    .sb-circuit-row { grid-template-columns: 1fr 1fr 1fr; }
+    .sb-circuit-row .c-x { grid-column:1 / -1; justify-self:end; }
+    .sb-rowdef { grid-template-columns: 1fr 110px; }
+    .sb-rowdef .row-x { grid-column:1 / -1; justify-self:end; }
   }
 
-  function loadLogo() {
-    if (_logoData) return Promise.resolve(_logoData);
-    return new Promise(resolve => {
-      const img = new Image(); img.crossOrigin = 'anonymous';
-      const paths = ['/Bromar-Primary-Logo-Full-Colour.png', '../Bromar-Primary-Logo-Full-Colour.png', '../../Bromar-Primary-Logo-Full-Colour.png'];
-      let tried = 0;
-      function tryNext() { if (tried >= paths.length) { resolve(null); return; } img.src = paths[tried++]; }
-      img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); _logoData = { dataUrl: c.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight }; resolve(_logoData); };
-      img.onerror = tryNext; tryNext();
-    });
-  }
+  #previewBox { margin-top:1.5rem; border:1px solid var(--border); border-radius:12px; background:#525659; padding:1rem; overflow:auto; max-height:820px; }
 
-  let _jspdfPromise = null;
-  function ensureJsPDF() {
-    if (window.jspdf) return Promise.resolve();
-    if (_jspdfPromise) return _jspdfPromise;
-    _jspdfPromise = new Promise((resolve, reject) => {
-      const s1 = document.createElement('script'); s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      s1.onload = () => { const s2 = document.createElement('script'); s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'; s2.onload = resolve; s2.onerror = reject; document.head.appendChild(s2); };
-      s1.onerror = reject; document.head.appendChild(s1);
-    });
-    return _jspdfPromise;
-  }
+  /* ── SCHEDULE PAGE (preview + PDF capture): fixed light colours ── */
+  .sb-page { position:relative; width:760px; min-height:1074px; margin:0 auto; background:#fff; color:#000; font-family:'Outfit',Arial,sans-serif; padding:24px 26px 70px; box-sizing:border-box; }
+  .sb-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:6px; }
+  .sb-logo { max-height:42px; width:auto; }
+  .sb-center { flex:1; text-align:left; padding-left:30px; font-size:8px; color:#555; line-height:1.32; }
+  .sb-title { font-size:26px; font-weight:800; color:#ea580c; letter-spacing:-0.01em; line-height:1.05; text-align:center; }
 
-  /* ── Render form ── */
-  function renderForm(container, config) {
-    injectStyles(); photos = [];
-    const cfg = config || {};
-    const today = new Date().toISOString().split('T')[0];
+  .sb-info { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+  .sb-info-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 16px; background:#fff; }
+  .sb-info-title { font-size:18px; font-weight:800; color:#1a1a1e; letter-spacing:-0.02em; line-height:1.05; text-transform:uppercase; }
+  .sb-info-sub { font-size:8.5px; color:#8a8a8a; margin-top:1px; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; }
+  .sb-info-warn { flex:none; background:#fdeaea; color:#d21f1f; border:1px solid #f3b4b4; border-radius:6px; padding:5px 10px; font-size:8px; font-weight:800; text-align:center; line-height:1.2; letter-spacing:.5px; }
+  .sb-stats { display:flex; }
+  .sb-stats + .sb-stats { border-top:1px solid rgba(0,0,0,0.07); }
+  .sb-stats .stat { flex:1; display:flex; align-items:center; gap:8px; padding:5px 14px; min-width:0; }
+  .sb-stats .stat + .stat { border-left:1px solid rgba(255,255,255,0.25); }
+  .sb-stats-secondary .stat + .stat { border-left:1px solid #ececec; }
+  .sb-stats .stat-t { display:flex; flex-direction:column; line-height:1.1; min-width:0; }
+  .sb-stats .lbl { font-size:7px; text-transform:uppercase; letter-spacing:.5px; opacity:.85; font-weight:600; }
+  .sb-stats .val { font-size:11px; font-weight:800; word-break:break-word; text-transform:uppercase; }
+  .sb-stats-primary { background:linear-gradient(90deg,#ea580c 0%,#f97316 100%); color:#fff; }
+  .sb-stats-secondary { background:#f8f8f8; color:#1a1a1e; }
+  .sb-stats-secondary .lbl { color:#9a9a9a; opacity:1; }
 
-    let checklistHtml = '';
-    for (const cat of CATEGORIES) {
-      checklistHtml += `<tr class="sa-cat-row"><td colspan="4" style="font-weight:700;font-style:italic;padding:10px 8px 6px;color:var(--text-primary);font-size:0.9rem;">${esc(cat.name)}</td></tr>`;
-      for (const item of cat.items) {
-        checklistHtml += `
-          <tr class="sa-item-row">
-            <td style="width:36px;text-align:center;font-weight:600;font-size:0.85rem;">${item.num}</td>
-            <td style="font-size:0.85rem;padding:6px 8px;"><div class="sa-desc-cell"><span class="sa-desc-text">${esc(item.desc)}</span><button type="button" class="sa-info-btn" data-item="${item.num}" title="Inspection criteria">i</button></div></td>
-            <td style="width:70px;text-align:center;"><div class="sa-radio-group"><label class="sa-radio pass"><input type="radio" name="item_${item.num}" value="pass" data-item="${item.num}"><span>✓</span></label><label class="sa-radio fail"><input type="radio" name="item_${item.num}" value="fail" data-item="${item.num}"><span>✗</span></label></div></td>
-            <td style="width:50px;text-align:center;"><label class="sa-radio na"><input type="radio" name="item_${item.num}" value="na" data-item="${item.num}"><span>N/A</span></label></td>
-          </tr>`;
-      }
-    }
+  .sb-gridwrap { border:1px solid #e2e2e2; border-radius:10px; overflow:hidden; }
+  .sb-grid { width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed; line-height:1.15; }
+  .sb-grid th, .sb-grid td { border:1px solid #e2e2e2; padding:1.5px 5px; }
+  .sb-grid th { font-weight:700; text-align:center; background:#f8f8f8; color:#1a1a1e; }
+  .sb-grid td.cb { text-align:center; font-weight:700; background:#f2f2f2; color:#1a1a1e; }
+  .sb-grid td.type { text-align:center; }
+  .sb-grid td.desc { text-align:center; }
+  .sb-grid col.cb   { width:6%; }
+  .sb-grid col.type { width:14%; }
+  .sb-band td { background:#1a1a1e; color:#fff; font-weight:700; text-align:center; letter-spacing:0.5px; }
+  .sb-break td { background:#1a1a1e; color:#fff; font-weight:800; text-align:center; letter-spacing:1px; font-size:10px; }
+  .sb-iso .cb { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; letter-spacing:1px; }
+  .sb-foot { position:absolute; left:26px; right:26px; bottom:42px; display:flex; justify-content:space-between; gap:16px; padding-top:8px; border-top:1px solid #ececec; }
+  .sb-foot-item { display:flex; align-items:center; gap:6px; font-size:8.5px; color:#777; }
 
-    container.innerHTML = `
-      <div class="sa-info-overlay" id="saInfoOverlay">
-        <div class="sa-info-content">
-          <div class="sa-info-title" id="saInfoTitle"></div>
-          <div class="sa-info-body" id="saInfoBody"></div>
-          <button class="sa-info-close" id="saInfoClose">Close</button>
-        </div>
+  .card-footer { margin-top:32px; padding-top:24px; border-top:1px solid var(--border); text-align:center; }
+  .card-footer-title { font-weight:700; font-size:1.05rem; letter-spacing:0.8px; color:var(--text-primary); margin-bottom:10px; white-space:nowrap; }
+  @media (max-width:420px){ .card-footer-title { font-size:0.85rem; letter-spacing:0.5px; } }
+  .card-footer-link { display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--accent); text-decoration:none; font-weight:600; margin-bottom:14px; }
+  .card-footer-link:hover { text-decoration:underline; }
+  .card-footer-version { font-size:0.78rem; color:var(--text-secondary); font-weight:500; }
+</style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>Switchboard Schedule Generator</h1>
+  <p class="subtitle">Build, save and export switchboard schedules to PDF</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="success-banner" id="successBanner"><span id="successText"></span></div>
+  <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+
+  <div class="form-card">
+
+    <div class="toolbar">
+      <div class="field-group">
+        <label for="loadSelect">Open a saved schedule</label>
+        <select id="loadSelect"><option value="">— New schedule —</option></select>
       </div>
-      ${cfg.onBack ? '<button class="sa-back" id="saBack">\u2190 Back</button>' : ''}
-      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">\uD83D\uDD0C Switchboard Inspection Audit</h3>
-      <div class="section-label">Job Details</div>
-      ${cfg.jobNumber ? '' : '<div class="field-row"><div class="field-group full" style="grid-column:1/-1;"><label>Job Number <span class="required">*</span></label><div class="autocomplete-wrapper"><input type="text" id="saJobNumber" placeholder="Search job number, client, or site..." autocomplete="off"><div class="autocomplete-results" id="saJobResults"></div></div></div></div>'}
+      <button type="button" class="btn-secondary" id="newBtn">＋ New</button>
+      <button type="button" class="btn-secondary" id="deleteBtn">🗑 Delete</button>
+    </div>
+
+    <div class="section-label">Customer</div>
+    <div class="field-row">
+      <div class="field-group autocomplete-wrapper">
+        <label for="job_number">Job Number</label>
+        <input type="text" id="job_number" autocomplete="off" placeholder="Search job register…"/>
+        <div class="autocomplete-results" id="jobResults"></div>
+      </div>
+      <div class="field-group"><label for="customer_name">Customer / Site Name <span style="color:var(--text-secondary);font-weight:400;">(as shown on schedule)</span></label><input type="text" id="customer_name" placeholder="Auto-fills from job number"/></div>
+      <div class="field-group"><label for="schedule_date">Date</label><input type="date" id="schedule_date"/></div>
+      <div class="field-group"><label for="prepared_by">Schedule Prepared By <span id="pbBadge" style="display:none;color:var(--success);font-size:0.75rem;font-weight:600;margin-left:4px;">● Logged in</span></label><input type="text" id="prepared_by" placeholder="Auto-fills from login"/></div>
+    </div>
+
+    <div class="section-label">Submains</div>
+    <div class="job-number-toggle">
+      <div class="radio-option"><input type="radio" name="supply" id="supply_sub" value="sub" checked/><label for="supply_sub">Sub Board</label></div>
+      <div class="radio-option"><input type="radio" name="supply" id="supply_main" value="main"/><label for="supply_main">Main Switchboard</label></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label for="cable_type">Cable Type</label>
+        <select id="cable_type"><option>XLPE</option><option>SDI</option><option>XLPE Flex</option><option>Orange Circular</option><option>TPS</option><option>Fire Rated</option><option>MICC</option><option>VSD Cable</option><option>Control Cable</option><option>Instrument Cable</option><option>Other</option></select></div>
+      <div class="field-group"><label for="cable_construction">Cable Construction</label>
+        <select id="cable_construction"><option value="Single Core">Single Core</option><option value="Multicore">Multicore</option></select></div>
+      <div class="field-group"><label for="cable_path">Cable Path</label><input type="text" id="cable_path" placeholder="e.g. Cable Tray at roof height"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group" id="phasesWrap"><label for="cable_phases">Supply Type</label><select id="cable_phases"><option>Single Phase</option><option>Two Phase</option><option value="Three Phase" selected>Three Phase</option></select></div>
+      <div class="field-group" id="coreConfigWrap" style="display:none;"><label for="core_config">Core Configuration</label><select id="core_config"><option>2C</option><option>2C + E</option><option>3C</option><option>3C + E</option><option>4C</option><option value="4C + E" selected>4C + E</option></select></div>
+      <div class="field-group"><label id="sizeLabel" for="active_size">Active Conductor Size</label><select id="active_size"><option value="">Select…</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label for="earth_size">Earth Size</label><select id="earth_size"><option value="">Select…</option><option value="inside">Inside Multicore</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+      <div class="field-group" id="groupsWrap"><label for="parallel_groups">Parallel Cable Groups</label><select id="parallel_groups"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+      <div class="field-group" id="undersizedWrap"><label style="visibility:hidden;">.</label><div class="loadshed-row" style="padding:0;"><input type="checkbox" id="undersized_n"/><label for="undersized_n" style="margin:0;">Undersized Neutral</label></div></div>
+    </div>
+    <div class="field-row" id="neutralRow" style="display:none;">
+      <div class="field-group"><label for="neutral_size">Neutral Size</label><select id="neutral_size"><option value="">Select…</option><option value="4">4mm²</option><option value="6">6mm²</option><option value="10">10mm²</option><option value="16">16mm²</option><option value="25">25mm²</option><option value="35">35mm²</option><option value="50">50mm²</option><option value="70">70mm²</option><option value="95">95mm²</option><option value="120">120mm²</option><option value="150">150mm²</option><option value="185">185mm²</option><option value="240">240mm²</option><option value="300">300mm²</option><option value="400">400mm²</option><option value="500">500mm²</option><option value="630">630mm²</option></select></div>
+    </div>
+    <div class="submit-note" style="margin:-0.25rem 0 0.75rem;">Cable description: <b id="submainPreview" style="color:var(--text-primary);">—</b></div>
+    <div class="field-row" id="fedSubRow">
+      <div class="field-group"><label for="fed_switchboard">Fed From — Switchboard</label><input type="text" id="fed_switchboard" placeholder="e.g. DB1"/></div>
+      <div class="field-group"><label for="fed_circuit">Fed From — Circuit</label><input type="text" id="fed_circuit" placeholder="e.g. CB1"/></div>
+    </div>
+    <div class="field-row" id="fedMainRow" style="display:none;">
+      <div class="field-group full"><label for="fed_source">Main Supply Source</label>
+        <select id="fed_source">
+          <option value="">Select…</option>
+          <option>From Street Supply</option>
+          <option>Kiosk</option>
+          <option>Unmetered Main Switchboard</option>
+          <option>Customer Owned Kiosk</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Board Details</div>
+    <div class="field-row">
+      <div class="field-group full"><label for="board_name">Board Name <span class="required">*</span></label><input type="text" id="board_name" placeholder="Distribution Board 1"/></div>
+      <div class="field-group"><label for="section">Section (optional)</label><input type="text" id="section" placeholder="e.g. Upper / Section 1"/></div>
+      <div class="field-group"><label for="isolator_rating">Isolator / Main Switch Rating</label><input type="text" id="isolator_rating" placeholder="e.g. 250A"/></div>
+      <div class="field-group"><label for="supply_capacity">Supply Capacity</label><input type="text" id="supply_capacity" placeholder="e.g. 63A"/></div>
+      <div class="field-group"><label for="location">Location</label><input type="text" id="location" placeholder="eg: East wall"/></div>
+      <div class="field-group"><label for="notes">Notes</label><input type="text" id="notes" placeholder="Optional notes"/></div>
+      <div class="field-group"><label for="is_loadshed">Is this board loadshed?</label><select id="is_loadshed"><option value="no">No</option><option value="yes">Yes</option></select></div>
+    </div>
+
+    <div class="section-label">Chassis</div>
+    <div class="field-row">
+      <div class="field-group"><label for="layout_type">Chassis Type</label>
+        <select id="layout_type">
+          <option value="single_phase">Single sided (Numbered per phase)</option>
+          <option value="single_cb">Single sided (Numbered per 3 phase CB)</option>
+          <option value="double_oddeven" selected>Double Sided (odd left / even right)</option>
+          <option value="double_sequential">Double Sided (Sequential Numbering)</option>
+        </select>
+      </div>
+      <div class="field-group"><label for="total_poles">Total Poles</label><input type="number" id="total_poles" min="1" max="200" value="48"/><div id="totalPolesHint" style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;"></div></div>
+      <div class="field-group"><label for="chassis_type">Chassis Construction</label>
+        <select id="chassis_type"><option value="">Select…</option><option value="MCB">MCB</option><option value="MCCB">MCCB</option><option value="Hybrid">Hybrid</option></select>
+      </div>
+      <div class="field-group"><label for="switchboard_type">Switchboard Type / Model</label><input type="text" id="switchboard_type" placeholder="eg: Concept Premier"/></div>
+      <div class="field-group"><label for="brand">Brand</label><input type="text" id="brand" placeholder="eg. NHP or Schneider"/></div>
+    </div>
+
+    <div id="isoBlock" style="display:none;">
+      <div class="loadshed-row"><input type="checkbox" id="iso_enabled"/><label for="iso_enabled" style="margin:0;">Include Main Isolator block</label></div>
+      <div class="field-row" id="isoFields" style="display:none;">
+        <div class="field-group"><label for="iso_desc">Isolator Description</label><input type="text" id="iso_desc" placeholder="Main switch"/></div>
+        <div class="field-group"><label for="iso_device">Type</label><select id="iso_device"><option>Isolator</option><option>MCB</option><option>MCCB</option></select></div>
+        <div class="field-group"><label for="iso_poles">Poles</label><select id="iso_poles"><option>1</option><option>2</option><option value="3" selected>3</option></select></div>
+        <div class="field-group"><label for="iso_current">Current (A)</label><select id="iso_current"><option value="">—</option><option>2</option><option>4</option><option>6</option><option>10</option><option>16</option><option>20</option><option>25</option><option>32</option><option>40</option><option>50</option><option>63</option><option>80</option><option>100</option><option>125</option><option>160</option><option>250</option><option>400</option><option>630</option><option value="custom">Custom…</option></select><input type="text" id="iso_current_cust" placeholder="A" style="margin-top:4px;display:none;"/></div>
+      </div>
+    </div>
+
+    <div id="rowsBlock" style="display:none;">
+      <div class="section-label">Row Sections</div>
+      <p class="submit-note" style="margin:0 0 0.75rem;">Banner inserted at the given C/B number (e.g. ROW 1 at 1, ROW 2 at 12).</p>
+      <div id="rowsList"></div>
+      <button type="button" class="add-btn" id="addRowBtn">＋ Add row section</button>
+    </div>
+
+    <div class="section-label">Chassis Breaks / Section Identifiers</div>
+    <div class="loadshed-row"><input type="checkbox" id="restart_sections"/><label for="restart_sections" style="margin:0;">Restart numbering at each section</label></div>
+    <div id="restartFields" style="display:none;">
       <div class="field-row">
-        <div class="field-group"><label>Date <span class="required">*</span></label><input type="date" id="saDate" value="${today}"></div>
-        <div class="field-group"><label>Auditor <span class="required">*</span></label><select id="saAuditor"><option value="">Select...</option></select></div>
+        <div class="field-group"><label for="top_section_id">Section 1 Name</label><input type="text" id="top_section_id" placeholder="e.g. NORMAL SUPPLY / CHASSIS A"/></div>
+        <div class="field-group"><label for="break_after">Break After Pole #</label><input type="number" id="break_after" min="1" placeholder="e.g. 24"/></div>
+        <div class="field-group"><label for="section2_name">Section 2 Name</label><input type="text" id="section2_name" placeholder="e.g. ESSENTIAL SUPPLY / CHASSIS B"/></div>
       </div>
-      <div class="field-row">
-        <div class="field-group"><label>Client</label><input type="text" id="saClient" value="${esc(cfg.clientName || '')}"></div>
-        <div class="field-group"><label>Site Name / Address</label><input type="text" id="saSite" value="${esc(cfg.siteName || '')}"></div>
-      </div>
-      <div class="field-row">
-        <div class="field-group"><label>Switchboard ID <span class="required">*</span></label><input type="text" id="saBoardId" placeholder="e.g. Main Switchboard"></div>
-        <div class="field-group"><label>Location within site</label><input type="text" id="saLocation" placeholder="e.g. Plant Room, Level 1"></div>
-      </div>
-      <div class="section-label">Inspection Items</div>
-      <table class="sa-table">
-        <thead><tr><th>Item</th><th>Non-Compliance Description</th><th>Pass / Fail</th><th>N/A</th></tr></thead>
-        <tbody>${checklistHtml}</tbody>
-      </table>
-      <div class="section-label">Hazards / Major Non-Compliance Identified</div>
-      <div class="sa-dynamic-list" id="saHazards"></div>
-      <button class="add-btn" id="saAddHazard">+ Add Hazard</button>
-      <div class="section-label">Remedial Works Recommended</div>
-      <div class="sa-dynamic-list" id="saRemedial"></div>
-      <button class="add-btn" id="saAddRemedial">+ Add Remedial Work</button>
-      <div class="section-label">Photos</div>
-      <div class="file-upload-area" id="saPhotoArea">
-        <div class="upload-icon">\uD83D\uDCF7</div>
-        <div class="upload-text">Tap to add photos</div>
-        <div class="upload-hint">JPEG, PNG \u2014 include photos of non-compliance items</div>
-        <input type="file" id="saPhotoInput" accept="image/*" multiple style="display:none;">
-      </div>
-      <div class="sa-photo-grid" id="saPhotoGrid"></div>
-      <div class="form-divider"></div>
-      <div class="submit-row">
-        <button class="btn-secondary" id="saSaveDraft" style="padding:0.875rem 1.5rem;">\uD83D\uDCBE Save Progress</button>
-        <button class="submit-btn" id="saSubmit">Submit Audit & Generate PDF</button>
-      </div>
-    `;
+    </div>
+    <div id="breaksWrap">
+      <p class="submit-note" style="margin:0.5rem 0 0.75rem;">Add a labelled chassis break before a C/B number; numbering continues across it.</p>
+      <div id="breaksList"></div>
+      <button type="button" class="add-btn" id="addBreakBtn">＋ Add chassis break</button>
+    </div>
 
-    /* Wire back */
-    if (cfg.onBack) container.querySelector('#saBack').addEventListener('click', cfg.onBack);
+    <div class="section-label">Circuits</div>
+    <p class="submit-note" style="margin:0 0 0.75rem;">Pole # = starting number. Poles = positions occupied (odd/even counts same side; other modes count consecutively). Type builds from Device + Curve + Current.</p>
+    <div id="circuitList"></div>
+    <button type="button" class="add-btn" id="addCircuitBtn">＋ Add circuit</button>
 
-    /* Job number autocomplete (standalone mode) */
-    if (!cfg.jobNumber) {
-      const jobInput = container.querySelector('#saJobNumber');
-      const jobResults = container.querySelector('#saJobResults');
-      if (jobInput && jobResults && cfg.supabase) {
-        let _jobCache = [];
-        cfg.supabase.from('job_number_register').select('job_number, client_name, site_name, site_address').order('job_number', { ascending: false }).limit(500)
-          .then(({ data }) => { if (data) _jobCache = data; });
-        jobInput.addEventListener('input', () => {
-          const q = jobInput.value.trim().toLowerCase();
-          if (q.length < 2) { jobResults.classList.remove('show'); return; }
-          const matches = _jobCache.filter(j => (j.job_number||'').toLowerCase().includes(q) || (j.client_name||'').toLowerCase().includes(q) || (j.site_name||'').toLowerCase().includes(q)).slice(0, 8);
-          if (!matches.length) { jobResults.innerHTML = '<div style="padding:0.75rem 1rem;color:var(--text-secondary);font-size:0.85rem;">No jobs found</div>'; jobResults.classList.add('show'); return; }
-          jobResults.innerHTML = matches.map(j => `<div class="autocomplete-item" data-jn="${esc(j.job_number)}" data-cn="${esc(j.client_name||'')}" data-sn="${esc(j.site_name||j.site_address||'')}"><div class="autocomplete-item-number">${esc(j.job_number)}</div><div class="autocomplete-item-client">${esc(j.client_name||'')}${j.site_name?' \u2014 '+esc(j.site_name):''}</div></div>`).join('');
-          jobResults.classList.add('show');
-          jobResults.querySelectorAll('.autocomplete-item').forEach(item => {
-            item.addEventListener('click', () => {
-              jobInput.value = item.dataset.jn; jobResults.classList.remove('show');
-              const cEl = container.querySelector('#saClient'), sEl = container.querySelector('#saSite');
-              if (cEl && !cEl.value) cEl.value = item.dataset.cn;
-              if (sEl && !sEl.value) sEl.value = item.dataset.sn;
-            });
-          });
-        });
-        jobInput.addEventListener('blur', () => { setTimeout(() => jobResults.classList.remove('show'), 200); });
-      }
-    }
+    <div class="form-divider"></div>
+    <div class="submit-row">
+      <span class="submit-note" id="revLabel">Revision V1.00</span>
+      <button type="button" class="btn-secondary" id="refreshBtn">↻ Refresh preview</button>
+      <button type="button" class="submit-btn" id="saveBtn">💾 Save</button>
+      <button type="button" class="submit-btn" id="pdfBtn">⬇ Generate PDF</button>
+    </div>
 
-    /* Auditor auto-fill */
-    const auditorSel = container.querySelector('#saAuditor');
-    (cfg.employees || []).forEach(e => { const o = document.createElement('option'); o.value = e.full_name; o.textContent = e.full_name; o.dataset.email = e.email || ''; auditorSel.appendChild(o); });
-    (async () => {
-      try {
-        if (cfg.supabase) {
-          const { data: { user } } = await cfg.supabase.auth.getUser();
-          if (user?.email) { const m = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase()); if (m) { auditorSel.value = m.full_name; auditorSel.disabled = true; return; } }
-        }
-        if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
-      } catch (_) { if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name; }
-    })();
+    <div id="previewBox"><div id="previewInner"></div></div>
 
-    /* Info popup */
-    const overlay = container.querySelector('#saInfoOverlay');
-    const infoTitle = container.querySelector('#saInfoTitle');
-    const infoBody = container.querySelector('#saInfoBody');
-    container.querySelector('#saInfoClose').addEventListener('click', () => overlay.classList.remove('show'));
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
-    container.querySelectorAll('.sa-info-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const item = ALL_ITEMS.find(i => i.num === parseInt(btn.dataset.item));
-        if (!item) return;
-        infoTitle.textContent = 'Item ' + item.num + ': ' + item.desc;
-        infoBody.textContent = item.criteria;
-        overlay.classList.add('show');
-      });
-    });
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — SWITCHBOARD SCHEDULE</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.15</div>
+    </div>
 
-    /* Dynamic lists */
-    const hazardsContainer = container.querySelector('#saHazards');
-    function renumList(cont) { cont.querySelectorAll('.sa-dyn-row').forEach((r, i) => r.querySelector('.sa-dyn-num').textContent = i + 1); }
-    function addDynRow(cont, text, autoItemNum) {
-      const row = document.createElement('div'); row.className = 'sa-dyn-row';
-      if (autoItemNum) row.setAttribute('data-auto-item', autoItemNum);
-      row.innerHTML = `<span class="sa-dyn-num">1</span><textarea placeholder="Describe...">${esc(text)}</textarea><button class="remove-btn" type="button">\u2715</button>`;
-      row.querySelector('.remove-btn').addEventListener('click', () => { row.remove(); renumList(cont); });
-      cont.appendChild(row); renumList(cont); return row;
-    }
-    function setupDynamicList(contId, btnId) { const cont = container.querySelector('#' + contId); container.querySelector('#' + btnId).addEventListener('click', () => addDynRow(cont, '', null).querySelector('textarea').focus()); }
-    setupDynamicList('saHazards', 'saAddHazard');
-    setupDynamicList('saRemedial', 'saAddRemedial');
+  </div>
+</div>
 
-    /* Auto-populate hazards on fail — uses customer report detail */
-    container.querySelectorAll('.sa-table input[type="radio"]').forEach(radio => {
-      radio.addEventListener('change', () => {
-        const num = radio.dataset.item;
-        const item = ALL_ITEMS.find(i => i.num === parseInt(num));
-        if (!item) return;
-        const existing = hazardsContainer.querySelector(`.sa-dyn-row[data-auto-item="${num}"]`);
-        if (existing) { existing.remove(); renumList(hazardsContainer); }
-        if (radio.value === 'fail') addDynRow(hazardsContainer, item.report, num);
-      });
-    });
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const CURRENTS = [2,4,6,10,16,20,25,32,40,50,63,80,100,125,160,250,400,630];
 
-    /* Photos */
-    const photoArea = container.querySelector('#saPhotoArea');
-    const photoInput = container.querySelector('#saPhotoInput');
-    const photoGrid = container.querySelector('#saPhotoGrid');
-    photoArea.addEventListener('click', () => photoInput.click());
-    photoInput.addEventListener('change', e => {
-      Array.from(e.target.files || []).forEach(file => { const reader = new FileReader(); reader.onload = ev => { photos.push({ file, dataUrl: ev.target.result, description: '' }); renderPhotos(); }; reader.readAsDataURL(file); });
-      photoInput.value = '';
-    });
-    function renderPhotos() {
-      photoGrid.innerHTML = photos.map((p, i) => `<div class="sa-photo-card" data-idx="${i}"><img src="${p.dataUrl}" alt="Photo ${i+1}"><textarea placeholder="Description...">${esc(p.description)}</textarea><button class="remove-btn" type="button">Remove</button></div>`).join('');
-      photoGrid.querySelectorAll('.sa-photo-card').forEach(card => { const idx = parseInt(card.dataset.idx); card.querySelector('textarea').addEventListener('input', e => { photos[idx].description = e.target.value; }); card.querySelector('.remove-btn').addEventListener('click', () => { photos.splice(idx, 1); renderPhotos(); }); });
-    }
+  let currentId = null, revMajor = 1, revMinor = 0;
+  const revStr = () => 'V' + revMajor + '.' + String(revMinor).padStart(2,'0');
+  const updateRevLabel = () => { $('revLabel').textContent = 'Revision ' + revStr(); };
 
-    /* Submit + Save Draft */
-    let _draftId = null;
-    container.querySelector('#saSubmit').addEventListener('click', () => submitAudit(container, cfg));
-    container.querySelector('#saSaveDraft').addEventListener('click', async () => {
-      const data = collectData(container);
-      if (!data.auditor) { BromarHub.showInfo('Select an auditor before saving'); return; }
-      const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
-      BromarHub.showLoading('Saving draft...');
-      try {
-        const record = { job_number: jobNumber, client_name: data.client, site_name: data.site, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'draft' };
-        if (_draftId) { await sb.from(TABLE).update(record).eq('id', _draftId); }
-        else { const { data: ins, error } = await sb.from(TABLE).insert(record).select('id').single(); if (error) throw error; _draftId = ins.id; }
-        BromarHub.hideLoading(); BromarHub.showSuccess('Draft saved');
-      } catch (e) { BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (e.message || e)); }
-    });
+  function fmtDate(iso){
+    if(!iso) return '';
+    const [y,m,d] = iso.split('-');
+    if(!y||!m||!d) return iso;
+    return d + '-' + MONTHS[(+m)-1] + '-' + String(y).slice(2);
   }
 
-  function collectData(container) {
-    const g = id => (container.querySelector('#' + id) || {}).value || '';
+  function composeType(c){
+    const cur = (c.current || '').toString().trim();
+    const amps = c.curve ? (c.curve + cur) : cur;
+    return [c.device || '', amps].filter(Boolean).join(' ').trim();
+  }
+  const optSel = (v, cur) => 'value="' + v + '"' + (v === cur ? ' selected' : '');
+  function currentSelectHTML(cur){
+    const inList = CURRENTS.map(String).includes(String(cur));
+    const isCustom = !!cur && !inList;
+    let o = '<option value=""' + (!cur ? ' selected' : '') + '>—</option>';
+    o += CURRENTS.map(v => '<option value="' + v + '"' + (String(v)===String(cur) ? ' selected' : '') + '>' + v + '</option>').join('');
+    o += '<option value="custom"' + (isCustom ? ' selected' : '') + '>Custom…</option>';
+    return { html:o, isCustom, custVal: isCustom ? cur : '' };
+  }
+
+  /* ---------- editor rows ---------- */
+  function circuitRow(c = {}){
+    const poles = c.poles ?? c.span ?? 1;
+    const div = document.createElement('div');
+    div.className = 'sb-circuit-row';
+    div.dataset.legacy = c.type_amps || '';
+    div.innerHTML =
+      '<div><label>Pole #</label><input type="number" class="c-start" min="1" value="' + (c.start ?? '') + '"/></div>' +
+      '<div><label>Poles</label><select class="c-poles">' +
+        [1,2,3,4,5].map(n => '<option ' + optSel(String(n), String(poles)) + '>' + n + '</option>').join('') + '</select></div>' +
+      '<div><label>Device</label><select class="c-device">' +
+        [['','—'],['MCB','MCB'],['RCBO','RCBO'],['MCCB','MCCB']].map(o => '<option ' + optSel(o[0], c.device || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
+      '<div><label>Curve</label><select class="c-curve">' +
+        [['','—'],['B','B'],['C','C'],['D','D']].map(o => '<option ' + optSel(o[0], c.curve || '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
+      (function(){ const cs = currentSelectHTML(c.current); return '<div><label>Current (A)</label><select class="c-current">' + cs.html + '</select><input type="text" class="c-current-cust" value="' + esc(cs.custVal) + '" placeholder="A" style="margin-top:4px;' + (cs.isCustom ? '' : 'display:none;') + '"/></div>'; })() +
+      '<button type="button" class="row-x c-x" title="Remove">×</button>' +
+      '<div class="c-desc-wrap"><label>Description</label><input type="text" class="c-desci" value="' + esc(c.description || '') + '" placeholder="e.g. GPO West Wall"/></div>';
+    div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
+    return div;
+  }
+  function labelNumRow(cls, a, b, r = {}){
+    const div = document.createElement('div');
+    div.className = 'sb-rowdef';
+    div.innerHTML =
+      '<div><label>' + a.lbl + '</label><input type="text" class="' + cls + '-label" value="' + esc(r.label || a.def || '') + '" placeholder="' + a.ph + '"/></div>' +
+      '<div><label>' + b.lbl + '</label><input type="number" class="' + cls + '-at" min="1" value="' + (r.at ?? r.start ?? '') + '"/></div>' +
+      '<button type="button" class="row-x" title="Remove">×</button>';
+    div.querySelector('.row-x').addEventListener('click', () => { div.remove(); schedulePreview(); });
+    return div;
+  }
+  const rowDefRow  = r => labelNumRow('r', { lbl:'Row Label', ph:'ROW 1' }, { lbl:'Start #' }, r);
+  const breakRow   = r => labelNumRow('b', { lbl:'Break Label', ph:'CHASSIS BREAK', def:'CHASSIS BREAK' }, { lbl:'Before #' }, r);
+  const circuitRow0 = () => ({ start:1, poles:1, device:'MCB', curve:'', current:'', description:'' });
+  function nextPole(){
+    const rows = [...document.querySelectorAll('#circuitList .sb-circuit-row')];
+    if(!rows.length) return 1;
+    const last = rows[rows.length-1];
+    const start = parseInt(last.querySelector('.c-start').value,10);
+    const poles = parseInt(last.querySelector('.c-poles').value,10) || 1;
+    if(!Number.isFinite(start)) return 1;
+    const step = $('layout_type').value === 'double_oddeven' ? 2 : 1;
+    return start + poles*step;
+  }
+
+  function readCircuits(){
+    return [...document.querySelectorAll('#circuitList .sb-circuit-row')].map(r => {
+      const c = {
+        start:   parseInt(r.querySelector('.c-start').value,10),
+        poles:   parseInt(r.querySelector('.c-poles').value,10) || 1,
+        device:  r.querySelector('.c-device').value,
+        curve:   r.querySelector('.c-curve').value,
+        current: (r.querySelector('.c-current').value === 'custom' ? r.querySelector('.c-current-cust').value.trim() : r.querySelector('.c-current').value),
+        description: r.querySelector('.c-desci').value.trim()
+      };
+      c.type_amps = composeType(c) || (r.dataset.legacy || '');
+      return c;
+    }).filter(c => Number.isFinite(c.start));
+  }
+  const readRows   = () => [...document.querySelectorAll('#rowsList .sb-rowdef')].map(r => ({ label:r.querySelector('.r-label').value.trim(), start:parseInt(r.querySelector('.r-at').value,10) })).filter(r => r.label && Number.isFinite(r.start)).sort((a,b)=>a.start-b.start);
+  const readBreaks = () => [...document.querySelectorAll('#breaksList .sb-rowdef')].map(r => ({ label:r.querySelector('.b-label').value.trim() || 'CHASSIS BREAK', at:parseInt(r.querySelector('.b-at').value,10) })).filter(r => Number.isFinite(r.at)).sort((a,b)=>a.at-b.at);
+
+  function composeSubmain(){
+    const type = $('cable_type').value;
+    const mc = $('cable_construction').value === 'Multicore';
+    const size = $('active_size').value;
+    const earth = $('earth_size').value;
+    if(mc){
+      const cc = $('core_config').value;
+      if(!cc || !size) return '';
+      let out = cc + ' ' + size + ' mm² ' + type;
+      if(earth === 'inside') out += ' (Earth Included)';
+      else if(earth) out += ' & 1 × ' + earth + ' mm² earth';
+      return out;
+    }
+    if(!size) return '';
+    const phases = $('cable_phases').value;
+    const actPer = phases === 'Three Phase' ? 3 : 2;
+    const groups = parseInt($('parallel_groups').value,10) || 1;
+    const actQty = actPer * groups;
+    const nSize = $('undersized_n').checked ? ($('neutral_size').value || size) : size;
+    let out = actQty + ' × ' + size + ' mm² + ' + groups + ' × ' + nSize + ' mm² N ' + type;
+    if(earth === 'inside') out += ' (Earth Included)';
+    else if(earth) out += ' & 1 × ' + earth + ' mm² earth';
+    return out;
+  }
+  function submainMeta(){
+    return { type:$('cable_type').value, construction:$('cable_construction').value, phases:$('cable_phases').value, size:$('active_size').value, groups:$('parallel_groups').value, earth:$('earth_size').value, undersizedN:$('undersized_n').checked, neutral:$('neutral_size').value, coreConfig:$('core_config').value };
+  }
+  function composeFed(){
+    if(document.querySelector('input[name="supply"]:checked').value === 'main') return $('fed_source').value;
+    return [$('fed_switchboard').value.trim(), $('fed_circuit').value.trim()].filter(Boolean).join(' - ');
+  }
+
+  function composeIso(){
+    const cur = $('iso_current').value === 'custom' ? $('iso_current_cust').value.trim() : $('iso_current').value;
+    const parts = [];
+    if(cur) parts.push(cur + 'A');
+    if($('iso_device').value) parts.push($('iso_device').value);
+    return parts.join(' ');
+  }
+  function collectState(){
+    const supply_type = document.querySelector('input[name="supply"]:checked').value;
     return {
-      jobNumber: g('saJobNumber').trim() || '', client: g('saClient').trim(), site: g('saSite').trim(),
-      boardId: g('saBoardId').trim(), location: g('saLocation').trim(),
-      auditor: g('saAuditor'), date: g('saDate'),
-      items: ALL_ITEMS.map(item => {
-        const checked = container.querySelector(`input[name="item_${item.num}"]:checked`);
-        return { num: item.num, desc: item.desc, result: checked ? checked.value : null, report: item.report };
-      }),
-      hazards: Array.from(container.querySelectorAll('#saHazards .sa-dyn-row textarea')).map(ta => ta.value.trim()).filter(Boolean),
-      remedial: Array.from(container.querySelectorAll('#saRemedial .sa-dyn-row textarea')).map(ta => ta.value.trim()).filter(Boolean),
-      photos,
+      id: currentId,
+      board_name: $('board_name').value.trim(),
+      section: $('section').value.trim(),
+      project_number: $('job_number').value.trim(),
+      customer_name: $('customer_name').value.trim(),
+      prepared_by: $('prepared_by').value.trim(),
+      schedule_date: $('schedule_date').value || null,
+      location: $('location').value.trim(),
+      isolator_rating: $('isolator_rating').value.trim(),
+      supply_capacity: $('supply_capacity').value.trim(),
+      switchboard_type: $('switchboard_type').value.trim(),
+      chassis_type: $('chassis_type').value,
+      sub_main_size: composeSubmain(),
+      submain: submainMeta(),
+      brand: $('brand').value.trim(),
+      supply_type,
+      fed_switchboard: $('fed_switchboard').value.trim(),
+      fed_circuit: $('fed_circuit').value.trim(),
+      fed_source: $('fed_source').value,
+      fed_from: composeFed(),
+      cable_path: $('cable_path').value.trim(),
+      notes: $('notes').value.trim(),
+      is_loadshed: $('is_loadshed').value === 'yes',
+      layout_type: $('layout_type').value,
+      total_poles: Math.max(1, parseInt($('total_poles').value,10) || 1),
+      main_isolator: { enabled: $('iso_enabled').checked, description: $('iso_desc').value.trim(), device: $('iso_device').value, poles: $('iso_poles').value, current: ($('iso_current').value === 'custom' ? $('iso_current_cust').value.trim() : $('iso_current').value), type_amps: composeIso() },
+      rows: readRows(),
+      restart_sections: $('restart_sections').checked,
+      top_section_id: $('top_section_id').value.trim(),
+      section2_name: $('section2_name').value.trim(),
+      break_after: parseInt($('break_after').value,10) || null,
+      chassis_breaks: readBreaks(),
+      circuits: readCircuits()
     };
   }
 
-  function validate(data) {
-    if (!data.boardId) return 'Switchboard ID is required';
-    if (!data.auditor) return 'Auditor is required';
-    if (!data.date) return 'Date is required';
-    const un = data.items.filter(i => !i.result);
-    if (un.length) return `${un.length} inspection item(s) not answered (item ${un[0].num})`;
-    return null;
+  /* ---------- schedule render ---------- */
+  function circuitInfo(s){
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const info = {};
+    s.circuits.forEach(c => { for(let i=0;i<c.poles;i++){ const p = c.start + i*step; info[p] = { c, first:i===0, span:c.poles }; } });
+    return info;
   }
-
-  async function submitAudit(container, cfg) {
-    const data = collectData(container);
-    const err = validate(data);
-    if (err) { BromarHub.showInfo(err); return; }
-    const sb = cfg.supabase;
-    const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
-    BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
-    try {
-      const record = { job_number: jobNumber, client_name: data.client, site_name: data.site, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'completed' };
-      const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
-      if (insertErr) throw insertErr;
-      const recordId = inserted.id;
-      const photoPaths = [];
-      for (let i = 0; i < photos.length; i++) { const p = photos[i]; const ext = p.file.name.split('.').pop() || 'jpg'; const path = `${jobNumber}/${FOLDER}/${recordId}/photo_${i + 1}.${ext}`; const { error: upErr } = await sb.storage.from(BUCKET).upload(path, p.file, { upsert: true }); if (!upErr) photoPaths.push({ path, description: p.description }); }
-      if (photoPaths.length) await sb.from(TABLE).update({ photos: photoPaths }).eq('id', recordId);
-      BromarHub.showLoading('Generating PDF...', 'Please wait');
-      const pdfBlob = await generatePDF(data, jobNumber);
-      const pdfPath = `${jobNumber}/${FOLDER}/${recordId}.pdf`;
-      await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
-      BromarHub.hideLoading();
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const fname = `${jobNumber}_Switchboard_Audit_${data.date}.pdf`;
-      container.innerHTML = `<div class="pdf-actions show"><h3>\u2705 Switchboard Audit Saved</h3><p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0.5rem;">PDF generated and uploaded to storage.</p><div class="pdf-actions-buttons"><a href="${pdfUrl}" download="${fname}" class="pdf-btn" id="saDownloadPdf">\uD83D\uDCE5 Download PDF</a><button class="pdf-btn" id="saViewPdf">\uD83D\uDC41 View PDF</button><button class="pdf-btn" id="saDone">\u2713 Done</button></div></div>`;
-      container.querySelector('#saViewPdf').addEventListener('click', () => window.open(pdfUrl, '_blank'));
-      container.querySelector('#saDone').addEventListener('click', () => { URL.revokeObjectURL(pdfUrl); if (cfg.onComplete) cfg.onComplete(); });
-    } catch (e) { console.error('[SwitchboardAudit]', e); BromarHub.hideLoading(); BromarHub.showInfo('Error saving audit: ' + (e.message || e)); }
+  function sectionStarts(s){
+    if(!s.restart_sections) return [];
+    const a = [1];
+    if(Number.isFinite(s.break_after) && s.break_after >= 1) a.push(s.break_after + 1);
+    return a;
   }
-
-  /* ══════════════════════════════════════════════════════════
-     PDF GENERATION
-     ══════════════════════════════════════════════════════════ */
-  async function generatePDF(data, jobNumber) {
-    await ensureJsPDF();
-    const logo = await loadLogo();
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const W = doc.internal.pageSize.getWidth(), M = 14;
-
-    let logoW = 0, logoH = 0;
-    if (logo) { const maxW = 38, maxH = 14, ratio = logo.w / logo.h; logoW = maxW; logoH = logoW / ratio; if (logoH > maxH) { logoH = maxH; logoW = logoH * ratio; } }
-
-    function stamp() {
-      doc.setFillColor(...ORANGE); doc.rect(0, 0, W, 3, 'F');
-      if (logo) try { doc.addImage(logo.dataUrl, 'PNG', M, 7, logoW, logoH); } catch (_) {}
-      const rx = W - M;
-      doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...NAVY); doc.text(ORG.name, rx, 8, { align: 'right' });
-      doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED); doc.text(ORG.addr, rx, 12, { align: 'right' }); doc.text(ORG.phoneRec, rx, 15.5, { align: 'right' }); doc.text('WEB: ' + ORG.web, rx, 19, { align: 'right' });
-      doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED);
-      doc.text(VERSION, M, 290);
-      doc.text((data.boardId || 'Switchboard') + ' \u2014 Switchboard Inspection Audit', W / 2, 290, { align: 'center' });
-      doc.text('Page ' + doc.internal.getNumberOfPages(), W - M, 290, { align: 'right' });
+  function sectionNameAt(s, start){ return start === 1 ? (s.top_section_id || 'SECTION 1') : (s.section2_name || 'SECTION 2'); }
+  function displayNum(s, p){
+    if(!s.restart_sections) return p;
+    let base = 1;
+    sectionStarts(s).forEach(st => { if(st <= p) base = st; });
+    return p - base + 1;
+  }
+  function sectionBannerAt(s, p, cols){
+    if(!s.restart_sections) return '';
+    return sectionStarts(s).indexOf(p) === -1 ? '' : '<tr class="sb-band"><td colspan="' + cols + '">' + esc(sectionNameAt(s, p)) + '</td></tr>';
+  }
+  function cellSide(p, info, total, s){
+    if(p > total || p < 1) return '<td class="cb"></td><td class="desc"></td><td class="type"></td>';
+    const it = info[p];
+    const cb = '<td class="cb">' + displayNum(s, p) + '</td>';
+    if(!it) return cb + '<td class="desc"></td><td class="type"></td>';
+    if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
+      return cb + '<td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td>'; }
+    return cb;
+  }
+  function gridDouble(s){
+    const info = circuitInfo(s);
+    const half = Math.ceil(s.total_poles/2);
+    const seq = s.layout_type === 'double_sequential';
+    const leftPole  = r => seq ? (r+1)        : (2*r+1);
+    const rightPole = r => seq ? (half+r+1)   : (2*r+2);
+    const rowOf = p => seq ? (p<=half ? p-1 : p-half-1) : Math.floor((p-1)/2);
+    const breaks = {}; (s.chassis_breaks||[]).forEach(b => { const rr = rowOf(b.at); (breaks[rr] = breaks[rr] || []).push(b.label); });
+    const secRow = {}; sectionStarts(s).forEach(st => { if(st >= 1 && st <= s.total_poles) secRow[rowOf(st)] = sectionNameAt(s, st); });
+    let body = '';
+    for(let r=0; r<half; r++){
+      if(secRow[r] !== undefined) body += '<tr class="sb-band"><td colspan="6">' + esc(secRow[r]) + '</td></tr>';
+      if(breaks[r]) breaks[r].forEach(lb => body += '<tr class="sb-break"><td colspan="6">' + esc(lb) + '</td></tr>');
+      body += '<tr>' + cellSide(leftPole(r), info, s.total_poles, s) + cellSide(rightPole(r), info, s.total_poles, s) + '</tr>';
     }
-
-    stamp(); let y = 28;
-    doc.setFont('helvetica', 'bold').setFontSize(19).setTextColor(...NAVY); doc.text('Switchboard Inspection Audit', W / 2, y, { align: 'center' }); y += 9;
-    doc.setDrawColor(...ORANGE).setLineWidth(0.8).line(M, y, W - M, y); y += 9;
-
-    const colW = W / 2 - M - 5;
-    function pairRow(pairs, sy) {
-      let ml = 1;
-      const blocks = pairs.map(([k, v], i) => { const x = i === 0 ? M : W / 2; const lines = doc.splitTextToSize(v || '\u2014', colW); ml = Math.max(ml, lines.length); return { x, k, lines }; });
-      blocks.forEach(b => { doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(...MUTED); doc.text(b.k.toUpperCase(), b.x, sy); doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(40, 49, 60); doc.text(b.lines, b.x, sy + 4.5); });
-      return sy + 4.5 + ml * 4 + 3;
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function gridSingle(s){
+    const info = circuitInfo(s);
+    const bandAt = {};  s.rows.forEach(r => bandAt[r.start] = r.label);
+    const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
+    let body = '';
+    if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
+    for(let p=1; p<=s.total_poles; p++){
+      body += sectionBannerAt(s, p, 3);
+      if(brkAt[p])  brkAt[p].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
+      if(bandAt[p]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[p]) + '</td></tr>';
+      const it = info[p];
+      const num = displayNum(s, p);
+      if(!it) body += '<tr><td class="cb">' + num + '</td><td class="desc"></td><td class="type"></td></tr>';
+      else if(it.first){ const rs = it.span > 1 ? ' rowspan="' + it.span + '"' : '';
+        body += '<tr><td class="cb">' + num + '</td><td class="desc"' + rs + '>' + esc(it.c.description) + '</td><td class="type"' + rs + '>' + esc(it.c.type_amps) + '</td></tr>'; }
+      else body += '<tr><td class="cb">' + num + '</td></tr>';
     }
-    y = pairRow([['Client', data.client], ['Site', data.site]], y);
-    y = pairRow([['Switchboard ID', data.boardId], ['Location', data.location]], y);
-    y = pairRow([['Auditor', data.auditor], ['Date', data.date]], y);
-    y = pairRow([['Job Number', jobNumber]], y);
-    y += 2;
-
-    const ensure = need => { if (y + need > 280) { doc.addPage(); stamp(); y = 26; } };
-
-    /* Standards reference */
-    ensure(20);
-    doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...NAVY); doc.text('Applicable Standards', M, y); y += 5;
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(40, 49, 60);
-    doc.text(doc.splitTextToSize('This inspection has been conducted with reference to the following Australian standards and regulations:', W - 2 * M), M, y); y += 5;
-    doc.autoTable({
-      startY: y, margin: { left: M, right: M, top: 22, bottom: 14 },
-      body: [['AS/NZS 3000:2018', 'Electrical Installations \u2014 Wiring Rules'], ['AS/NZS 3012:2019', 'Electrical Installations \u2014 Construction & demolition sites'], ['AS/NZS 3760:2022', 'In-service safety inspection & testing of electrical equipment'], ['Electricity Safety Act 1998', 'Victorian electrical safety legislation']],
-      styles: { fontSize: 7.5, cellPadding: 1.5 }, columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold', textColor: NAVY } },
-      theme: 'plain', alternateRowStyles: { fillColor: [250, 251, 253] }, didDrawPage: stamp,
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function gridSingleCb(s){
+    const circuits = [...s.circuits].sort((a,b) => (a.start||0) - (b.start||0));
+    const bandAt = {};  s.rows.forEach(r => bandAt[r.start] = r.label);
+    const brkAt  = {}; (s.chassis_breaks||[]).forEach(b => (brkAt[b.at] = brkAt[b.at] || []).push(b.label));
+    let body = '';
+    if(s.main_isolator.enabled) body += '<tr class="sb-iso"><td class="cb">MAIN ISOLATOR</td><td class="desc">' + esc(s.main_isolator.description) + '</td><td class="type">' + esc(s.main_isolator.type_amps) + '</td></tr>';
+    circuits.forEach((c, idx) => {
+      const n = idx + 1;
+      body += sectionBannerAt(s, n, 3);
+      if(brkAt[n])  brkAt[n].forEach(lb => body += '<tr class="sb-break"><td colspan="3">' + esc(lb) + '</td></tr>');
+      if(bandAt[n]) body += '<tr class="sb-band"><td colspan="3">' + esc(bandAt[n]) + '</td></tr>';
+      body += '<tr><td class="cb">' + displayNum(s, n) + '</td><td class="desc">' + esc(c.description) + '</td><td class="type">' + esc(c.type_amps) + '</td></tr>';
     });
-    y = doc.lastAutoTable.finalY + 6;
-
-    /* Summary cards */
-    const passCount = data.items.filter(i => i.result === 'pass').length;
-    const failCount = data.items.filter(i => i.result === 'fail').length;
-    const naCount = data.items.filter(i => i.result === 'na').length;
-    ensure(28);
-    doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Results Summary', M, y); y += 6;
-    const cards = [['Total Items', ALL_ITEMS.length, NAVY], ['Pass', passCount, [29, 122, 92]], ['Fail', failCount, [192, 57, 43]], ['N/A', naCount, MUTED]];
-    const cw = (W - 2 * M - 3 * 4) / 4;
-    cards.forEach((c, i) => { const x = M + i * (cw + 4); doc.setFillColor(244, 247, 252).roundedRect(x, y, cw, 16, 2, 2, 'F'); doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(...c[2]).text(String(c[1]), x + cw / 2, y + 8, { align: 'center' }); doc.setFont('helvetica', 'normal').setFontSize(6.5).setTextColor(...MUTED).text(c[0].toUpperCase(), x + cw / 2, y + 13, { align: 'center' }); });
-    y += 24;
-
-    /* Inspection table */
-    ensure(16);
-    doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Inspection Items', M, y); y += 5;
-    const tableBody = [];
-    for (const cat of CATEGORIES) {
-      tableBody.push([{ content: cat.name, colSpan: 3, styles: { fontStyle: 'bolditalic', fillColor: [255, 247, 237], textColor: [40, 40, 40], fontSize: 8 } }]);
-      for (const item of cat.items) {
-        const r = data.items.find(i => i.num === item.num); let st = '', sc = MUTED;
-        if (r?.result === 'pass') { st = '\u2713 PASS'; sc = [29, 122, 92]; } else if (r?.result === 'fail') { st = '\u2717 FAIL'; sc = [192, 57, 43]; } else if (r?.result === 'na') { st = 'N/A'; sc = MUTED; }
-        tableBody.push([{ content: String(item.num), styles: { halign: 'center', fontStyle: 'bold' } }, item.desc, { content: st, styles: { halign: 'center', fontStyle: 'bold', textColor: sc } }]);
-      }
-    }
-    doc.autoTable({ startY: y, margin: { left: M, right: M, top: 22, bottom: 14 }, head: [['#', 'Description', 'Result']], body: tableBody, styles: { fontSize: 7.5, cellPadding: 2 }, headStyles: { fillColor: ORANGE, fontSize: 8 }, alternateRowStyles: { fillColor: [250, 251, 253] }, columnStyles: { 0: { cellWidth: 12 }, 2: { cellWidth: 28 } }, didDrawPage: stamp });
-    y = doc.lastAutoTable.finalY + 8;
-
-    /* Hazards — new page */
-    if (data.hazards.length > 0) {
-      doc.addPage(); stamp(); y = 26;
-      doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Hazards / Major Non-Compliance', M, y); y += 5;
-      doc.autoTable({ startY: y, margin: { left: M, right: M, top: 22, bottom: 14 }, head: [['#', 'Description']], body: data.hazards.map((h, i) => [i + 1, h]), styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: [176, 106, 23], fontSize: 8 }, alternateRowStyles: { fillColor: [253, 248, 240] }, columnStyles: { 0: { cellWidth: 12, halign: 'center' } }, didDrawPage: stamp });
-      y = doc.lastAutoTable.finalY + 8;
-    }
-
-    /* Remedial */
-    if (data.remedial.length > 0) {
-      ensure(16);
-      doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Remedial Works Recommended', M, y); y += 5;
-      doc.autoTable({ startY: y, margin: { left: M, right: M, top: 22, bottom: 14 }, head: [['#', 'Description']], body: data.remedial.map((r, i) => [i + 1, r]), styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: ORANGE, fontSize: 8 }, alternateRowStyles: { fillColor: [250, 251, 253] }, columnStyles: { 0: { cellWidth: 12, halign: 'center' } }, didDrawPage: stamp });
-      y = doc.lastAutoTable.finalY + 8;
-    }
-
-    /* Photos — own page, 2 per row */
-    if (photos.length > 0) {
-      doc.addPage(); stamp(); y = 26;
-      doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Photos', M, y); y += 8;
-      const photoW = 85, photoH = 65, gap = 8, cols = 2;
-      for (let i = 0; i < photos.length; i++) {
-        const col = i % cols;
-        if (col === 0 && i > 0) y += photoH + 22;
-        if (y + photoH + 22 > 280) { doc.addPage(); stamp(); y = 26; }
-        const px = M + col * (photoW + gap);
-        try { doc.addImage(photos[i].dataUrl, 'JPEG', px, y, photoW, photoH); } catch (_) { doc.setDrawColor(200); doc.rect(px, y, photoW, photoH); }
-        if (photos[i].description) { doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED); doc.text(doc.splitTextToSize(photos[i].description, photoW).slice(0, 3), px, y + photoH + 4); }
-      }
-    }
-
-    return doc.output('blob');
+    return '<table class="sb-grid"><colgroup><col class="cb"><col><col class="type"></colgroup>' +
+      '<thead><tr><th>C/B</th><th>Description</th><th>Type/Amps</th></tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function gridHTML(s){
+    if(s.layout_type === 'single_phase') return gridSingle(s);
+    if(s.layout_type === 'single_cb')    return gridSingleCb(s);
+    return gridDouble(s);
+  }
+  function sbIcon(name, color){
+    const P = {
+      switch:'<path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/>',
+      bolt:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      battery:'<rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/><line x1="6" y1="10" x2="6" y2="14"/>',
+      grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+      tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+      box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+      map:'<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+      trefoil:'<circle cx="12" cy="7.5" r="4.2"/><circle cx="7.3" cy="15.5" r="4.2"/><circle cx="16.7" cy="15.5" r="4.2"/>',
+      login:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+      branch:'<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+      note:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+      person:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+    };
+    return '<svg viewBox="0 0 24 24" width="15" height="15" style="flex:none" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (P[name] || '') + '</svg>';
+  }
+  function sbStat(name, color, lbl, val, grow){
+    const st = grow ? ' style="flex:' + grow + '"' : '';
+    return '<div class="stat"' + st + '>' + sbIcon(name, color) + '<div class="stat-t"><span class="lbl">' + lbl + '</span><span class="val">' + esc(val || '—') + '</span></div></div>';
+  }
+  function metaHTML(s){
+    const ld = s.is_loadshed ? 'Yes' : 'No';
+    return '<div class="sb-info">' +
+      '<div class="sb-info-head"><div><div class="sb-info-title">' + esc(boardTitle(s)) + '</div>' +
+        (s.customer_name ? '<div class="sb-info-sub">' + esc(s.customer_name) + '</div>' : '') + '</div>' +
+        '<div class="sb-info-warn">DO NOT REMOVE<br>FROM SWITCHBOARD</div></div>' +
+      '<div class="sb-stats sb-stats-primary">' +
+        sbStat('switch','#fff','Isolator / Main Switch', s.isolator_rating) +
+        sbStat('bolt','#fff','Supply Capacity', s.supply_capacity) +
+        sbStat('battery','#fff','Loadshed', ld) + '</div>' +
+      '<div class="sb-stats sb-stats-secondary">' +
+        sbStat('grid','#ea580c','Chassis', (s.chassis_type ? s.chassis_type + ' - ' : '') + s.total_poles + ' Pole') +
+        sbStat('tag','#ea580c','Brand', s.brand) +
+        sbStat('box','#ea580c','Type / Model', s.switchboard_type) + '</div>' +
+      '<div class="sb-stats sb-stats-primary">' +
+        sbStat('map','#fff','Location', s.location) +
+        sbStat('trefoil','#fff',(s.supply_type === 'main' ? 'Mains Size' : 'Sub Main Size'), s.sub_main_size) +
+        sbStat('login','#fff','Fed From', s.fed_from) + '</div>' +
+      '<div class="sb-stats sb-stats-secondary">' +
+        sbStat('branch','#ea580c','Cable Path', s.cable_path) +
+        sbStat('note','#ea580c','Notes', s.notes) + '</div>' +
+      '</div>';
+  }
+  function boardTitle(s){
+    const b = s.board_name || '—';
+    return s.section ? (b + ' — ' + s.section) : b;
+  }
+  function docName(s){
+    return [s.project_number, 'SWB-SCH', s.board_name, s.section, revStr()].map(x => String(x||'').trim()).filter(Boolean).join('-');
+  }
+  function footerHTML(s){
+    return '<div class="sb-foot">' +
+      '<div class="sb-foot-item">' + sbIcon('note','#8a8a8a') + '<span>' + esc(docName(s)) + '</span></div>' +
+      '<div class="sb-foot-item">' + sbIcon('person','#8a8a8a') + '<span>Schedule Prepared By: ' + esc(s.prepared_by || '—') + '</span></div>' +
+      '</div>';
+  }
+  function scheduleHTML(s){
+    return '<div class="sb-page">' +
+      '<div class="sb-head">' +
+        '<img class="sb-logo" src="/Bromar-Primary-Logo-Full-Colour.png" crossorigin="anonymous" alt="Bromar"/>' +
+        '<div class="sb-center">2/98-108 Western Ave, Westmeadows, VIC 3049<br>' +
+          'Ph: +61 3 9335 5344 &nbsp;·&nbsp; Fax: +61 3 9335 5322<br>' +
+          'Email: admin@bromar.com.au &nbsp;·&nbsp; REC:30340<br>' +
+          'Date: ' + fmtDate(s.schedule_date) + ' &nbsp;·&nbsp; Job Number: ' + esc(s.project_number) + '</div>' +
+        '<div class="sb-title">Switchboard<br>Schedule</div></div>' +
+      metaHTML(s) + '<div class="sb-gridwrap">' + gridHTML(s) + '</div>' + footerHTML(s) + '</div>';
   }
 
-  return { VERSION, renderForm, collectData, validate, generatePDF, CATEGORIES, ALL_ITEMS };
+  function occupancy(s){
+    const dups = new Set();
+    if(s.layout_type === 'single_cb') return { dups };
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const count = {};
+    s.circuits.forEach(c => { if(!Number.isFinite(c.start)) return; for(let i=0;i<c.poles;i++){ const p=c.start+i*step; count[p]=(count[p]||0)+1; } });
+    Object.keys(count).forEach(p => { if(count[p] > 1) dups.add(+p); });
+    return { dups };
+  }
+  function markDuplicates(s){
+    const dups = occupancy(s).dups;
+    const step = s.layout_type === 'double_oddeven' ? 2 : 1;
+    const single_cb = s.layout_type === 'single_cb';
+    document.querySelectorAll('#circuitList .sb-circuit-row').forEach(r => {
+      const start = parseInt(r.querySelector('.c-start').value,10);
+      const n = parseInt(r.querySelector('.c-poles').value,10) || 1;
+      let clash = false;
+      if(!single_cb && Number.isFinite(start)) for(let i=0;i<n;i++){ if(dups.has(start+i*step)){ clash = true; break; } }
+      r.classList.toggle('dup', clash);
+    });
+    return dups;
+  }
+
+  let previewTimer = null;
+  const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); };
+  const renderPreview = () => { const s = collectState(); $('previewInner').innerHTML = scheduleHTML(s); markDuplicates(s); const sp = $('submainPreview'); if(sp) sp.textContent = composeSubmain() || '—'; const tph = $('totalPolesHint'); if(tph) tph.textContent = '(' + s.total_poles + ' total across all chassis)'; };
+
+  function syncLayoutUI(){
+    const single = $('layout_type').value.indexOf('single') === 0;
+    $('isoBlock').style.display  = single ? 'block' : 'none';
+    $('rowsBlock').style.display = single ? 'block' : 'none';
+    $('isoFields').style.display = ($('iso_enabled').checked && single) ? 'grid' : 'none';
+  }
+  function syncSupplyUI(){
+    const main = document.querySelector('input[name="supply"]:checked').value === 'main';
+    $('fedMainRow').style.display = main ? 'flex' : 'none';
+    $('fedSubRow').style.display  = main ? 'none' : 'flex';
+  }
+  function syncCableUI(){
+    const mc = $('cable_construction').value === 'Multicore';
+    $('phasesWrap').style.display = mc ? 'none' : 'block';
+    $('coreConfigWrap').style.display = mc ? 'block' : 'none';
+    $('groupsWrap').style.display = mc ? 'none' : 'block';
+    $('undersizedWrap').style.display = mc ? 'none' : 'block';
+    $('neutralRow').style.display = (!mc && $('undersized_n').checked) ? 'flex' : 'none';
+    const lbl = $('sizeLabel'); if(lbl) lbl.textContent = mc ? 'Conductor Size' : 'Active Conductor Size';
+    const sp = $('submainPreview'); if(sp) sp.textContent = composeSubmain() || '—';
+  }
+  function syncSectionsUI(){
+    const on = $('restart_sections').checked;
+    $('restartFields').style.display = on ? 'block' : 'none';
+    $('breaksWrap').style.display = on ? 'none' : 'block';
+  }
+
+  /* ---------- mm2 -> mm² ---------- */
+  function capFirstDesc(e){
+    const el = e.target;
+    if(!el.classList || !el.classList.contains('c-desci') || !el.value) return;
+    const first = el.value.charAt(0);
+    if(first !== first.toUpperCase()){
+      const pos = el.selectionStart;
+      el.value = first.toUpperCase() + el.value.slice(1);
+      try { el.setSelectionRange(pos, pos); } catch(_){}
+    }
+  }
+  function mmFix(e){
+    const el = e.target;
+    if(!el || el.tagName !== 'INPUT' || el.type !== 'text') return;
+    if(el.value.indexOf('mm2') === -1) return;
+    const pos = el.selectionStart;
+    const removed = ((el.value.slice(0,pos).match(/mm2/g) || []).length) * 2;
+    el.value = el.value.replace(/mm2/g, 'mm\u00B2');
+    const np = Math.max(0, pos - removed);
+    try { el.setSelectionRange(np, np); } catch(_){}
+  }
+
+  /* ---------- job register lookup ---------- */
+  let jobTimer = null;
+  const hideJobs = () => $('jobResults').classList.remove('show');
+  const jobCust = r => r.client || r.client_name || r.customer || r.customer_name || r.site || '';
+  async function searchJobs(q){
+    try {
+      const { data, error } = await window.sb.from('job_number_register')
+        .select('*').ilike('job_number', '%' + q + '%').order('job_number', { ascending:false }).limit(8);
+      if(error){ console.error(error); hideJobs(); return; }
+      renderJobs(data || []);
+    } catch(_){ hideJobs(); }
+  }
+  function renderJobs(rows){
+    const box = $('jobResults');
+    if(!rows.length){ hideJobs(); return; }
+    box.innerHTML = rows.map(r => {
+      const num = r.job_number || '', sub = jobCust(r);
+      const px = (num.slice(0,2) || '').toUpperCase();
+      const badge = ['BE','BC','BA','BS','BM'].includes(px) ? '<span class="prefix-badge prefix-' + px + '">' + px + '</span>' : '';
+      return '<div class="autocomplete-item" data-num="' + esc(num) + '" data-cust="' + esc(sub) + '"><div class="autocomplete-item-number">' + esc(num) + badge + '</div>' +
+        (sub ? '<div class="autocomplete-item-client">' + esc(sub) + '</div>' : '') + '</div>';
+    }).join('');
+    box.classList.add('show');
+    box.querySelectorAll('.autocomplete-item').forEach(it => it.addEventListener('click', () => {
+      $('job_number').value = it.dataset.num;
+      if(it.dataset.cust) $('customer_name').value = it.dataset.cust;
+      hideJobs(); schedulePreview();
+    }));
+  }
+
+  /* ---------- supabase ---------- */
+  async function loadList(){
+    if(!window.sb) return;
+    const { data, error } = await window.sb.from('switchboard_schedules')
+      .select('id, board_name, section, project_number, updated_at').order('updated_at', { ascending:false });
+    if(error){ console.error(error); return; }
+    $('loadSelect').innerHTML = '<option value="">— New schedule —</option>' +
+      (data || []).map(r => '<option value="' + r.id + '">' + esc(r.board_name || 'Untitled') + (r.section ? ' (' + esc(r.section) + ')' : '') + (r.project_number ? ' · ' + esc(r.project_number) : '') + '</option>').join('');
+  }
+  function fillForm(r){
+    currentId = r.id || null;
+    revMajor = r.rev_major ?? 1; revMinor = r.rev_minor ?? 0;
+    $('board_name').value = r.board_name || '';
+    $('section').value = r.section || '';
+    $('job_number').value = r.project_number || '';
+    $('customer_name').value = r.customer_name || '';
+    $('prepared_by').value = r.prepared_by || '';
+    $('schedule_date').value = r.schedule_date || '';
+    $('location').value = r.location || '';
+    $('isolator_rating').value = r.isolator_rating || '';
+    $('supply_capacity').value = r.supply_capacity || '';
+    $('switchboard_type').value = r.switchboard_type || '';
+    $('chassis_type').value = r.chassis_type || '';
+    const sm = r.submain || {};
+    $('cable_type').value = sm.type || 'XLPE';
+    $('cable_construction').value = sm.construction || 'Single Core';
+    $('cable_phases').value = sm.phases || 'Three Phase';
+    $('active_size').value = sm.size || '';
+    $('parallel_groups').value = sm.groups || '1';
+    $('earth_size').value = sm.earth || '';
+    $('undersized_n').checked = !!sm.undersizedN;
+    $('neutral_size').value = sm.neutral || '';
+    $('core_config').value = sm.coreConfig || '4C + E';
+    $('brand').value = r.brand || '';
+    const st = (r.supply_type === 'main') ? 'main' : 'sub';
+    document.querySelector('input[name="supply"][value="' + st + '"]').checked = true;
+    $('fed_switchboard').value = r.fed_switchboard || '';
+    $('fed_circuit').value = r.fed_circuit || '';
+    $('fed_source').value = r.fed_source || '';
+    $('cable_path').value = r.cable_path || '';
+    $('notes').value = r.notes || '';
+    $('is_loadshed').value = r.is_loadshed ? 'yes' : 'no';
+    let lt = r.layout_type || 'double_oddeven';
+    if(lt === 'dual') lt = 'double_oddeven'; if(lt === 'single') lt = 'single_phase';
+    $('layout_type').value = lt;
+    $('total_poles').value = r.total_poles || 48;
+    const iso = r.main_isolator || {};
+    $('iso_enabled').checked = !!iso.enabled;
+    $('iso_desc').value = iso.description || '';
+    $('iso_device').value = iso.device || 'Isolator';
+    $('iso_poles').value = iso.poles || '3';
+    if(iso.current && !CURRENTS.map(String).includes(String(iso.current))){ $('iso_current').value='custom'; $('iso_current_cust').value=iso.current; $('iso_current_cust').style.display=''; }
+    else { $('iso_current').value = iso.current || ''; $('iso_current_cust').value=''; $('iso_current_cust').style.display='none'; }
+    $('rowsList').innerHTML = '';   (r.rows || []).forEach(x => $('rowsList').appendChild(rowDefRow(x)));
+    $('restart_sections').checked = !!r.restart_sections;
+    $('top_section_id').value = r.top_section_id || '';
+    $('section2_name').value = r.section2_name || '';
+    $('break_after').value = r.break_after || '';
+    $('breaksList').innerHTML = ''; (r.chassis_breaks || []).forEach(x => $('breaksList').appendChild(breakRow(x)));
+    $('circuitList').innerHTML = ''; (r.circuits || []).forEach(x => $('circuitList').appendChild(circuitRow(x)));
+    syncLayoutUI(); syncSupplyUI(); syncCableUI(); syncSectionsUI(); updateRevLabel(); renderPreview();
+  }
+  function blankForm(){
+    fillForm({ layout_type:'double_oddeven', total_poles:48, schedule_date:new Date().toISOString().slice(0,10), circuits:[circuitRow0()], rev_major:1, rev_minor:0 });
+    currentId = null; revMajor = 1; revMinor = 0; updateRevLabel();
+  }
+
+  async function resolvePreparedBy(){
+    try {
+      const { data:{ user } } = await window.sb.auth.getUser();
+      if(!user?.email) return '';
+      const { data } = await window.sb.from('employees').select('full_name').ilike('email', user.email).limit(1).maybeSingle();
+      return data?.full_name || user.email;
+    } catch(_){ return ''; }
+  }
+  async function save(){
+    const s = collectState();
+    if(!s.board_name){ BromarHub.showInfo('Board Name is required'); return; }
+    const dups = occupancy(s).dups;
+    if(dups.size){ markDuplicates(s); BromarHub.showInfo('Duplicate pole numbers: ' + [...dups].sort((a,b)=>a-b).join(', ')); return; }
+    let created_by = null;
+    try { const { data:{ user } } = await window.sb.auth.getUser(); created_by = user?.email || null; } catch(_){}
+    BromarHub.showLoading('Saving…','Writing to database');
+    try {
+      if(currentId){
+        revMinor += 1;
+        const { error } = await window.sb.from('switchboard_schedules').update({ ...s, rev_major:revMajor, rev_minor:revMinor }).eq('id', currentId);
+        if(error) throw error;
+      } else {
+        revMajor = 1; revMinor = 0;
+        const { data, error } = await window.sb.from('switchboard_schedules').insert({ ...s, rev_major:1, rev_minor:0, created_by }).select('id').single();
+        if(error) throw error;
+        currentId = data.id;
+      }
+      updateRevLabel(); await loadList(); $('loadSelect').value = currentId;
+      BromarHub.hideLoading(); BromarHub.showSuccess('Saved · ' + revStr());
+    } catch(err){ console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (err.message || err)); }
+  }
+  async function del(){
+    if(!currentId){ blankForm(); return; }
+    if(!confirm('Delete this schedule permanently?')) return;
+    BromarHub.showLoading('Deleting…','Please wait');
+    const { error } = await window.sb.from('switchboard_schedules').delete().eq('id', currentId);
+    BromarHub.hideLoading();
+    if(error){ BromarHub.showInfo('Delete failed'); return; }
+    await loadList(); blankForm(); BromarHub.showSuccess('Deleted');
+  }
+
+  /* ---------- PDF ---------- */
+  async function makePDF(){
+    const s = collectState();
+    if(!s.board_name){ BromarHub.showInfo('Board Name is required'); return; }
+    BromarHub.showLoading('Generating PDF…','Rendering schedule');
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;';
+    holder.innerHTML = scheduleHTML(s);
+    document.body.appendChild(holder);
+    try {
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 250));
+      const canvas = await html2canvas(holder.firstElementChild, { scale:2, useCORS:true, backgroundColor:'#ffffff' });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p','mm','a4');
+      const pw = 210, ph = 297;
+      const imgW = pw, imgH = canvas.height * pw / canvas.width;
+      const img = canvas.toDataURL('image/png');
+      let heightLeft = imgH, position = 0;
+      pdf.addImage(img,'PNG',0,position,imgW,imgH); heightLeft -= ph;
+      while(heightLeft > 0){ position -= ph; pdf.addPage(); pdf.addImage(img,'PNG',0,position,imgW,imgH); heightLeft -= ph; }
+      const rev = revStr(), pages = pdf.getNumberOfPages();
+      for(let i=1;i<=pages;i++){ pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(120); pdf.text(rev,10,292); pdf.text(String(i),105,292,{align:'center'}); }
+      const fn = [s.project_number, 'SWB-SCH', s.board_name, s.section, rev].map(x => String(x||'').trim()).filter(Boolean).join('-').replace(/[^\w.-]+/g,'_');
+      pdf.save((fn || 'switchboard') + '.pdf');
+      BromarHub.hideLoading(); BromarHub.showSuccess('PDF generated · ' + rev);
+    } catch(err){ console.error(err); BromarHub.hideLoading(); BromarHub.showInfo('PDF failed: ' + (err.message || err)); }
+    finally { holder.remove(); }
+  }
+
+  /* ---------- wire up ---------- */
+  document.addEventListener('DOMContentLoaded', async () => {
+    $('addCircuitBtn').addEventListener('click', () => { $('circuitList').appendChild(circuitRow({ start: nextPole(), poles:1, device:'MCB' })); schedulePreview(); });
+    $('addRowBtn').addEventListener('click', () => { $('rowsList').appendChild(rowDefRow({})); schedulePreview(); });
+    $('addBreakBtn').addEventListener('click', () => { $('breaksList').appendChild(breakRow({})); schedulePreview(); });
+    $('layout_type').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
+    $('iso_enabled').addEventListener('change', () => { syncLayoutUI(); schedulePreview(); });
+    $('iso_current').addEventListener('change', () => { $('iso_current_cust').style.display = $('iso_current').value === 'custom' ? '' : 'none'; schedulePreview(); });
+    document.querySelectorAll('input[name="supply"]').forEach(el => el.addEventListener('change', () => { syncSupplyUI(); schedulePreview(); }));
+    $('cable_type').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('cable_construction').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('undersized_n').addEventListener('change', () => { syncCableUI(); schedulePreview(); });
+    $('restart_sections').addEventListener('change', () => { syncSectionsUI(); schedulePreview(); });
+    $('prepared_by').addEventListener('input', () => { $('pbBadge').style.display='none'; });
+    $('newBtn').addEventListener('click', () => { $('loadSelect').value=''; blankForm(); });
+    $('deleteBtn').addEventListener('click', del);
+    $('saveBtn').addEventListener('click', save);
+    $('pdfBtn').addEventListener('click', makePDF);
+    $('refreshBtn').addEventListener('click', renderPreview);
+    $('loadSelect').addEventListener('change', async e => {
+      const id = e.target.value;
+      if(!id){ blankForm(); return; }
+      const { data, error } = await window.sb.from('switchboard_schedules').select('*').eq('id', id).single();
+      if(error){ BromarHub.showInfo('Could not load'); return; }
+      fillForm(data);
+    });
+
+    $('job_number').addEventListener('input', e => {
+      clearTimeout(jobTimer);
+      const q = e.target.value.trim();
+      if(q.length < 2){ hideJobs(); return; }
+      jobTimer = setTimeout(() => searchJobs(q), 250);
+    });
+    document.addEventListener('click', e => { if(!e.target.closest('.autocomplete-wrapper')) hideJobs(); });
+
+    const card = document.querySelector('.form-card');
+    card.addEventListener('input', mmFix, true);
+    card.addEventListener('input', capFirstDesc, true);
+    card.addEventListener('input', schedulePreview);
+
+    await loadList();
+    blankForm();
+    const pb = await resolvePreparedBy();
+    if(pb && !$('prepared_by').value){ $('prepared_by').value = pb; $('pbBadge').style.display='inline'; renderPreview(); }
+  });
 })();
+</script>
+</body>
+</html>
