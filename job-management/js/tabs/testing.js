@@ -11,10 +11,13 @@
   ];
 
   async function loadCompletedTests(jobNumber) {
-    const sb = JM.sb(); const results = [];
+    const sb = window.sb; const results = [];
     for (const t of TEST_TYPES) {
       try {
-        const { data, error } = await sb.from(t.table).select('id, created_at, tested_by, status, site_name').eq('job_number', jobNumber).order('created_at', { ascending: false });
+        const { data, error } = await sb.from(t.table)
+          .select('id, created_at, tested_by, status, site_name, switchboard_id, rev_major, rev_minor, parent_id')
+          .eq('job_number', jobNumber)
+          .order('created_at', { ascending: false });
         if (!error && data) data.forEach(row => results.push({ ...row, _type: t }));
       } catch (_) {}
     }
@@ -22,10 +25,15 @@
     return results;
   }
 
-  /* ── Adapter: bridge shared modules into JM._testForms ── */
+  async function fetchFullRecord(table, id) {
+    const { data, error } = await window.sb.from(table).select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  }
+
   if (!JM._testForms) JM._testForms = {};
 
-  function makeConfig(job, goBack) {
+  function makeConfig(job, goBack, editRecord) {
     return {
       jobNumber: String(JM.state.selectedJob || ''),
       clientName: job?.client_name || '',
@@ -34,24 +42,24 @@
       employees: window.EMPLOYEES || [],
       currentUser: window.currentUser,
       supabase: window.sb,
+      editRecord: editRecord || null,
       onComplete: async () => { await JM.loadJobData(JM.state.selectedJob); JM.updateCounts(); goBack(); },
       onBack: goBack,
     };
   }
 
-  JM._testForms['switchboard_audit'] = function (panel, d, job, goBack) {
+  JM._testForms['switchboard_audit'] = function (panel, d, job, goBack, editRecord) {
     if (window.BromarTest?.SwitchboardAudit) {
-      window.BromarTest.SwitchboardAudit.renderForm(panel, makeConfig(job, goBack));
+      window.BromarTest.SwitchboardAudit.renderForm(panel, makeConfig(job, goBack, editRecord));
     } else { BromarHub.showInfo('Switchboard Audit module not loaded'); }
   };
 
-  JM._testForms['construction_wiring'] = function (panel, d, job, goBack) {
+  JM._testForms['construction_wiring'] = function (panel, d, job, goBack, editRecord) {
     if (window.BromarTest?.ConstructionWiring) {
-      window.BromarTest.ConstructionWiring.renderForm(panel, makeConfig(job, goBack));
+      window.BromarTest.ConstructionWiring.renderForm(panel, makeConfig(job, goBack, editRecord));
     } else { BromarHub.showInfo('Construction Wiring module not loaded'); }
   };
 
-  /* ── Register testing tab ── */
   JM.registerTool('testing', {
     label: 'Testing', icon: '🧪',
     count: d => d.testing.length,
@@ -92,18 +100,52 @@
       }
 
       listEl.innerHTML = completed.map(row => {
-        const t = row._type; const date = JM.fmtDate(row.created_at); const status = row.status || 'completed';
-        return `<div class="tool-card" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem 1rem;margin-bottom:0.5rem;cursor:pointer;border-radius:10px;" data-type="${t.key}" data-id="${row.id}">
-          <span style="font-size:1.25rem;">${t.icon}</span>
-          <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.9rem;color:var(--text-primary);">${JM.esc(t.label)}</div>
-          <div style="font-size:0.78rem;color:var(--text-secondary);">${date}${row.site_name ? ' · ' + JM.esc(row.site_name) : ''}${row.tested_by ? ' · ' + JM.esc(row.tested_by) : ''}</div></div>
-          ${JM.statusBadge(status)}</div>`;
+        const t = row._type;
+        const date = JM.fmtDate(row.created_at);
+        const status = row.status || 'completed';
+        const rev = (row.rev_major != null && row.rev_minor != null) ? `V${row.rev_major}.${String(row.rev_minor).padStart(2, '0')}` : '';
+        const label = row.switchboard_id ? `${JM.esc(t.label)} — ${JM.esc(row.switchboard_id)}` : JM.esc(t.label);
+        return `
+          <div class="tool-card" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem 1rem;margin-bottom:0.5rem;border-radius:10px;" data-type="${t.key}" data-id="${row.id}" data-table="${t.table}">
+            <span style="font-size:1.25rem;">${t.icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary);">${label}${rev ? ' <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:500;font-family:\'JetBrains Mono\',monospace;">' + rev + '</span>' : ''}</div>
+              <div style="font-size:0.78rem;color:var(--text-secondary);">${date}${row.site_name ? ' · ' + JM.esc(row.site_name) : ''}${row.tested_by ? ' · ' + JM.esc(row.tested_by) : ''}</div>
+            </div>
+            ${JM.statusBadge(status)}
+            <div style="display:flex;gap:4px;">
+              <button class="btn-secondary test-view-btn" data-type="${t.key}" data-id="${row.id}" style="padding:4px 10px;font-size:0.75rem;" title="View PDF">📄</button>
+              <button class="btn-secondary test-edit-btn" data-type="${t.key}" data-id="${row.id}" data-table="${t.table}" style="padding:4px 10px;font-size:0.75rem;" title="Edit / New Revision">✏️</button>
+            </div>
+          </div>`;
       }).join('');
 
-      listEl.querySelectorAll('.tool-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const type = TEST_TYPES.find(t => t.key === card.dataset.type);
-          if (type) JM.openSignedFile('testing', `${jobNumber}/${type.folder}/${card.dataset.id}.pdf`);
+      /* View PDF */
+      listEl.querySelectorAll('.test-view-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const type = TEST_TYPES.find(t => t.key === btn.dataset.type);
+          if (type) JM.openSignedFile('testing', `${jobNumber}/${type.folder}/${btn.dataset.id}.pdf`);
+        });
+      });
+
+      /* Edit — fetch full record, open form in edit mode */
+      listEl.querySelectorAll('.test-edit-btn').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          e.stopPropagation();
+          const key = btn.dataset.type;
+          const table = btn.dataset.table;
+          const id = btn.dataset.id;
+          if (!JM._testForms[key]) { BromarHub.showInfo('Module not loaded'); return; }
+          try {
+            BromarHub.showLoading('Loading audit...');
+            const record = await fetchFullRecord(table, id);
+            BromarHub.hideLoading();
+            JM._testForms[key](panel, d, job, () => JM.renderTool('testing'), record);
+          } catch (err) {
+            BromarHub.hideLoading();
+            BromarHub.showInfo('Could not load record: ' + (err.message || err));
+          }
         });
       });
     }
