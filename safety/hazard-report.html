@@ -515,18 +515,18 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — HAZARD REPORT</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.10</div>
+      <div class="card-footer-version">Version V1.11</div>
     </div>
   </div>
 </div>
 
 <script>
-  const REVISION = 'V1.10';
+  const REVISION = 'V1.11';
   const STORAGE_BUCKET = 'safety';
   const STORAGE_FOLDER = 'hazard-reports';
   const DB_TABLE = 'hazard_reports';
   const COMMITTEE_TABLE = 'safety_committee';
-  const EDGE_FUNCTION = 'send-hazard-report';
+  const NETLIFY_FUNCTION = '/.netlify/functions/submit-hazard-report';
 
   let currentUser = null;
   let EMPLOYEES = [];
@@ -1080,27 +1080,36 @@
       }).select().single();
       if (dbError) throw dbError;
 
-      // Send notification via Edge Function (PDF + photos as attachments)
+      // Send notification via Netlify function (PDF + photos referenced by path)
       BromarHub.showLoading('Sending notification', 'Emailing recipients…');
-      const { error: fnError } = await window.sb.functions.invoke(EDGE_FUNCTION, {
-        body: {
-          report_id:       insertedRow?.id,
-          recipients:      recipients,
-          report_data:     {
-            ...data,
-            hazard_type:       data.hazard_type.join(', '),
-            affected_persons:  data.affected_persons.join(', '),
-            photo_count:       selectedPhotos.length,
-            revision:          REVISION,
-          },
-          pdf_path:        pdfPath,
-          pdf_url:         pdfUrl,
-          photo_paths:     photoUrls.map((url, i) => `${reportBase}/photo-${i + 1}.${getFileExt(selectedPhotos[i].file.name)}`),
-          subject:         `Hazard Report — ${data.risk_rating} — ${data.hazard_location}`,
+      const payload = {
+        report_id:       insertedRow?.id,
+        recipients:      recipients,
+        report_data:     {
+          ...data,
+          hazard_type:       data.hazard_type.join(', '),
+          affected_persons:  data.affected_persons.join(', '),
+          photo_count:       selectedPhotos.length,
+          revision:          REVISION,
+        },
+        pdf_path:        pdfPath,
+        pdf_url:         pdfUrl,
+        photo_paths:     photoUrls.map((_, i) => `${reportBase}/photo-${i + 1}.${getFileExt(selectedPhotos[i].file.name)}`),
+        subject:         `Hazard Report — ${data.risk_rating} — ${data.hazard_location}`,
+      };
+      try {
+        const res = await fetch(NETLIFY_FUNCTION, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const out = await res.json();
+        if (!res.ok || !out.success) {
+          console.error('Email function failed:', out);
+          BromarHub.showInfo('Report saved but email delivery failed — please notify admin.');
         }
-      });
-      if (fnError) {
-        console.error('Edge function error:', fnError);
+      } catch (mailErr) {
+        console.error('Email fetch error:', mailErr);
         BromarHub.showInfo('Report saved but email delivery failed — please notify admin.');
       }
 
