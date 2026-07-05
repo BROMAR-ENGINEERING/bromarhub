@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PPE / Uniform Request — Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    /* Page-specific styles only */
+    .page-wrapper { margin-top: 90px; }
+    @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* Uniform item cards */
+    .uniform-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 520px) {
+      .uniform-grid { grid-template-columns: 1fr; }
+    }
+
+    .uniform-item {
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      transition: all 0.2s;
+    }
+    .uniform-item.active {
+      border-color: var(--accent);
+      background: var(--card-hover);
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.12);
+    }
+    .uniform-item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .uniform-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      color: white;
+    }
+    .uniform-icon.orange { background: linear-gradient(135deg, #ff8c42, #c2440e); }
+    .uniform-icon.yellow { background: linear-gradient(135deg, #fde047, #eab308); }
+    .uniform-icon.vest   { background: linear-gradient(135deg, #6b7280, #374151); }
+    .uniform-icon.jumper { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+
+    .uniform-item-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .uniform-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .uniform-fields label {
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .uniform-fields input,
+    .uniform-fields select {
+      padding: 8px 10px;
+      font-size: 0.85rem;
+    }
+    .uniform-fields select { padding-right: 28px; background-position: right 10px center; }
+
+    /* Total counter */
+    .total-counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-top: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .total-counter.visible { opacity: 1; }
+
+    /* Items error inline banner */
+    .items-error {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 14px;
+    }
+    .items-error.show { display: flex; }
+
+    input.field-error, select.field-error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    /* In-card footer */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>PPE / Uniform Request</h1>
+  <p class="subtitle">Request PPE or uniform items below. Tick items you need, choose your size and quantity, then submit — a confirmation email will be sent to you and admin.</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+
+    <div class="success-banner" id="successBanner">
+      <span id="successText">Request submitted successfully.</span>
+    </div>
+    <div class="info-banner" id="infoBanner">
+      <span id="infoBannerText"></span>
+    </div>
+
+    <form id="uniformForm" novalidate>
+
+      <!-- EMPLOYEE DETAILS -->
+      <div class="section-label">Employee Details</div>
+
+      <div class="field-group">
+        <label for="filled_by">Your Name <span class="required">*</span></label>
+        <select id="filled_by" name="filled_by">
+          <option value="">Loading employees…</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label for="employee_phone">Phone Number <span class="required">*</span></label>
+          <input type="tel" id="employee_phone" name="employee_phone" placeholder="04xx xxx xxx" autocomplete="tel"/>
+        </div>
+        <div class="field-group">
+          <label for="employee_role">Role / Division</label>
+          <input type="text" id="employee_role" name="employee_role" placeholder="e.g. Electrical, Construction, Service"/>
+        </div>
+      </div>
+
+      <!-- UNIFORM ITEMS -->
+      <div class="section-label">PPE / Uniform Items</div>
+
+      <div class="field-group full">
+        <label>Select items, sizes &amp; quantities <span class="required">*</span></label>
+
+        <div class="uniform-grid">
+
+          <div class="uniform-item" data-item="orange-shirt">
+            <div class="uniform-item-header">
+              <div class="uniform-icon orange">👕</div>
+              <span class="uniform-item-name">Orange Shirt</span>
+            </div>
+            <div class="uniform-fields">
+              <div>
+                <label>Size</label>
+                <select data-item-size="orange-shirt">
+                  <option value="">Select…</option>
+                  <option>XS</option><option>S</option><option>M</option><option>L</option>
+                  <option>XL</option><option>2XL</option><option>3XL</option><option>4XL</option><option>5XL</option>
+                </select>
+              </div>
+              <div>
+                <label>Quantity</label>
+                <input type="number" data-item-qty="orange-shirt" min="0" max="20" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniform-item" data-item="yellow-shirt">
+            <div class="uniform-item-header">
+              <div class="uniform-icon yellow">👕</div>
+              <span class="uniform-item-name">Yellow Shirt</span>
+            </div>
+            <div class="uniform-fields">
+              <div>
+                <label>Size</label>
+                <select data-item-size="yellow-shirt">
+                  <option value="">Select…</option>
+                  <option>XS</option><option>S</option><option>M</option><option>L</option>
+                  <option>XL</option><option>2XL</option><option>3XL</option><option>4XL</option><option>5XL</option>
+                </select>
+              </div>
+              <div>
+                <label>Quantity</label>
+                <input type="number" data-item-qty="yellow-shirt" min="0" max="20" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniform-item" data-item="vest">
+            <div class="uniform-item-header">
+              <div class="uniform-icon vest">🦺</div>
+              <span class="uniform-item-name">Vest</span>
+            </div>
+            <div class="uniform-fields">
+              <div>
+                <label>Size</label>
+                <select data-item-size="vest">
+                  <option value="">Select…</option>
+                  <option>XS</option><option>S</option><option>M</option><option>L</option>
+                  <option>XL</option><option>2XL</option><option>3XL</option><option>4XL</option><option>5XL</option>
+                </select>
+              </div>
+              <div>
+                <label>Quantity</label>
+                <input type="number" data-item-qty="vest" min="0" max="20" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="uniform-item" data-item="jumper">
+            <div class="uniform-item-header">
+              <div class="uniform-icon jumper">🧥</div>
+              <span class="uniform-item-name">Jumper</span>
+            </div>
+            <div class="uniform-fields">
+              <div>
+                <label>Size</label>
+                <select data-item-size="jumper">
+                  <option value="">Select…</option>
+                  <option>XS</option><option>S</option><option>M</option><option>L</option>
+                  <option>XL</option><option>2XL</option><option>3XL</option><option>4XL</option><option>5XL</option>
+                </select>
+              </div>
+              <div>
+                <label>Quantity</label>
+                <input type="number" data-item-qty="jumper" min="0" max="20" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="total-counter" id="totalCounter">
+          🛍️ <span id="totalText"></span>
+        </div>
+
+        <div class="items-error" id="itemsError">
+          <span>⚠️</span>
+          <span>Please select at least one item with a size and quantity.</span>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="section-label">Additional Notes</div>
+
+      <div class="field-group full">
+        <label for="notes">Notes / Special Requests</label>
+        <textarea id="notes" name="notes" placeholder="Optional — fit notes, urgency, or reason for request (e.g. new starter, damaged item)..."></textarea>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <button type="reset" class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit Request</button>
+      </div>
+
+    </form>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — PPE / UNIFORM REQUEST</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const ITEMS = [
+    { key: 'orange-shirt', label: 'Orange Shirt' },
+    { key: 'yellow-shirt', label: 'Yellow Shirt' },
+    { key: 'vest',         label: 'Vest' },
+    { key: 'jumper',       label: 'Jumper' },
+  ];
+
+  let currentUser = null;
+
+  // ── Startup ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    await BromarHub.loadEmployees('filled_by');
+    await BromarHub.autoSelectLoggedInUser('filled_by');
+
+    const filledBy = document.getElementById('filled_by');
+    if (filledBy.value) {
+      const opt = filledBy.selectedOptions[0];
+      currentUser = { name: opt.value, email: opt.dataset.email || '' };
+    }
+    filledBy.addEventListener('change', function () {
+      const opt = this.selectedOptions[0];
+      currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+    });
+  });
+
+  // ── Item card highlight + total counter ──
+  function getSelectedItems() {
+    return ITEMS.map(item => {
+      const sizeEl = document.querySelector(`[data-item-size="${item.key}"]`);
+      const qtyEl  = document.querySelector(`[data-item-qty="${item.key}"]`);
+      const size = sizeEl ? sizeEl.value : '';
+      const qty  = qtyEl && qtyEl.value ? parseInt(qtyEl.value, 10) : 0;
+      return { ...item, size, qty };
+    }).filter(i => i.size && i.qty > 0);
+  }
+
+  function updateUI() {
+    ITEMS.forEach(item => {
+      const card = document.querySelector(`[data-item="${item.key}"]`);
+      const sizeEl = document.querySelector(`[data-item-size="${item.key}"]`);
+      const qtyEl  = document.querySelector(`[data-item-qty="${item.key}"]`);
+      const hasAny = (sizeEl && sizeEl.value) || (qtyEl && qtyEl.value && parseInt(qtyEl.value, 10) > 0);
+      card.classList.toggle('active', !!hasAny);
+    });
+
+    const selected = getSelectedItems();
+    const counter = document.getElementById('totalCounter');
+    const text    = document.getElementById('totalText');
+    if (selected.length > 0) {
+      const totalQty = selected.reduce((s, i) => s + i.qty, 0);
+      text.textContent = `${totalQty} item${totalQty !== 1 ? 's' : ''} across ${selected.length} type${selected.length !== 1 ? 's' : ''}`;
+      counter.classList.add('visible');
+      document.getElementById('itemsError').classList.remove('show');
+    } else {
+      counter.classList.remove('visible');
+    }
+  }
+
+  document.querySelectorAll('[data-item-size], [data-item-qty]').forEach(el => {
+    el.addEventListener('change', updateUI);
+    el.addEventListener('input', updateUI);
+  });
+
+  // ── Validation ──
+  function validateForm() {
+    let valid = true;
+    const flag = (el, bad) => {
+      if (bad) { el.classList.add('field-error'); valid = false; }
+      else      el.classList.remove('field-error');
+    };
+
+    // Fallback: read currentUser from select if still null
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) {
+        const opt = sel.selectedOptions[0];
+        currentUser = { name: opt.value, email: opt.dataset.email || '' };
+      }
+    }
+
+    flag(document.getElementById('filled_by'), !currentUser);
+    const phone = document.getElementById('employee_phone');
+    flag(phone, phone.value.trim().length < 6);
+
+    // Items — every item with size OR qty must have BOTH
+    let itemsValid = true;
+    ITEMS.forEach(item => {
+      const sizeEl = document.querySelector(`[data-item-size="${item.key}"]`);
+      const qtyEl  = document.querySelector(`[data-item-qty="${item.key}"]`);
+      const size = sizeEl.value;
+      const qty  = qtyEl.value && parseInt(qtyEl.value, 10) > 0;
+      if ((size && !qty) || (!size && qty)) {
+        itemsValid = false;
+        if (!size) sizeEl.classList.add('field-error');
+        if (!qty)  qtyEl.classList.add('field-error');
+      } else {
+        sizeEl.classList.remove('field-error');
+        qtyEl.classList.remove('field-error');
+      }
+    });
+
+    const selected = getSelectedItems();
+    if (selected.length === 0 || !itemsValid) {
+      document.getElementById('itemsError').classList.add('show');
+      valid = false;
+    } else {
+      document.getElementById('itemsError').classList.remove('show');
+    }
+
+    return valid;
+  }
+
+  // Clear field-error on interaction
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => el.classList.remove('field-error'));
+    el.addEventListener('change', () => el.classList.remove('field-error'));
+  });
+
+  // ── Submit ──
+  const form = document.getElementById('uniformForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+
+    if (!validateForm()) {
+      BromarHub.showInfo('Please complete the required fields.');
+      const firstErr = document.querySelector('.field-error, .items-error.show');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    submitBtn.disabled = true;
+    const originalLabel = submitBtn.textContent;
+    submitBtn.textContent = 'Sending…';
+    BromarHub.showLoading('Submitting request…', 'Please wait');
+
+    const selected = getSelectedItems();
+    const items = selected.map(i => ({ item: i.label, size: i.size, quantity: i.qty }));
+    const total_quantity = selected.reduce((s, i) => s + i.qty, 0);
+
+    const payload = {
+      employee_name:  currentUser.name,
+      employee_email: currentUser.email,
+      employee_phone: document.getElementById('employee_phone').value.trim(),
+      employee_role:  document.getElementById('employee_role').value.trim(),
+      items,
+      total_quantity,
+      total_types: selected.length,
+      notes: document.getElementById('notes').value.trim(),
+    };
+
+    try {
+      const res = await fetch('/.netlify/functions/submit-uniform-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json();
+      BromarHub.hideLoading();
+
+      if (res.ok && out.success) {
+        BromarHub.showSuccess('Request submitted — confirmation emailed to you and admin.');
+        form.reset();
+        updateUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        console.error(out);
+        BromarHub.showInfo('Submission failed — please try again or contact admin.');
+      }
+    } catch (err) {
+      BromarHub.hideLoading();
+      console.error(err);
+      BromarHub.showInfo('Network error — please check your connection and try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
+  });
+
+  form.addEventListener('reset', () => setTimeout(updateUI, 0));
+</script>
+
+</body>
+</html>
