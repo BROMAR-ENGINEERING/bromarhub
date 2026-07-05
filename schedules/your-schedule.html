@@ -155,14 +155,17 @@
 
     <div class="legend">
       <div class="legend-item"><div class="legend-color" style="background:#16a34a"></div><span>Job</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>Site Assignment</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>Public Holiday</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>RDO</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#f59e0b"></div><span>Annual Leave</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#9333ea"></div><span>Company Meeting</span></div>
       <div class="legend-item"><div style="width:16px;height:16px;background:rgba(234,88,12,0.08);border:2px solid var(--accent);border-radius:4px"></div><span>Today</span></div>
     </div>
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — YOUR SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.00</div>
+      <div class="card-footer-version">Version V1.01</div>
     </div>
   </div>
 </div>
@@ -182,8 +185,8 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const TYPE_COLOURS = { job: '#16a34a', site: '#2563eb' };
-  const TYPE_LABELS  = { job: 'Job', site: 'Site' };
+  const TYPE_COLOURS = { job: '#16a34a', rdo: '#2563eb', public_holiday: '#dc2626', annual_leave: '#f59e0b', company_meeting: '#9333ea', site: '#0d9488' };
+  const TYPE_LABELS  = { job: 'Job', rdo: 'RDO', public_holiday: 'Public Holiday', annual_leave: 'Annual Leave', company_meeting: 'Company Meeting', site: 'Site' };
   const SCHED_LABELS = { oneoff: 'One-off', duration: 'Fixed duration', indefinite: 'Ongoing' };
 
   // ============================================================
@@ -229,12 +232,14 @@
   function assignmentsOn(dateStr) { return assignments.filter(a => activeOn(a, dateStr)); }
   function colourFor(a) { return TYPE_COLOURS[a.type] || '#6b7280'; }
   function labelFor(a) {
-    if (a.type === 'job') return a.job_number || 'Job';
-    return a.site_name || a.client_name || 'Site assignment';
+    if (a.type === 'job')  return a.job_number || 'Job';
+    if (a.type === 'site') return a.site_name || a.client_name || 'Site assignment';
+    return TYPE_LABELS[a.type] || a.type;
   }
   function subFor(a) {
-    if (a.type === 'job') return [a.client_name, a.site_name].filter(Boolean).join(' · ');
-    return (a.client_name && a.site_name) ? a.client_name : '';
+    if (a.type === 'job')  return [a.client_name, a.site_name].filter(Boolean).join(' · ');
+    if (a.type === 'site') return (a.client_name && a.site_name) ? a.client_name : '';
+    return [a.client_name, a.site_name].filter(Boolean).join(' · ');
   }
   function rangeText(a) {
     if (a.schedule === 'indefinite') return fmtShort(a.start_date) + ' — ongoing';
