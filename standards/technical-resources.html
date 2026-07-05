@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Technical Resources — Bromar Hub</title>
+
+<!-- Shared infrastructure -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/tools/auth.js"></script>
+<link rel="stylesheet" href="../tools/bromar-hub.css"/>
+<script src="../tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── PAGE-SPECIFIC: TECHNICAL RESOURCES ── */
+  .tr-toolbar { margin-bottom: 1.5rem; }
+  .tr-search {
+    width: 100%; padding: 0.85rem 1rem 0.85rem 2.75rem;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-secondary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 0.9rem center;
+    font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--text-primary);
+    outline: none; transition: all 0.3s ease; box-sizing: border-box;
+  }
+  .tr-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
+
+  .tr-chips { display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap; }
+  .tr-chip {
+    padding: 0.45rem 0.95rem; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--bg-secondary); color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .tr-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .tr-chip.active { background: var(--card-hover); border-color: var(--accent); color: var(--accent); }
+
+  .tr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+
+  .tr-card {
+    display: flex; flex-direction: column; text-align: left;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.5rem; cursor: pointer;
+    font-family: 'Outfit', sans-serif; transition: all 0.25s ease;
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+  .tr-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 10px 24px var(--shadow); }
+  .tr-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tr-card-icon { font-size: 1.9rem; margin-bottom: 0.75rem; }
+  .tr-card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; letter-spacing: -0.01em; }
+  .tr-card-summary { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; flex: 1; }
+  .tr-card-meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .tr-cat { display: inline-block; padding: 2px 9px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; background: var(--card-hover); color: var(--accent); }
+  .tr-rev { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-secondary); }
+
+  .tr-state { text-align: center; color: var(--text-secondary); padding: 3rem 1rem; font-size: 0.95rem; }
+  .tr-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+
+  /* ── READER ── */
+  .tr-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; color: var(--accent); font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 0.4rem 0; margin-bottom: 1rem; }
+  .tr-back:hover { text-decoration: underline; }
+  .tr-reader-head { margin-bottom: 1.5rem; }
+  .tr-reader-head h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0.5rem 0 0.75rem; }
+  .tr-reader-meta { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-secondary); }
+  .tr-body { color: var(--text-primary); }
+  .tr-body h3 { font-size: 1.1rem; font-weight: 700; margin: 1.75rem 0 0.75rem; letter-spacing: -0.01em; }
+  .tr-body p { margin-bottom: 0.9rem; line-height: 1.7; }
+  .tr-body ol, .tr-body ul { margin: 0 0 1rem 1.25rem; }
+  .tr-body li { margin-bottom: 0.6rem; line-height: 1.6; }
+  .tr-note { border-left: 3px solid var(--accent); background: var(--card-hover); padding: 0.85rem 1.1rem; border-radius: 0 10px 10px 0; margin: 1.25rem 0; font-size: 0.9rem; }
+  .tr-note strong { color: var(--accent); }
+
+  /* ── IN-CARD FOOTER ── */
+  .card-footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; }
+  .card-footer-title { font-weight: 700; font-size: 1rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
+  .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 12px; }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 720px) {
+    .tr-grid { grid-template-columns: 1fr; }
+    .tr-reader-head h2 { font-size: 1.35rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tr-card, .tr-card:hover { transition: none; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>Technical Resources</h1>
+  <p class="subtitle">How-to guides for Bromar Hub tools and field procedures</p>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- GRID VIEW -->
+  <div id="trGridView">
+    <div class="tr-toolbar">
+      <input type="text" id="trSearch" class="tr-search" placeholder="Search guides..." autocomplete="off"/>
+      <div class="tr-chips" id="trChips"></div>
+    </div>
+    <div class="tr-grid" id="trGrid"></div>
+    <div class="tr-state" id="trState"><div class="tr-spinner"></div>Loading guides...</div>
+  </div>
+
+  <!-- READER VIEW -->
+  <div id="trReaderView" hidden>
+    <button class="tr-back" id="trBack">← All guides</button>
+    <div class="form-card">
+      <div class="tr-reader-head">
+        <span class="tr-cat" id="trReaderCat"></span>
+        <h2 id="trReaderTitle"></h2>
+        <div class="tr-reader-meta">
+          <span class="tr-rev" id="trReaderRev"></span>
+          <span>·</span>
+          <span id="trReaderDate"></span>
+        </div>
+      </div>
+      <div class="tr-body" id="trReaderBody"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="card-footer">
+    <div class="card-footer-title">BROMAR HUB — TECHNICAL RESOURCES</div>
+    <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+    <div class="card-footer-version">Version V1.01</div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   TECHNICAL RESOURCES — renders from the technical_guides table.
+   Add / arrange content in Supabase only; this page never changes.
+   ============================================================ */
+
+let GUIDES = [];
+let activeCat = 'All';
+let searchTerm = '';
+
+const $ = id => document.getElementById(id);
+const fmtDate = ts => new Date(ts).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+const verStr  = v => 'V' + Number(v).toFixed(2);
+
+async function loadGuides() {
+  if (!window.sb) { showState('Could not connect to the database. Refresh to try again.'); return; }
+  try {
+    const { data, error } = await window.sb
+      .from('technical_guides')
+      .select('*')
+      .eq('status', 'published')
+      .order('sort_order', { ascending: true });
+    if (error) { console.error('[TechRes]', error); showState('Could not load guides. Refresh to try again.'); return; }
+    GUIDES = data || [];
+    if (!GUIDES.length) { showState('No guides yet. Add one in Supabase to see it here.'); return; }
+    $('trState').hidden = true;
+    renderChips();
+    renderGrid();
+    const hash = location.hash.replace('#', '');
+    if (hash) openGuide(hash, false);
+  } catch (err) {
+    console.error('[TechRes]', err);
+    showState('Something went wrong loading guides. Refresh to try again.');
+  }
+}
+
+function showState(msg) {
+  const el = $('trState');
+  el.hidden = false;
+  el.innerHTML = msg;
+}
+
+function renderChips() {
+  const cats = ['All', ...[...new Set(GUIDES.map(g => g.category).filter(Boolean))].sort()];
+  $('trChips').innerHTML = cats.map(c =>
+    `<button class="tr-chip ${c === activeCat ? 'active' : ''}" data-cat="${BromarHub.escapeHtml(c)}">${BromarHub.escapeHtml(c)}</button>`
+  ).join('');
+}
+
+function renderGrid() {
+  const term = searchTerm.toLowerCase();
+  const list = GUIDES.filter(g => {
+    const catOk = activeCat === 'All' || g.category === activeCat;
+    const txtOk = !term || ((g.title || '') + ' ' + (g.summary || '') + ' ' + (g.body || '')).toLowerCase().includes(term);
+    return catOk && txtOk;
+  });
+
+  const grid = $('trGrid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="tr-state">No guides match your search.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(g => `
+    <button class="tr-card" data-slug="${BromarHub.escapeHtml(g.slug)}">
+      <div class="tr-card-icon">${BromarHub.escapeHtml(g.icon || '📄')}</div>
+      <div class="tr-card-title">${BromarHub.escapeHtml(g.title)}</div>
+      <div class="tr-card-summary">${BromarHub.escapeHtml(g.summary || '')}</div>
+      <div class="tr-card-meta">
+        <span class="tr-cat">${BromarHub.escapeHtml(g.category || 'General')}</span>
+        <span class="tr-rev">${verStr(g.version)}</span>
+      </div>
+    </button>
+  `).join('');
+}
+
+function openGuide(slug, push = true) {
+  const g = GUIDES.find(x => x.slug === slug);
+  if (!g) return;
+  $('trReaderCat').textContent   = g.category || 'General';
+  $('trReaderTitle').textContent = g.title;
+  $('trReaderRev').textContent   = verStr(g.version);
+  $('trReaderDate').textContent  = 'Updated ' + fmtDate(g.updated_at);
+  $('trReaderBody').innerHTML    = g.body || '';
+  $('trGridView').hidden   = true;
+  $('trReaderView').hidden = false;
+  window.scrollTo(0, 0);
+  if (push) history.replaceState(null, '', '#' + g.slug);
+}
+
+function closeGuide() {
+  $('trReaderView').hidden = true;
+  $('trGridView').hidden   = false;
+  history.replaceState(null, '', location.pathname);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadGuides();
+
+  $('trChips').addEventListener('click', e => {
+    const chip = e.target.closest('.tr-chip');
+    if (!chip) return;
+    activeCat = chip.dataset.cat;
+    renderChips();
+    renderGrid();
+  });
+
+  $('trSearch').addEventListener('input', e => {
+    searchTerm = e.target.value.trim();
+    renderGrid();
+  });
+
+  $('trGrid').addEventListener('click', e => {
+    const card = e.target.closest('.tr-card');
+    if (card) openGuide(card.dataset.slug);
+  });
+
+  $('trBack').addEventListener('click', closeGuide);
+});
+</script>
+
+</body>
+</html>
