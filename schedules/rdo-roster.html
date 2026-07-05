@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RDO Roster Calendar - Bromar Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+  <style>
+    .page-wrapper {
+      margin-top: 90px;
+    }
+    @media (max-width: 520px) {
+      .page-wrapper { margin-top: 80px; }
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.93rem;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+      background: var(--bg-main);
+      outline: none;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .view-btn svg { width: 16px; height: 16px; }
+    .view-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .view-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Legend ── */
+    .rdo-legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 24px;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+    .rdo-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .rdo-legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Month nav ── */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+    }
+    .month-nav button {
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .month-nav button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(234, 88, 12, 0.08);
+    }
+    .month-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 200px;
+      text-align: center;
+    }
+
+    /* ── Calendar grid ── */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .day-header {
+      background: var(--bg-secondary);
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .day-cell {
+      background: var(--bg-secondary);
+      min-height: 110px;
+      padding: 8px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .day-cell.other-month { opacity: 0.4; }
+    .day-cell.today {
+      background: rgba(234, 88, 12, 0.08);
+      border: 2px solid var(--accent);
+    }
+    .day-number {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .day-cell.weekend .day-number { color: var(--accent); }
+
+    /* ── RDO entry chip ── */
+    .rdo-entry {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      line-height: 1.35;
+      cursor: pointer;
+      position: relative;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .rdo-entry.highlight { outline: 2px solid #f59e0b; outline-offset: 1px; }
+    .rdo-entry-short { display: none; }
+    .rdo-expand-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      min-width: 190px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px var(--shadow);
+      overflow: hidden;
+      text-align: left;
+    }
+    .rdo-entry.expanded .rdo-expand-list { display: block; }
+    .rdo-expand-header {
+      padding: 7px 10px;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .rdo-expand-name {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border);
+    }
+    .rdo-expand-name:last-child { border-bottom: none; }
+    .rdo-expand-name.match { background: var(--card-hover); color: var(--accent); font-weight: 700; }
+
+    @media (max-width: 768px) {
+      .rdo-entry-full { display: none; }
+      .rdo-entry-short { display: inline; }
+      .rdo-entry.expanded .rdo-expand-list { left: 0; transform: none; min-width: 160px; }
+    }
+
+    /* ── List view ── */
+    .list-group { margin-bottom: 24px; }
+    .list-month-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border);
+    }
+    .list-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+      flex-wrap: wrap;
+    }
+    .list-row:hover { border-color: var(--accent); }
+    .list-row.current {
+      background: rgba(234, 88, 12, 0.06);
+      border-left: 3px solid var(--accent);
+    }
+    .list-date {
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 150px;
+      font-size: 0.9rem;
+    }
+    .list-groups { display: flex; gap: 6px; flex-wrap: wrap; }
+    .rdo-group-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .list-people {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      line-height: 1.7;
+    }
+    .list-person {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+    .list-person.match { color: var(--accent); font-weight: 700; }
+    .list-person-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .list-person-note { font-size: 0.78rem; color: var(--text-secondary); font-style: italic; }
+    .list-status {
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .list-status.past { background: var(--border); color: var(--text-secondary); }
+    .list-status.current { background: #d1fae5; color: #15803d; }
+    .list-status.upcoming { background: #dbeafe; color: #2563eb; }
+    .past-toggle-btn {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .past-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .past-section { opacity: 0.75; margin-bottom: 8px; }
+
+    @media (max-width: 600px) {
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .view-toggle { justify-content: center; }
+      .list-date { width: 100%; min-width: 0; }
+      .list-status { order: 4; }
+    }
+
+    /* ── Card footer ── */
+    .card-footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .card-footer-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 420px) {
+      .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
+    }
+    .card-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .card-footer-link:hover { text-decoration: underline; }
+    .card-footer-version {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .calendar-grid { font-size: 0.8rem; }
+      .day-cell { min-height: 70px; padding: 4px; }
+      .rdo-entry { font-size: 0.62rem; padding: 2px 4px; }
+      .month-title { font-size: 1.1rem; }
+    }
+    @media (max-width: 380px) {
+      .day-cell { min-height: 56px; }
+      .rdo-entry { font-size: 0.58rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <div id="bromar-header"></div>
+
+  <div class="header-card" style="text-align: center;">
+    <h1 class="header-title">RDO Roster Calendar</h1>
+    <p class="header-subtitle">View and search the alternating RDO schedule for Group A and Group B</p>
+  </div>
+
+  <div class="form-card">
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search employee name...">
+      </div>
+      <div class="view-toggle">
+        <button id="viewCalendarBtn" class="view-btn active" data-view="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Calendar
+        </button>
+        <button id="viewListBtn" class="view-btn" data-view="list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          List
+        </button>
+      </div>
+    </div>
+
+    <div class="rdo-legend">
+      <span class="rdo-legend-item"><span class="rdo-legend-dot" style="background:#ea580c"></span>Group A</span>
+      <span class="rdo-legend-item"><span class="rdo-legend-dot" style="background:#2563eb"></span>Group B</span>
+    </div>
+
+    <div id="calendarView">
+      <div class="month-nav">
+        <button id="prevMonth">←</button>
+        <div class="month-title" id="monthTitle">January 2025</div>
+        <button id="nextMonth">→</button>
+      </div>
+
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- Calendar generated here -->
+      </div>
+    </div>
+
+    <div id="listView" style="display:none">
+      <div id="rosterList"></div>
+    </div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — RDO ROSTER CALENDAR</div>
+      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // STATE
+  // ============================================================
+  let currentDate = new Date();
+  let allEntries = [];
+  let searchTerm = '';
+  let currentView = 'calendar';
+  let showPast = false;
+
+  const GROUP_COLOURS = { A: '#ea580c', B: '#2563eb' };
+  function groupColour(g) { return GROUP_COLOURS[(g || 'A').toUpperCase()] || '#666'; }
+
+  // ── ISO date helper (local, AU-safe) ──
+  function isoDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  // ============================================================
+  // SUPABASE CONFIG (embedded for read like ops page)
+  // ============================================================
+  const SB_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+
+  function getHeaders() {
+    return {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  // ============================================================
+  // LOAD RDO ROSTER FROM SUPABASE
+  // ============================================================
+  async function loadRdoFromSupabase() {
+    BromarHub.showLoading('Loading RDO roster...', 'Fetching data from database');
+    try {
+      const res = await fetch(
+        SB_URL + '/rest/v1/rdo_roster?select=*&order=rdo_date.asc',
+        { headers: getHeaders() }
+      );
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error('HTTP ' + res.status + ': ' + errorText);
+      }
+      const data = await res.json();
+
+      allEntries = (Array.isArray(data) ? data : []).map(e => ({
+        rdo_date: e.rdo_date,
+        employee_name: e.employee_name,
+        rdo_group: (e.rdo_group || 'A').toUpperCase(),
+        notes: e.notes || ''
+      }));
+
+      BromarHub.hideLoading();
+      if (!allEntries.length) {
+        BromarHub.showInfo('No RDO roster data found in database.');
+      }
+      if (currentView === 'calendar') renderCalendar();
+      else renderList();
+    } catch (error) {
+      console.error('Error loading RDO roster:', error);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Failed to load RDO roster: ' + error.message);
+      renderCalendar();
+    }
+  }
+
+  // ============================================================
+  // CALENDAR
+  // ============================================================
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    document.getElementById('monthTitle').textContent =
+      currentDate.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const prevMonthDays = startDay === 0 ? 6 : startDay - 1;
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(day => {
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = day;
+      grid.appendChild(header);
+    });
+
+    for (let i = prevMonthDays; i > 0; i--) {
+      const dayNum = prevMonthLastDay - i + 1;
+      grid.appendChild(createDayCell(new Date(year, month - 1, dayNum), dayNum, true));
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      grid.appendChild(createDayCell(new Date(year, month, day), day, false));
+    }
+    const totalCells = prevMonthDays + daysInMonth;
+    const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
+    for (let day = 1; day <= remaining; day++) {
+      grid.appendChild(createDayCell(new Date(year, month + 1, day), day, true));
+    }
+  }
+
+  function createDayCell(date, dayNum, isOtherMonth) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (isOtherMonth) cell.classList.add('other-month');
+
+    const dow = date.getDay();
+    if (dow === 0 || dow === 6) cell.classList.add('weekend');
+
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) cell.classList.add('today');
+
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = dayNum;
+    cell.appendChild(dayNumber);
+
+    // Group entries for this date by RDO group
+    const dateStr = isoDate(date);
+    const dayEntries = allEntries.filter(e => e.rdo_date === dateStr);
+    const groups = {};
+    dayEntries.forEach(e => {
+      const g = e.rdo_group;
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(e);
+    });
+
+    Object.keys(groups).sort().forEach(g => {
+      const colour = groupColour(g);
+      const people = groups[g];
+      const term = searchTerm.toLowerCase();
+
+      const matchInGroup = term && people.some(p => p.employee_name && p.employee_name.toLowerCase().includes(term));
+
+      const namesHtml = people.map(p => {
+        const note = p.notes ? '<span style="color:var(--text-secondary);font-weight:400"> — ' + BromarHub.escapeHtml(p.notes) + '</span>' : '';
+        const isMatch = term && p.employee_name && p.employee_name.toLowerCase().includes(term);
+        return '<div class="rdo-expand-name' + (isMatch ? ' match' : '') + '">' + BromarHub.escapeHtml(p.employee_name) + note + '</div>';
+      }).join('');
+
+      const entry = document.createElement('div');
+      entry.className = 'rdo-entry' + (matchInGroup ? ' highlight' : '');
+      entry.style.background = colour;
+      entry.title = 'Group ' + g + ' (' + people.length + '): ' + people.map(p => p.employee_name).join(', ');
+      entry.innerHTML =
+        '<span class="rdo-entry-full">Group ' + g + ' · RDO</span>' +
+        '<span class="rdo-entry-short">G' + g + '</span>' +
+        '<div class="rdo-expand-list">' +
+          '<div class="rdo-expand-header" style="background:' + colour + '">Group ' + g + ' — ' + people.length + ' people</div>' +
+          namesHtml +
+        '</div>';
+      cell.appendChild(entry);
+    });
+
+    return cell;
+  }
+
+  // ============================================================
+  // TAP TO EXPAND
+  // ============================================================
+  document.addEventListener('click', function(e) {
+    const entry = e.target.closest('.rdo-entry');
+    if (entry) {
+      const wasOpen = entry.classList.contains('expanded');
+      document.querySelectorAll('.rdo-entry.expanded').forEach(el => el.classList.remove('expanded'));
+      if (!wasOpen) entry.classList.add('expanded');
+    } else {
+      document.querySelectorAll('.rdo-entry.expanded').forEach(el => el.classList.remove('expanded'));
+    }
+  });
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+  document.getElementById('searchInput').addEventListener('input', function(e) {
+    searchTerm = e.target.value;
+    if (searchTerm && currentView === 'calendar') {
+      switchView('list');
+      return;
+    }
+    if (currentView === 'calendar') renderCalendar();
+    else renderList();
+  });
+
+  // ============================================================
+  // VIEW TOGGLE
+  // ============================================================
+  function switchView(view) {
+    currentView = view;
+    document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+    document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('viewCalendarBtn').classList.toggle('active', view === 'calendar');
+    document.getElementById('viewListBtn').classList.toggle('active', view === 'list');
+    if (view === 'calendar') renderCalendar();
+    else renderList();
+  }
+  document.getElementById('viewCalendarBtn').addEventListener('click', () => switchView('calendar'));
+  document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
+
+  // ============================================================
+  // LIST VIEW
+  // ============================================================
+  function renderList() {
+    const container = document.getElementById('rosterList');
+    const todayStr = isoDate(new Date());
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const term = searchTerm.toLowerCase();
+
+    // Group entries by date
+    const byDate = {};
+    allEntries.forEach(e => {
+      if (!byDate[e.rdo_date]) byDate[e.rdo_date] = [];
+      byDate[e.rdo_date].push(e);
+    });
+
+    // Build date list, filtered by search (a date is kept if any person matches)
+    let dates = Object.keys(byDate).sort();
+    if (term) {
+      dates = dates.filter(d => byDate[d].some(p => p.employee_name && p.employee_name.toLowerCase().includes(term)));
+    }
+
+    if (!dates.length) {
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-secondary)">No RDO entries found' + (searchTerm ? ' matching "' + BromarHub.escapeHtml(searchTerm) + '"' : '') + '.</div>';
+      return;
+    }
+
+    const pastDates = dates.filter(d => d < todayStr);
+    const activeDates = dates.filter(d => d >= todayStr);
+
+    let html = '';
+    if (pastDates.length) {
+      html += '<button id="togglePastBtn" class="past-toggle-btn">' +
+        (showPast ? '▾ Hide past RDOs (' + pastDates.length + ')' : '▸ Show past RDOs (' + pastDates.length + ')') +
+      '</button>';
+    }
+    if (showPast && pastDates.length) {
+      html += '<div class="past-section">' + renderListGroups(pastDates, byDate, todayStr, months, term) + '</div>';
+    }
+    if (activeDates.length) {
+      html += renderListGroups(activeDates, byDate, todayStr, months, term);
+    } else if (!searchTerm) {
+      html += '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">No current or upcoming RDOs.</div>';
+    }
+
+    container.innerHTML = html;
+
+    const btn = document.getElementById('togglePastBtn');
+    if (btn) btn.addEventListener('click', () => { showPast = !showPast; renderList(); });
+  }
+
+  function renderListGroups(dates, byDate, todayStr, months, term) {
+    const monthGroups = {};
+    dates.forEach(d => {
+      const key = d.slice(0, 7);
+      if (!monthGroups[key]) monthGroups[key] = [];
+      monthGroups[key].push(d);
+    });
+
+    let html = '';
+    Object.keys(monthGroups).sort().forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      html += '<div class="list-group">';
+      html += '<div class="list-month-header">' + months[m - 1] + ' ' + y + '</div>';
+
+      monthGroups[key].forEach(date => {
+        const entries = byDate[date];
+        let status, statusClass;
+        if (date < todayStr) { status = 'Past'; statusClass = 'past'; }
+        else if (date === todayStr) { status = 'Today'; statusClass = 'current'; }
+        else { status = 'Upcoming'; statusClass = 'upcoming'; }
+
+        const groupLabels = [...new Set(entries.map(e => e.rdo_group))].sort()
+          .map(g => '<span class="rdo-group-badge" style="background:' + groupColour(g) + '">Group ' + g + '</span>').join('');
+
+        const people = entries.map(e => {
+          const isMatch = term && e.employee_name && e.employee_name.toLowerCase().includes(term);
+          const note = e.notes ? '<span class="list-person-note"> (' + BromarHub.escapeHtml(e.notes) + ')</span>' : '';
+          return '<span class="list-person' + (isMatch ? ' match' : '') + '">' +
+            '<span class="list-person-dot" style="background:' + groupColour(e.rdo_group) + '"></span>' +
+            BromarHub.escapeHtml(e.employee_name) + note + '</span>';
+        }).join('');
+
+        html += '<div class="list-row' + (statusClass === 'current' ? ' current' : '') + '">';
+        html += '<span class="list-date">' + fmtDateShort(date) + '</span>';
+        html += '<span class="list-groups">' + groupLabels + '</span>';
+        html += '<span class="list-people">' + people + '</span>';
+        html += '<span class="list-status ' + statusClass + '">' + status + '</span>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function fmtDateShort(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dt = new Date(y, m - 1, d);
+    return days[dt.getDay()] + ' ' + d + ' ' + months[m - 1] + ' ' + y;
+  }
+
+  // ============================================================
+  // MONTH NAVIGATION
+  // ============================================================
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    currentDate = new Date();
+    await loadRdoFromSupabase();
+  });
+
+  window.addEventListener('pageshow', async (e) => {
+    if (e.persisted || allEntries.length === 0) {
+      try {
+        if (allEntries.length === 0) await loadRdoFromSupabase();
+        else if (currentView === 'calendar') renderCalendar();
+        else renderList();
+      } catch (err) { console.error('pageshow reload failed:', err); }
+    }
+  });
+</script>
+
+</body>
+</html>
