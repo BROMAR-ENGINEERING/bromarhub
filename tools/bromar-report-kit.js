@@ -15,14 +15,14 @@
                gradient stat cards, icons, rounded panels) built as
                HTML and captured with html2canvas. Faithful but raster.
 
-   VERSION V1.02
+   VERSION V1.03
    (+0.01 per change; major digit only bumps on explicit major change)
    ============================================================ */
 
 (function () {
   'use strict';
 
-  const VERSION = 'V1.02';
+  const VERSION = 'V1.03';
 
   /* ── CONFIG ──
      Bromar Ops and Bromar Hub are separate repos but run this file
@@ -350,6 +350,10 @@
     ".brk2-stats-secondary{background:#f8f8f8;color:#1a1a1e;}" +
     ".brk2-stats-secondary .brk2-lbl{color:#9a9a9a;opacity:1;}" +
     ".brk2-gridwrap{border:1px solid #e2e2e2;border-radius:10px;overflow:hidden;}" +
+    ".brk2-section{display:flex;align-items:center;gap:8px;margin:14px 0 6px;}" +
+    ".brk2-section .brk2-bar{width:4px;height:15px;border-radius:3px;background:linear-gradient(180deg," + PALETTE.accent.hex + ",#fb923c);}" +
+    ".brk2-section-t{font-size:13px;font-weight:800;color:" + PALETTE.navy.hex + ";text-transform:uppercase;letter-spacing:.3px;}" +
+    ".brk2-p{font-size:9.5px;color:" + PALETTE.charcoal.hex + ";line-height:1.5;margin:0 0 8px;}" +
     ".brk2-grid{width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed;line-height:1.15;}" +
     ".brk2-grid th,.brk2-grid td{border:1px solid #e2e2e2;padding:1.5px 5px;}" +
     ".brk2-grid th{font-weight:700;text-align:center;background:#f8f8f8;color:#1a1a1e;}" +
@@ -516,12 +520,46 @@
       .finally(function () { holder.remove(); });
   }
 
+  // themed section heading (orange bar + navy uppercase title).
+  function s2Section(title) {
+    return '<div class="brk2-section"><span class="brk2-bar"></span>' +
+      '<span class="brk2-section-t">' + escHtml(title) + '</span></div>';
+  }
+
+  // body paragraph.
+  function s2Para(text) {
+    return '<p class="brk2-p">' + escHtml(text) + '</p>';
+  }
+
+  // themed data table. headers: array of strings OR
+  // { label, align, width, cb } . rows: array of cell-arrays (text escaped).
+  function s2Table(headers, rows) {
+    const cols = (headers || []).map(function (h) { return typeof h === 'string' ? { label: h } : (h || {}); });
+    const colgroup = cols.map(function (c) { return '<col' + (c.width ? ' style="width:' + c.width + '"' : '') + '>'; }).join('');
+    const thead = '<tr>' + cols.map(function (c) {
+      return '<th' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + escHtml(c.label) + '</th>';
+    }).join('') + '</tr>';
+    const body = (rows || []).map(function (r) {
+      return '<tr>' + r.map(function (cell, i) {
+        const c = cols[i] || {};
+        const cls = c.cb ? ' class="cb"' : (c.align === 'center' ? ' class="ctr"' : '');
+        const al = c.align ? ' style="text-align:' + c.align + '"' : '';
+        return '<td' + cls + al + '>' + (cell == null ? '' : escHtml(cell)) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    return '<div class="brk2-gridwrap"><table class="brk2-grid"><colgroup>' + colgroup +
+      '</colgroup><thead>' + thead + '</thead><tbody>' + body + '</tbody></table></div>';
+  }
+
   const style2 = {
     injectCSS: s2InjectCSS,
     icon: s2Icon,
     statCard: s2StatCard,
     statRow: s2StatRow,
     infoPanel: s2InfoPanel,
+    section: s2Section,
+    para: s2Para,
+    table: s2Table,
     header: s2Header,
     footer: s2Footer,
     companyBlock: s2CompanyBlock,
