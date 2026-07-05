@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Style 2 Theme Preview — Bromar Report Kit</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="bromar-report-kit.js"></script>
+
+<style>
+  body { margin:0; font-family:'Outfit',Arial,sans-serif; background:#101014; color:#e8e8ed; }
+  .bar { display:flex; align-items:center; gap:12px; padding:14px 20px; background:#1c1c1f; border-bottom:1px solid #2a2a30; position:sticky; top:0; z-index:10; }
+  .bar h1 { font-size:1rem; margin:0; font-weight:700; }
+  .bar .spacer { flex:1; }
+  button { font-family:'Outfit',Arial,sans-serif; font-weight:600; font-size:0.9rem; padding:0.6rem 1.2rem; border-radius:9px; border:none; cursor:pointer; background:#ea580c; color:#fff; }
+  button.ghost { background:transparent; color:#e8e8ed; border:1px solid #3a3a42; }
+  .note { font-size:0.8rem; color:#8e8e99; padding:10px 20px; }
+  #stage { display:flex; justify-content:center; padding:24px; overflow:auto; }
+  #stage .brk2-page { box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Style 2 — Theme Preview</h1>
+  <span class="note" id="ver"></span>
+  <div class="spacer"></div>
+  <button class="ghost" id="reBtn">↻ Rebuild</button>
+  <button id="pdfBtn">⬇ Generate PDF</button>
+</div>
+<div class="note">Sandbox for the shared report theme. This is a sample report — the switchboard is a separate document and is untouched. Tell me what to change and I restyle the kit; every form that calls it inherits the look.</div>
+
+<div id="stage"></div>
+
+<script>
+(function(){
+  const K = window.BromarReportKit, S = K.style2;
+  document.getElementById('ver').textContent = 'Kit ' + K.version;
+
+  // ---- sample report content (stand-in for a real form) ----
+  function buildBody(){
+    const rows =
+      S.statRow('primary', [
+        S.statCard(S.icon('person','#fff'), 'Client',   'Tyrecycle Pty Ltd'),
+        S.statCard(S.icon('map','#fff'),    'Site',     'Westmeadows'),
+        S.statCard(S.icon('calendar','#fff'),'Date',    '05 Jul 2026')
+      ]) +
+      S.statRow('secondary', [
+        S.statCard(S.icon('tag'),   'Job No',    'BM0014'),
+        S.statCard(S.icon('check'), 'Result',    'Pass'),
+        S.statCard(S.icon('note'),  'Technician','A. Smith')
+      ]);
+
+    const table = S.table(
+      [ {label:'#', cb:true, width:'8%'}, {label:'Asset'}, {label:'Location'},
+        {label:'Class', align:'center', width:'14%'}, {label:'Result', align:'center', width:'14%'} ],
+      [
+        ['1','Kettle','Kitchen','Class I','Pass'],
+        ['2','Extension Lead 10m','Workshop','Class I','Pass'],
+        ['3','Angle Grinder','Workshop','Class II','Pass'],
+        ['4','Floor Fan','Office','Class I','Fail'],
+        ['5','Laptop Charger','Office','Class II','Pass']
+      ]
+    );
+
+    return S.infoPanel({
+             title: 'Test & Tag Report',
+             subtitle: 'AS/NZS 3760 — In-service inspection',
+             badge: 'SAMPLE<br>REPORT',
+             rows
+           }) +
+           S.section('Summary') +
+           S.para('5 assets tested. 4 passed, 1 failed. Failed item removed from service and tagged out pending repair.') +
+           S.section('Test Results') +
+           table;
+  }
+
+  function makeEl(){
+    return S.page({
+      title: 'Test &amp; Tag<br>Report',
+      extraLine: 'Job Number: BM0014',
+      body: buildBody(),
+      footerLeft:  S.icon('note','#8a8a8a') + '<span>BM0014-TT-REPORT-V1.00</span>',
+      footerRight: S.icon('person','#8a8a8a') + '<span>Prepared By: A. Smith</span>'
+    });
+  }
+
+  async function render(){
+    const el = await makeEl();
+    const stage = document.getElementById('stage');
+    stage.innerHTML = '';
+    stage.appendChild(el);
+  }
+
+  async function pdf(){
+    const el = await makeEl();
+    await S.generate({ element: el, filename: 'BM0014-TT-REPORT-V1.00', rev: 'V1.00' });
+  }
+
+  document.getElementById('reBtn').addEventListener('click', render);
+  document.getElementById('pdfBtn').addEventListener('click', pdf);
+  render();
+})();
+</script>
+</body>
+</html>
