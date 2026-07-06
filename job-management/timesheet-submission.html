@@ -272,6 +272,26 @@
       display: inline-block;
     }
 
+    /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
+    .source-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--accent);
+      background: var(--card-hover);
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      margin-left: 8px;
+    }
+    .job-row.from-jobsheet {
+      border-left: 3px solid var(--accent);
+    }
+    #loadJobSheetsBtn { width: auto; padding: 0 12px; font-size: 0.8rem; }
+    #loadJobSheetsBtn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     /* ── FIELD HINT ── */
     .field-hint {
       font-size: 0.75rem; color: var(--text-secondary);
@@ -371,6 +391,7 @@
         <div class="week-nav">
           <button type="button" id="prevWeek" title="Previous Week">←</button>
           <button type="button" id="nextWeek" title="Next Week">→</button>
+          <button type="button" id="loadJobSheetsBtn" class="clear-week-btn" title="Auto-populate hours from job sheets you appear on this week">🔗 Load from Job Sheets</button>
           <button type="button" id="topClearBtn" class="clear-week-btn" title="Clear Form">Clear</button>
         </div>
       </div>
@@ -421,7 +442,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.15</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.16</p>
       </div>
     </div>
   </div>
@@ -1906,6 +1927,170 @@
   document.getElementById('newTimesheetBtn')?.addEventListener('click', () => {
     window.location.reload();
   });
+
+  // ============================================================
+  // LOAD FROM JOB SHEETS
+  // ============================================================
+  document.getElementById('loadJobSheetsBtn').addEventListener('click', loadJobSheetLabour);
+
+  async function loadJobSheetLabour() {
+    // Wait for Supabase client
+    if (!window.sb) {
+      alert('Supabase not ready — please refresh the page and try again.');
+      return;
+    }
+
+    // Resolve the employee name
+    const nameInput = document.getElementById('employee_name');
+    const userName = (window.currentUser?.name || nameInput?.value || '').trim();
+    if (!userName) {
+      alert('Please enter your name or log in first.');
+      return;
+    }
+
+    const weekStartStr = weekStartingInput.value;
+    if (!weekStartStr) {
+      alert('Please select a week starting date first.');
+      return;
+    }
+
+    const weekStart = new Date(weekStartStr);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+    window.BromarHub?.showLoading('Loading job sheets…', `Searching for ${userName}`);
+
+    try {
+      const { data, error } = await window.sb
+        .from('job_sheets')
+        .select('job_number, sheet_date, labour')
+        .gte('sheet_date', weekStartStr)
+        .lte('sheet_date', weekEndStr);
+
+      if (error) throw error;
+
+      // Group entries by day index (0=Mon..6=Sun) and job_number
+      // Key: `${dayIndex}::${jobNumber}` → { normalHours, overtimeHours }
+      const grouped = new Map();
+      (data || []).forEach(sheet => {
+        (sheet.labour || []).forEach(l => {
+          if ((l.employee || '').trim().toLowerCase() !== userName.toLowerCase()) return;
+
+          const sheetDate = new Date(sheet.sheet_date);
+          // JS getDay(): Sun=0..Sat=6 → convert to Mon=0..Sun=6
+          const jsDay = sheetDate.getDay();
+          const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+          const key = `${dayIndex}::${sheet.job_number}`;
+          const existing = grouped.get(key) || { dayIndex, jobNumber: sheet.job_number, normalHours: 0, overtimeHours: 0 };
+          existing.normalHours += Number(l.normalHours || 0);
+          existing.overtimeHours += Number(l.overtimeHours || 0);
+          grouped.set(key, existing);
+        });
+      });
+
+      if (grouped.size === 0) {
+        window.BromarHub?.hideLoading();
+        alert(`No job sheet entries found for ${userName} in the week of ${weekStartStr}.`);
+        return;
+      }
+
+      // Confirm if any day already has data
+      const dayCards = document.querySelectorAll('.day-card');
+      let hasExisting = false;
+      dayCards.forEach(card => {
+        const jobs = card.querySelectorAll('.job-row');
+        jobs.forEach(row => {
+          const type = row.querySelector('[name$="_type"]')?.value;
+          const normal = row.querySelector('[name$="_hours"]')?.value;
+          if (type || (normal && parseFloat(normal) > 0)) hasExisting = true;
+        });
+      });
+      if (hasExisting) {
+        const proceed = confirm(`Found ${grouped.size} entries from job sheets. This will overwrite existing entries. Continue?`);
+        if (!proceed) {
+          window.BromarHub?.hideLoading();
+          return;
+        }
+        // Clear existing rows by regenerating the week
+        generateWeek();
+      }
+
+      // Populate — group entries by dayIndex first
+      const byDay = new Map();
+      grouped.forEach(e => {
+        if (!byDay.has(e.dayIndex)) byDay.set(e.dayIndex, []);
+        byDay.get(e.dayIndex).push(e);
+      });
+
+      let addedCount = 0;
+      byDay.forEach((entries, dayIndex) => {
+        const dayCard = document.querySelector(`.day-card[data-day-index="${dayIndex}"]`);
+        if (!dayCard) return;
+
+        // Weekend: enable if there's data
+        if (dayIndex >= 5) {
+          const toggle = dayCard.querySelector('.weekend-worked');
+          if (toggle && !toggle.checked) {
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+
+        const dayBody = dayCard.querySelector('.day-body');
+
+        entries.forEach((entry, idx) => {
+          // Reuse first empty job row, or add new
+          let jobRow = dayBody.querySelectorAll('.job-row')[idx];
+          if (!jobRow) {
+            addJobRow(dayBody, dayIndex);
+            jobRow = dayBody.querySelectorAll('.job-row')[idx];
+          }
+          if (!jobRow) return;
+
+          // Set type = Job Number
+          const typeSelect = jobRow.querySelector('[name$="_type"]');
+          if (typeSelect) {
+            typeSelect.value = 'Job Number';
+            typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const numberInput = jobRow.querySelector('[name$="_number"]');
+          if (numberInput) numberInput.value = entry.jobNumber || '';
+          const normalInput = jobRow.querySelector('[name$="_hours"]');
+          if (normalInput) {
+            normalInput.value = entry.normalHours.toFixed(2);
+            normalInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          const otInput = jobRow.querySelector('[name$="_overtime"]');
+          if (otInput) {
+            otInput.value = entry.overtimeHours.toFixed(2);
+            otInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          // Mark row as from jobsheet
+          jobRow.classList.add('from-jobsheet');
+          const badge = jobRow.querySelector('.job-number-badge');
+          if (badge && !badge.querySelector('.source-badge')) {
+            const src = document.createElement('span');
+            src.className = 'source-badge';
+            src.innerHTML = '🔗 From jobsheet';
+            badge.after(src);
+          }
+          addedCount++;
+        });
+
+        // Recompute day total
+        if (typeof updateDayTotal === 'function') updateDayTotal(dayIndex);
+      });
+
+      window.BromarHub?.hideLoading();
+      alert(`Loaded ${addedCount} entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. You can still add manual entries for admin/office work.`);
+    } catch (err) {
+      console.error('Load from jobsheets failed:', err);
+      window.BromarHub?.hideLoading();
+      alert('Could not load job sheet data: ' + (err.message || err));
+    }
+  }
 
   // Top Clear button
   document.getElementById('topClearBtn').addEventListener('click', () => {
