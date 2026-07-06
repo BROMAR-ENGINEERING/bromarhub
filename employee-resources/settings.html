@@ -6,6 +6,7 @@
     <title>Settings - Bromar Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/tools/auth.js"></script>
+    <script src="/tools/push-subscribe.js"></script>
     <link rel="stylesheet" href="../tools/bromar-hub.css"/>
     <script src="../tools/bromar-hub.js" defer></script>
     <style>
@@ -78,6 +79,36 @@
         .segmented-option:not(.active):hover {
             color: var(--text-primary);
         }
+
+        /* Notifications */
+        .setting-note {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            padding: 0 0 1rem;
+        }
+
+        #notifyCategories { display: none; }
+        #notifyCategories.show { display: block; }
+
+        .setting-soon {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            background: var(--card-hover);
+            color: var(--accent);
+            border: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .segmented-control.disabled { opacity: 0.5; }
+        .segmented-control.disabled .segmented-option { cursor: not-allowed; }
+        .setting-row.is-soon .setting-label { color: var(--text-secondary); }
 
         /* Action button row */
         .action-btn {
@@ -271,6 +302,79 @@
                 </div>
             </div>
 
+            <!-- NOTIFICATIONS -->
+            <div class="section-label">Notifications</div>
+            <div class="settings-section">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Push Notifications</div>
+                        <div class="setting-description">Get schedule updates on this device, even when the hub is closed</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="segmented-control" id="pushMasterControl">
+                            <button class="segmented-option active" data-push="off">Off</button>
+                            <button class="segmented-option" data-push="on">On</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-note" id="pushNote" style="display:none;"></div>
+
+                <div id="notifyCategories">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Schedule Updates</div>
+                            <div class="setting-description">New jobs, changes and roster updates</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="segmented-control disabled">
+                                <button class="segmented-option" disabled>Off</button>
+                                <button class="segmented-option active" disabled>On</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-row is-soon">
+                        <div class="setting-info">
+                            <div class="setting-label">Reminders <span class="setting-soon">Soon</span></div>
+                            <div class="setting-description">Timesheets, expiring tickets and follow-ups</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="segmented-control disabled">
+                                <button class="segmented-option active" disabled>Off</button>
+                                <button class="segmented-option" disabled>On</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-row is-soon">
+                        <div class="setting-info">
+                            <div class="setting-label">Tasks <span class="setting-soon">Soon</span></div>
+                            <div class="setting-description">Assigned jobs and task updates</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="segmented-control disabled">
+                                <button class="segmented-option active" disabled>Off</button>
+                                <button class="segmented-option" disabled>On</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-row is-soon">
+                        <div class="setting-info">
+                            <div class="setting-label">Safety Alerts <span class="setting-soon">Soon</span></div>
+                            <div class="setting-description">Hazards, incidents and urgent safety notices</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="segmented-control disabled">
+                                <button class="segmented-option active" disabled>Off</button>
+                                <button class="segmented-option" disabled>On</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ACCOUNT SETTINGS -->
             <div class="section-label">Account</div>
             <div class="settings-section">
@@ -314,13 +418,13 @@
                 <div class="footer-title-block">
                     <p class="footer-title">BROMAR HUB — SETTINGS</p>
                     <a class="footer-bug-link" href="suggestions-feedback.html" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Version V1.00</div>
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Version V1.02</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="revision-number">V1.00</div>
+    <div class="revision-number">V1.02</div>
 
     <script>
         // Wait for shared JS to load
@@ -333,6 +437,7 @@
             // ============================================
             // LOAD USER INFO
             // ============================================
+            let currentEmployeeName = null;
             try {
                 const { data: { user } } = await window.sb.auth.getUser();
                 if (user?.email) {
@@ -346,9 +451,11 @@
                         .single();
                     
                     if (emp?.full_name) {
+                        currentEmployeeName = emp.full_name;
                         document.getElementById('userName').textContent = emp.full_name;
                         document.getElementById('userAvatar').textContent = emp.full_name.charAt(0).toUpperCase();
                     } else {
+                        currentEmployeeName = null;
                         document.getElementById('userName').textContent = 'Bromar Employee';
                         document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
                     }
@@ -449,6 +556,133 @@
             });
 
             // ============================================
+            // NOTIFICATIONS / PUSH  (mirrors index.html bell)
+            // Source of truth = push_subscriptions table
+            // ============================================
+            initNotifications(currentEmployeeName);
+
+            function initNotifications(employeeName) {
+                const master = document.getElementById('pushMasterControl');
+                const note   = document.getElementById('pushNote');
+                const cats   = document.getElementById('notifyCategories');
+                const name   = employeeName;
+                const supported = ('Notification' in window)
+                    && ('serviceWorker' in navigator)
+                    && !!window.BromarPush;
+
+                function setMaster(state) {
+                    master.querySelectorAll('.segmented-option').forEach(b =>
+                        b.classList.toggle('active', b.dataset.push === state));
+                    cats.classList.toggle('show', state === 'on');
+                }
+
+                if (!supported) {
+                    master.querySelectorAll('.segmented-option').forEach(b => { b.disabled = true; });
+                    master.classList.add('disabled');
+                    note.style.display = 'block';
+                    note.textContent = 'Push notifications aren\u2019t supported on this browser. On iPhone, add Bromar Hub to your Home Screen first, then enable them here.';
+                    return;
+                }
+
+                if (!name) {
+                    master.querySelectorAll('.segmented-option').forEach(b => { b.disabled = true; });
+                    master.classList.add('disabled');
+                    note.style.display = 'block';
+                    note.textContent = 'We couldn\u2019t match your login to an employee record, so notifications can\u2019t be set up here. Contact admin@bromar.com.au.';
+                    return;
+                }
+
+                if (Notification.permission === 'denied') {
+                    note.style.display = 'block';
+                    note.textContent = 'Notifications are blocked in your browser settings. Allow them for this site to turn push on.';
+                }
+
+                async function checkSubscribed() {
+                    try {
+                        const { data, error } = await window.sb
+                            .from('push_subscriptions')
+                            .select('id')
+                            .eq('employee_name', name)
+                            .limit(1);
+                        if (error) { console.warn('[Push] check failed', error); return false; }
+                        return Array.isArray(data) && data.length > 0;
+                    } catch (e) {
+                        console.warn('[Push] check exception', e);
+                        return false;
+                    }
+                }
+
+                // Initial state from table
+                (async () => {
+                    const subscribed = await checkSubscribed();
+                    setMaster(subscribed ? 'on' : 'off');
+                })();
+
+                let busy = false;
+                master.querySelectorAll('.segmented-option').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        if (busy || btn.disabled) return;
+                        const want = btn.dataset.push;
+                        const current = master.querySelector('.segmented-option.active')?.dataset.push;
+                        if (want === current) return;
+
+                        if (want === 'on') {
+                            // ── SUBSCRIBE ──
+                            if (Notification.permission === 'denied') {
+                                BromarHub.showInfo('Notifications are blocked. Enable them for this site in your browser settings, then try again.');
+                                return;
+                            }
+                            busy = true;
+                            BromarHub.showLoading('Enabling notifications...', 'Please allow when prompted');
+                            try {
+                                await window.BromarPush.requestPermission(name);
+                            } catch (e) {
+                                console.warn('[Push] requestPermission failed', e);
+                            }
+                            const subscribed = await checkSubscribed();
+                            BromarHub.hideLoading();
+                            busy = false;
+                            if (subscribed) {
+                                localStorage.setItem('pushOptedIn', 'true');
+                                note.style.display = 'none';
+                                setMaster('on');
+                                BromarHub.showSuccess('Push notifications enabled');
+                            } else {
+                                setMaster('off');
+                                BromarHub.showInfo('Permission not granted. Notifications stay off.');
+                            }
+                        } else {
+                            // ── UNSUBSCRIBE ──
+                            busy = true;
+                            BromarHub.showLoading('Turning off notifications...', 'Please wait');
+                            try {
+                                try {
+                                    const reg = await navigator.serviceWorker.ready;
+                                    const sub = await reg.pushManager.getSubscription();
+                                    if (sub) await sub.unsubscribe();
+                                } catch (e) { console.warn('[Push] browser unsubscribe failed', e); }
+
+                                const { error } = await window.sb
+                                    .from('push_subscriptions')
+                                    .delete()
+                                    .eq('employee_name', name);
+                                if (error) throw error;
+
+                                localStorage.removeItem('pushOptedIn');
+                            } catch (e) {
+                                console.warn('[Push] unsubscribe failed', e);
+                            }
+                            const stillSubscribed = await checkSubscribed();
+                            BromarHub.hideLoading();
+                            busy = false;
+                            setMaster(stillSubscribed ? 'on' : 'off');
+                            if (!stillSubscribed) BromarHub.showSuccess('Push notifications turned off');
+                        }
+                    });
+                });
+            }
+
+            // ============================================
             // SIGN OUT ALL DEVICES
             // ============================================
             document.getElementById('signOutAllBtn').addEventListener('click', async () => {
@@ -485,6 +719,7 @@
                     const theme = localStorage.getItem('theme');
                     const themePref = localStorage.getItem('themePref');
                     const density = localStorage.getItem('density');
+                    const pushOptedIn = localStorage.getItem('pushOptedIn');
                     
                     // Clear caches (service worker)
                     if ('caches' in window) {
@@ -500,6 +735,7 @@
                     if (theme) localStorage.setItem('theme', theme);
                     if (themePref) localStorage.setItem('themePref', themePref);
                     if (density) localStorage.setItem('density', density);
+                    if (pushOptedIn) localStorage.setItem('pushOptedIn', pushOptedIn);
                     
                     BromarHub.showSuccess('Cache cleared. Reloading...');
                     setTimeout(() => window.location.reload(true), 1000);
