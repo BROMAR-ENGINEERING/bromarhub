@@ -82,24 +82,172 @@
         }
         .search-input::placeholder { color: var(--text-secondary); }
 
-        .announcement-banner {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
+        /* Schedule Feed */
+        .schedule-feed {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
             margin-bottom: 3rem;
-            text-align: center;
+            box-shadow: 0 4px 12px var(--shadow);
         }
-        [data-theme="dark"] .announcement-banner {
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        .schedule-feed-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
         }
-        .announcement-banner h3 {
-            font-size: 1.125rem;
+        .schedule-feed-title {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+        .schedule-feed-title svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent);
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .schedule-feed-employee {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .schedule-day-group {
+            margin-bottom: 1.25rem;
+        }
+        .schedule-day-group:last-child {
+            margin-bottom: 0;
+        }
+        .schedule-day-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            margin-bottom: 0.625rem;
+        }
+        .schedule-day-label.today {
+            color: var(--accent);
+        }
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            padding: 0.875rem 1rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .schedule-item:last-child {
+            margin-bottom: 0;
+        }
+        .schedule-item:hover {
+            border-color: var(--accent);
+            transform: translateX(2px);
+        }
+        .schedule-item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .schedule-item-icon.type-job {
+            background: rgba(234, 88, 12, 0.12);
+            color: var(--accent);
+        }
+        .schedule-item-icon.type-site {
+            background: rgba(59, 130, 246, 0.12);
+            color: #3b82f6;
+        }
+        .schedule-item-icon.type-leave {
+            background: rgba(139, 92, 246, 0.12);
+            color: #8b5cf6;
+        }
+        [data-theme="dark"] .schedule-item-icon.type-leave { color: #a78bfa; }
+        .schedule-item-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .schedule-item-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .schedule-item-title {
+            font-size: 0.95rem;
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+            margin-bottom: 0.15rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        .announcement-banner p {
-            font-size: 0.9rem; opacity: 0.9;
+        .schedule-item-meta {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .schedule-item-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex-shrink: 0;
+        }
+        .schedule-item-badge.type-job {
+            background: rgba(234, 88, 12, 0.15);
+            color: var(--accent);
+        }
+        .schedule-item-badge.type-site {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+        .schedule-item-badge.type-leave {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+        [data-theme="dark"] .schedule-item-badge.type-leave { color: #a78bfa; }
+        .schedule-empty {
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .schedule-loading {
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        [data-density="compact"] .schedule-feed {
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        [data-density="compact"] .schedule-item {
+            padding: 0.625rem 0.75rem;
         }
 
         .search-results { display: none; }
@@ -727,9 +875,17 @@
                 <input type="search" id="searchInput" class="search-input" placeholder="Search for forms, resources, schedules..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bromar-hub-search-no-autofill" data-lpignore="true" data-form-type="other">
             </div>
 
-            <div class="announcement-banner">
-                <h3>📢 Announcement Banner</h3>
-                <p>Coming Soon</p>
+            <div class="schedule-feed" id="scheduleFeed">
+                <div class="schedule-feed-header">
+                    <div class="schedule-feed-title">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Your Schedule
+                    </div>
+                    <div class="schedule-feed-employee" id="scheduleFeedEmployee">Loading...</div>
+                </div>
+                <div id="scheduleFeedBody">
+                    <div class="schedule-loading">Loading your schedule...</div>
+                </div>
             </div>
 
             <div id="searchResults" class="search-results">
@@ -1115,7 +1271,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.48</div>
+    <div class="revision-number">V1.49</div>
 
     <script>
         // SUPABASE AUTH
@@ -1281,7 +1437,7 @@
         const searchResults = document.getElementById('searchResults');
         const searchResultsGrid = document.getElementById('searchResultsGrid');
         const allSections = document.getElementById('allSections');
-        const announcementBanner = document.querySelector('.announcement-banner');
+        const announcementBanner = document.querySelector('.schedule-feed');
 
         // Build search index once for performance
         let searchIndex = [];
@@ -1485,6 +1641,156 @@
         pinModal.addEventListener('click', (e) => {
             if (e.target === pinModal) closePinModal();
         });
+
+        // ============================================
+        // SCHEDULE FEED - Today & Tomorrow assignments
+        // ============================================
+        async function loadScheduleFeed() {
+            const feedBody = document.getElementById('scheduleFeedBody');
+            const empLabel = document.getElementById('scheduleFeedEmployee');
+            if (!feedBody) return;
+
+            try {
+                // Get logged-in user's employee name
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user?.email) {
+                    feedBody.innerHTML = '<div class="schedule-empty">Not logged in.</div>';
+                    return;
+                }
+
+                const { data: employee } = await supabaseClient
+                    .from('employees')
+                    .select('full_name')
+                    .eq('email', user.email)
+                    .single();
+
+                const employeeName = employee?.full_name;
+                if (!employeeName) {
+                    feedBody.innerHTML = '<div class="schedule-empty">Employee record not found.</div>';
+                    if (empLabel) empLabel.textContent = user.email;
+                    return;
+                }
+                if (empLabel) empLabel.textContent = employeeName;
+
+                // Date range: today and tomorrow (local timezone)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const todayStr = toLocalDate(today);
+                const tomorrowStr = toLocalDate(tomorrow);
+
+                // Fetch active assignments for this employee that could overlap today or tomorrow
+                const { data: assignments, error } = await supabaseClient
+                    .from('schedule_assignments')
+                    .select('*')
+                    .eq('employee_name', employeeName)
+                    .eq('is_active', true)
+                    .lte('start_date', tomorrowStr)
+                    .or(`end_date.is.null,end_date.gte.${todayStr}`);
+
+                if (error) {
+                    console.error('[Schedule Feed]', error);
+                    feedBody.innerHTML = '<div class="schedule-empty">Could not load schedule.</div>';
+                    return;
+                }
+
+                const todayItems = filterForDate(assignments || [], today);
+                const tomorrowItems = filterForDate(assignments || [], tomorrow);
+
+                let html = '';
+                html += renderDayGroup('Today', todayItems, true);
+                html += renderDayGroup('Tomorrow', tomorrowItems, false);
+                feedBody.innerHTML = html;
+            } catch (err) {
+                console.error('[Schedule Feed]', err);
+                feedBody.innerHTML = '<div class="schedule-empty">Could not load schedule.</div>';
+            }
+        }
+
+        function toLocalDate(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function filterForDate(assignments, targetDate) {
+            const targetStr = toLocalDate(targetDate);
+            return assignments.filter(a => {
+                const start = a.start_date;
+                const end = a.end_date;
+                // Must have started
+                if (targetStr < start) return false;
+                // Must not have ended (unless indefinite)
+                if (end && targetStr > end) return false;
+                // Skip dates
+                const skips = Array.isArray(a.skip_dates) ? a.skip_dates : [];
+                if (skips.includes(targetStr)) return false;
+                return true;
+            });
+        }
+
+        function renderDayGroup(label, items, isToday) {
+            let html = `<div class="schedule-day-group">
+                <div class="schedule-day-label ${isToday ? 'today' : ''}">${label}</div>`;
+            if (!items.length) {
+                html += `<div class="schedule-empty">No assignments scheduled.</div>`;
+            } else {
+                items.forEach(item => {
+                    html += renderScheduleItem(item);
+                });
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        function renderScheduleItem(item) {
+            const iconMap = {
+                job:   '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+                site:  '<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+                leave: '<svg viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 3c4 0 6 3 10 3s4-2 4-2v10s0 2-4 2-6-3-10-3"/></svg>'
+            };
+            const typeLabel = { job: 'Job', site: 'Site', leave: 'Leave' };
+            const icon = iconMap[item.type] || iconMap.job;
+            const title = escapeHtml(item.type === 'job'
+                ? (item.job_number ? `${item.job_number}${item.client_name ? ' — ' + item.client_name : ''}` : 'Job')
+                : item.type === 'site'
+                    ? (item.site_name || item.client_name || 'Site')
+                    : (item.notes || 'Leave')
+            );
+            const metaParts = [];
+            if (item.type === 'job' && item.site_name) metaParts.push(item.site_name);
+            if (item.type === 'site' && item.client_name && item.client_name !== item.site_name) metaParts.push(item.client_name);
+            if (item.notes && item.type !== 'leave') metaParts.push(item.notes);
+            const meta = metaParts.length ? escapeHtml(metaParts.join(' · ')) : '';
+
+            return `
+                <div class="schedule-item">
+                    <div class="schedule-item-icon type-${item.type}">${icon}</div>
+                    <div class="schedule-item-body">
+                        <div class="schedule-item-title">${title}</div>
+                        ${meta ? `<div class="schedule-item-meta">${meta}</div>` : ''}
+                    </div>
+                    <div class="schedule-item-badge type-${item.type}">${typeLabel[item.type] || item.type}</div>
+                </div>`;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Load feed after auth ready
+        supabaseClient.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                loadScheduleFeed();
+            }
+        });
+        // Also trigger on load if session already exists
+        (async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) loadScheduleFeed();
+        })();
 
         // ============================================
         // PWA - Service Worker Registration
