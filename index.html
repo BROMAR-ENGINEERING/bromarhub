@@ -262,6 +262,43 @@
         [data-density="compact"] .schedule-item {
             padding: 0.4rem 0.625rem;
         }
+        .push-opt-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-main);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        .push-opt-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .push-opt-btn.enabled {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: transparent;
+            color: #10b981;
+            cursor: default;
+        }
+        .push-opt-btn.enabled:hover {
+            border-color: transparent;
+            color: #10b981;
+        }
+        .push-opt-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
 
         .search-results { display: none; }
         .search-results.active { display: block; }
@@ -894,7 +931,12 @@
                         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         Your Schedule
                     </div>
-                    <div class="schedule-feed-employee" id="scheduleFeedEmployee">Loading...</div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="schedule-feed-employee" id="scheduleFeedEmployee">Loading...</div>
+                        <button id="pushOptInBtn" class="push-opt-btn" style="display: none;" aria-label="Enable notifications" title="Enable schedule notifications">
+                            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div id="scheduleFeedBody">
                     <div class="schedule-loading">Loading your schedule...</div>
@@ -1284,7 +1326,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.53</div>
+    <div class="revision-number">V1.54</div>
 
     <script>
         // SUPABASE AUTH
@@ -1684,11 +1726,7 @@
                     return;
                 }
                 if (empLabel) empLabel.textContent = employeeName;
-
-                // Subscribe to push notifications for this employee
-                if (window.BromarPush && typeof window.BromarPush.requestPermission === 'function') {
-                    try { window.BromarPush.requestPermission(employeeName); } catch (e) { console.warn('[Push]', e); }
-                }
+                setupPushButton(employeeName);
 
                 // Date range: today and tomorrow (local timezone)
                 const today = new Date();
@@ -1724,6 +1762,56 @@
                 console.error('[Schedule Feed]', err);
                 feedBody.innerHTML = '<div class="schedule-empty">Could not load schedule.</div>';
             }
+        }
+
+        function setupPushButton(employeeName) {
+            const btn = document.getElementById('pushOptInBtn');
+            if (!btn) return;
+
+            // Not supported (e.g. iOS not-installed-as-PWA) — hide silently
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || !window.BromarPush) {
+                btn.style.display = 'none';
+                return;
+            }
+
+            const setEnabled = () => {
+                btn.classList.add('enabled');
+                btn.title = 'Notifications enabled';
+                btn.setAttribute('aria-label', 'Notifications enabled');
+                btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+                btn.style.cursor = 'default';
+            };
+
+            // Already granted browser-level AND opted in locally → show tick, no action
+            if (Notification.permission === 'granted' && localStorage.getItem('pushOptedIn') === 'true') {
+                btn.style.display = 'flex';
+                setEnabled();
+                return;
+            }
+
+            // Permission denied at browser level — hide button (user must reset in browser settings)
+            if (Notification.permission === 'denied') {
+                btn.style.display = 'none';
+                return;
+            }
+
+            // Otherwise show the bell for opt-in
+            btn.style.display = 'flex';
+            btn.onclick = async () => {
+                btn.disabled = true;
+                try {
+                    const result = await window.BromarPush.requestPermission(employeeName);
+                    if (Notification.permission === 'granted' || result === true || result?.success) {
+                        localStorage.setItem('pushOptedIn', 'true');
+                        setEnabled();
+                    } else {
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    console.warn('[Push]', e);
+                    btn.disabled = false;
+                }
+            };
         }
 
         function toLocalDate(d) {
