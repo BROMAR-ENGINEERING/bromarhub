@@ -497,7 +497,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.18</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.19</p>
       </div>
     </div>
   </div>
@@ -2070,19 +2070,20 @@
       // Group entries by day index (0=Mon..6=Sun) and job_number
       // Key: `${dayIndex}::${jobNumber}` → { normalHours, overtimeHours }
       const grouped = new Map();
+      const jobNumbersInSet = new Set();
       (data || []).forEach(sheet => {
         (sheet.labour || []).forEach(l => {
           if ((l.employee || '').trim().toLowerCase() !== userName.toLowerCase()) return;
 
           const sheetDate = new Date(sheet.sheet_date);
-          // JS getDay(): Sun=0..Sat=6 → convert to Mon=0..Sun=6
           const jsDay = sheetDate.getDay();
           const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
           const key = `${dayIndex}::${sheet.job_number}`;
-          const existing = grouped.get(key) || { dayIndex, jobNumber: sheet.job_number, normalHours: 0, overtimeHours: 0 };
+          const existing = grouped.get(key) || { dayIndex, jobNumber: sheet.job_number, normalHours: 0, overtimeHours: 0, client: '' };
           existing.normalHours += Number(l.normalHours || 0);
           existing.overtimeHours += Number(l.overtimeHours || 0);
           grouped.set(key, existing);
+          if (sheet.job_number) jobNumbersInSet.add(sheet.job_number);
         });
       });
 
@@ -2091,6 +2092,24 @@
         await bhAlert(`No job sheet entries found for ${userName} in the week of ${weekStartStr}.`, { icon: '🔍', title: 'Nothing to load' });
         return;
       }
+
+      // Look up client names for each unique job number
+      const clientByJob = {};
+      if (jobNumbersInSet.size > 0) {
+        try {
+          const { data: registerRows } = await window.sb
+            .from('job_number_register')
+            .select('job_number, client_name, client')
+            .in('job_number', Array.from(jobNumbersInSet));
+          (registerRows || []).forEach(r => {
+            clientByJob[r.job_number] = r.client_name || r.client || '';
+          });
+        } catch (_) { /* register table optional */ }
+      }
+      // Attach clients to grouped entries
+      grouped.forEach(entry => {
+        entry.client = clientByJob[entry.jobNumber] || '';
+      });
 
       // Confirm if any day already has data
       const dayCards = document.querySelectorAll('.day-card');
@@ -2152,6 +2171,8 @@
           }
           const numberInput = jobRow.querySelector('[name$="_number"]');
           if (numberInput) numberInput.value = entry.jobNumber || '';
+          const clientInput = jobRow.querySelector('[name$="_client"]');
+          if (clientInput) clientInput.value = entry.client || '';
           const normalInput = jobRow.querySelector('[name$="_hours"]');
           if (normalInput) {
             normalInput.value = entry.normalHours.toFixed(2);
