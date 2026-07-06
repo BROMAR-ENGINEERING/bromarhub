@@ -1283,7 +1283,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.50</div>
+    <div class="revision-number">V1.51</div>
 
     <script>
         // SUPABASE AUTH
@@ -1794,8 +1794,8 @@
                 meta = (item.client_name && item.client_name !== item.site_name) ? item.client_name : '';
                 badgeText = 'Site';
             } else if (item.type === 'leave') {
-                // Extract leave type from notes (e.g. "RDO", "Sick", "Annual")
-                const leaveType = (item.notes || '').split(/[\n\-—:]/)[0].trim() || 'Leave';
+                // Leave subtype (RDO, Sick, Annual, etc) is stored in site_name
+                const leaveType = (item.site_name || item.notes || '').split(/[\n\-—:]/)[0].trim() || 'Leave';
                 title = leaveType;
                 meta = '';
                 badgeText = leaveType.toUpperCase();
