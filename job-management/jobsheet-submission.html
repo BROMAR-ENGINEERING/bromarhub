@@ -1,213 +1,2009 @@
-/* ============================================================
-   BROMAR HUB — SHARED JAVASCRIPT
-   Import this on every hub page AFTER the Supabase CDN script and auth.js:
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-     <script src="/tools/auth.js"></script>
-     <link rel="stylesheet" href="../tools/bromar-hub.css"/>
-     <script src="../tools/bromar-hub.js" defer></script>
-   ============================================================
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Job Sheet - Bromar</title>
 
-   Provides:
-     - window.sb          — Supabase client
-     - window.EMPLOYEES   — employee list (loaded on DOMContentLoaded)
-     - window.currentUser — { name, email } of logged-in user
-     - BromarHub.initTheme()
-     - BromarHub.initHeader()
-     - BromarHub.loadEmployees()
-     - BromarHub.autoSelectLoggedInUser()
-     - BromarHub.showSuccess(text, duration?)
-     - BromarHub.showInfo(text, duration?)
-     - BromarHub.showLoading(text, subtext?)
-     - BromarHub.hideLoading()
-     - BromarHub.escapeHtml(str)
-*/
+  <!-- Supabase + shared auth -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
 
-(function () {
-  // ── SUPABASE ──────────────────────────────────────────────
-  // Reuse the client created by auth.js (supabaseClient) to avoid
-  // duplicate GoTrueClient instances warning.
-  if (!window.sb) {
-    if (window.supabaseClient) {
-      window.sb = window.supabaseClient;
-    } else if (window.supabase?.createClient) {
-      const SUPABASE_URL      = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
-      window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-      console.error('[BromarHub] Supabase library not loaded');
-    }
+  <!-- jsPDF for service report export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Bromar Document Scanner -->
+  <script src="../tools/document-scanner.js"></script>
+
+  <!-- Bromar Hub shared styles + JS -->
+  <link rel="stylesheet" href="../tools/bromar-hub.css"/>
+  <script src="../tools/bromar-hub.js" defer></script>
+</head>
+<body>
+
+<!-- Header injected by bromar-hub.js -->
+<div id="bromar-header"></div>
+
+<div class="page-title-wrapper">
+  <h1>Daily Job Sheet</h1>
+  <p class="subtitle">Quick daily documentation</p>
+</div>
+
+<div class="page-wrapper">
+  <!-- Draft resume banner -->
+<div id="draftBanner" style="display:none; margin-bottom:1rem; background:var(--info-bg); border:1px solid var(--info-border); border-radius:12px; padding:1rem 1.25rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:600; color:var(--info-text); margin-bottom:2px;">📋 You have an unfinished job sheet</div>
+      <div id="draftBannerDetail" style="font-size:0.82rem; color:var(--text-secondary);"></div>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+      <button type="button" id="draftDiscardBtn" class="btn-secondary" style="padding:0.5rem 1rem; font-size:0.85rem;">Discard</button>
+      <button type="button" id="draftResumeBtn" class="submit-btn"    style="padding:0.5rem 1rem; font-size:0.85rem;">Resume</button>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+    <form id="jobSheetForm" novalidate autocomplete="off">
+
+      <div class="success-banner" id="successBanner"><span>✅</span><span id="successText">Job sheet saved successfully!</span></div>
+      <div class="info-banner"    id="infoBanner"><span>ℹ️</span><span id="infoBannerText"></span></div>
+
+      <!-- BASIC INFO -->
+      <div class="section-label">Basic Information</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="sheet_date">Date of Works <span class="required">*</span></label>
+          <input type="date" id="sheet_date" name="sheet_date" required/>
+          <div id="sheet_date_day" style="font-size:0.8rem; color:var(--accent); font-weight:600; margin-top:4px; padding-left:2px;"></div>
+        </div>
+        <div class="field-group">
+          <label for="filled_by">Filled Out By <span class="required">*</span></label>
+          <select id="filled_by" required><option value="">Loading employees...</option></select>
+        </div>
+      </div>
+
+      <!-- JOB NUMBER -->
+      <div class="section-label">Job Number</div>
+      <div class="job-number-section">
+        <div class="job-number-toggle">
+          <div class="radio-option">
+            <input type="radio" id="existing_job" name="job_type" value="existing" checked/>
+            <label for="existing_job">📋 Use Existing Job</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="new_job" name="job_type" value="new"/>
+            <label for="new_job">✨ Create New Job</label>
+          </div>
+        </div>
+
+        <!-- EXISTING JOB -->
+        <div id="existing-job-fields" class="job-number-fields active">
+          <!-- Quick pick: user's recent active jobs -->
+          <div class="field-group" id="myJobsWrapper" style="display:none; margin-bottom:0.75rem;">
+            <label for="myJobsSelect">My Recent Jobs <span style="font-weight:400; color:var(--text-secondary);">(up to 10)</span></label>
+            <select id="myJobsSelect">
+              <option value="">Select from your recent jobs...</option>
+            </select>
+          </div>
+
+          <div class="field-group autocomplete-wrapper">
+            <label for="existing_job_number">Or search by Job Number or Client <span class="required">*</span></label>
+            <input type="text" id="existing_job_number" placeholder="Start typing..." style="text-transform: uppercase;"/>
+            <div class="autocomplete-results" id="autocompleteResults"></div>
+          </div>
+          <div id="job-details-display" style="display:none; padding:12px; background:var(--bg-main); border-radius:6px;">
+            <div style="font-size:0.85rem;">
+              <strong id="detail-client"></strong><br>
+              <span id="detail-site-name" style="color:var(--text-secondary); font-size:0.85rem; font-weight:600;"></span>
+              <span id="detail-address"   style="color:var(--text-secondary); font-size:0.8rem;"></span>
+            </div>
+            <div id="detail-sheet-preview" style="margin-top:8px; font-size:0.8rem; color:var(--text-secondary);">
+              Job Sheet: <span id="detail-sheet-number" style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-weight:600;">loading...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW JOB -->
+        <div id="new-job-fields" class="job-number-fields">
+          <div class="field-row">
+            <div class="field-group full">
+              <label for="new_job_type">Job Type <span class="required">*</span></label>
+              <select id="new_job_type">
+                <option value="">Select job type...</option>
+                <optgroup label="Maintenance — BM">
+                  <option value="BM|Maintenance">Maintenance</option>
+                  <option value="BM|Shift Coverage">Shift Coverage</option>
+                </optgroup>
+                <optgroup label="Service — BS">
+                  <option value="BS|After-Hours Callout">After-Hours Callout</option>
+                  <option value="BS|Breakdown">Breakdown</option>
+                  <option value="BS|Small Job">Small Job</option>
+                </optgroup>
+                <optgroup label="Construction — BC">
+                  <option value="BC|Temporary Wiring">Temporary Wiring</option>
+                  <option value="BC|General Construction">General Construction</option>
+                  <option value="BC|Test &amp; Tag">Test &amp; Tag</option>
+                  <option value="BC|RCD Testing">RCD Testing</option>
+                </optgroup>
+                <optgroup label="Automation — BA">
+                  <option value="BA|Programming">Programming</option>
+                  <option value="BA|CAD Drawings">CAD Drawings</option>
+                </optgroup>
+              </select>
+            </div>
+            <div style="display:none;"><input type="hidden" id="new_prefix"/></div>
+            <div class="field-group">
+              <label>Job Number</label>
+              <input type="text" id="next_job_preview" disabled style="font-weight:700; color:var(--accent);" placeholder="Select job type first..."/>
+            </div>
+          </div>
+
+          <!-- Client or Site search -->
+          <div class="field-group full autocomplete-wrapper" id="clientSearchWrapper">
+            <label for="client_search">Client or Site <span class="required">*</span></label>
+            <input type="text" id="client_search" placeholder="Search by client or site name..." autocomplete="off"/>
+            <div id="clientResults" class="autocomplete-results"></div>
+            <input type="hidden" id="selected_client_id"/>
+            <input type="hidden" id="selected_site_id"/>
+            <div id="selectedClientDisplay" style="display:none; margin-top:6px; padding:10px 12px; background:var(--card-hover); border-radius:8px; font-size:0.85rem; border:1px solid var(--accent);">
+              <div id="selectedClientName" style="font-weight:600; color:var(--accent);"></div>
+              <div id="selectedSiteName" style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;"></div>
+              <button type="button" onclick="clearClientSelection()" style="float:right; margin-top:-32px; background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.8rem;">✕ Change</button>
+            </div>
+          </div>
+
+          <!-- Optional site selector — only shows if a client with sites is picked -->
+          <div class="field-group full" id="siteSelectWrapper" style="display:none;">
+            <label for="site_select">Site <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
+            <select id="site_select">
+              <option value="">No specific site</option>
+            </select>
+          </div>
+
+          <!-- Contact auto-fill display -->
+          <div id="siteContactDisplay" style="display:none; padding:10px 14px; background:var(--bg-main); border-radius:10px; border:1px solid var(--border); font-size:0.85rem; margin-bottom:0.5rem;">
+            <div style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Site Contact (from site record)</div>
+            <div id="siteContactName"  style="font-weight:600;"></div>
+            <div id="siteContactRole"  style="color:var(--text-secondary); font-size:0.8rem;"></div>
+            <div id="siteContactPhone" style="color:var(--text-secondary); font-size:0.8rem;"></div>
+          </div>
+
+          <div class="new-job-created" id="newJobCreatedNotice">
+            <span>✅</span>
+            <span>Job <strong id="newJobCreatedNumber"></strong> created — you can now add photos, documents and continue filling in the sheet.</span>
+          </div>
+          <button type="button" id="confirmNewJobBtn" style="display:none; width:100%; margin-top:12px; padding:0.875rem; border-radius:10px; border:none; background:linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color:white; font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.3s ease;">Create Job &amp; Continue →</button>
+        </div>
+      </div>
+
+      <!-- AWAITING JOB -->
+      <div id="awaitingJobMessage" style="text-align:center; padding:2rem 1rem; color:var(--text-secondary); font-size:0.9rem; font-style:italic; border:2px dashed var(--border); border-radius:12px; margin-top:1rem;">
+        👆 Select an existing job or fill in the new job details above to continue
+      </div>
+
+      <!-- ALL SECTIONS HIDDEN UNTIL JOB PICKED -->
+      <div id="postJobSections" style="display:none;">
+
+        <!-- PHOTOS & DOCUMENTS -->
+        <div class="section-label">Photos &amp; Documents</div>
+        <div class="file-upload-area" id="fileUploadArea" style="cursor:pointer;">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text"><strong>Add photos or documents</strong></div>
+          <div class="upload-hint">Tap to add — Max 50MB per file</div>
+          <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;"/>
+        </div>
+        <div class="file-list" id="fileList"></div>
+
+        <!-- TASKS -->
+        <div class="section-label">Work Performed</div>
+        <div id="tasksContainer"></div>
+        <button type="button" class="add-btn" id="addTaskBtn">+ Add Task</button>
+
+        <!-- LABOUR -->
+        <div class="section-label">Labour</div>
+        <div id="labourContainer"></div>
+        <button type="button" class="add-btn" id="addLabourBtn">+ Add Labour Entry</button>
+
+        <!-- MATERIALS -->
+        <div class="section-label">Materials</div>
+        <div id="materialsContainer"></div>
+        <button type="button" class="add-btn" id="addMaterialBtn">+ Add Material</button>
+
+        <!-- NOTES -->
+        <div class="section-label">Notes &amp; Notifications</div>
+        <div id="notesContainer"></div>
+        <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
+
+        <!-- SERVICE REPORT -->
+        <div class="section-label">Service Report Options</div>
+        <div class="service-report-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="isServiceReport"/>
+            <label for="isServiceReport" class="toggle-label">Generate Client Service Report</label>
+          </div>
+          <div class="report-sections" id="reportSections">
+
+            <!-- Sheet selector — always shown, ticking more = multi-day -->
+            <div style="margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+              <label style="font-size:0.8rem; font-weight:600; margin-bottom:6px; display:block;">Job Sheets to Include</label>
+              <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:10px; line-height:1.5;">Current sheet is always included. Tick additional sheets to create a multi-day report.</p>
+              <div id="multiDaySheetList" style="border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg-main);">
+                <div style="padding:1rem; font-size:0.85rem; color:var(--text-secondary);">Save this job sheet first to see available sheets, or select a job above.</div>
+              </div>
+              <div id="multiDayStatus" style="margin-top:8px; font-size:0.78rem; font-weight:600; color:var(--accent); display:none;"></div>
+            </div>
+
+            <label style="font-size:0.8rem; font-weight:600; margin-bottom:12px; display:block;">Include in Report</label>
+            <div class="section-checkboxes">
+              <div class="checkbox-item"><input type="checkbox" id="include_labour"    checked/><label for="include_labour">Labour Hours</label></div>
+              <div class="checkbox-item"><input type="checkbox" id="include_tasks"     checked/><label for="include_tasks">Tasks Completed</label></div>
+              <div class="checkbox-item"><input type="checkbox" id="include_materials"        /><label for="include_materials">Materials Used</label></div>
+              <div class="checkbox-item"><input type="checkbox" id="include_photos"    checked/><label for="include_photos">Photos</label></div>
+              <div class="checkbox-item"><input type="checkbox" id="include_notes"            /><label for="include_notes">Notes</label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLIENT SIGN-OFF -->
+        <div class="signature-section" id="signatureSection">
+          <div class="section-label">Client Sign-Off</div>
+          <div class="field-group" style="margin-bottom:1rem;">
+            <label for="signoff_email">Client Email Address <span class="required">*</span></label>
+            <input type="email" id="signoff_email" placeholder="client@example.com"/>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px;">A copy of the report will be sent to this address.</div>
+          </div>
+          <div class="job-number-toggle signoff-tiles" style="margin-bottom:0;">
+            <div class="radio-option">
+              <input type="radio" id="signoff_none"     name="signoff_method" value="none" checked/>
+              <label for="signoff_none">⏭️ Skip Sign-Off<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Email PDF only</span></label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="signoff_inperson" name="signoff_method" value="in_person"/>
+              <label for="signoff_inperson">✍️ Sign Now<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Sign in person now</span></label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="signoff_remote"   name="signoff_method" value="remote"/>
+              <label for="signoff_remote">📧 Email Link<br><span style="font-size:0.7rem;font-weight:400;opacity:0.7;">Client signs remotely</span></label>
+            </div>
+          </div>
+          <style>
+            @media (max-width: 520px) {
+              .signoff-tiles { flex-direction: column !important; }
+              .signoff-tiles .radio-option { width: 100%; }
+              .signoff-tiles label { text-align: left; padding: 0.75rem 1rem !important; }
+            }
+          </style>
+        </div>
+
+        <!-- JOB COMPLETION -->
+        <div class="section-label">Job Completion</div>
+        <div style="background:var(--bg-main); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-bottom:1.5rem;">
+          <label style="font-size:0.9rem; font-weight:600; margin-bottom:0.75rem; display:block;">Is this job completed? <span class="required">*</span></label>
+          <div class="job-number-toggle" style="margin-bottom:0;">
+            <div class="radio-option">
+              <input type="radio" id="job_complete_no"  name="job_completed" value="no"/>
+              <label for="job_complete_no">🔄 Still Active</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="job_complete_yes" name="job_completed" value="yes"/>
+              <label for="job_complete_yes">✅ Completed</label>
+            </div>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px;">Marking a job as completed will close it from future job sheets.</div>
+        </div>
+
+      </div><!-- /postJobSections -->
+
+      <!-- SUBMIT -->
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">* Required fields</span>
+        <span id="submitSheetNumber" style="display:none; font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--accent); font-weight:600; margin-right:auto;"></span>
+        <button type="button" class="btn-secondary" id="saveDraftBtn" style="display:none;">💾 Save Draft</button>
+        <button type="reset"  class="btn-secondary">Clear</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Save Job Sheet</button>
+      </div>
+
+      <div class="pdf-actions" id="pdfActions">
+        <h3>✅ Service Report Saved!</h3>
+        <p>Your service report is ready. What would you like to do?</p>
+        <div class="pdf-actions-buttons">
+          <button type="button" class="pdf-btn" id="downloadPdfBtn">📥 Download PDF</button>
+          <button type="button" class="pdf-btn" id="copyLinkBtn">🔗 Copy Share Link</button>
+          <button type="button" class="pdf-btn" id="emailPdfBtn">📧 Email Client</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- COMPLETION SCREEN (shown after submit, form hidden) -->
+    <div id="completionScreen" style="display:none; text-align:center; padding:2rem 1rem;">
+      <div style="font-size:3rem; margin-bottom:0.5rem;">✅</div>
+      <h2 style="font-size:1.4rem; font-weight:700; color:var(--success); margin-bottom:0.5rem;">Job Sheet Saved</h2>
+      <p style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:0.5rem;">
+        <span id="completionSheetNumber" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--accent);"></span>
+      </p>
+      <p id="completionDetail" style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1.5rem;"></p>
+
+      <div id="completionPdfActions" style="display:none; margin-bottom:1.5rem;">
+        <div class="pdf-actions-buttons" style="justify-content:center;">
+          <button type="button" class="pdf-btn" id="comp_downloadPdfBtn">📥 Download PDF</button>
+          <button type="button" class="pdf-btn" id="comp_copyLinkBtn">🔗 Copy Link</button>
+          <button type="button" class="pdf-btn" id="comp_emailPdfBtn">📧 Email Client</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+        <button type="button" class="btn-secondary" id="amendSheetBtn">✏️ Amend This Sheet</button>
+        <button type="button" class="submit-btn" id="completionNewSheetBtn">📝 New Job Sheet</button>
+      </div>
+    </div>
+
+    <div class="form-footer" id="formFooter">
+      <div class="footer-disclaimer">
+        <p><em>💡 To view past jobsheet submissions or prepare multi-day service reports, use the <a href="../job-management/index.html" style="color:var(--accent); text-decoration:none;">Job Manager</a>.</em></p>
+      </div>
+      <div class="footer-title-block">
+        <h2 class="footer-title">BROMAR HUB — JOBSHEET SUBMISSION</h2>
+        <a href="../employee-resources/suggestions-feedback.html" class="footer-bug-link">
+          <span>🐞</span> Report a bug or suggest an improvement
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="revision-number">V1.64</div>
+
+<!-- SIGN-OFF MODAL -->
+<div class="signoff-modal" id="signoffModal">
+  <div class="signoff-modal-content">
+    <div class="signoff-modal-header">
+      <h2>Service Report Preview</h2>
+      <button type="button" class="signoff-close" id="signoffClose">&times;</button>
+    </div>
+    <div class="signoff-modal-body" id="signoffSummary"></div>
+    <div class="signoff-modal-footer">
+      <div class="signoff-instruction"><strong>Please review the report above.</strong> By signing below you confirm the work described has been completed satisfactorily.</div>
+      <div class="signature-canvas-wrapper" style="margin:16px 0;">
+        <label>Client Signature <span class="required">*</span></label>
+        <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        <div class="signature-actions">
+          <div class="signature-name"><input type="text" id="clientSignatureName" placeholder="Client Full Name *"/></div>
+          <button type="button" class="clear-signature-btn" id="clearSignatureBtn">Clear</button>
+        </div>
+      </div>
+      <div class="signoff-modal-actions">
+        <button type="button" class="btn-secondary" id="signoffCancel">Back to Edit</button>
+        <button type="button" class="submit-btn"    id="signoffConfirm">Confirm &amp; Sign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text"    id="loadingText">Processing...</div>
+    <div class="loading-subtext" id="loadingSubtext">Please wait</div>
+  </div>
+</div>
+
+<script>
+// ── PAGE STATE ───────────────────────────────────────────────
+let EMPLOYEES = [];
+let currentUser = null;
+let selectedJobData = null;
+let uploadedFiles = [];
+let currentJobSheetNumber = null;
+let currentJobNumber = null;
+let bromarScanner = null;
+let submissionComplete = false;  // blocks duplicate submits
+let isAmending = false;          // true when editing an already-saved sheet
+
+// ── INIT ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!window.sb) { alert('Supabase failed to load — check connection and refresh.'); return; }
+
+  document.getElementById('sheet_date').valueAsDate = new Date();
+  const updateDayDisplay = () => {
+    const val = document.getElementById('sheet_date').value;
+    const dayEl = document.getElementById('sheet_date_day');
+    if (!val) { dayEl.textContent = ''; return; }
+    const d = new Date(val + 'T12:00:00'); // noon avoids timezone edge cases
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const holiday = getPublicHoliday(val);
+    dayEl.textContent = days[d.getDay()] + (holiday ? ` — ${holiday} 🎉` : '');
+  };
+  document.getElementById('sheet_date').addEventListener('change', () => { applyDateRulesToAllLabour(); updateDayDisplay(); });
+  updateDayDisplay();
+
+  EMPLOYEES = await BromarHub.loadEmployees('filled_by');
+  await BromarHub.autoSelectLoggedInUser('filled_by');
+
+  // Set currentUser from whatever is selected (handles auto-login)
+  const filledBy = document.getElementById('filled_by');
+  if (filledBy.value) {
+    const opt = filledBy.selectedOptions[0];
+    currentUser = { name: opt.value, email: opt.dataset.email || '' };
   }
+  // Keep in sync if manually changed
+  filledBy.addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    currentUser = opt?.value ? { name: opt.value, email: opt.dataset.email || '' } : null;
+    if (currentUser) { checkForDraft(); loadMyRecentJobs(currentUser.name); }
+  });
+  if (currentUser?.name) loadMyRecentJobs(currentUser.name);
 
-  window.EMPLOYEES   = [];
-  window.currentUser = null;
+  addTask(); addLabour(); setupSignatureCanvas(); initScanner();
+  setPostJobSectionsVisible(false);
 
-  // ── THEME ─────────────────────────────────────────────────
-  function initTheme() {
-    const html   = document.documentElement;
-    const toggle = document.getElementById('themeToggle');
-    function getTheme() {
-      const saved = localStorage.getItem('theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-      return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    html.setAttribute('data-theme', getTheme());
-    if (toggle) {
-      toggle.addEventListener('click', () => {
-        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-      });
-    }
-    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      if (!localStorage.getItem('theme')) html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+  // ── DRAFT ─────────────────────────────────────────────────
+  if (currentUser) await checkForDraft();
+  document.getElementById('saveDraftBtn').addEventListener('click', () => saveDraft(false));
+  document.getElementById('draftResumeBtn').addEventListener('click', resumeDraft);
+  document.getElementById('draftDiscardBtn').addEventListener('click', discardDraft);
+  setInterval(() => { if (selectedJobData && currentUser && !submissionComplete && !isAmending) saveDraft(true); }, 30000);
+
+  // Job type toggle
+  document.querySelectorAll('input[name="job_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'existing' && selectedJobData?.justCreated) {
+        if (!confirm(`Job ${selectedJobData.job_number} was just created and will remain in the register. Continue switching?`)) {
+          document.getElementById('new_job').checked = true;
+          document.getElementById('existing-job-fields').classList.remove('active');
+          document.getElementById('new-job-fields').classList.add('active');
+          return;
+        }
+        selectedJobData = null;
+        document.getElementById('newJobCreatedNotice').classList.remove('show');
+        ['new_prefix','new_job_type'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+        document.getElementById('site_select').disabled = false;
+        if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
+        setPostJobSectionsVisible(false);
+        document.getElementById('confirmNewJobBtn').style.display = 'none';
+      }
+      document.getElementById('existing-job-fields').classList.toggle('active', this.value === 'existing');
+      document.getElementById('new-job-fields').classList.toggle('active', this.value === 'new');
     });
-  }
-
-  // ── HEADER INJECTION ──────────────────────────────────────
-  function initHeader() {
-    const placeholder = document.getElementById('bromar-header');
-    if (!placeholder) return;
-    placeholder.outerHTML = `
-      <div class="header">
-        <div class="header-controls">
-          <a href="../index.html" class="control-btn" aria-label="Home">
-            <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
-          </a>
-          <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
-            <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-        </div>
-        <div class="header-content">
-          <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
-          <img src="../Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
-        </div>
-      </div>`;
-  }
-
-  // ── LOADING OVERLAY ───────────────────────────────────────
-  function initLoadingOverlay() {
-    if (document.getElementById('bromarLoadingOverlay')) return;
-    const el = document.createElement('div');
-    el.id        = 'bromarLoadingOverlay';
-    el.className = 'loading-overlay';
-    el.innerHTML = `
-      <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <div class="loading-text"    id="bromarLoadingText">Processing...</div>
-        <div class="loading-subtext" id="bromarLoadingSubtext">Please wait</div>
-      </div>`;
-    document.body.appendChild(el);
-  }
-
-  function showLoading(text, subtext) {
-    const el = document.getElementById('bromarLoadingOverlay')
-            || document.getElementById('loadingOverlay');
-    const t  = document.getElementById('bromarLoadingText')
-            || document.getElementById('loadingText');
-    const s  = document.getElementById('bromarLoadingSubtext')
-            || document.getElementById('loadingSubtext');
-    if (t) t.textContent = text || 'Processing...';
-    if (s) s.textContent = subtext || 'Please wait';
-    if (el) el.classList.add('show');
-  }
-
-  function hideLoading() {
-    const el = document.getElementById('bromarLoadingOverlay')
-            || document.getElementById('loadingOverlay');
-    if (el) el.classList.remove('show');
-  }
-
-  // ── BANNERS ───────────────────────────────────────────────
-  function showSuccess(text, duration = 5000) {
-    const b = document.getElementById('successBanner');
-    const t = document.getElementById('successText');
-    if (!b) return;
-    if (t) t.textContent = text;
-    b.classList.add('show');
-    setTimeout(() => b.classList.remove('show'), duration);
-  }
-
-  function showInfo(text, duration = 6000) {
-    const b = document.getElementById('infoBanner');
-    const t = document.getElementById('infoBannerText');
-    if (!b) return;
-    if (t) t.textContent = text;
-    b.classList.add('show');
-    setTimeout(() => b.classList.remove('show'), duration);
-  }
-
-  // ── EMPLOYEES ─────────────────────────────────────────────
-  async function loadEmployees(selectId = 'filled_by') {
-    if (!window.sb) return [];
-    try {
-      const { data, error } = await window.sb.from('employees').select('full_name, email, is_active').eq('is_active', true).order('full_name');
-      if (error) { console.error('[BromarHub] loadEmployees:', error); return []; }
-      window.EMPLOYEES = data || [];
-      const select = document.getElementById(selectId);
-      if (select) {
-        select.innerHTML = '<option value="">Select your name...</option>' +
-          window.EMPLOYEES.map(e => `<option value="${escapeHtml(e.full_name)}" data-email="${escapeHtml(e.email || '')}">${escapeHtml(e.full_name)}</option>`).join('');
-        select.addEventListener('change', function () {
-          const opt = this.selectedOptions[0];
-          window.currentUser = opt?.value
-            ? { name: opt.value, email: opt.dataset.email || '' }
-            : null;
-        });
-      }
-      return window.EMPLOYEES;
-    } catch (err) { console.error('[BromarHub] loadEmployees:', err); return []; }
-  }
-
-  async function autoSelectLoggedInUser(selectId = 'filled_by') {
-    if (!window.sb) return;
-    try {
-      const { data: { user } } = await window.sb.auth.getUser();
-      if (!user?.email) return;
-      const match = window.EMPLOYEES.find(e => e.email?.toLowerCase() === user.email.toLowerCase());
-      if (!match) return;
-      const select = document.getElementById(selectId);
-      if (!select) return;
-      select.value    = match.full_name;
-      select.disabled = true;
-      window.currentUser = { name: match.full_name, email: match.email || '' };
-      // Add 🔒 badge
-      const label = document.querySelector(`label[for="${selectId}"]`);
-      if (label && !label.querySelector('.logged-in-badge')) {
-        const badge = document.createElement('span');
-        badge.className  = 'logged-in-badge';
-        badge.style.cssText = 'color: var(--success); font-size: 0.75rem; font-weight: 600; margin-left: 6px;';
-        badge.textContent   = '🔒 Logged in';
-        label.appendChild(badge);
-      }
-    } catch (_) { /* auth not active */ }
-  }
-
-  // ── HELPERS ───────────────────────────────────────────────
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => (
-      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
-  }
-
-  // ── AUTO-INIT ─────────────────────────────────────────────
-  // Run as soon as the DOM is ready
-  document.addEventListener('DOMContentLoaded', () => {
-    initHeader();   // inject header HTML (if placeholder present)
-    initTheme();    // apply saved theme + wire toggle
-    initLoadingOverlay(); // inject loading overlay if not already in HTML
   });
 
-  // ── PUBLIC API ────────────────────────────────────────────
-  window.BromarHub = {
-    initTheme,
-    initHeader,
-    loadEmployees,
-    autoSelectLoggedInUser,
-    showSuccess,
-    showInfo,
-    showLoading,
-    hideLoading,
-    escapeHtml,
+  // Existing job search
+  let searchTimeout;
+  document.getElementById('existing_job_number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchJobs(this.value), 300);
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) document.getElementById('autocompleteResults').classList.remove('show');
+  });
+
+  // New job type
+  document.getElementById('new_job_type').addEventListener('change', async function() {
+    const preview = document.getElementById('next_job_preview');
+    if (!this.value) { preview.value = 'Select job type first...'; document.getElementById('new_prefix').value = ''; updateConfirmJobBtn(); return; }
+    const [prefix] = this.value.split('|');
+    document.getElementById('new_prefix').value = prefix;
+    preview.value = 'Loading...';
+    try {
+      const { data, error } = await window.sb.from('job_number_counters').select('last_sequence').eq('prefix', prefix).single();
+      if (error) throw error;
+      preview.value = `${prefix}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
+    } catch { preview.value = 'Error'; }
+    updateConfirmJobBtn(); checkAndCreateNewJob();
+  });
+
+  // Client search
+  let clientSearchTimeout;
+  document.getElementById('client_search').addEventListener('input', function() {
+    clearTimeout(clientSearchTimeout);
+    const q = this.value.trim();
+    const results = document.getElementById('clientResults');
+    if (q.length < 2) { results.classList.remove('show'); return; }
+    clientSearchTimeout = setTimeout(async () => {
+      // Search both clients and sites simultaneously
+      const [clientRes, siteRes] = await Promise.all([
+        window.sb.from('clients').select('id, name, email, is_active').ilike('name', `%${q}%`).order('name').limit(8),
+        window.sb.from('client_sites').select('id, site_name, address, city, region, postcode, client_id, is_active, contact_name, email, phone').ilike('site_name', `%${q}%`).order('site_name').limit(6)
+      ]);
+      // Filter out explicitly inactive
+      if (clientRes.data) clientRes.data = clientRes.data.filter(c => c.is_active !== false);
+      if (siteRes.data)   siteRes.data   = siteRes.data.filter(s => s.is_active !== false);
+
+      // Build full address per site + fetch parent client names/emails
+      if (siteRes.data?.length) {
+        siteRes.data.forEach(s => {
+          s._fullAddress = [s.address, s.city, s.region, s.postcode].filter(Boolean).join(', ');
+        });
+        const clientIds = [...new Set(siteRes.data.map(s => s.client_id).filter(Boolean))];
+        if (clientIds.length) {
+          const { data: parents } = await window.sb.from('clients').select('id, name, email').in('id', clientIds);
+          const map = {};
+          (parents || []).forEach(c => { map[c.id] = c; });
+          siteRes.data.forEach(s => {
+            s.clientName = map[s.client_id]?.name || '';
+            s.clientEmail = map[s.client_id]?.email || '';
+          });
+        }
+      }
+
+      console.log('[Search] query:', q, '| clients:', clientRes.data, clientRes.error, '| sites:', siteRes.data, siteRes.error);
+
+      let html = '';
+
+      if (clientRes.data?.length) {
+        html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Clients</div>`;
+        html += clientRes.data.map(c => `
+          <div class="autocomplete-item" data-id="${c.id}" data-name="${esc(c.name)}" data-contact-email="${esc(c.email||'')}" data-type="client">
+            <div class="autocomplete-item-number">🏢 ${esc(c.name)}</div>
+          </div>`).join('');
+      }
+
+      if (siteRes.data?.length) {
+        html += `<div style="padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--bg-main);">Sites</div>`;
+        html += siteRes.data.map(s => `
+          <div class="autocomplete-item" data-site-id="${s.id}" data-site-name="${esc(s.site_name)}" data-site-address="${esc(s._fullAddress||'')}" data-client-id="${s.client_id||''}" data-client-name="${esc(s.clientName||'')}" data-contact-name="${esc(s.contact_name||'')}" data-contact-email="${esc(s.email||'')}" data-contact-phone="${esc(s.phone||'')}" data-client-email="${esc(s.clientEmail||'')}" data-type="site">
+            <div class="autocomplete-item-number">📍 ${esc(s.site_name)}</div>
+            <div class="autocomplete-item-client">${esc(s.clientName||'')}${s.contact_name ? ' · 👤 ' + esc(s.contact_name) : ''}${s._fullAddress ? ' · ' + esc(s._fullAddress) : ''}</div>
+          </div>`).join('');
+      }
+
+      if (!html) html = '<div class="autocomplete-item" style="color:var(--text-secondary);">No clients or sites found</div>';
+      results.innerHTML = html;
+
+      results.querySelectorAll('.autocomplete-item[data-type="client"]').forEach(item => {
+        item.addEventListener('click', () => selectClient(item.dataset.id, item.dataset.name, item.dataset.contactEmail));
+      });
+      results.querySelectorAll('.autocomplete-item[data-type="site"]').forEach(item => {
+        item.addEventListener('click', () => {
+          selectSite(
+            item.dataset.siteId,
+            item.dataset.siteName,
+            item.dataset.siteAddress,
+            item.dataset.clientId,
+            item.dataset.clientName,
+            {
+              contactName:  item.dataset.contactName,
+              contactEmail: item.dataset.contactEmail,
+              contactPhone: item.dataset.contactPhone,
+              clientEmail:  item.dataset.clientEmail
+            }
+          );
+        });
+      });
+
+      results.classList.add('show');
+    }, 300);
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#clientSearchWrapper')) document.getElementById('clientResults').classList.remove('show');
+  });
+
+  // Site selector
+  document.getElementById('site_select').addEventListener('change', function() {
+    onSiteSelected(this.value);
+  });
+
+  document.getElementById('confirmNewJobBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirmNewJobBtn');
+    if (selectedJobData?.job_number) return;
+    if (selectedJobData && !selectedJobData.job_number) selectedJobData = null;
+    const jobTypeVal = document.getElementById('new_job_type').value;
+    const prefix     = document.getElementById('new_prefix').value;
+    const clientId   = document.getElementById('selected_client_id').value;
+    const siteId     = document.getElementById('selected_site_id').value;
+    console.log('[Create Job] Click →', { prefix, jobTypeVal, clientId, siteId });
+    if (!prefix || (!clientId && !siteId)) {
+      BromarHub.showInfo('Please select a job type and a client or site'); return;
+    }
+    btn.disabled = true; btn.textContent = 'Creating...';
+    try { await createNewJobNow(prefix, clientId || null, siteId || null, jobTypeVal.split('|')[1] || ''); }
+    finally { btn.disabled = false; btn.textContent = 'Create Job & Continue →'; }
+  });
+
+  // Service report toggle — show sections and load sheet picker
+  document.getElementById('isServiceReport').addEventListener('change', function() {
+    document.getElementById('reportSections').classList.toggle('show', this.checked);
+    document.getElementById('signatureSection').classList.toggle('show', this.checked);
+    if (this.checked && selectedJobData) loadMultiDaySheets();
+  });
+
+  // Modal buttons
+  document.getElementById('signoffClose').addEventListener('click',  () => document.getElementById('signoffModal').classList.remove('show'));
+  document.getElementById('signoffCancel').addEventListener('click', () => document.getElementById('signoffModal').classList.remove('show'));
+  document.getElementById('signoffConfirm').addEventListener('click', handleSignoffConfirm);
+
+  // Card add buttons
+  document.getElementById('addTaskBtn').addEventListener('click',     addTask);
+  document.getElementById('addLabourBtn').addEventListener('click',   addLabour);
+  document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
+  document.getElementById('addNoteBtn').addEventListener('click',     addNote);
+
+  // Form submit
+  document.getElementById('jobSheetForm').addEventListener('submit', handleFormSubmit);
+
+  // PDF buttons
+  document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+    BromarHub.showLoading('Generating PDF...','Building service report');
+    try { await generateAndDownloadPDF(); BromarHub.hideLoading(); BromarHub.showSuccess('PDF downloaded!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  });
+  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+    BromarHub.showLoading('Generating shareable link...','Uploading PDF');
+    try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); BromarHub.hideLoading(); BromarHub.showSuccess('Link copied!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  });
+  document.getElementById('emailPdfBtn').addEventListener('click', async () => {
+    const email = prompt('Enter client email address:'); if (!email) return;
+    BromarHub.showLoading('Preparing email...','Generating PDF');
+    try {
+      const url = await generateAndUploadPDF(); BromarHub.hideLoading();
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
+    } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  });
+  document.getElementById('newSheetBtn')?.addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
+
+  // Completion screen buttons
+  const compDownload = async () => {
+    BromarHub.showLoading('Generating PDF...','Building service report');
+    try { await generateAndDownloadPDF(); BromarHub.hideLoading(); BromarHub.showSuccess('PDF downloaded!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
   };
-})();
+  const compCopy = async () => {
+    BromarHub.showLoading('Generating shareable link...','Uploading PDF');
+    try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); BromarHub.hideLoading(); BromarHub.showSuccess('Link copied!'); }
+    catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  };
+  const compEmail = async () => {
+    const email = prompt('Enter client email address:'); if (!email) return;
+    BromarHub.showLoading('Preparing email...','Generating PDF');
+    try {
+      const url = await generateAndUploadPDF(); BromarHub.hideLoading();
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
+    } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
+  };
+  document.getElementById('comp_downloadPdfBtn').addEventListener('click', compDownload);
+  document.getElementById('comp_copyLinkBtn').addEventListener('click', compCopy);
+  document.getElementById('comp_emailPdfBtn').addEventListener('click', compEmail);
+  document.getElementById('amendSheetBtn').addEventListener('click', amendSheet);
+  document.getElementById('completionNewSheetBtn').addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
+});
+
+// ── HELPERS ──────────────────────────────────────────────────
+function esc(s) { return BromarHub.escapeHtml(s); }
+
+function setPostJobSectionsVisible(visible) {
+  document.getElementById('postJobSections').style.display = visible ? 'block' : 'none';
+  document.querySelector('.form-divider').style.display    = visible ? 'block' : 'none';
+  document.querySelector('.submit-row').style.display      = visible ? 'flex'  : 'none';
+  document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
+  document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
+}
+
+// ── DRAFT SAVE / RESTORE ─────────────────────────────────────
+function collectDraftData() {
+  return {
+    sheet_date: document.getElementById('sheet_date').value,
+    job_type: document.querySelector('input[name="job_type"]:checked')?.value,
+    selectedJobData,
+    tasks: Array.from(document.querySelectorAll('.task-description')).map(t => t.value),
+    labour: Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({
+      employee: c.querySelector('.labour-employee').value,
+      normalHours: c.querySelector('.labour-normal').value,
+      overtimeHours: c.querySelector('.labour-overtime').value
+    })),
+    materials: Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({
+      name: c.querySelector('.material-name').value,
+      quantity: c.querySelector('.material-qty').value,
+      unit: c.querySelector('.material-unit').value
+    })),
+    notes: Array.from(document.querySelectorAll('.note-card')).map(c => ({
+      text: c.querySelector('.note-text').value,
+      notifyPeople: Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb => cb.value)
+    })),
+    isServiceReport: document.getElementById('isServiceReport').checked,
+    reportSections: {
+      labour: document.getElementById('include_labour').checked,
+      tasks: document.getElementById('include_tasks').checked,
+      materials: document.getElementById('include_materials').checked,
+      photos: document.getElementById('include_photos').checked,
+      notes: document.getElementById('include_notes').checked
+    },
+    signoffMethod: document.querySelector('input[name="signoff_method"]:checked')?.value,
+    signoffEmail: document.getElementById('signoff_email').value,
+    jobCompleted: document.querySelector('input[name="job_completed"]:checked')?.value
+  };
+}
+
+let storedDraft = null;
+
+async function saveDraft(silent = false) {
+  if (!currentUser || !selectedJobData) return;
+  try {
+    const draftData = collectDraftData();
+    await window.sb.from('job_sheet_drafts').upsert({
+      user_name: currentUser.name,
+      job_number: selectedJobData.job_number,
+      client_name: selectedJobData.client_name,
+      draft_data: draftData,
+      saved_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    }, { onConflict: 'user_name' });
+    if (!silent) BromarHub.showSuccess('Draft saved');
+  } catch (err) {
+    if (!silent) BromarHub.showInfo('Could not save draft: ' + err.message);
+  }
+}
+
+async function checkForDraft() {
+  if (!currentUser) return;
+  try {
+    const { data } = await window.sb.from('job_sheet_drafts')
+      .select('*').eq('user_name', currentUser.name)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    if (!data) return;
+    storedDraft = data;
+    const savedAt = new Date(data.saved_at);
+    const timeAgo = formatTimeAgo(savedAt);
+    const detail = `${data.job_number ? data.job_number + ' — ' : ''}${data.client_name || 'Unknown job'}, saved ${timeAgo}`;
+    document.getElementById('draftBannerDetail').textContent = detail;
+    document.getElementById('draftBanner').style.display = 'block';
+  } catch {}
+}
+
+async function resumeDraft() {
+  if (!storedDraft) return;
+  document.getElementById('draftBanner').style.display = 'none';
+  const d = storedDraft.draft_data;
+
+  // Restore date
+  if (d.sheet_date) document.getElementById('sheet_date').value = d.sheet_date;
+  applyDateRulesToAllLabour();
+
+  // Restore job selection
+  if (d.selectedJobData) {
+    selectedJobData = d.selectedJobData;
+    if (d.job_type === 'existing') {
+      document.getElementById('existing_job').checked = true;
+      document.getElementById('existing-job-fields').classList.add('active');
+      document.getElementById('new-job-fields').classList.remove('active');
+      document.getElementById('existing_job_number').value = d.selectedJobData.job_number;
+      document.getElementById('detail-client').textContent = d.selectedJobData.client_name;
+      document.getElementById('detail-site-name').textContent = d.selectedJobData.site_name ? d.selectedJobData.site_name + ' · ' : '';
+      document.getElementById('detail-address').textContent = d.selectedJobData.site_address || '';
+      document.getElementById('job-details-display').style.display = 'block';
+    }
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${d.selectedJobData.job_number}/scans`;
+    setPostJobSectionsVisible(true);
+  }
+
+  // Restore tasks
+  document.getElementById('tasksContainer').innerHTML = '';
+  taskCount = 0;
+  (d.tasks || ['']).forEach(text => { addTask(); document.querySelectorAll('.task-description')[taskCount - 1].value = text; });
+
+  // Restore labour
+  document.getElementById('labourContainer').innerHTML = '';
+  labourCount = 0;
+  (d.labour || [{}]).forEach(l => {
+    addLabour();
+    const card = document.querySelectorAll('[data-labour-id]')[labourCount - 1];
+    if (l.employee) card.querySelector('.labour-employee').value = l.employee;
+    card.querySelector('.labour-normal').value = l.normalHours || 0;
+    card.querySelector('.labour-overtime').value = l.overtimeHours || 0;
+  });
+
+  // Restore materials
+  document.getElementById('materialsContainer').innerHTML = '';
+  materialCount = 0;
+  (d.materials || []).forEach(m => {
+    addMaterial();
+    const card = document.querySelectorAll('[data-material-id]')[materialCount - 1];
+    card.querySelector('.material-name').value = m.name || '';
+    card.querySelector('.material-qty').value  = m.quantity || 0;
+    card.querySelector('.material-unit').value = m.unit || 'ea';
+  });
+
+  // Restore notes
+  document.getElementById('notesContainer').innerHTML = '';
+  noteCount = 0;
+  (d.notes || []).forEach(n => {
+    addNote();
+    const card = document.querySelectorAll('.note-card')[noteCount - 1];
+    card.querySelector('.note-text').value = n.text || '';
+    (n.notifyPeople || []).forEach(name => {
+      const cb = Array.from(card.querySelectorAll('.note-notify-cb')).find(c => c.value === name);
+      if (cb) { cb.checked = true; highlightNoteEmp(cb); }
+    });
+  });
+
+  // Restore service report options
+  if (d.isServiceReport) {
+    document.getElementById('isServiceReport').checked = true;
+    document.getElementById('reportSections').classList.add('show');
+    document.getElementById('signatureSection').classList.add('show');
+    if (d.reportSections) {
+      Object.entries(d.reportSections).forEach(([k, v]) => {
+        const el = document.getElementById(`include_${k}`); if (el) el.checked = v;
+      });
+    }
+    if (d.signoffMethod) {
+      const radio = document.getElementById(`signoff_${d.signoffMethod}`);
+      if (radio) radio.checked = true;
+    }
+    if (d.signoffEmail) document.getElementById('signoff_email').value = d.signoffEmail;
+  }
+
+  if (d.jobCompleted) {
+    const radio = document.getElementById(`job_complete_${d.jobCompleted}`);
+    if (radio) radio.checked = true;
+  }
+
+  BromarHub.showSuccess('Draft restored');
+}
+
+async function discardDraft() {
+  document.getElementById('draftBanner').style.display = 'none';
+  storedDraft = null;
+  if (!currentUser) return;
+  try {
+    await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name);
+  } catch {}
+}
+
+async function deleteDraftAfterSubmit() {
+  if (!currentUser) return;
+  try { await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name); } catch {}
+}
+
+function formatTimeAgo(date) {
+  const mins = Math.round((Date.now() - date) / 60000);
+  if (mins < 2)  return 'just now';
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24)  return `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+// ── SCANNER ───────────────────────────────────────────────────
+function initScanner() {
+  const uploadArea = document.getElementById('fileUploadArea');
+  const fileInputEl = document.getElementById('fileInput');
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+
+  const requireJob = () => {
+    if (!selectedJobData) {
+      BromarHub.showInfo('Please pick or create a job number first');
+      return false;
+    }
+    return true;
+  };
+
+  if (isMobile && typeof BromarScanner !== 'undefined') {
+    bromarScanner = new BromarScanner({ supabase: window.sb, bucket: 'job-sheet-files', pathPrefix: 'scans', outputFormat: 'pdf' });
+  }
+
+  uploadArea.addEventListener('click', (e) => {
+    if (e.target.closest('.file-item')) return;
+    if (!requireJob()) return;
+    if (isMobile && bromarScanner) { bromarScanner._onComplete = handleScannerComplete; bromarScanner._show(); }
+    else { fileInputEl.click(); }
+  });
+  uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadArea.classList.remove('dragover');
+    if (!selectedJobData) { BromarHub.showInfo('Please pick or create a job number first'); return; }
+    handleLocalFiles(e.dataTransfer.files);
+  });
+  fileInputEl.addEventListener('change', (e) => handleLocalFiles(e.target.files));
+}
+
+function handleScannerComplete(files) {
+  files.forEach(f => {
+    const isActualScan = f.source === 'scan-doc' || f.scanned === true;
+    uploadedFiles.push({ id: Date.now()+Math.random(), file: f.blob, name: f.name, size: f.size, type: f.type, tags: isActualScan ? ['scanned'] : [], description: '', supabasePath: f.path||null, supabaseUrl: f.url||null, alreadyUploaded: !!f.path });
+  });
+  renderFileList();
+}
+
+function handleLocalFiles(files) {
+  Array.from(files).forEach(file => {
+    if (file.size > 50*1024*1024) { BromarHub.showInfo(`${file.name} is too large (max 50MB)`); return; }
+    uploadedFiles.push({ id: Date.now()+Math.random(), file, name: file.name, size: file.size, type: file.type, tags: [], description: '', alreadyUploaded: false });
+  });
+  renderFileList();
+}
+
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = uploadedFiles.map(f => {
+    const icon = f.type.startsWith('image/') ? '🖼️' : f.type === 'application/pdf' ? '📑' : '📄';
+    const sizeKB = (f.size/1024).toFixed(1);
+    const presetTags = ['progress','before','after','electrical','safety','scanned'];
+    const customTags = (f.tags||[]).filter(t => !presetTags.includes(t));
+    const isScanned = (f.tags||[]).includes('scanned');
+    const labelValid = (f.fileTypeLabel||'').trim().length > 0;
+
+    return `
+      <div class="file-item" style="flex-direction:column; align-items:stretch;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;">
+          <div class="file-info">
+            <div class="file-icon">${icon}</div>
+            <div class="file-details">
+              <div class="file-name" style="word-break:break-all; font-size:0.8rem; color:var(--text-secondary);">${esc(f.name)}</div>
+              <div class="file-size">${sizeKB} KB${f.alreadyUploaded ? ' · <span style="color:var(--success)">✓ Uploaded</span>' : ''}${isScanned ? ' · <span style="color:var(--accent)">📄 Scanned</span>' : ''}</div>
+            </div>
+          </div>
+          <button type="button" class="remove-btn" onclick="removeFile(${f.id})">Remove</button>
+        </div>
+
+        <!-- Label field — only for files not already renamed by scanner -->
+        ${f.alreadyUploaded ? '' : `
+        <div style="margin-top:10px;">
+          <label style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:block;">
+            Label <span style="color:var(--accent);">*</span>
+            <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-secondary);"> — saved as <code style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">{label}-${selectedJobData?.job_number || 'JOBNO'}.ext</code></span>
+          </label>
+          <input type="text"
+                 value="${esc(f.fileTypeLabel || '')}"
+                 oninput="updateFileType(${f.id}, this.value)"
+                 placeholder="e.g. SWMS, Invoice, Site-Plan"
+                 style="width:100%; padding:7px 10px; font-size:0.85rem;${labelValid ? '' : 'border-color:var(--error);'}"/>
+        </div>`}
+
+        <!-- Description -->
+        <div style="margin-top:8px;">
+          <input type="text" placeholder="Description (optional)" value="${esc(f.description||'')}"
+                 oninput="updateFileDescription(${f.id},this.value)"
+                 style="width:100%; padding:7px 10px; font-size:0.85rem;"/>
+        </div>
+
+        ${isScanned || f.alreadyUploaded ? '' : `
+        <!-- Tags -->
+        <div class="file-tags" style="margin-top:10px;">
+          ${presetTags.filter(t => t!=='scanned').map(t=>`<span class="file-tag ${f.tags.includes(t)?'selected':''}" onclick="toggleTag(${f.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</span>`).join('')}
+          ${customTags.map(t=>`<span class="file-tag selected" onclick="toggleTag(${f.id},'${esc(t)}')" title="Click to remove">${esc(t)} ×</span>`).join('')}
+          <span class="file-tag" style="cursor:pointer; border-style:dashed;" onclick="addCustomTag(${f.id})">+ Custom</span>
+        </div>`}
+      </div>`;
+  }).join('');
+}
+window.updateFileRename      = (id,v) => { const f=uploadedFiles.find(f=>f.id===id); if(f) f.renameBase=v; };
+window.updateFileType        = (id,v) => { const f=uploadedFiles.find(f=>f.id===id); if(f) f.fileTypeLabel=v; };
+window.updateFileDescription = (id,v) => { const f=uploadedFiles.find(f=>f.id===id); if(f) f.description=v; };
+window.toggleTag = (id,tag) => { const f=uploadedFiles.find(f=>f.id===id); if(!f) return; const i=f.tags.indexOf(tag); if(i>-1) f.tags.splice(i,1); else f.tags.push(tag); renderFileList(); };
+window.addCustomTag = (id) => { const f=uploadedFiles.find(f=>f.id===id); if(!f) return; const t=prompt('Enter custom tag:'); if(!t) return; const c=t.trim().toLowerCase(); if(c&&!f.tags.includes(c)) f.tags.push(c); renderFileList(); };
+window.removeFile = (id) => { uploadedFiles=uploadedFiles.filter(f=>f.id!==id); renderFileList(); };
+
+// ── JOB SEARCH ────────────────────────────────────────────────
+async function searchJobs(query) {
+  const results = document.getElementById('autocompleteResults');
+  if (query.length < 2) { results.classList.remove('show'); return; }
+  try {
+    const { data, error } = await window.sb.from('job_number_register')
+      .select('job_number, client_name, site_name, site_address, prefix, status')
+      .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
+      .order('job_number', { ascending: false }).limit(10);
+    if (error) throw error;
+    if (data?.length > 0) {
+      results.innerHTML = data.map(job => `
+        <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
+          <div class="autocomplete-item-number">
+            ${job.job_number}<span class="prefix-badge prefix-${job.prefix}">${job.prefix}</span>
+            ${job.status === 'completed' ? '<span style="font-size:0.65rem; font-weight:700; background:#064e3b; color:#a7f3d0; padding:2px 7px; border-radius:4px; margin-left:6px;">COMPLETED</span>' : ''}
+          </div>
+          <div class="autocomplete-item-client">${job.client_name}</div>
+          ${job.site_name ? `<div style="font-size:0.8rem; color:var(--accent); margin-top:1px;">📍 ${job.site_name}</div>` : ''}
+        </div>`).join('');
+      results.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g,"'"))));
+      });
+      results.classList.add('show');
+    } else {
+      results.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+      results.classList.add('show');
+    }
+  } catch (err) { BromarHub.showInfo('Search failed: ' + err.message); }
+}
+
+// ── MY RECENT JOBS QUICK-PICK ─────────────────────────────────
+async function loadMyRecentJobs(userName) {
+  if (!userName) return;
+  const wrapper = document.getElementById('myJobsWrapper');
+  const select = document.getElementById('myJobsSelect');
+  try {
+    // Jobs the user has a sheet on
+    const { data: sheets } = await window.sb.from('job_sheets')
+      .select('job_number, sheet_date, labour, created_by')
+      .order('sheet_date', { ascending: false }).limit(200);
+
+    const jobNumSet = new Set();
+    (sheets || []).forEach(s => {
+      if (s.created_by === userName) jobNumSet.add(s.job_number);
+      else if (Array.isArray(s.labour) && s.labour.some(l => l.employee === userName)) jobNumSet.add(s.job_number);
+    });
+
+    if (!jobNumSet.size) { wrapper.style.display = 'none'; return; }
+
+    // Fetch job register rows for those (active only), newest first
+    const { data: jobs } = await window.sb.from('job_number_register')
+      .select('job_number, client_name, site_name, site_address, prefix, status, created_at')
+      .in('job_number', [...jobNumSet])
+      .neq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!jobs?.length) { wrapper.style.display = 'none'; return; }
+
+    select.innerHTML = '<option value="">Select from your recent jobs...</option>' + jobs.map(j => {
+      const label = `${j.job_number} — ${j.client_name || ''}${j.site_name ? ' · ' + j.site_name : ''}`;
+      return `<option value='${JSON.stringify(j).replace(/'/g,"&#39;")}'>${esc(label)}</option>`;
+    }).join('');
+    wrapper.style.display = 'block';
+  } catch (err) {
+    console.error('[MyJobs] load failed', err);
+    wrapper.style.display = 'none';
+  }
+}
+
+// Wire once on load
+document.addEventListener('DOMContentLoaded', () => {
+  const s = document.getElementById('myJobsSelect');
+  if (!s) return;
+  s.addEventListener('change', function() {
+    if (!this.value) return;
+    try {
+      const job = JSON.parse(this.value.replace(/&#39;/g, "'"));
+      selectJob(job);
+      // reset so same job can be picked again if cleared
+      this.value = '';
+    } catch (e) { console.error('[MyJobs] pick parse failed', e); }
+  });
+});
+
+function selectJob(job) {
+  // Warn if job is marked completed
+  if (job.status === 'completed') {
+    showCompletedJobWarning(job);
+    return;
+  }
+  applyJobSelection(job);
+}
+
+function showCompletedJobWarning(job) {
+  // Inject warning modal if not already present
+  if (!document.getElementById('completedJobModal')) {
+    const modal = document.createElement('div');
+    modal.id = 'completedJobModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9500; align-items:center; justify-content:center; padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--bg-secondary); border-radius:16px; max-width:440px; width:100%; padding:2rem; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-size:2.5rem; margin-bottom:0.75rem;">⚠️</div>
+        <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-primary); margin-bottom:0.5rem;">Job Marked as Completed</h2>
+        <p id="completedJobModalDetail" style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; margin-bottom:1.5rem;"></p>
+        <div style="display:flex; gap:0.75rem; justify-content:center;">
+          <button id="completedJobCancel" class="btn-secondary" style="flex:1;">Cancel</button>
+          <button id="completedJobProceed" class="submit-btn" style="flex:1;">Continue Anyway</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  const modal = document.getElementById('completedJobModal');
+  document.getElementById('completedJobModalDetail').textContent =
+    `${job.job_number} — ${job.client_name} has been declared finished. Adding a new job sheet will reopen it. Do you want to continue?`;
+
+  modal.style.display = 'flex';
+
+  document.getElementById('completedJobCancel').onclick = () => {
+    modal.style.display = 'none';
+    document.getElementById('existing_job_number').value = '';
+  };
+  document.getElementById('completedJobProceed').onclick = () => {
+    modal.style.display = 'none';
+    applyJobSelection(job);
+  };
+}
+
+function applyJobSelection(job) {
+  selectedJobData = job;
+  document.getElementById('existing_job_number').value = job.job_number;
+  document.getElementById('detail-client').textContent    = job.client_name;
+  document.getElementById('detail-site-name').textContent = job.site_name ? job.site_name + ' · ' : '';
+  document.getElementById('detail-address').textContent   = job.site_address || '';
+  document.getElementById('job-details-display').style.display = 'block';
+  document.getElementById('detail-sheet-number').textContent   = 'loading...';
+  document.getElementById('autocompleteResults').classList.remove('show');
+  if (bromarScanner) bromarScanner.options.pathPrefix = `${job.job_number}/scans`;
+  setPostJobSectionsVisible(true);
+  // Refresh sheet picker if service report is toggled on
+  if (document.getElementById('isServiceReport')?.checked) loadMultiDaySheets();
+  window.sb.from('job_sheet_counters').select('last_sequence').eq('job_number', job.job_number).maybeSingle()
+    .then(({ data }) => {
+      const sheetNum = `${job.job_number}-JS${String(data ? data.last_sequence+1 : 1).padStart(3,'0')}`;
+      document.getElementById('detail-sheet-number').textContent = sheetNum;
+      document.getElementById('submitSheetNumber').textContent   = sheetNum;
+      document.getElementById('submitSheetNumber').style.display = 'inline';
+    }).catch(() => {
+      const sheetNum = `${job.job_number}-JS001`;
+      document.getElementById('detail-sheet-number').textContent = sheetNum;
+      document.getElementById('submitSheetNumber').textContent   = sheetNum;
+      document.getElementById('submitSheetNumber').style.display = 'inline';
+    });
+}
+
+// ── CLIENT / SITE SELECTION ───────────────────────────────────
+let selectedClientData = null;
+let selectedSiteData = null;
+
+function selectClient(id, name, contactEmail) {
+  selectedClientData = { id, name, contactEmail: contactEmail || '' };
+  selectedSiteData = null;
+  document.getElementById('selected_client_id').value = id;
+  document.getElementById('selected_site_id').value = '';
+  document.getElementById('client_search').value = '';
+  document.getElementById('clientResults').classList.remove('show');
+  document.getElementById('selectedClientName').textContent = '🏢 ' + name;
+  document.getElementById('selectedSiteName').textContent = '';
+  document.getElementById('selectedClientDisplay').style.display = 'block';
+  document.getElementById('client_search').style.display = 'none';
+  autofillReportEmail(contactEmail);
+  loadSitesForClient(id);
+  updateConfirmJobBtn();
+  // NOTE: do not auto-create here — wait for site selection or explicit confirm
+}
+
+function autofillReportEmail(email) {
+  const field = document.getElementById('signoff_email');
+  if (field && email) field.value = email;
+}
+
+function selectSite(siteId, siteName, siteAddress, clientId, clientName, contact) {
+  contact = contact || {};
+  selectedClientData = clientId ? { id: clientId, name: clientName } : null;
+  selectedSiteData = { id: siteId, name: siteName, address: siteAddress || '', contact };
+  document.getElementById('selected_client_id').value = clientId || '';
+  document.getElementById('selected_site_id').value = siteId;
+  document.getElementById('client_search').value = '';
+  document.getElementById('clientResults').classList.remove('show');
+  document.getElementById('selectedClientName').textContent = clientName ? '🏢 ' + clientName : '📍 ' + siteName;
+  const contactLine = contact.contactName ? `👤 ${contact.contactName}${contact.contactEmail ? ' · ' + contact.contactEmail : ''}` : '';
+  document.getElementById('selectedSiteName').innerHTML = (clientName ? '📍 ' + siteName : (siteAddress || '')) + (contactLine ? '<br>' + contactLine : '');
+  document.getElementById('selectedClientDisplay').style.display = 'block';
+  document.getElementById('client_search').style.display = 'none';
+  document.getElementById('siteSelectWrapper').style.display = 'none';
+  // Auto-fill report email: site contact email, fall back to client admin email — editable
+  autofillReportEmail(contact.contactEmail || contact.clientEmail);
+  updateConfirmJobBtn();
+  checkAndCreateNewJob();
+}
+
+window.clearClientSelection = function() {
+  selectedClientData = null;
+  selectedSiteData = null;
+  document.getElementById('selected_client_id').value = '';
+  document.getElementById('selected_site_id').value = '';
+  document.getElementById('client_search').value = '';
+  document.getElementById('client_search').style.display = 'block';
+  document.getElementById('selectedClientDisplay').style.display = 'none';
+  document.getElementById('siteSelectWrapper').style.display = 'none';
+  updateConfirmJobBtn();
+};
+
+async function loadSitesForClient(clientId) {
+  const siteSelect = document.getElementById('site_select');
+  const wrapper = document.getElementById('siteSelectWrapper');
+  wrapper.style.display = 'block';
+  siteSelect.innerHTML = '<option value="">Loading sites...</option>';
+
+  const { data: sitesRaw, error } = await window.sb.from('client_sites')
+    .select('id, site_name, address, city, region, postcode, is_active, contact_name, email, phone')
+    .eq('client_id', clientId).order('site_name');
+  console.log('[Sites] client', clientId, 'result:', sitesRaw, error);
+  const sites = (sitesRaw || []).filter(s => s.is_active !== false);
+
+  if (!sites.length) {
+    siteSelect.innerHTML = '<option value="">No sites for this client — job will be created against client only</option>';
+    siteSelect.disabled = true;
+    updateConfirmJobBtn();
+    return;
+  }
+
+  siteSelect.disabled = false;
+  siteSelect.innerHTML = '<option value="">Select a site...</option>' + sites.map(s => {
+    const fullAddress = [s.address, s.city, s.region, s.postcode].filter(Boolean).join(', ');
+    const label = fullAddress ? `${s.site_name} — ${fullAddress}` : s.site_name;
+    return `<option value="${s.id}" data-name="${esc(s.site_name)}" data-address="${esc(fullAddress)}" data-contact-name="${esc(s.contact_name||'')}" data-contact-email="${esc(s.email||'')}" data-contact-phone="${esc(s.phone||'')}">${esc(label)}</option>`;
+  }).join('');
+  updateConfirmJobBtn();
+}
+
+function onSiteSelected(siteId) {
+  const opt = document.getElementById('site_select').selectedOptions[0];
+  if (!siteId || !opt?.dataset.name) {
+    selectedSiteData = null;
+    document.getElementById('selected_site_id').value = '';
+    document.getElementById('selectedSiteName').textContent = '';
+  } else {
+    selectedSiteData = { id: siteId, name: opt.dataset.name, address: opt.dataset.address || '', contact: { contactName: opt.dataset.contactName, contactEmail: opt.dataset.contactEmail, contactPhone: opt.dataset.contactPhone } };
+    document.getElementById('selected_site_id').value = siteId;
+    const contactLine = opt.dataset.contactName ? `  ·  👤 ${opt.dataset.contactName}` : '';
+    document.getElementById('selectedSiteName').textContent = '📍 ' + opt.dataset.name + (opt.dataset.address ? ' · ' + opt.dataset.address : '') + contactLine;
+    // Auto-fill from site contact, fall back to client admin email
+    autofillReportEmail(opt.dataset.contactEmail || selectedClientData?.contactEmail);
+  }
+  updateConfirmJobBtn();
+}
+
+// ── NEW JOB CREATION ─────────────────────────────────────────
+function updateConfirmJobBtn() {
+  const jobType = document.querySelector('input[name="job_type"]:checked').value;
+  if (jobType !== 'new' || selectedJobData) { document.getElementById('confirmNewJobBtn').style.display='none'; return; }
+  const ok = document.getElementById('new_prefix').value
+          && (document.getElementById('selected_client_id').value || document.getElementById('selected_site_id').value);
+  document.getElementById('confirmNewJobBtn').style.display = ok ? 'block' : 'none';
+}
+
+function checkAndCreateNewJob() {
+  // Deprecated auto-create — user now clicks the "Create Job & Continue" button
+  // to commit. Kept as a no-op so existing call sites don't error.
+}
+
+async function createNewJobNow(prefix, clientId, siteId, jobTypeLabel) {
+  try {
+    const rpcParams = {
+      p_prefix:    prefix,
+      p_client_id: clientId,
+      p_site_id:   siteId,
+      p_job_type:  jobTypeLabel || null,
+      p_contact_person: null,
+      p_contact_phone:  null,
+      p_contact_role:   null
+    };
+    console.log('[Create Job] Calling RPC with:', rpcParams);
+    const { data: newJobNum, error } = await window.sb.rpc('create_new_job', rpcParams);
+    console.log('[Create Job] Response:', { newJobNum, error });
+    if (error) throw error;
+    if (!newJobNum) throw new Error('RPC returned no job number');
+
+    const clientName = selectedClientData?.name || '';
+    const siteName   = selectedSiteData?.name || '';
+    const siteAddr   = selectedSiteData?.address || '';
+
+    selectedJobData = { job_number:newJobNum, client_name:clientName || siteName, site_name:siteName, site_address:siteAddr, client_id:clientId, site_id:siteId, prefix, justCreated:true };
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
+
+    ['new_prefix','new_job_type'].forEach(id => { const el=document.getElementById(id); if(el) el.disabled=true; });
+    document.getElementById('site_select').disabled = true;
+
+    document.getElementById('newJobCreatedNumber').textContent = newJobNum;
+    document.getElementById('newJobCreatedNotice').classList.add('show');
+    document.getElementById('confirmNewJobBtn').style.display = 'none';
+
+    const sheetNum = `${newJobNum}-JS001`;
+    const sp = document.getElementById('detail-sheet-preview'); if(sp){sp.style.display='block'; document.getElementById('detail-sheet-number').textContent=sheetNum;}
+    document.getElementById('submitSheetNumber').textContent = sheetNum;
+    document.getElementById('submitSheetNumber').style.display = 'inline';
+    setPostJobSectionsVisible(true);
+  } catch (err) {
+    console.error('[Create Job] Failed:', err);
+    BromarHub.showInfo('Could not create job: ' + (err.message||err.toString()));
+    document.getElementById('confirmNewJobBtn').style.display = 'block';
+  }
+}
+
+// ── MULTI-DAY SHEET PICKER ────────────────────────────────────
+let multiDaySelectedSheets = []; // array of job_sheet_numbers to include
+
+async function loadMultiDaySheets() {
+  if (!selectedJobData) return;
+  const container = document.getElementById('multiDaySheetList');
+  container.innerHTML = '<div style="padding:1rem; font-size:0.85rem; color:var(--text-secondary);">Loading sheets...</div>';
+
+  try {
+    const { data: sheets, error } = await window.sb
+      .from('job_sheets')
+      .select('job_sheet_number, sheet_date, created_by, is_service_report, service_report_used_in')
+      .eq('job_number', selectedJobData.job_number)
+      .order('sheet_date', { ascending: true });
+    if (error) throw error;
+
+    // Include current unsaved sheet as a placeholder at the end
+    const currentSheetLabel = document.getElementById('submitSheetNumber').textContent || 'Current sheet';
+
+    if (!sheets?.length) {
+      container.innerHTML = `<label style="display:flex; align-items:center; gap:10px; padding:10px 14px;">
+        <input type="checkbox" checked disabled style="accent-color:var(--accent); width:16px; height:16px;"/>
+        <div><div style="font-weight:600; font-size:0.85rem;">${currentSheetLabel} <span style="color:var(--accent); font-size:0.75rem;">● Current</span></div></div>
+      </label>`;
+      multiDaySelectedSheets = [currentSheetLabel];
+      updateMultiDayStatus();
+      return;
+    }
+
+    container.innerHTML = sheets.map(s => {
+      const isCurrent = s.job_sheet_number === currentSheetLabel;
+      const alreadyUsed = s.service_report_used_in && s.service_report_used_in !== currentSheetLabel;
+      const dateStr = s.sheet_date
+        ? new Date(s.sheet_date + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Unknown date';
+
+      return `<label style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); cursor:${isCurrent ? 'default' : 'pointer'}; background:${isCurrent ? 'var(--card-hover)' : ''};">
+        <input type="checkbox"
+               class="multi-day-sheet-cb"
+               value="${s.job_sheet_number}"
+               data-already-used="${alreadyUsed ? s.service_report_used_in : ''}"
+               ${isCurrent ? 'checked disabled' : ''}
+               onchange="onMultiDaySheetToggle(this)"
+               style="accent-color:var(--accent); width:16px; height:16px; flex-shrink:0;"/>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:0.85rem; color:${alreadyUsed ? 'var(--text-secondary)' : 'var(--text-primary)'};">
+            ${s.job_sheet_number}
+            <span style="font-weight:400; color:var(--text-secondary);"> — ${dateStr}</span>
+            ${isCurrent ? '<span style="color:var(--accent); font-size:0.7rem; margin-left:4px;">● Current</span>' : ''}
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">
+            ${s.created_by || ''}
+            ${alreadyUsed ? `<span style="color:var(--error); margin-left:4px;">⚠️ Used in ${s.service_report_used_in}</span>` : ''}
+            ${s.is_service_report && !alreadyUsed && !isCurrent ? '<span style="color:var(--text-secondary); margin-left:4px;">Has service report</span>' : ''}
+          </div>
+        </div>
+      </label>`;
+    }).join('');
+
+    // Also add current sheet row if it's new (not yet saved = not in the list)
+    const existingNums = sheets.map(s => s.job_sheet_number);
+    if (!existingNums.includes(currentSheetLabel) && currentSheetLabel !== 'Current sheet') {
+      container.innerHTML += `<label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--card-hover); border-top:1px solid var(--border);">
+        <input type="checkbox" checked disabled style="accent-color:var(--accent); width:16px; height:16px;"/>
+        <div><div style="font-weight:600; font-size:0.85rem;">${currentSheetLabel} <span style="color:var(--accent); font-size:0.7rem; margin-left:4px;">● Current (unsaved)</span></div></div>
+      </label>`;
+    }
+
+    // Init selection — current sheet always in
+    multiDaySelectedSheets = [currentSheetLabel].filter(s => existingNums.includes(s) || s === currentSheetLabel);
+    updateMultiDayStatus();
+
+  } catch (err) {
+    container.innerHTML = `<div style="padding:1rem; font-size:0.85rem; color:var(--error);">Could not load sheets: ${err.message}</div>`;
+  }
+}
+
+window.onMultiDaySheetToggle = function(cb) {
+  const sheetNum = cb.value;
+  const alreadyUsed = cb.dataset.alreadyUsed;
+
+  if (alreadyUsed && cb.checked) {
+    const proceed = confirm(`${sheetNum} was already included in service report ${alreadyUsed}. Including it again may duplicate data. Continue?`);
+    if (!proceed) { cb.checked = false; return; }
+  }
+
+  if (cb.checked) {
+    if (!multiDaySelectedSheets.includes(sheetNum)) multiDaySelectedSheets.push(sheetNum);
+  } else {
+    multiDaySelectedSheets = multiDaySelectedSheets.filter(s => s !== sheetNum);
+  }
+  updateMultiDayStatus();
+};
+
+function updateMultiDayStatus() {
+  const statusEl = document.getElementById('multiDayStatus');
+  if (!statusEl) return;
+  const count = multiDaySelectedSheets.length;
+  if (count <= 1) {
+    statusEl.style.display = 'none';
+  } else {
+    statusEl.style.display = 'block';
+    statusEl.textContent = `📅 Multi-day report — ${count} sheets selected`;
+  }
+}
+
+// ── TASKS / LABOUR / MATERIALS / NOTES ───────────────────────
+let taskCount=0, labourCount=0, materialCount=0, noteCount=0;
+
+function addTask() {
+  taskCount++;
+  const id=taskCount, div=document.createElement('div');
+  div.className='task-card'; div.dataset.taskId=id;
+  div.innerHTML=`<div class="task-header"><span class="task-title">Task ${id}</span>${id>1?`<button type="button" class="remove-btn" onclick="removeTask(${id})">Remove</button>`:''}</div><textarea class="task-description" placeholder="Describe the work performed..."></textarea>`;
+  document.getElementById('tasksContainer').appendChild(div);
+}
+window.removeTask=id=>document.querySelector(`[data-task-id="${id}"]`)?.remove();
+
+function addLabour() {
+  labourCount++;
+  const id=labourCount, div=document.createElement('div');
+  div.className='labour-card'; div.dataset.labourId=id;
+  const opts=EMPLOYEES.map(e=>`<option value="${e.full_name}">${e.full_name}</option>`).join('');
+  div.innerHTML=`<div class="labour-header"><span class="labour-title">Labour Entry ${id}</span>${id>1?`<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>`:''}</div>
+    <div class="field-group"><label>Employee <span class="required">*</span></label><select class="labour-employee"><option value="">Select employee...</option>${opts}</select></div>
+    <div class="hours-inputs">
+      <div class="field-group" style="margin-bottom:0"><label class="labour-normal-label">Normal Hours</label><input type="number" class="labour-normal" min="0" max="8" step="0.25" value="0"/></div>
+      <div class="field-group" style="margin-bottom:0"><label>Overtime Hours</label><input type="number" class="labour-overtime" min="0" step="0.25" value="0"/></div>
+    </div>
+    <div class="weekend-notice" style="display:none; margin-top:10px; font-size:0.75rem; color:var(--accent); font-style:italic;">⚠️ Weekend — all hours count as overtime</div>`;
+  document.getElementById('labourContainer').appendChild(div);
+  applyDateRulesToLabour(div);
+}
+window.removeLabour=id=>document.querySelector(`[data-labour-id="${id}"]`)?.remove();
+
+function addMaterial() {
+  materialCount++;
+  const id=materialCount, div=document.createElement('div');
+  div.className='labour-card'; div.dataset.materialId=id;
+  div.innerHTML=`<div class="labour-header"><span class="labour-title">Material ${id}</span><button type="button" class="remove-btn" onclick="removeMaterial(${id})">Remove</button></div>
+    <div class="field-group"><label>Material / Description</label><input type="text" class="material-name" placeholder="e.g. 2.5mm TPS cable"/></div>
+    <div class="hours-inputs">
+      <div class="field-group" style="margin-bottom:0"><label>Quantity</label><input type="number" class="material-qty" min="0" step="0.01" value="0"/></div>
+      <div class="field-group" style="margin-bottom:0"><label>Unit</label><select class="material-unit"><option value="ea">each</option><option value="m">metres</option><option value="kg">kg</option><option value="L">litres</option><option value="pkt">packet</option><option value="box">box</option><option value="roll">roll</option><option value="set">set</option><option value="hr">hour</option></select></div>
+    </div>`;
+  document.getElementById('materialsContainer').appendChild(div);
+}
+window.removeMaterial=id=>document.querySelector(`[data-material-id="${id}"]`)?.remove();
+
+function addNote() {
+  noteCount++;
+  const id=noteCount, div=document.createElement('div');
+  div.className='note-card'; div.dataset.noteId=id;
+  div.innerHTML=`
+    <div class="note-header"><span class="note-title">Note ${id}</span><button type="button" class="remove-btn" onclick="removeNote(${id})">Remove</button></div>
+    <div class="field-group" style="margin-bottom:0.75rem;"><label>Note</label><textarea class="note-text" placeholder="Note details..." style="margin-bottom:0;"></textarea></div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>Notify Staff <span style="font-weight:400; color:var(--text-secondary);">(optional — select multiple)</span></label>
+      <div id="note-employees-${id}" style="max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; background:var(--bg-main); padding:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+        ${EMPLOYEES.map(e=>`<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:400; border:1px solid transparent; transition:all 0.15s;" class="note-emp-label"><input type="checkbox" class="note-notify-cb" value="${esc(e.full_name)}" data-email="${esc(e.email||'')}" onchange="highlightNoteEmp(this)" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;"/> ${esc(e.full_name)}</label>`).join('')}
+      </div>
+      <div id="note-selected-${id}" style="margin-top:6px; font-size:0.75rem; color:var(--text-secondary);"></div>
+    </div>`;
+  document.getElementById('notesContainer').appendChild(div);
+}
+window.removeNote=id=>document.querySelector(`[data-note-id="${id}"]`)?.remove();
+window.highlightNoteEmp=function(cb){
+  const label=cb.closest('label');
+  if(cb.checked){label.style.background='var(--card-hover)';label.style.borderColor='var(--accent)';label.style.color='var(--accent)';label.style.fontWeight='600';}
+  else{label.style.background='';label.style.borderColor='transparent';label.style.color='';label.style.fontWeight='400';}
+  const card=cb.closest('[data-note-id]');
+  const selected=Array.from(card.querySelectorAll('.note-notify-cb:checked')).map(c=>c.value);
+  document.getElementById(`note-selected-${card.dataset.noteId}`).textContent=selected.length?`Notifying: ${selected.join(', ')}`:'';
+};
+
+// ── DATE / LABOUR RULES ───────────────────────────────────────
+const VIC_PUBLIC_HOLIDAYS={'2026-01-01':'New Year\u2019s Day','2026-01-26':'Australia Day','2026-03-09':'Labour Day','2026-04-03':'Good Friday','2026-04-04':'Saturday before Easter Sunday','2026-04-05':'Easter Sunday','2026-04-06':'Easter Monday','2026-04-25':'ANZAC Day','2026-06-08':'King\u2019s Birthday','2026-09-25':'Friday before AFL Grand Final','2026-11-03':'Melbourne Cup Day','2026-12-25':'Christmas Day','2026-12-26':'Boxing Day','2026-12-28':'Boxing Day (observed)','2027-01-01':'New Year\u2019s Day','2027-01-26':'Australia Day','2027-03-08':'Labour Day','2027-03-26':'Good Friday','2027-03-27':'Saturday before Easter Sunday','2027-03-28':'Easter Sunday','2027-03-29':'Easter Monday','2027-04-25':'ANZAC Day','2027-06-14':'King\u2019s Birthday','2027-09-24':'Friday before AFL Grand Final','2027-11-02':'Melbourne Cup Day','2027-12-25':'Christmas Day','2027-12-27':'Christmas Day (observed)','2027-12-28':'Boxing Day (observed)'};
+function getPublicHoliday(d){return VIC_PUBLIC_HOLIDAYS[d]||null;}
+function applyDateRulesToAllLabour(){document.querySelectorAll('[data-labour-id]').forEach(applyDateRulesToLabour);}
+function applyDateRulesToLabour(card){
+  const dateStr=document.getElementById('sheet_date').value; if(!dateStr) return;
+  const day=new Date(dateStr).getDay(), holiday=getPublicHoliday(dateStr), overtimeOnly=(day===0||day===6)||!!holiday;
+  const normalInput=card.querySelector('.labour-normal'), notice=card.querySelector('.weekend-notice'), normalLabel=card.querySelector('.labour-normal-label');
+  if(overtimeOnly){normalInput.value=0;normalInput.disabled=true;normalInput.style.opacity='0.5';normalLabel.textContent=holiday?'Normal Hours (N/A on public holidays)':'Normal Hours (N/A on weekends)';notice.textContent=holiday?`⚠️ ${holiday} (public holiday) — all hours count as overtime`:'⚠️ Weekend — all hours count as overtime';notice.style.display='block';}
+  else{normalInput.disabled=false;normalInput.style.opacity='1';normalInput.max=8;normalLabel.textContent='Normal Hours';notice.style.display='none';normalInput.addEventListener('input',()=>{const v=parseFloat(normalInput.value)||0;if(v>8)normalInput.value=8;if(v<0)normalInput.value=0;},{once:false});}
+}
+
+// ── SIGNATURE ─────────────────────────────────────────────────
+function setupSignatureCanvas(){
+  const canvas=document.getElementById('signatureCanvas'),ctx=canvas.getContext('2d');
+  let drawing=false,lastX=0,lastY=0;
+  function resize(){const rect=canvas.getBoundingClientRect();if(!rect.width)return;const dpr=window.devicePixelRatio||1,prev=canvas.toDataURL();canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;canvas.style.width=rect.width+'px';canvas.style.height=rect.height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);if(prev&&prev!=='data:,'){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,rect.width,rect.height);img.src=prev;}}
+  resize();setTimeout(resize,100);window.addEventListener('resize',resize);
+  function getPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+  function start(e){e.preventDefault();drawing=true;const p=getPos(e);[lastX,lastY]=[p.x,p.y];if(e.pointerId!==undefined&&canvas.setPointerCapture)try{canvas.setPointerCapture(e.pointerId);}catch{}}
+  function draw(e){if(!drawing)return;e.preventDefault();const p=getPos(e);ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.stroke();[lastX,lastY]=[p.x,p.y];}
+  function stop(e){drawing=false;if(e?.pointerId!==undefined&&canvas.releasePointerCapture)try{canvas.releasePointerCapture(e.pointerId);}catch{}}
+  canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermove',draw);canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);
+  document.getElementById('clearSignatureBtn').addEventListener('click',()=>{const r=canvas.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);});
+}
+function getSignatureData(){return document.getElementById('signatureCanvas').toDataURL('image/png');}
+function isSignatureEmpty(){const canvas=document.getElementById('signatureCanvas'),pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;for(let i=3;i<pixels.length;i+=4)if(pixels[i]!==0)return false;return true;}
+
+// ── SIGN-OFF MODAL ────────────────────────────────────────────
+let pendingSignoffEmail=null;
+async function openSignoffModal(jobSheetNumber,jobNumber,clientEmail){
+  pendingSignoffEmail=clientEmail||null;
+  document.getElementById('signoffSummary').innerHTML=buildSummaryHTML(jobSheetNumber,jobNumber);
+  document.getElementById('signoffModal').classList.add('show');
+  setTimeout(()=>{const c=document.getElementById('signatureCanvas');const r=c.getBoundingClientRect();c.width=r.width;c.height=r.height;},50);
+}
+function buildSummaryHTML(jobSheetNumber,jobNumber){
+  const sections={labour:document.getElementById('include_labour').checked,tasks:document.getElementById('include_tasks').checked};
+  let html=`<div class="summary-section"><h3>Job Details</h3><table class="summary-table"><tbody><tr><td><strong>Report #</strong></td><td>${jobSheetNumber}</td></tr><tr><td><strong>Job #</strong></td><td>${jobNumber}</td></tr><tr><td><strong>Date</strong></td><td>${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</td></tr>${selectedJobData?`<tr><td><strong>Client</strong></td><td>${selectedJobData.client_name}</td></tr>`:''}<tr><td><strong>Prepared by</strong></td><td>${currentUser?.name||''}</td></tr></tbody></table></div>`;
+  if(sections.tasks){const tasks=Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);if(tasks.length)html+=`<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>`;}
+  if(sections.labour){const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normal:parseFloat(c.querySelector('.labour-normal').value)||0,ot:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);if(labour.length){const tN=labour.reduce((s,l)=>s+l.normal,0),tO=labour.reduce((s,l)=>s+l.ot,0);html+=`<div class="summary-section"><h3>Labour</h3><table class="summary-table"><thead><tr><th>Employee</th><th>Normal</th><th>OT</th></tr></thead><tbody>${labour.map(l=>`<tr><td>${esc(l.employee)}</td><td>${l.normal}h</td><td>${l.ot}h</td></tr>`).join('')}</tbody><tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${tN}h</strong></td><td><strong>${tO}h</strong></td></tr></tfoot></table></div>`;}}
+  return html;
+}
+async function handleSignoffConfirm(){
+  const sigName=document.getElementById('clientSignatureName').value.trim();
+  if(!sigName){alert('Please enter the client name');return;}
+  if(isSignatureEmpty()){alert('Please capture the client signature');return;}
+  BromarHub.showLoading('Saving signature...','Recording client sign-off');
+  try{
+    const{error}=await window.sb.from('job_sheets').update({client_signature_data:getSignatureData(),client_signature_name:sigName,client_signature_date:new Date().toISOString(),signing_status:'signed',signing_method:'in_person'}).eq('job_sheet_number',currentJobSheetNumber);
+    if(error)throw error;
+    document.getElementById('signoffModal').classList.remove('show');
+    if(pendingSignoffEmail){
+      BromarHub.showLoading('Generating signed PDF...','Preparing report');
+      const pdf=await generatePDF(getActiveSheetNumbers());
+      await window.sb.storage.from('job-sheet-files').upload(`${currentJobNumber}/service-reports/signed-${currentJobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
+      BromarHub.showLoading('Emailing signed report...',pendingSignoffEmail);
+      const{error:emailErr}=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:pendingSignoffEmail,jobSheetNumber:currentJobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:sigName,pdfBase64:pdf.output('datauristring').split(',')[1]}});
+      BromarHub.hideLoading();
+      if(emailErr)BromarHub.showInfo(`Signature saved — but email failed: ${emailErr.message}`);
+      else BromarHub.showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
+    }else{BromarHub.hideLoading();BromarHub.showSuccess('Service report signed and saved');}
+    document.getElementById('pdfActions').classList.add('show');
+    document.getElementById('pdfActions').scrollIntoView({behavior:'smooth'});
+  }catch(err){BromarHub.hideLoading();BromarHub.showInfo('Error: '+err.message);}
+}
+
+// ── FORM SUBMISSION ───────────────────────────────────────────
+async function handleFormSubmit(e){
+  e.preventDefault();
+  // Guard against duplicate submissions
+  if (submissionComplete) {
+    BromarHub.showInfo('This sheet has already been saved. Use "Amend This Sheet" to make changes.');
+    return;
+  }
+  const submitBtn=document.getElementById('submitBtn');
+  submitBtn.disabled=true;
+  BromarHub.showLoading(isAmending ? 'Updating job sheet...' : 'Saving job sheet...','Processing your data');
+
+  // Helper: show error, scroll to element, re-enable submit
+  const fail = (msg, el) => {
+    BromarHub.hideLoading();
+    submitBtn.disabled = false;
+    BromarHub.showInfo(msg);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => { try { el.focus(); } catch {} }, 400);
+    }
+  };
+
+  try{
+    // Who is filling this out?
+    if (!currentUser) {
+      const sel = document.getElementById('filled_by');
+      if (sel.value) { const opt = sel.selectedOptions[0]; currentUser = { name: opt.value, email: opt.dataset.email || '' }; }
+    }
+    if (!currentUser) { fail('Please select who is filling out this form', document.getElementById('filled_by')); return; }
+
+    // Job number selected?
+    if (!selectedJobData) { fail('Please select an existing job or complete the new job details', document.getElementById('existing_job_number')); return; }
+    const jobNumber = selectedJobData.job_number;
+
+    // At least one task?
+    const tasks = Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);
+    if (!tasks.length) { fail('Please describe at least one task in the Work Performed section', document.querySelector('.task-description')); return; }
+
+    // Job completion answered?
+    const completionAnswer = document.querySelector('input[name="job_completed"]:checked');
+    if (!completionAnswer) { fail('Please answer whether this job is completed — see the Job Completion section at the bottom', document.getElementById('job_complete_no')); return; }
+    const jobIsCompleted = completionAnswer.value === 'yes';
+
+    // Files all labelled?
+    if (uploadedFiles.length > 0) {
+      const invalid = uploadedFiles.find(f => !f.alreadyUploaded && !(f.fileTypeLabel||'').trim());
+      if (invalid) { fail('One or more files are missing a label — please add a label to every uploaded file', document.getElementById('fileList')); return; }
+    }
+    const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normalHours:parseFloat(c.querySelector('.labour-normal').value)||0,overtimeHours:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);
+    const materials=Array.from(document.querySelectorAll('[data-material-id]')).map(c=>({name:c.querySelector('.material-name').value.trim(),quantity:parseFloat(c.querySelector('.material-qty').value)||0,unit:c.querySelector('.material-unit').value})).filter(m=>m.name);
+    const notes=Array.from(document.querySelectorAll('.note-card')).map(c=>({text:c.querySelector('.note-text').value.trim(),notifyPeople:Array.from(c.querySelectorAll('.note-notify-cb:checked')).map(cb=>({name:cb.value,email:cb.dataset.email||''}))})).filter(n=>n.text);
+    let jobSheetNumber;
+    if (isAmending && currentJobSheetNumber) {
+      // UPDATE the existing sheet instead of creating a new one
+      const { error: updErr } = await window.sb.from('job_sheets').update({
+        sheet_date: document.getElementById('sheet_date').value,
+        tasks, labour, notes, materials
+      }).eq('job_sheet_number', currentJobSheetNumber);
+      if (updErr) throw updErr;
+      jobSheetNumber = currentJobSheetNumber;
+    } else {
+      const{data:newSheetNum,error:sheetErr}=await window.sb.rpc('create_job_sheet',{p_job_number:jobNumber,p_sheet_date:document.getElementById('sheet_date').value,p_tasks:tasks,p_labour:labour,p_notes:notes,p_created_by:currentUser.name});
+      if(sheetErr)throw sheetErr;
+      jobSheetNumber = newSheetNum;
+    }
+    currentJobSheetNumber=jobSheetNumber; currentJobNumber=jobNumber;
+    // Replace any placeholder in multiDaySelectedSheets with the real sheet number
+    multiDaySelectedSheets = multiDaySelectedSheets.map(s =>
+      (s === 'Current sheet' || s === document.getElementById('submitSheetNumber')?.textContent) ? jobSheetNumber : s
+    );
+    if (!multiDaySelectedSheets.includes(jobSheetNumber)) multiDaySelectedSheets.unshift(jobSheetNumber);
+    if(materials.length && !isAmending)await window.sb.from('job_sheets').update({materials}).eq('job_sheet_number',jobSheetNumber);
+    if(jobIsCompleted)await window.sb.from('job_number_register').update({status:'completed',completed_at:new Date().toISOString()}).eq('job_number',jobNumber);
+    const pendingFiles=uploadedFiles.filter(f=>!f.alreadyUploaded);
+    if(pendingFiles.length){BromarHub.showLoading('Uploading files...',`${pendingFiles.length} file(s)`);await uploadFilesToSupabase(jobSheetNumber,jobNumber,pendingFiles);}
+    const alreadyUploaded=uploadedFiles.filter(f=>f.alreadyUploaded&&f.supabasePath);
+    for(const f of alreadyUploaded){
+      const dotIdx=f.name.lastIndexOf('.'), ext=dotIdx>0?f.name.slice(dotIdx):'';
+      const label=(f.fileTypeLabel||'').trim().replace(/[^\w\-\s]/g,'').replace(/\s+/g,'-') || 'scan';
+      const displayName=`${label}-${jobNumber}${ext}`;
+      await window.sb.from('job_sheet_files').insert({job_sheet_number:jobSheetNumber,job_number:jobNumber,file_name:displayName,file_path:f.supabasePath,file_type:f.type,file_size:f.size,file_category:f.type.startsWith('image/')?'photo':'document',tags:f.tags,description:f.description||null,type_label:(f.fileTypeLabel||'').trim()||null,uploaded_by:currentUser?.name||'Unknown'});
+    }
+    const isServiceReport=document.getElementById('isServiceReport').checked;
+    await deleteDraftAfterSubmit();
+    if(isServiceReport){
+      const reportSections={labour:document.getElementById('include_labour').checked,tasks:document.getElementById('include_tasks').checked,materials:document.getElementById('include_materials').checked,photos:document.getElementById('include_photos').checked,notes:document.getElementById('include_notes').checked};
+      const signoffMethod=document.querySelector('input[name="signoff_method"]:checked').value;
+      const clientEmail=document.getElementById('signoff_email').value.trim();
+      if(!clientEmail||!clientEmail.includes('@')){ fail('Please enter a valid client email address — required for the service report', document.getElementById('signoff_email')); return; }
+      document.getElementById('signoff_email').style.borderColor='';
+      await window.sb.from('job_sheets').update({is_service_report:true,report_sections:reportSections}).eq('job_sheet_number',jobSheetNumber);
+
+      // Mark all selected sheets as used in this service report
+      const sheetsToMark = getActiveSheetNumbers().filter(s => s !== jobSheetNumber);
+      if (sheetsToMark.length) {
+        await window.sb.from('job_sheets').update({service_report_used_in: jobSheetNumber}).in('job_sheet_number', sheetsToMark);
+      }
+
+      // ── ALWAYS generate + store the PDF in the bucket ──
+      // (regardless of signoff method, so Job Manager always has a copy)
+      BromarHub.showLoading('Generating service report PDF...','Building report');
+      const activeSheets = getActiveSheetNumbers();
+      console.log('[PDF] Generating for sheets:', activeSheets);
+      const reportPdf = await generatePDF(activeSheets);
+      const reportPath = `${jobNumber}/service-reports/${jobSheetNumber}.pdf`;
+      await window.sb.storage.from('job-sheet-files').upload(reportPath, reportPdf.output('blob'), { contentType:'application/pdf', upsert:true });
+      console.log('[PDF] Stored at', reportPath);
+      // Record path + flag on the sheet so Job Manager can find it
+      await window.sb.from('job_sheets').update({ service_report_path: reportPath, service_report_generated_at: new Date().toISOString() }).eq('job_sheet_number', jobSheetNumber);
+      BromarHub.hideLoading();
+
+      if(signoffMethod==='in_person'){await openSignoffModal(jobSheetNumber,jobNumber,clientEmail);return;}
+      if(signoffMethod==='remote'){
+        BromarHub.showLoading('Generating signing link...','Please wait');
+        const{data:token,error:tokenErr}=await window.sb.rpc('generate_signing_token',{p_job_sheet_number:jobSheetNumber,p_recipient_email:clientEmail,p_expires_days:30});
+        if(tokenErr)throw new Error('Token error: '+tokenErr.message);
+        if(!token)throw new Error('Signing token was empty');
+        const signUrl=`${window.location.origin}${window.location.pathname.replace(/[^/]*$/,'sign-report.html')}?token=${token}`;
+        BromarHub.showLoading('Sending signing link...',clientEmail);
+        const{error:linkErr}=await window.sb.functions.invoke('send-signing-link',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signUrl,preparedBy:currentUser?.name||''}});
+        BromarHub.hideLoading();
+        if(linkErr)BromarHub.showInfo(`Link generated — but email failed: ${linkErr.message}`);
+        else BromarHub.showSuccess(`Signing link sent to ${clientEmail}`);
+      }
+      if(signoffMethod==='none'){
+        // PDF already generated + stored above — just handle emailing
+        let doSend = true;
+        if (isAmending) {
+          doSend = confirm(`Re-send the updated service report to ${clientEmail}?\n\nOK = re-send updated report\nCancel = just save changes, don't email`);
+        }
+
+        if (doSend) {
+          BromarHub.showLoading('Emailing report...',clientEmail);
+          const pdfBase64=reportPdf.output('datauristring').split(',')[1];
+          console.log('[Email] send-signed-report, pdfBase64_length:',pdfBase64?.length);
+          const emailResponse=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:'(No signature required)',pdfBase64}});
+          console.log('[Email] Response:',emailResponse);
+          BromarHub.hideLoading();
+          if(emailResponse.error)BromarHub.showInfo(`Report saved — email failed: ${emailResponse.error.message}`);
+          else BromarHub.showSuccess(`Report emailed to ${clientEmail}`);
+        } else {
+          BromarHub.hideLoading();
+          BromarHub.showSuccess('Changes saved — report not re-sent');
+        }
+      }
+      showCompletionScreen(jobSheetNumber, true);
+    }else{
+      BromarHub.hideLoading();
+      showCompletionScreen(jobSheetNumber, false);
+    }
+    submissionComplete = true;
+  }catch(err){BromarHub.hideLoading();BromarHub.showInfo('Error: '+err.message);}
+  finally{submitBtn.disabled=false;}
+}
+
+// ── COMPLETION SCREEN / LOCKDOWN ──────────────────────────────
+function showCompletionScreen(sheetNumber, hadServiceReport) {
+  // Hide the entire form and the footer disclaimer
+  document.getElementById('jobSheetForm').style.display = 'none';
+  const footer = document.querySelector('.footer-disclaimer');
+  if (footer) footer.style.display = 'none';
+  // Show completion screen
+  const screen = document.getElementById('completionScreen');
+  document.getElementById('completionSheetNumber').textContent = sheetNumber;
+  document.getElementById('completionDetail').textContent = hadServiceReport
+    ? 'Service report generated. Use the buttons below or start a new sheet.'
+    : 'Saved to the job record.';
+  document.getElementById('completionPdfActions').style.display = hadServiceReport ? 'block' : 'none';
+  screen.style.display = 'block';
+  screen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function amendSheet() {
+  if (!confirm('Re-open this job sheet for editing? Saving again will update the existing sheet, not create a new one.')) return;
+  isAmending = true;
+  submissionComplete = false;
+  document.getElementById('completionScreen').style.display = 'none';
+  document.getElementById('jobSheetForm').style.display = 'block';
+  const footer = document.querySelector('.footer-disclaimer');
+  if (footer) footer.style.display = '';
+  document.getElementById('submitBtn').textContent = 'Update Job Sheet';
+  document.getElementById('jobSheetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  BromarHub.showInfo('Editing ' + currentJobSheetNumber + ' — saving will update this sheet');
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────
+async function uploadFilesToSupabase(jobSheetNumber,jobNumber,files){
+  for(const f of files){
+    const dotIdx=f.name.lastIndexOf('.'), ext=dotIdx>0?f.name.slice(dotIdx):'';
+    const label=(f.fileTypeLabel||'').trim().replace(/[^\w\-\s]/g,'').replace(/\s+/g,'-') || 'file';
+    const finalName=`${label}-${jobNumber}${ext}`;
+    const filePath=`${jobNumber}/${jobSheetNumber}/${Date.now()}-${finalName}`;
+    const{error:uploadErr}=await window.sb.storage.from('job-sheet-files').upload(filePath,f.file,{cacheControl:'3600',upsert:false});
+    if(uploadErr)throw uploadErr;
+    await window.sb.from('job_sheet_files').insert({job_sheet_number:jobSheetNumber,job_number:jobNumber,file_name:finalName,file_path:filePath,file_type:f.type,file_size:f.size,file_category:f.type.startsWith('image/')?'photo':'document',tags:f.tags,description:f.description||null,type_label:(f.fileTypeLabel||'').trim()||null,uploaded_by:currentUser?.name||'Unknown'});
+  }
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+async function fetchReportData(sheetNumbers){
+  const nums = sheetNumbers || [currentJobSheetNumber];
+  const { data: sheets, error } = await window.sb
+    .from('job_sheets').select('*, job_number_register(*)')
+    .in('job_sheet_number', nums)
+    .order('sheet_date', { ascending: true });
+  if (error) throw error;
+
+  const isMulti = nums.length > 1;
+
+  // Use form checkbox values for report sections (not stored DB values)
+  const reportSections = {
+    labour:    document.getElementById('include_labour')?.checked    ?? true,
+    tasks:     document.getElementById('include_tasks')?.checked     ?? true,
+    materials: document.getElementById('include_materials')?.checked ?? false,
+    photos:    document.getElementById('include_photos')?.checked    ?? true,
+    notes:     document.getElementById('include_notes')?.checked     ?? false,
+  };
+
+  let files = [];
+  if (reportSections.photos) {
+    const { data: filesData } = await window.sb.from('job_sheet_files').select('*')
+      .in('job_sheet_number', nums);
+    if (filesData) {
+      const photoFiles = filesData.filter(f => f.file_type?.startsWith('image/') || f.file_category === 'photo');
+      for (const f of photoFiles) {
+        const { data: urlData } = await window.sb.storage.from('job-sheet-files').createSignedUrl(f.file_path, 3600);
+        if (urlData) f.signedUrl = urlData.signedUrl;
+      }
+      files = photoFiles;
+    }
+  }
+
+  // Inject consistent reportSections into all sheets so generatePDF reads it correctly
+  sheets.forEach(s => { s.report_sections = reportSections; });
+
+  return { sheets, primarySheet: sheets[0], files, isMulti };
+}
+
+async function generatePDF(sheetNumbers){
+  const { sheets, primarySheet, files, isMulti } = await fetchReportData(sheetNumbers);
+  const jobSheet = primarySheet;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 20;
+  let y = m;
+
+  pdf.setFillColor(194,68,14); pdf.rect(0,0,pw,4,'F');
+  try {
+    const li = await loadImage('../Bromar-Primary-Logo-Full-Colour.png');
+    const lh=18, lw=(li.width/li.height)*lh;
+    pdf.addImage(li,'PNG',m,10,lw,lh);
+  } catch {}
+  pdf.setFontSize(8); pdf.setTextColor(80,80,80); pdf.setFont(undefined,'bold');
+  pdf.text('BROMAR ELECTRICAL SERVICES PTY LTD',pw-m,12,{align:'right'});
+  pdf.setFont(undefined,'normal'); pdf.setFontSize(7.5); pdf.setTextColor(100,100,100);
+  pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049',pw-m,16,{align:'right'});
+  pdf.text('Ph: +61 3 9335 5344  |  admin@bromar.com.au  |  bromar.com.au',pw-m,20,{align:'right'});
+  pdf.text('ABN: 45 634 835 939  |  REC: 30340',pw-m,24,{align:'right'});
+  y=36; pdf.setDrawColor(194,68,14); pdf.setLineWidth(0.5); pdf.line(m,y,pw-m,y); pdf.setLineWidth(0.2); y+=10;
+
+  pdf.setFontSize(22); pdf.setTextColor(194,68,14); pdf.setFont(undefined,'bold');
+  pdf.text('SERVICE REPORT',m,y);
+  pdf.setFontSize(9); pdf.setFont(undefined,'normal'); pdf.setTextColor(80,80,80);
+
+  const reportNum = isMulti ? `${sheets[0].job_sheet_number} + ${sheets.length-1} more` : currentJobSheetNumber;
+  const dateRange = isMulti
+    ? `${new Date(sheets[0].sheet_date+'T12:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'})} – ${new Date(sheets[sheets.length-1].sheet_date+'T12:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}`
+    : new Date(jobSheet.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+  pdf.text(`Report #:  ${reportNum}`,pw-m,y-4,{align:'right'});
+  pdf.text(`Date:  ${dateRange}`,pw-m,y,{align:'right'});
+  if (jobSheet.created_by) pdf.text(`Prepared by:  ${jobSheet.created_by}`,pw-m,y+4,{align:'right'});
+  y+=14;
+
+  const sh=(title)=>{pdf.setFillColor(255,243,238);pdf.rect(m,y-5,pw-2*m,8,'F');pdf.setFontSize(10);pdf.setTextColor(194,68,14);pdf.setFont(undefined,'bold');pdf.text(title.toUpperCase(),m+2,y);y+=8;pdf.setTextColor(40,40,40);pdf.setFontSize(10);pdf.setFont(undefined,'normal');};
+  const df=(label,value)=>{if(!value)return;pdf.setFont(undefined,'bold');pdf.setTextColor(80,80,80);pdf.text(label,m,y);pdf.setFont(undefined,'normal');pdf.setTextColor(40,40,40);const lines=pdf.splitTextToSize(String(value),pw-m-50);lines.forEach((l,i)=>{pdf.text(l,m+32,y);if(i<lines.length-1)y+=5;});y+=6;};
+
+  const client = jobSheet.job_number_register;
+  sh('Client Information'); y+=2;
+  df('Client:',client.client_name); df('Job Number:',jobSheet.job_number);
+  df('Site:',client.site_name?`${client.site_name} — ${client.site_address}`:client.site_address);
+  df('Contact:',client.contact_person); y+=4;
+
+  // ── TASKS ──
+  if (jobSheet.report_sections?.tasks) {
+    if (isMulti) {
+      // Day-by-day tasks
+      const allTasks = sheets.flatMap(s => (s.tasks||[]).map(t => ({ date: s.sheet_date, task: t })));
+      if (allTasks.length) {
+        if (y > ph-50) { pdf.addPage(); y=m; }
+        sh('Work Performed');
+        let lastDate = '';
+        allTasks.forEach((item, i) => {
+          if (item.date !== lastDate) {
+            lastDate = item.date;
+            const dayLabel = new Date(item.date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
+            pdf.setFont(undefined,'bold'); pdf.setTextColor(var_accent||[194,68,14]); pdf.setFontSize(9);
+            pdf.setFillColor(255,243,238); pdf.rect(m, y-3, pw-2*m, 6,'F');
+            pdf.setTextColor(194,68,14); pdf.text(dayLabel, m+2, y); y+=7;
+            pdf.setFont(undefined,'normal'); pdf.setTextColor(40,40,40); pdf.setFontSize(10);
+          }
+          if (y > ph-20) { pdf.addPage(); y=m; }
+          pdf.splitTextToSize(`  • ${item.task}`, pw-2*m).forEach(l => { pdf.text(l,m,y); y+=5; });
+        });
+        y+=8;
+      }
+    } else {
+      const tasks = jobSheet.tasks || [];
+      if (tasks.length) {
+        if (y > ph-50) { pdf.addPage(); y=m; } sh('Work Performed');
+        tasks.forEach((task,i)=>{ if(y>ph-20){pdf.addPage();y=m;} pdf.splitTextToSize(`${i+1}. ${task}`,pw-2*m).forEach(l=>{pdf.text(l,m,y);y+=5;}); y+=2; }); y+=8;
+      }
+    }
+  }
+
+  // ── LABOUR ──
+  if (jobSheet.report_sections?.labour) {
+    if (isMulti) {
+      // Build employee × day matrix
+      const days = sheets.map(s => ({
+        date: s.sheet_date,
+        label: new Date(s.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}),
+        labour: s.labour || []
+      }));
+
+      // Collect all unique employee names
+      const employees = [...new Set(days.flatMap(d => d.labour.map(l => l.employee)))].filter(Boolean);
+
+      if (employees.length) {
+        if (y > ph-60) { pdf.addPage(); y=m; }
+        sh('Labour Hours');
+
+        const colWidth = Math.min(28, (pw - 2*m - 40) / days.length);
+        const empColW = pw - 2*m - (colWidth * days.length) - 20;
+
+        // Header row
+        pdf.setFillColor(243,246,255); pdf.rect(m, y-5, pw-2*m, 8, 'F');
+        pdf.setFontSize(7.5); pdf.setFont(undefined,'bold'); pdf.setTextColor(80,80,80);
+        pdf.text('Employee', m+2, y);
+        days.forEach((d, i) => { pdf.text(d.label, m + empColW + i * colWidth + 2, y, { maxWidth: colWidth - 2 }); });
+        pdf.text('Total', pw-m-18, y);
+        y += 7;
+
+        pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60); pdf.setFontSize(8);
+        let grandN=0, grandO=0;
+
+        employees.forEach(emp => {
+          if (y > ph-20) { pdf.addPage(); y=m; }
+          let totalN=0, totalO=0;
+          pdf.text(emp, m+2, y, { maxWidth: empColW - 4 });
+          days.forEach((d, i) => {
+            const entry = d.labour.find(l => l.employee === emp);
+            const n = parseFloat(entry?.normalHours||0), o = parseFloat(entry?.overtimeHours||0);
+            totalN += n; totalO += o;
+            const cell = entry ? `${n}/${o}` : '—';
+            pdf.text(cell, m + empColW + i * colWidth + 2, y);
+          });
+          pdf.setFont(undefined,'bold');
+          pdf.text(`${totalN}/${totalO}`, pw-m-18, y);
+          pdf.setFont(undefined,'normal');
+          grandN += totalN; grandO += totalO;
+          y += 6;
+        });
+
+        // Totals row
+        y += 2; pdf.setDrawColor(200,200,200); pdf.line(m, y, pw-m, y); y += 5;
+        pdf.setFont(undefined,'bold'); pdf.setTextColor(0,0,0); pdf.setFontSize(8.5);
+        pdf.text('TOTAL', m+2, y);
+        pdf.text(`${grandN}/${grandO}`, pw-m-18, y);
+        pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
+        pdf.text('(Normal h / Overtime h per cell)', m+2, y+4);
+        y += 14;
+      }
+    } else {
+      const labour = jobSheet.labour || [];
+      if (labour.length) {
+        if (y > ph-60) { pdf.addPage(); y=m; } sh('Labour Hours');
+        pdf.setFillColor(243,246,255); pdf.rect(m,y-5,pw-2*m,8,'F');
+        pdf.setFontSize(9); pdf.text('Employee',m+2,y); pdf.text('Normal',pw-m-50,y); pdf.text('Overtime',pw-m-25,y); y+=6;
+        pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
+        let tN=0,tO=0;
+        labour.forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l.employee,m+2,y);pdf.text(`${l.normalHours||0}h`,pw-m-50,y);pdf.text(`${l.overtimeHours||0}h`,pw-m-25,y);tN+=parseFloat(l.normalHours||0);tO+=parseFloat(l.overtimeHours||0);y+=6;});
+        y+=2; pdf.setDrawColor(200,200,200); pdf.line(m,y,pw-m,y); y+=5;
+        pdf.setFont(undefined,'bold'); pdf.setTextColor(0,0,0);
+        pdf.text('TOTAL',m+2,y); pdf.text(`${tN}h`,pw-m-50,y); pdf.text(`${tO}h`,pw-m-25,y); y+=10;
+      }
+    }
+  }
+
+  // ── PHOTOS ──
+  if (jobSheet.report_sections?.photos && files.length) {
+    pdf.addPage(); y=m; sh('Photos'); y+=4;
+    for (const file of files) {
+      if (!file.signedUrl) continue;
+      try {
+        const img = await loadImage(file.signedUrl);
+        const canvas = document.createElement('canvas'); canvas.width=img.naturalWidth||img.width; canvas.height=img.naturalHeight||img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        const maxW=pw-2*m, maxH=110; let w=maxW, h=(canvas.height/canvas.width)*w;
+        if(h>maxH){h=maxH;w=(canvas.width/canvas.height)*h;}
+        if(y+h>ph-m){pdf.addPage();y=m;}
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',m,y,w,h); y+=h+4;
+        if(file.description){pdf.setFontSize(9);pdf.setTextColor(40,40,40);pdf.splitTextToSize(file.description,pw-2*m).forEach(l=>{if(y>ph-20){pdf.addPage();y=m;}pdf.text(l,m,y);y+=4.5;});y+=2;}
+        if(file.tags?.length){pdf.setFontSize(8);pdf.setTextColor(100,100,100);pdf.text(`Tags: ${file.tags.join(', ')}`,m,y);y+=8;}else{y+=4;}
+      } catch {}
+    }
+  }
+
+  // ── SIGNATURE ──
+  if (jobSheet.client_signature_name) {
+    if(y>ph-70){pdf.addPage();y=m;} y+=6; sh('Client Sign-Off'); y+=4;
+    if(jobSheet.client_signature_data){try{pdf.addImage(jobSheet.client_signature_data,'PNG',m,y,80,30);y+=35;}catch{}}
+    pdf.setFontSize(10); pdf.setFont(undefined,'normal'); pdf.setTextColor(60,60,60);
+    pdf.text(`Signed by: ${jobSheet.client_signature_name}`,m,y); y+=5;
+    pdf.text(`Date: ${new Date(jobSheet.client_signature_date).toLocaleDateString('en-AU')}`,m,y);
+  }
+
+  // ── PAGE FOOTERS ──
+  const pageCount = pdf.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    pdf.setPage(i);
+    pdf.setFillColor(194,68,14); pdf.rect(0,ph-14,pw,0.5,'F');
+    pdf.setFontSize(7); pdf.setTextColor(120,120,120); pdf.setFont(undefined,'normal');
+    pdf.text('Bromar',m,ph-9);
+    pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
+    pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
+    pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.64`,pw/2,ph-5,{align:'center'});
+  }
+  return pdf;
+}
+function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
+
+function getActiveSheetNumbers() {
+  // Always ensure the real saved sheet number is in the list
+  const base = currentJobSheetNumber || null;
+  if (!base) return [base];
+
+  // Rebuild from multiDaySelectedSheets, replacing any placeholder with real number
+  const resolved = multiDaySelectedSheets
+    .map(s => (s === 'Current sheet' || s === document.getElementById('submitSheetNumber')?.textContent) ? base : s)
+    .filter(Boolean);
+
+  // Ensure current is included
+  if (!resolved.includes(base)) resolved.unshift(base);
+
+  // Deduplicate
+  return [...new Set(resolved)];
+}
+
+async function generateAndDownloadPDF(){
+  const pdf=await generatePDF(getActiveSheetNumbers());
+  pdf.save(`Service-Report-${currentJobSheetNumber}.pdf`);
+}
+async function generateAndUploadPDF(){
+  const pdf=await generatePDF(getActiveSheetNumbers());
+  const fileName=`${currentJobNumber}/service-reports/${currentJobSheetNumber}.pdf`;
+  const{error}=await window.sb.storage.from('job-sheet-files').upload(fileName,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
+  if(error)throw error;
+  const{data:urlData,error:urlErr}=await window.sb.storage.from('job-sheet-files').createSignedUrl(fileName,60*60*24*30);
+  if(urlErr)throw urlErr;
+  return urlData.signedUrl;
+}
+</script>
+</body>
+</html>
