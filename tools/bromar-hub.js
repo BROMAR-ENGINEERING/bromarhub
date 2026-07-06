@@ -139,7 +139,7 @@
     // Register service worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/service-worker.js')
           .then((registration) => {
             console.log('[PWA] Service Worker registered:', registration.scope);
           })
@@ -250,7 +250,7 @@
   async function loadEmployees(selectId = 'filled_by') {
     if (!window.sb) return [];
     try {
-      const { data, error } = await window.sb.from('employees').select('full_name, email').order('full_name');
+      const { data, error } = await window.sb.from('employees').select('full_name, email, is_active').eq('is_active', true).order('full_name');
       if (error) { console.error('[BromarHub] loadEmployees:', error); return []; }
       window.EMPLOYEES = data || [];
       const select = document.getElementById(selectId);
