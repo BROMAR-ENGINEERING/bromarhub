@@ -421,7 +421,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.14</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.15</p>
       </div>
     </div>
   </div>
@@ -1140,7 +1140,29 @@
       const travelTimeField = jobRow.querySelector('.travel-time-field');
       const normalHoursField = jobRow.querySelector('.normal-hours-field');
       const overtimeHoursField = jobRow.querySelector('.overtime-hours-field');
-      
+
+      // If switching TO a leave-type and job number / client have values,
+      // ask before wiping them so the user doesn't lose data by accident.
+      const leaveTypesForClear = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', "Carer's Leave", 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
+      if (leaveTypesForClear.includes(e.target.value)) {
+        const jobNumInput = jobRow.querySelector('[name$="_number"]');
+        const clientInput = jobRow.querySelector('[name$="_client"]');
+        const hasData = (jobNumInput?.value?.trim() || clientInput?.value?.trim());
+        if (hasData) {
+          const ok = confirm('Leave types don\'t require a job number or client. Clear those fields?');
+          if (ok) {
+            if (jobNumInput) jobNumInput.value = '';
+            if (clientInput) clientInput.value = '';
+          } else {
+            // Revert the type change
+            e.target.value = e.target.dataset.prevValue || '';
+            return;
+          }
+        }
+      }
+      // Remember for next revert
+      e.target.dataset.prevValue = e.target.value;
+
       if (e.target.value === 'Job Number') {
         jobNumberField.style.display = 'block';
         clientField.style.display = 'block';
