@@ -284,11 +284,11 @@
             background: rgba(16, 185, 129, 0.12);
             border-color: transparent;
             color: #10b981;
-            cursor: default;
         }
         .push-opt-btn.enabled:hover {
             border-color: transparent;
             color: #10b981;
+            background: rgba(16, 185, 129, 0.2);
         }
         .push-opt-btn svg {
             width: 14px;
@@ -1326,7 +1326,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.54</div>
+    <div class="revision-number">V1.55</div>
 
     <script>
         // SUPABASE AUTH
@@ -1774,41 +1774,74 @@
                 return;
             }
 
-            const setEnabled = () => {
-                btn.classList.add('enabled');
-                btn.title = 'Notifications enabled';
-                btn.setAttribute('aria-label', 'Notifications enabled');
-                btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
-                btn.style.cursor = 'default';
-            };
-
-            // Already granted browser-level AND opted in locally → show tick, no action
-            if (Notification.permission === 'granted' && localStorage.getItem('pushOptedIn') === 'true') {
-                btn.style.display = 'flex';
-                setEnabled();
-                return;
-            }
-
-            // Permission denied at browser level — hide button (user must reset in browser settings)
+            // Permission denied at browser level — hide (must reset in browser settings)
             if (Notification.permission === 'denied') {
                 btn.style.display = 'none';
                 return;
             }
 
-            // Otherwise show the bell for opt-in
             btn.style.display = 'flex';
+
+            const iconBell = '<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+            const iconTick = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+
+            const showSubscribed = () => {
+                btn.classList.add('enabled');
+                btn.title = 'Notifications enabled — tap to resubscribe';
+                btn.setAttribute('aria-label', 'Notifications enabled');
+                btn.innerHTML = iconTick;
+            };
+            const showUnsubscribed = () => {
+                btn.classList.remove('enabled');
+                btn.title = 'Enable schedule notifications';
+                btn.setAttribute('aria-label', 'Enable notifications');
+                btn.innerHTML = iconBell;
+            };
+
+            // Verify current subscription state in Supabase
+            const checkSubscribed = async () => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('push_subscriptions')
+                        .select('id')
+                        .eq('employee_name', employeeName)
+                        .limit(1);
+                    if (error) { console.warn('[Push] check failed', error); return false; }
+                    return Array.isArray(data) && data.length > 0;
+                } catch (e) {
+                    console.warn('[Push] check exception', e);
+                    return false;
+                }
+            };
+
+            // Initial state
+            (async () => {
+                const subscribed = await checkSubscribed();
+                subscribed ? showSubscribed() : showUnsubscribed();
+            })();
+
+            // Tap handler — always active
             btn.onclick = async () => {
+                console.log('[Push] opt-in button tapped for', employeeName);
+                if (btn.disabled) return;
                 btn.disabled = true;
                 try {
-                    const result = await window.BromarPush.requestPermission(employeeName);
-                    if (Notification.permission === 'granted' || result === true || result?.success) {
+                    await window.BromarPush.requestPermission(employeeName);
+                    // Verify a row actually landed in Supabase
+                    const subscribed = await checkSubscribed();
+                    if (subscribed) {
                         localStorage.setItem('pushOptedIn', 'true');
-                        setEnabled();
+                        showSubscribed();
+                        console.log('[Push] subscribed successfully');
                     } else {
-                        btn.disabled = false;
+                        localStorage.removeItem('pushOptedIn');
+                        showUnsubscribed();
+                        console.warn('[Push] subscription row not found in push_subscriptions');
                     }
                 } catch (e) {
-                    console.warn('[Push]', e);
+                    console.warn('[Push] requestPermission failed', e);
+                    showUnsubscribed();
+                } finally {
                     btn.disabled = false;
                 }
             };
