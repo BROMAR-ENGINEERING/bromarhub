@@ -436,8 +436,27 @@
             width: 100%;
             border: 1px solid var(--border);
         }
-        .login-logo { text-align: center; margin-bottom: 2rem; }
-        .login-logo img { max-width: 200px; height: auto; }
+        .login-logo {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-symbol {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto;
+            background-image: url('/assets/symbol/bromar-symbol.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: bromar-breathe 1.8s ease-in-out infinite;
+        }
+        @keyframes bromar-breathe {
+            0%   { transform: rotate(0deg)   scale(0.82); }
+            50%  { transform: rotate(180deg) scale(1); }
+            100% { transform: rotate(360deg) scale(0.82); }
+        }
         .login-title {
             text-align: center;
             font-size: 2rem;
@@ -854,8 +873,7 @@
         
         <div class="login-box">
             <div class="login-logo">
-                <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar Electrical" class="logo-image light-logo">
-                <img src="/assets/logo/bromar-logo-white.png" alt="Bromar Electrical" class="logo-image dark-logo">
+                <div class="login-symbol"></div>
             </div>
             
             <h1 class="login-title">Bromar Hub</h1>
@@ -1324,7 +1342,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.57</div>
+    <div class="revision-number">V1.58</div>
 
     <script>
         // SUPABASE AUTH
