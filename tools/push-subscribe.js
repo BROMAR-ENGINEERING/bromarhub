@@ -1,7 +1,7 @@
 /* ============================================================
    BROMAR HUB — Push Notification Subscription
    Add this to your Hub's main JS after the employee logs in.
-   V1.01
+   V1.02
    ============================================================ */
 
 const BromarPush = (() => {
@@ -33,13 +33,16 @@ const BromarPush = (() => {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+      // Upsert on employee_name so re-subscribing overwrites the existing row
+      // rather than throwing a 409 Conflict. on_conflict must match the table's
+      // unique constraint column (employee_name).
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?on_conflict=employee_name`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer': 'resolution=merge-duplicates'
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
         },
         body: JSON.stringify({
           employee_name: employeeName,
@@ -47,7 +50,10 @@ const BromarPush = (() => {
         })
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status} ${errText}`);
+      }
       console.log('Push subscription saved for', employeeName);
       return true;
     } catch (err) {
