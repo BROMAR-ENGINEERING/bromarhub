@@ -68,53 +68,6 @@
   // Apply immediately
   applyUserPreferences();
 
-  // ── SEARCH AUTOFILL PROTECTION ────────────────────────────
-  // Browsers (Edge, Chrome, Safari) aggressively autofill any input
-  // with the logged-in email. This clears email addresses from any
-  // #searchInput on any page, and prevents them being submitted.
-  function initSearchProtection() {
-    const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
-
-    // Set defensive attributes
-    searchInput.setAttribute('autocomplete', 'off');
-    searchInput.setAttribute('autocorrect', 'off');
-    searchInput.setAttribute('autocapitalize', 'off');
-    searchInput.setAttribute('spellcheck', 'false');
-    searchInput.setAttribute('data-lpignore', 'true');
-    searchInput.setAttribute('data-form-type', 'other');
-    if (!searchInput.name || searchInput.name === 'search') {
-      searchInput.name = 'search-no-autofill-' + Math.random().toString(36).slice(2, 8);
-    }
-
-    const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
-
-    // Clear on focus if autofilled with email
-    searchInput.addEventListener('focus', () => {
-      if (isEmail(searchInput.value)) {
-        searchInput.value = '';
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    });
-
-    // Clear on input if autofill sneaks in
-    searchInput.addEventListener('input', (e) => {
-      if (isEmail(e.target.value)) {
-        e.target.value = '';
-      }
-    });
-
-    // Check periodically for delayed autofill (Safari does this)
-    let checkCount = 0;
-    const autofillCheck = setInterval(() => {
-      if (isEmail(searchInput.value)) {
-        searchInput.value = '';
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (++checkCount > 20) clearInterval(autofillCheck); // 2 seconds total
-    }, 100);
-  }
-
   // ── FAVICON ───────────────────────────────────────────────
   function initFavicon() {
     // Skip if favicon already exists
@@ -122,7 +75,7 @@
     const link = document.createElement('link');
     link.rel  = 'icon';
     link.type = 'image/png';
-    link.href = '/assets/icons/icon-32x32.png';
+    link.href = '/favicon.png';
     document.head.appendChild(link);
   }
 
@@ -144,20 +97,12 @@
       document.head.appendChild(themeColor);
     }
 
-    // Add Apple-specific meta tags (and modern equivalent)
+    // Add Apple-specific meta tags
     if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) {
       const appleCapable = document.createElement('meta');
       appleCapable.name    = 'apple-mobile-web-app-capable';
       appleCapable.content = 'yes';
       document.head.appendChild(appleCapable);
-    }
-
-    // Modern equivalent (replaces deprecated apple-mobile-web-app-capable)
-    if (!document.querySelector('meta[name="mobile-web-app-capable"]')) {
-      const mobileCapable = document.createElement('meta');
-      mobileCapable.name    = 'mobile-web-app-capable';
-      mobileCapable.content = 'yes';
-      document.head.appendChild(mobileCapable);
     }
 
     if (!document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')) {
@@ -181,20 +126,20 @@
         const appleIcon = document.createElement('link');
         appleIcon.rel   = 'apple-touch-icon';
         appleIcon.sizes = size;
-        appleIcon.href  = `/assets/icons/icon-${size}.png`;
+        appleIcon.href  = `/icons/icon-${size}.png`;
         document.head.appendChild(appleIcon);
       });
       // Default (no size attribute) - iOS picks best
       const defaultIcon = document.createElement('link');
       defaultIcon.rel  = 'apple-touch-icon';
-      defaultIcon.href = '/assets/icons/icon-192x192.png';
+      defaultIcon.href = '/icons/icon-192x192.png';
       document.head.appendChild(defaultIcon);
     }
 
     // Register service worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('/sw.js')
           .then((registration) => {
             console.log('[PWA] Service Worker registered:', registration.scope);
           })
@@ -231,19 +176,10 @@
   function initHeader() {
     const placeholder = document.getElementById('bromar-header');
     if (!placeholder) return;
-    
-    // Determine home destination based on current path
-    let homeHref = '/index.html';
-    const path = window.location.pathname;
-    // If on a Tyrecycle sub-page (but not the home page itself), go to Tyrecycle home
-    if (path.includes('/clients/tyrecycle/') && !path.endsWith('/tyrecyclehome.html')) {
-      homeHref = '/clients/tyrecycle/tyrecyclehome.html';
-    }
-    
     placeholder.outerHTML = `
       <div class="header">
         <div class="header-controls">
-          <a href="${homeHref}" class="control-btn" aria-label="Home">
+          <a href="../index.html" class="control-btn" aria-label="Home">
             <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
           </a>
           <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
@@ -252,8 +188,8 @@
           </button>
         </div>
         <div class="header-content">
-          <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image light-logo"/>
-          <img src="/assets/logo/bromar-logo-white.png" alt="Bromar" class="logo-image dark-logo"/>
+          <img src="../Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+          <img src="../Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
         </div>
       </div>`;
   }
@@ -371,10 +307,9 @@
   
   // Run as soon as the DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    initHeader();            // inject header HTML (if placeholder present)
-    initTheme();             // apply saved theme + wire toggle
-    initLoadingOverlay();    // inject loading overlay if not already in HTML
-    initSearchProtection();  // block browsers autofilling search bars with email
+    initHeader();         // inject header HTML (if placeholder present)
+    initTheme();          // apply saved theme + wire toggle
+    initLoadingOverlay(); // inject loading overlay if not already in HTML
   });
 
   // ── PUBLIC API ────────────────────────────────────────────
