@@ -1,7 +1,7 @@
 /* ============================================================
    BROMAR HUB — Push Notification Subscription
    Add this to your Hub's main JS after the employee logs in.
-   V1.00
+   V1.01
    ============================================================ */
 
 const BromarPush = (() => {
@@ -65,3 +65,4 @@ const BromarPush = (() => {
 
   return { subscribe, requestPermission };
 })();
+window.BromarPush = BromarPush;
