@@ -234,7 +234,21 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.7; cursor: not-a
 .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; }
 .loading-overlay.show { display: flex; }
 .loading-content { background: var(--bg-secondary); padding: 2.5rem; border-radius: 16px; text-align: center; max-width: 400px; }
-.loading-spinner { width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.25rem; }
+.loading-spinner {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.25rem;
+  background-image: url('/assets/symbol/bromar-symbol.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: bromar-breathe 1.8s ease-in-out infinite;
+}
+@keyframes bromar-breathe {
+  0%   { transform: rotate(0deg)   scale(0.82); }
+  50%  { transform: rotate(180deg) scale(1); }
+  100% { transform: rotate(360deg) scale(0.82); }
+}
 .loading-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
 .loading-subtext { font-size: 0.85rem; color: var(--text-secondary); }
 
