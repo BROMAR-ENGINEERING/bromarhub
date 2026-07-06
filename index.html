@@ -22,6 +22,7 @@
     <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="tools/push-subscribe.js"></script>
     <link rel="stylesheet" href="tools/bromar-hub.css">
     <style>
         /* ── INDEX PAGE SPECIFIC STYLES ── */
@@ -1283,7 +1284,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.51</div>
+    <div class="revision-number">V1.53</div>
 
     <script>
         // SUPABASE AUTH
@@ -1684,6 +1685,11 @@
                 }
                 if (empLabel) empLabel.textContent = employeeName;
 
+                // Subscribe to push notifications for this employee
+                if (window.BromarPush && typeof window.BromarPush.requestPermission === 'function') {
+                    try { window.BromarPush.requestPermission(employeeName); } catch (e) { console.warn('[Push]', e); }
+                }
+
                 // Date range: today and tomorrow (local timezone)
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1732,13 +1738,29 @@
             return assignments.filter(a => {
                 const start = a.start_date;
                 const end = a.end_date;
-                // Must have started
-                if (targetStr < start) return false;
-                // Must not have ended (unless indefinite)
-                if (end && targetStr > end) return false;
-                // Skip dates
+                const schedule = a.schedule;
+
+                // Skip dates always excluded
                 const skips = Array.isArray(a.skip_dates) ? a.skip_dates : [];
                 if (skips.includes(targetStr)) return false;
+
+                if (schedule === 'oneoff') {
+                    // Single day only
+                    return targetStr === start;
+                }
+                if (schedule === 'duration') {
+                    // Must be within [start, end] (both inclusive)
+                    if (targetStr < start) return false;
+                    if (!end || targetStr > end) return false;
+                    return true;
+                }
+                if (schedule === 'indefinite') {
+                    // From start onward, no end
+                    return targetStr >= start;
+                }
+                // Fallback (unknown schedule) — conservative range check
+                if (targetStr < start) return false;
+                if (end && targetStr > end) return false;
                 return true;
             });
         }
@@ -1833,7 +1855,7 @@
         // ============================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
                         console.log('[PWA] Service Worker registered:', registration.scope);
                     })
