@@ -12,6 +12,12 @@
     .page-wrapper { margin-top: 90px; }
     @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
 
+    /* ── Profile ── */
+    .profile-card { display: flex; align-items: center; gap: 14px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 24px; }
+    .profile-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; }
+    .profile-name { font-weight: 700; color: var(--text-primary); font-size: 1rem; }
+    .profile-email { color: var(--text-secondary); font-size: 0.85rem; }
+
     /* ── Quick reference ── */
     .quick-ref { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     @media (max-width: 520px) { .quick-ref { grid-template-columns: 1fr; } }
@@ -48,7 +54,10 @@
     .day-cell.has-events:hover { background: var(--card-hover); }
     .day-number { font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
     .day-cell.weekend .day-number { color: var(--accent); }
-    .day-dots { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .day-events { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+    .day-event { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .day-event-more { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; padding: 0 2px; }
+    .day-dots { display: none; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .day-dots .dot { width: 9px; height: 9px; }
     .day-more { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
 
@@ -57,6 +66,8 @@
       .day-cell { min-height: 74px; padding: 4px; }
       .month-title { font-size: 1.1rem; }
       .toolbar { justify-content: center; }
+      .day-events { display: none; }
+      .day-dots { display: flex; }
     }
 
     /* ── List view ── */
@@ -115,6 +126,14 @@
     <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
     <div class="success-banner" id="successBanner"><span id="successText"></span></div>
 
+    <div class="profile-card" id="profileCard" style="display:none">
+      <div class="profile-avatar" id="profileAvatar"></div>
+      <div>
+        <div class="profile-name" id="profileName"></div>
+        <div class="profile-email" id="profileEmail"></div>
+      </div>
+    </div>
+
     <!-- Quick reference -->
     <div class="quick-ref">
       <div class="qr-card">
@@ -165,7 +184,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — YOUR SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.03</div>
     </div>
   </div>
 </div>
@@ -196,6 +215,7 @@
   let currentView = 'calendar';
   let assignments = [];
   let employeeName = null;
+  let employeeEmail = null;
 
   // ── Helpers ──
   function isoDate(d) {
@@ -256,6 +276,7 @@
     try {
       const { data: { user } } = await window.sb.auth.getUser();
       if (user?.email) {
+        employeeEmail = user.email;
         const { data: emp } = await window.sb.from('employees').select('full_name').eq('email', user.email).maybeSingle();
         employeeName = emp?.full_name || null;
       }
@@ -274,6 +295,14 @@
       BromarHub.showInfo('Could not load your schedule.');
     }
     BromarHub.hideLoading();
+  }
+
+  function renderProfile() {
+    if (!employeeName) return;
+    document.getElementById('profileAvatar').textContent = employeeName.trim().charAt(0).toUpperCase();
+    document.getElementById('profileName').textContent = employeeName;
+    document.getElementById('profileEmail').textContent = employeeEmail || '';
+    document.getElementById('profileCard').style.display = 'flex';
   }
 
   // ============================================================
@@ -343,6 +372,27 @@
     const items = assignmentsOn(dateStr);
     if (items.length) {
       cell.classList.add('has-events');
+
+      // Desktop: coloured labelled list
+      const list = document.createElement('div');
+      list.className = 'day-events';
+      items.slice(0, 4).forEach(a => {
+        const ev = document.createElement('div');
+        ev.className = 'day-event';
+        ev.style.background = colourFor(a);
+        ev.textContent = labelFor(a);
+        ev.title = labelFor(a);
+        list.appendChild(ev);
+      });
+      if (items.length > 4) {
+        const more = document.createElement('div');
+        more.className = 'day-event-more';
+        more.textContent = '+' + (items.length - 4) + ' more';
+        list.appendChild(more);
+      }
+      cell.appendChild(list);
+
+      // Phone: dots only
       const dots = document.createElement('div');
       dots.className = 'day-dots';
       items.slice(0, 6).forEach(a => {
@@ -359,6 +409,7 @@
         dots.appendChild(more);
       }
       cell.appendChild(dots);
+
       cell.addEventListener('click', () => openDayModal(dateStr));
     }
     return cell;
@@ -458,6 +509,7 @@
   // ============================================================
   document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
+    renderProfile();
     renderQuickRef();
     renderCalendar();
   });
