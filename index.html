@@ -1326,7 +1326,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.55</div>
+    <div class="revision-number">V1.56</div>
 
     <script>
         // SUPABASE AUTH
@@ -1785,13 +1785,17 @@
             const iconBell = '<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
             const iconTick = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
 
+            let currentlySubscribed = false;
+
             const showSubscribed = () => {
+                currentlySubscribed = true;
                 btn.classList.add('enabled');
-                btn.title = 'Notifications enabled — tap to resubscribe';
-                btn.setAttribute('aria-label', 'Notifications enabled');
+                btn.title = 'Notifications enabled — tap to unsubscribe';
+                btn.setAttribute('aria-label', 'Notifications enabled — tap to unsubscribe');
                 btn.innerHTML = iconTick;
             };
             const showUnsubscribed = () => {
+                currentlySubscribed = false;
                 btn.classList.remove('enabled');
                 btn.title = 'Enable schedule notifications';
                 btn.setAttribute('aria-label', 'Enable notifications');
@@ -1820,30 +1824,60 @@
                 subscribed ? showSubscribed() : showUnsubscribed();
             })();
 
-            // Tap handler — always active
+            // Tap handler — toggles subscribe / unsubscribe
             btn.onclick = async () => {
-                console.log('[Push] opt-in button tapped for', employeeName);
                 if (btn.disabled) return;
                 btn.disabled = true;
-                try {
-                    await window.BromarPush.requestPermission(employeeName);
-                    // Verify a row actually landed in Supabase
-                    const subscribed = await checkSubscribed();
-                    if (subscribed) {
-                        localStorage.setItem('pushOptedIn', 'true');
-                        showSubscribed();
-                        console.log('[Push] subscribed successfully');
-                    } else {
+
+                if (currentlySubscribed) {
+                    // ── UNSUBSCRIBE ──────────────────────────────
+                    console.log('[Push] unsubscribing', employeeName);
+                    try {
+                        // Unsubscribe the browser-side subscription
+                        try {
+                            const reg = await navigator.serviceWorker.ready;
+                            const sub = await reg.pushManager.getSubscription();
+                            if (sub) await sub.unsubscribe();
+                        } catch (e) { console.warn('[Push] browser unsubscribe failed', e); }
+
+                        // Delete row(s) from Supabase
+                        const { error } = await supabaseClient
+                            .from('push_subscriptions')
+                            .delete()
+                            .eq('employee_name', employeeName);
+                        if (error) throw error;
+
                         localStorage.removeItem('pushOptedIn');
                         showUnsubscribed();
-                        console.warn('[Push] subscription row not found in push_subscriptions');
+                        console.log('[Push] unsubscribed successfully');
+                    } catch (e) {
+                        console.warn('[Push] unsubscribe failed', e);
+                        // Re-verify actual state so button matches reality
+                        const stillSubscribed = await checkSubscribed();
+                        stillSubscribed ? showSubscribed() : showUnsubscribed();
                     }
-                } catch (e) {
-                    console.warn('[Push] requestPermission failed', e);
-                    showUnsubscribed();
-                } finally {
-                    btn.disabled = false;
+                } else {
+                    // ── SUBSCRIBE ────────────────────────────────
+                    console.log('[Push] subscribing', employeeName);
+                    try {
+                        await window.BromarPush.requestPermission(employeeName);
+                        const subscribed = await checkSubscribed();
+                        if (subscribed) {
+                            localStorage.setItem('pushOptedIn', 'true');
+                            showSubscribed();
+                            console.log('[Push] subscribed successfully');
+                        } else {
+                            localStorage.removeItem('pushOptedIn');
+                            showUnsubscribed();
+                            console.warn('[Push] subscription row not found in push_subscriptions');
+                        }
+                    } catch (e) {
+                        console.warn('[Push] requestPermission failed', e);
+                        showUnsubscribed();
+                    }
                 }
+
+                btn.disabled = false;
             };
         }
 
