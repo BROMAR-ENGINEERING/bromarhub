@@ -292,6 +292,44 @@
       color: var(--accent);
     }
 
+    /* ── THEMED MODAL (replaces alert/confirm) ── */
+    .bh-modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .bh-modal-overlay.show { display: flex; }
+    .bh-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem 1.25rem;
+      max-width: 440px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: fadeIn 0.2s ease;
+    }
+    .bh-modal-icon {
+      font-size: 2rem; text-align: center; margin-bottom: 0.75rem;
+    }
+    .bh-modal-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--text-primary);
+      text-align: center; margin-bottom: 0.5rem;
+    }
+    .bh-modal-message {
+      font-size: 0.9rem; color: var(--text-secondary);
+      text-align: center; line-height: 1.5; margin-bottom: 1.25rem;
+    }
+    .bh-modal-actions {
+      display: flex; gap: 0.5rem; justify-content: center;
+    }
+    .bh-modal-actions button {
+      min-width: 100px;
+    }
+
     /* ── FIELD HINT ── */
     .field-hint {
       font-size: 0.75rem; color: var(--text-secondary);
@@ -309,6 +347,20 @@
   </style>
 </head>
 <body>
+
+<!-- Themed modal (used instead of native alert/confirm) -->
+<div class="bh-modal-overlay" id="bhModal">
+  <div class="bh-modal">
+    <div class="bh-modal-icon" id="bhModalIcon">ℹ️</div>
+    <div class="bh-modal-title" id="bhModalTitle">Notice</div>
+    <div class="bh-modal-message" id="bhModalMessage"></div>
+    <div class="bh-modal-actions">
+      <button type="button" class="btn-secondary" id="bhModalCancel">Cancel</button>
+      <button type="button" class="submit-btn" id="bhModalOk">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="page-wrapper">
 
   <!-- SHARED HEADER (injected by bromar-hub.js) -->
@@ -355,10 +407,13 @@
           <label for="employee_type">Employee Type <span class="required">*</span></label>
           <select id="employee_type" name="employee_type" autocomplete="off">
             <option value="" disabled selected>Select type</option>
-            <option value="Electrician">Electrician</option>
-            <option value="Engineer">Engineer</option>
             <option value="Apprentice">Apprentice</option>
-            <option value="Other">Other</option>
+            <option value="Electrician">Electrician</option>
+            <option value="Senior Electrician">Senior Electrician</option>
+            <option value="Junior Engineer">Junior Engineer</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Admin">Admin</option>
+            <option value="Operations">Operations</option>
           </select>
           <span class="error-msg">Please select employee type</span>
         </div>
@@ -442,7 +497,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.16</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.18</p>
       </div>
     </div>
   </div>
@@ -1923,6 +1978,48 @@
     }, 10);
   });
 
+  // ============================================================
+  // THEMED MODAL HELPERS (replace native alert/confirm)
+  // ============================================================
+  const bhModal = document.getElementById('bhModal');
+  const bhModalIcon = document.getElementById('bhModalIcon');
+  const bhModalTitle = document.getElementById('bhModalTitle');
+  const bhModalMessage = document.getElementById('bhModalMessage');
+  const bhModalOk = document.getElementById('bhModalOk');
+  const bhModalCancel = document.getElementById('bhModalCancel');
+
+  function bhAlert(message, { title = 'Notice', icon = 'ℹ️', okText = 'OK' } = {}) {
+    return new Promise(resolve => {
+      bhModalIcon.textContent = icon;
+      bhModalTitle.textContent = title;
+      bhModalMessage.textContent = message;
+      bhModalOk.textContent = okText;
+      bhModalCancel.style.display = 'none';
+      bhModal.classList.add('show');
+      const done = () => { bhModal.classList.remove('show'); bhModalOk.onclick = null; resolve(); };
+      bhModalOk.onclick = done;
+    });
+  }
+
+  function bhConfirm(message, { title = 'Please confirm', icon = '❓', okText = 'Continue', cancelText = 'Cancel' } = {}) {
+    return new Promise(resolve => {
+      bhModalIcon.textContent = icon;
+      bhModalTitle.textContent = title;
+      bhModalMessage.textContent = message;
+      bhModalOk.textContent = okText;
+      bhModalCancel.textContent = cancelText;
+      bhModalCancel.style.display = '';
+      bhModal.classList.add('show');
+      const cleanup = (result) => {
+        bhModal.classList.remove('show');
+        bhModalOk.onclick = null; bhModalCancel.onclick = null;
+        resolve(result);
+      };
+      bhModalOk.onclick = () => cleanup(true);
+      bhModalCancel.onclick = () => cleanup(false);
+    });
+  }
+
   // New Timesheet button — refresh page for a clean form
   document.getElementById('newTimesheetBtn')?.addEventListener('click', () => {
     window.location.reload();
@@ -1936,7 +2033,7 @@
   async function loadJobSheetLabour() {
     // Wait for Supabase client
     if (!window.sb) {
-      alert('Supabase not ready — please refresh the page and try again.');
+      await bhAlert('Supabase not ready — please refresh the page and try again.', { icon: '⚠️', title: 'Not ready' });
       return;
     }
 
@@ -1944,13 +2041,13 @@
     const nameInput = document.getElementById('employee_name');
     const userName = (window.currentUser?.name || nameInput?.value || '').trim();
     if (!userName) {
-      alert('Please enter your name or log in first.');
+      await bhAlert('Please enter your name or log in first.', { icon: '👤', title: 'Name required' });
       return;
     }
 
     const weekStartStr = weekStartingInput.value;
     if (!weekStartStr) {
-      alert('Please select a week starting date first.');
+      await bhAlert('Please select a week starting date first.', { icon: '📅', title: 'Week required' });
       return;
     }
 
@@ -1991,7 +2088,7 @@
 
       if (grouped.size === 0) {
         window.BromarHub?.hideLoading();
-        alert(`No job sheet entries found for ${userName} in the week of ${weekStartStr}.`);
+        await bhAlert(`No job sheet entries found for ${userName} in the week of ${weekStartStr}.`, { icon: '🔍', title: 'Nothing to load' });
         return;
       }
 
@@ -2007,11 +2104,10 @@
         });
       });
       if (hasExisting) {
-        const proceed = confirm(`Found ${grouped.size} entries from job sheets. This will overwrite existing entries. Continue?`);
-        if (!proceed) {
-          window.BromarHub?.hideLoading();
-          return;
-        }
+        window.BromarHub?.hideLoading();
+        const proceed = await bhConfirm(`Found ${grouped.size} entries from job sheets. This will overwrite existing entries. Continue?`, { icon: '⚠️', title: 'Overwrite existing?', okText: 'Overwrite' });
+        if (!proceed) return;
+        window.BromarHub?.showLoading('Loading job sheets…', 'Populating your timesheet');
         // Clear existing rows by regenerating the week
         generateWeek();
       }
@@ -2084,11 +2180,11 @@
       });
 
       window.BromarHub?.hideLoading();
-      alert(`Loaded ${addedCount} entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. You can still add manual entries for admin/office work.`);
+      await bhAlert(`Loaded ${addedCount} entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. You can still add manual entries for admin/office work.`, { icon: '✅', title: 'Loaded' });
     } catch (err) {
       console.error('Load from jobsheets failed:', err);
       window.BromarHub?.hideLoading();
-      alert('Could not load job sheet data: ' + (err.message || err));
+      await bhAlert('Could not load job sheet data: ' + (err.message || err), { icon: '⚠️', title: 'Load failed' });
     }
   }
 
@@ -2111,10 +2207,11 @@
   
   function updateEmployeeTypeOptions() {
     const employeeType = employeeTypeSelect.value;
-    const isEngineer = employeeType === 'Engineer';
-    const isElectrician = employeeType === 'Electrician';
+    // Group rules: senior electrician follows electrician; junior engineer follows engineer
+    const isElectrician = employeeType === 'Electrician' || employeeType === 'Senior Electrician';
+    const isEngineer = employeeType === 'Engineer' || employeeType === 'Junior Engineer';
     const isApprentice = employeeType === 'Apprentice';
-    const isOther = employeeType === 'Other';
+    const isAdminOps = employeeType === 'Admin' || employeeType === 'Operations';
     
     // Update Overtime labels to TIL for Engineers
     const allOvertimeLabels = document.querySelectorAll('.overtime-label');
@@ -2158,8 +2255,8 @@
         if (rdoOption) rdoOption.style.display = 'none';
         if (longServiceOption) longServiceOption.style.display = 'block';
       }
-      // Other: All options available
-      else if (isOther) {
+      // Admin / Operations: All options available
+      else if (isAdminOps) {
         if (tilOption) tilOption.style.display = 'block';
         if (tradeSchoolOption) tradeSchoolOption.style.display = 'block';
         if (rdoOption) rdoOption.style.display = 'block';
@@ -2246,15 +2343,17 @@
       const emailInput = document.getElementById('employee_email');
       const nameLabel  = document.querySelector('label[for="employee_name"]');
 
-      // Resolve display name: employees table → user_metadata → email prefix
+      // Resolve display name + employee type from employees table
       let displayName = '';
+      let employeeType = '';
       try {
         const { data: emp } = await window.sb
           .from('employees')
-          .select('full_name')
+          .select('full_name, employee_type')
           .eq('email', user.email)
           .maybeSingle();
         if (emp?.full_name) displayName = emp.full_name;
+        if (emp?.employee_type) employeeType = emp.employee_type;
       } catch (_) { /* table may not exist; fall through */ }
 
       if (!displayName) {
@@ -2263,7 +2362,7 @@
                    || (user.email ? user.email.split('@')[0] : '');
       }
 
-      // Fill + lock
+      // Fill + lock name / email
       if (nameInput && displayName) {
         nameInput.value = displayName;
         nameInput.readOnly = true;
@@ -2275,6 +2374,22 @@
         emailInput.readOnly = true;
         emailInput.style.cursor = 'not-allowed';
         emailInput.style.opacity = '0.85';
+      }
+
+      // Fill + lock employee type + trigger dependent updates
+      const typeSelect = document.getElementById('employee_type');
+      if (typeSelect && employeeType) {
+        // Match case-insensitively against existing options
+        const match = Array.from(typeSelect.options).find(
+          o => o.value.toLowerCase() === employeeType.toLowerCase()
+        );
+        if (match) {
+          typeSelect.value = match.value;
+          typeSelect.disabled = true;
+          typeSelect.style.cursor = 'not-allowed';
+          typeSelect.style.opacity = '0.85';
+          typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
 
       // Logged-in badge next to Full Name label
