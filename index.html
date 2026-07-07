@@ -262,6 +262,255 @@
         [data-density="compact"] .schedule-item {
             padding: 0.4rem 0.625rem;
         }
+
+        /* Tasks Feed */
+        .tasks-feed {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .tasks-count-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            background: var(--accent);
+            color: white;
+            letter-spacing: 0.03em;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.85rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            width: 100%;
+            font-family: inherit;
+            color: inherit;
+        }
+        .task-item:last-child { margin-bottom: 0; }
+        .task-item:hover {
+            border-color: var(--accent);
+            transform: translateX(2px);
+        }
+        .task-priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .task-priority-dot.priority-High { background: #ef4444; }
+        .task-priority-dot.priority-Medium { background: #f59e0b; }
+        .task-priority-dot.priority-Low { background: #10b981; }
+        .task-item-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow: hidden;
+        }
+        .task-item-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .task-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .task-item-meta::before {
+            content: '·';
+            margin-right: 0.4rem;
+        }
+        .task-item-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex-shrink: 0;
+            background: rgba(234, 88, 12, 0.15);
+            color: var(--accent);
+        }
+        .task-item-badge.status-Pending { background: rgba(234, 88, 12, 0.15); color: var(--accent); }
+        .task-item-badge.status-Acknowledged { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .task-empty {
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        [data-density="compact"] .tasks-feed {
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        [data-density="compact"] .task-item {
+            padding: 0.5rem 0.7rem;
+        }
+
+        /* Task Detail Modal */
+        .task-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        .task-modal.show { display: flex; }
+        .task-modal-content {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 32px var(--shadow);
+            overflow: hidden;
+        }
+        .task-modal-header {
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .task-modal-title-block { flex: 1; min-width: 0; }
+        .task-modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+            letter-spacing: -0.01em;
+        }
+        .task-modal-meta {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .task-modal-chip {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .task-modal-chip.priority-High { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .task-modal-chip.priority-Medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .task-modal-chip.priority-Low { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .task-modal-chip.status-Pending { background: rgba(234, 88, 12, 0.15); color: var(--accent); }
+        .task-modal-chip.status-Acknowledged { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .task-modal-chip.type { background: var(--bg-main); color: var(--text-primary); }
+        .task-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-main);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .task-modal-close svg {
+            width: 16px; height: 16px;
+            stroke: currentColor; stroke-width: 2; fill: none;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .task-modal-body {
+            padding: 1.25rem 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .task-modal-section {
+            margin-bottom: 1rem;
+        }
+        .task-modal-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+        .task-modal-value {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .task-modal-link {
+            display: inline-block;
+            font-size: 0.85rem;
+            color: var(--accent);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .task-modal-link:hover { text-decoration: underline; }
+        .task-modal-footer {
+            padding: 1rem 1.5rem 1.25rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.6rem;
+        }
+        .task-modal-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+        .task-modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .task-modal-btn.acknowledge {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-color: transparent;
+        }
+        .task-modal-btn.acknowledge:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+        }
+        .task-modal-btn.close-off {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            color: white;
+            border-color: transparent;
+        }
+        .task-modal-btn.close-off:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(234, 88, 12, 0.3);
+        }
         .push-opt-btn {
             width: 28px;
             height: 28px;
@@ -948,6 +1197,19 @@
                 <input type="search" id="searchInput" class="search-input" placeholder="Search for forms, resources, schedules..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bromar-hub-search-no-autofill" data-lpignore="true" data-form-type="other">
             </div>
 
+            <div class="tasks-feed" id="tasksFeed" style="display: none;">
+                <div class="schedule-feed-header">
+                    <div class="schedule-feed-title">
+                        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        Your Tasks
+                    </div>
+                    <div class="tasks-count-badge" id="tasksCountBadge">0</div>
+                </div>
+                <div id="tasksFeedBody">
+                    <div class="schedule-loading">Loading your tasks...</div>
+                </div>
+            </div>
+
             <div class="schedule-feed" id="scheduleFeed">
                 <div class="schedule-feed-header">
                     <div class="schedule-feed-title">
@@ -1308,6 +1570,23 @@
         </footer>
     </div>
 
+    <!-- Task Detail Modal -->
+    <div id="taskModal" class="task-modal">
+        <div class="task-modal-content">
+            <div class="task-modal-header">
+                <div class="task-modal-title-block">
+                    <div class="task-modal-title" id="taskModalTitle">—</div>
+                    <div class="task-modal-meta" id="taskModalMeta"></div>
+                </div>
+                <button class="task-modal-close" onclick="closeTaskModal()" aria-label="Close">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="task-modal-body" id="taskModalBody"></div>
+            <div class="task-modal-footer" id="taskModalFooter"></div>
+        </div>
+    </div>
+
     <!-- Logout Confirmation Modal -->
     <div id="logoutModal" class="logout-modal">
         <div class="logout-modal-content">
@@ -1347,7 +1626,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.61</div>
+    <div class="revision-number">V1.62</div>
 
     <script>
         // SUPABASE AUTH
@@ -2018,13 +2297,219 @@
         supabaseClient.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                 loadScheduleFeed();
+                loadTasksFeed();
             }
         });
         // Also trigger on load if session already exists
         (async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) loadScheduleFeed();
+            if (session) { loadScheduleFeed(); loadTasksFeed(); }
         })();
+
+        // ============================================
+        // TASKS FEED
+        // ============================================
+        let currentTask = null;
+        let currentUserContext = { email: null, name: null };
+
+        async function loadTasksFeed() {
+            const feed = document.getElementById('tasksFeed');
+            const body = document.getElementById('tasksFeedBody');
+            const badge = document.getElementById('tasksCountBadge');
+            if (!feed || !body) return;
+
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user?.email) { feed.style.display = 'none'; return; }
+                currentUserContext.email = user.email;
+
+                const { data: emp } = await supabaseClient
+                    .from('employees')
+                    .select('full_name')
+                    .eq('email', user.email)
+                    .single();
+                currentUserContext.name = emp?.full_name || null;
+
+                // Fetch open tasks (Pending + Acknowledged; hide Closed/Completed)
+                const { data: tasks, error } = await supabaseClient
+                    .from('tasks')
+                    .select('*')
+                    .in('status', ['Pending', 'Acknowledged'])
+                    .order('due_date', { ascending: true, nullsFirst: false })
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('[Tasks]', error);
+                    feed.style.display = 'none';
+                    return;
+                }
+
+                const relevant = (tasks || []).filter(t => isTaskForUser(t, currentUserContext));
+                if (!relevant.length) { feed.style.display = 'none'; return; }
+
+                feed.style.display = 'block';
+                badge.textContent = String(relevant.length);
+                body.innerHTML = relevant.map(renderTaskItem).join('');
+
+                // Attach click handlers
+                body.querySelectorAll('[data-task-id]').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const t = relevant.find(x => x.id === el.dataset.taskId);
+                        if (t) openTaskModal(t);
+                    });
+                });
+            } catch (err) {
+                console.error('[Tasks]', err);
+                feed.style.display = 'none';
+            }
+        }
+
+        function isTaskForUser(task, ctx) {
+            if (task.assign_type === 'everyone') return true;
+            const list = Array.isArray(task.assigned_individuals) ? task.assigned_individuals : [];
+            if (!list.length) return false;
+            // Match on employee name or email (case-insensitive)
+            const targetName = (ctx.name || '').toLowerCase();
+            const targetEmail = (ctx.email || '').toLowerCase();
+            return list.some(entry => {
+                if (typeof entry === 'string') {
+                    const v = entry.toLowerCase();
+                    return v === targetName || v === targetEmail;
+                }
+                if (entry && typeof entry === 'object') {
+                    const n = (entry.name || entry.full_name || '').toLowerCase();
+                    const e = (entry.email || '').toLowerCase();
+                    return n === targetName || e === targetEmail;
+                }
+                return false;
+            });
+        }
+
+        function renderTaskItem(t) {
+            const priority = t.priority || 'Medium';
+            const status = t.status || 'Pending';
+            const metaParts = [];
+            if (t.type && t.type !== 'General') metaParts.push(t.type);
+            if (t.due_date) metaParts.push('Due ' + formatDueDate(t.due_date));
+            const meta = metaParts.length ? `<div class="task-item-meta">${escapeHtml(metaParts.join(' · '))}</div>` : '';
+            return `
+                <button type="button" class="task-item" data-task-id="${escapeHtml(t.id)}">
+                    <span class="task-priority-dot priority-${escapeHtml(priority)}" title="${escapeHtml(priority)} priority"></span>
+                    <div class="task-item-body">
+                        <div class="task-item-title">${escapeHtml(t.title || 'Untitled task')}</div>
+                        ${meta}
+                    </div>
+                    <span class="task-item-badge status-${escapeHtml(status)}">${escapeHtml(status)}</span>
+                </button>`;
+        }
+
+        function formatDueDate(dateStr) {
+            try {
+                const d = new Date(dateStr + 'T00:00:00');
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diff = Math.round((d - today) / 86400000);
+                if (diff === 0) return 'today';
+                if (diff === 1) return 'tomorrow';
+                if (diff < 0) return `${Math.abs(diff)}d overdue`;
+                if (diff < 7) return `in ${diff}d`;
+                return d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short' });
+            } catch (_) { return dateStr; }
+        }
+
+        function openTaskModal(task) {
+            currentTask = task;
+            const modal = document.getElementById('taskModal');
+            document.getElementById('taskModalTitle').textContent = task.title || 'Untitled task';
+
+            const meta = document.getElementById('taskModalMeta');
+            const chips = [];
+            if (task.priority) chips.push(`<span class="task-modal-chip priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority)} Priority</span>`);
+            if (task.status) chips.push(`<span class="task-modal-chip status-${escapeHtml(task.status)}">${escapeHtml(task.status)}</span>`);
+            if (task.type && task.type !== 'General') chips.push(`<span class="task-modal-chip type">${escapeHtml(task.type)}</span>`);
+            meta.innerHTML = chips.join('');
+
+            const body = document.getElementById('taskModalBody');
+            const parts = [];
+            if (task.description) {
+                parts.push(`<div class="task-modal-section"><div class="task-modal-label">Description</div><div class="task-modal-value">${escapeHtml(task.description)}</div></div>`);
+            }
+            if (task.due_date) {
+                parts.push(`<div class="task-modal-section"><div class="task-modal-label">Due Date</div><div class="task-modal-value">${escapeHtml(new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>`);
+            }
+            if (task.link) {
+                const url = String(task.link).trim();
+                const safeUrl = url.startsWith('http') ? url : 'https://' + url;
+                parts.push(`<div class="task-modal-section"><div class="task-modal-label">Link</div><a class="task-modal-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></div>`);
+            }
+            if (!parts.length) parts.push('<div class="task-empty">No additional details.</div>');
+            body.innerHTML = parts.join('');
+
+            // Footer buttons
+            const footer = document.getElementById('taskModalFooter');
+            const alreadyAcked = Array.isArray(task.acknowledged_by) && task.acknowledged_by.some(e => (typeof e === 'string' ? e : (e?.email || e?.name || '')) .toString().toLowerCase() === (currentUserContext.email || '').toLowerCase());
+            footer.innerHTML = `
+                <button class="task-modal-btn acknowledge" id="taskAckBtn" ${alreadyAcked ? 'disabled' : ''}>${alreadyAcked ? 'Acknowledged' : 'Acknowledge'}</button>
+                <button class="task-modal-btn close-off" id="taskCloseBtn">Close Off</button>`;
+            document.getElementById('taskAckBtn').onclick = acknowledgeTask;
+            document.getElementById('taskCloseBtn').onclick = closeOffTask;
+
+            modal.classList.add('show');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.remove('show');
+            currentTask = null;
+        }
+
+        document.getElementById('taskModal').addEventListener('click', (e) => {
+            if (e.target.id === 'taskModal') closeTaskModal();
+        });
+
+        async function acknowledgeTask() {
+            if (!currentTask) return;
+            const btn = document.getElementById('taskAckBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            try {
+                const existing = Array.isArray(currentTask.acknowledged_by) ? currentTask.acknowledged_by : [];
+                const entry = { email: currentUserContext.email, name: currentUserContext.name, at: new Date().toISOString() };
+                const updated = [...existing, entry];
+                const { error } = await supabaseClient
+                    .from('tasks')
+                    .update({ acknowledged_by: updated, status: 'Acknowledged', updated_at: new Date().toISOString() })
+                    .eq('id', currentTask.id);
+                if (error) throw error;
+                btn.textContent = 'Acknowledged';
+                setTimeout(() => { closeTaskModal(); loadTasksFeed(); }, 500);
+            } catch (e) {
+                console.error('[Tasks] ack failed', e);
+                btn.disabled = false;
+                btn.textContent = 'Acknowledge';
+                alert('Could not acknowledge task. Please try again.');
+            }
+        }
+
+        async function closeOffTask() {
+            if (!currentTask) return;
+            if (!window.confirm('Close off this task? It will be removed from your list.')) return;
+            const btn = document.getElementById('taskCloseBtn');
+            btn.disabled = true;
+            btn.textContent = 'Closing...';
+            try {
+                const { error } = await supabaseClient
+                    .from('tasks')
+                    .update({ status: 'Closed', updated_at: new Date().toISOString() })
+                    .eq('id', currentTask.id);
+                if (error) throw error;
+                closeTaskModal();
+                loadTasksFeed();
+            } catch (e) {
+                console.error('[Tasks] close failed', e);
+                btn.disabled = false;
+                btn.textContent = 'Close Off';
+                alert('Could not close task. Please try again.');
+            }
+        }
 
         // ============================================
         // COLLAPSIBLE NAVIGATION MENU
