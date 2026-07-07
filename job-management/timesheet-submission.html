@@ -497,7 +497,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.19</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.21</p>
       </div>
     </div>
   </div>
@@ -2096,20 +2096,36 @@
       // Look up client names for each unique job number
       const clientByJob = {};
       if (jobNumbersInSet.size > 0) {
-        try {
-          const { data: registerRows } = await window.sb
-            .from('job_number_register')
-            .select('job_number, client_name, client')
-            .in('job_number', Array.from(jobNumbersInSet));
-          (registerRows || []).forEach(r => {
-            clientByJob[r.job_number] = r.client_name || r.client || '';
-          });
-        } catch (_) { /* register table optional */ }
+        const jobNumsArr = Array.from(jobNumbersInSet);
+        // Try candidate table names in order (some projects use different names)
+        const candidateTables = ['job_number_register', 'jobs', 'job_register'];
+        for (const tbl of candidateTables) {
+          try {
+            const { data: rows, error: regErr } = await window.sb
+              .from(tbl)
+              .select('*')
+              .in('job_number', jobNumsArr);
+            if (regErr) {
+              console.warn(`[loadJobSheets] ${tbl} lookup error:`, regErr.message);
+              continue;
+            }
+            if (rows && rows.length) {
+              rows.forEach(r => {
+                clientByJob[r.job_number] = r.client_name || r.client || r.customer || r.customer_name || '';
+              });
+              console.log(`[loadJobSheets] Found ${rows.length} client name(s) in ${tbl}`);
+              break;
+            }
+          } catch (err) {
+            console.warn(`[loadJobSheets] ${tbl} lookup exception:`, err.message);
+          }
+        }
       }
       // Attach clients to grouped entries
       grouped.forEach(entry => {
         entry.client = clientByJob[entry.jobNumber] || '';
       });
+      console.log('[loadJobSheets] clientByJob:', clientByJob);
 
       // Confirm if any day already has data
       const dayCards = document.querySelectorAll('.day-card');
@@ -2406,9 +2422,12 @@
         );
         if (match) {
           typeSelect.value = match.value;
-          typeSelect.disabled = true;
+          // Lock without disabling — disabled fields are excluded from form submission
           typeSelect.style.cursor = 'not-allowed';
           typeSelect.style.opacity = '0.85';
+          typeSelect.style.pointerEvents = 'none';
+          typeSelect.setAttribute('tabindex', '-1');
+          typeSelect.setAttribute('aria-readonly', 'true');
           typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
