@@ -1626,7 +1626,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.63</div>
+    <div class="revision-number">V1.64</div>
 
     <script>
         // SUPABASE AUTH
@@ -2366,9 +2366,12 @@
 
         function isTaskForUser(task, ctx) {
             if (task.assign_type === 'everyone') return true;
-            const list = Array.isArray(task.assigned_individuals) ? task.assigned_individuals : [];
-            if (!list.length) return false;
-            // Match on employee name or email (case-insensitive)
+            let list = task.assigned_individuals;
+            // Handle case where JSONB comes back as a JSON string
+            if (typeof list === 'string') {
+                try { list = JSON.parse(list); } catch (_) { list = []; }
+            }
+            if (!Array.isArray(list) || !list.length) return false;
             const targetName = (ctx.name || '').toLowerCase();
             const targetEmail = (ctx.email || '').toLowerCase();
             return list.some(entry => {
