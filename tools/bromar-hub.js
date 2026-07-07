@@ -173,6 +173,9 @@
           <a href="${homeHref}" class="control-btn" aria-label="Home">
             <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
           </a>
+          <button id="bromarMenuBtn" class="control-btn" aria-label="Menu">
+            <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
           <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
             <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -182,10 +185,7 @@
           <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image light-logo"/>
           <img src="/assets/logo/bromar-logo-white.png" alt="Bromar" class="logo-image dark-logo"/>
         </div>
-      </div>
-      <button id="bromarMenuBtn" class="bromar-menu-fab" aria-label="Menu">
-        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>`;
+      </div>`;
     initMenu();
   }
 
@@ -248,10 +248,6 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      .bromar-menu-fab { position: fixed; top: 80px; left: 16px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; z-index: 900; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s ease; }
-      .bromar-menu-fab:hover { border-color: var(--accent); background: var(--bg-main); transform: translateY(-1px); }
-      .bromar-menu-fab svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      @media (max-width: 520px) { .bromar-menu-fab { top: 72px; left: 12px; width: 38px; height: 38px; } }
       #bromarMenuBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
       #bromarMenuBackdrop.show { opacity: 1; pointer-events: auto; }
       #bromarMenu { position: fixed; top: 0; left: 0; height: 100dvh; width: 320px; max-width: 90vw; background: var(--bg-secondary); border-right: 1px solid var(--border); z-index: 9999; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
