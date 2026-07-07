@@ -84,6 +84,10 @@ body {
   display: flex; justify-content: space-between;
   z-index: 10;
 }
+.header-controls-left {
+  display: flex;
+  gap: 0.5rem;
+}
 .header-content {
   position: absolute;
   top: 0; left: 0; right: 0;
