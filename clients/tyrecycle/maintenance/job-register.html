@@ -20,16 +20,17 @@
 
   function closeAddJob() {
     document.getElementById('addJobModal').classList.remove('show');
-    ['newWO','newAsset','newTech','newTechEmail','newRemedial','newComments'].forEach(id => {
+    ['newWO','newAsset','newRemedial','newComments'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    document.getElementById('newTech').value = '';
     document.getElementById('newUrgency').value = '';
     document.getElementById('newStatus').value = 'Incomplete';
     document.getElementById('newNewWO').value = 'false';
   }
 
   async function submitNewJob() {
-    const tech = document.getElementById('newTech').value.trim();
+    const tech = document.getElementById('newTech').value;
     const date = document.getElementById('newDate').value;
     const status = document.getElementById('newStatus').value;
 
@@ -38,17 +39,20 @@
 
     BromarHub.showLoading('Saving job…', 'Please wait');
 
+    const empSelect = document.getElementById('newTech');
+    const empEmail = empSelect.selectedOptions[0]?.dataset.email || '';
+
     const payload = {
-      work_order_number:      document.getElementById('newWO').value.trim() || null,
-      asset_number:           document.getElementById('newAsset').value.trim() || null,
-      technician_name:        tech,
-      technician_email:       document.getElementById('newTechEmail').value.trim() || '',
-      completion_date:        date,
-      urgency_level:          document.getElementById('newUrgency').value || null,
-      completion_status:      status,
+      work_order_number:       document.getElementById('newWO').value.trim() || null,
+      asset_number:            document.getElementById('newAsset').value.trim() || null,
+      technician_name:         tech,
+      technician_email:        empEmail,
+      completion_date:         date,
+      urgency_level:           document.getElementById('newUrgency').value || null,
+      completion_status:       status,
       new_work_order_required: document.getElementById('newNewWO').value === 'true',
-      remedial_works:         document.getElementById('newRemedial').value.trim() || null,
-      other_comments:         document.getElementById('newComments').value.trim() || null,
+      remedial_works:          document.getElementById('newRemedial').value.trim() || null,
+      other_comments:          document.getElementById('newComments').value.trim() || null,
     };
 
     try {
@@ -543,15 +547,11 @@
         </div>
       </div>
 
-      <div class="field-row">
-        <div class="field-group">
-          <label for="newTech">Technician Name <span class="required">*</span></label>
-          <input type="text" id="newTech" placeholder="Full name" />
-        </div>
-        <div class="field-group">
-          <label for="newTechEmail">Technician Email</label>
-          <input type="email" id="newTechEmail" placeholder="email@example.com" />
-        </div>
+      <div class="field-group full">
+        <label for="newTech">Employee <span class="required">*</span></label>
+        <select id="newTech">
+          <option value="">Select employee…</option>
+        </select>
       </div>
 
       <div class="field-row">
@@ -609,7 +609,7 @@
   <div class="card-footer">
     <div class="card-footer-title">TYRECYCLE PORTAL — JOB REGISTER</div>
     <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-    <div class="card-footer-version">Version V1.02</div>
+    <div class="card-footer-version">Version V1.03</div>
   </div>
 
 </div>
@@ -623,8 +623,18 @@
 
   // ── INIT ──────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async () => {
+    await loadEmployeesIntoModal();
     await loadJobs();
   });
+
+  async function loadEmployeesIntoModal() {
+    if (!window.sb) return;
+    const { data, error } = await window.sb.from('employees').select('full_name, email').order('full_name');
+    if (error || !data) return;
+    const sel = document.getElementById('newTech');
+    sel.innerHTML = '<option value="">Select employee…</option>' +
+      data.map(e => `<option value="${BromarHub.escapeHtml(e.full_name)}" data-email="${BromarHub.escapeHtml(e.email || '')}">${BromarHub.escapeHtml(e.full_name)}</option>`).join('');
+  }
 
   // ── LOAD FROM SUPABASE ────────────────────────────────────
   async function loadJobs() {
