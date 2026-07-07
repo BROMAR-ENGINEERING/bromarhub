@@ -195,7 +195,7 @@ exports.handler = async (event) => {
 
     if (dbError) {
       console.error('Supabase error:', dbError);
-      throw new Error('Failed to save to database');
+      throw new Error(`Failed to save to database: ${dbError.message || dbError.details || dbError.hint || 'unknown'}`);
     }
 
     // ============================================
