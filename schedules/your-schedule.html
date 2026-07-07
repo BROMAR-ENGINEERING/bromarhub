@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- ============================================================
+     BROMAR HUB — YOUR SCHEDULE
+     Version: V1.07
+     ============================================================ -->
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -11,6 +15,11 @@
   <style>
     .page-wrapper { margin-top: 90px; }
     @media (max-width: 520px) { .page-wrapper { margin-top: 80px; } }
+
+    /* ── Pull to refresh ── */
+    #ptr { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px); opacity: 0; z-index: 9997; pointer-events: none; transition: opacity 0.2s ease; }
+    .ptr-spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); background: var(--bg-secondary); }
+    #ptr.refreshing .ptr-spin { animation: spin 0.8s linear infinite; }
 
     /* ── Profile ── */
     .profile-card { display: flex; align-items: center; gap: 14px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 24px; }
@@ -28,7 +37,7 @@
     .qr-item { display: flex; align-items: center; gap: 9px; font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
     .qr-item .qr-sub { font-weight: 400; color: var(--text-secondary); font-size: 0.8rem; }
     .qr-empty { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 8px; line-height: 1; }
 
     /* ── Toolbar / view toggle ── */
     .toolbar { display: flex; justify-content: flex-end; margin-bottom: 24px; }
@@ -57,9 +66,11 @@
     .day-events { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
     .day-event { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .day-event-more { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; padding: 0 2px; }
-    .day-dots { display: none; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .day-dots .dot { width: 9px; height: 9px; }
+    .day-dots { display: none; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+    .day-dots .dot { width: 14px; height: 14px; font-size: 11px; }
     .day-more { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
+    .day-event.pending { background: transparent !important; border: 1.5px dashed; font-weight: 600; }
+    .pending-pill { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 8px; border-radius: 10px; border: 1.5px dashed; background: transparent; flex-shrink: 0; }
 
     @media (max-width: 768px) {
       .calendar-grid { font-size: 0.8rem; }
@@ -75,7 +86,7 @@
     .list-month-header { font-size: 1rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
     .list-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; transition: all 0.2s; }
     .list-row:hover { border-color: var(--accent); }
-    .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .list-emp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 9px; line-height: 1; }
     .list-main { flex: 1; min-width: 120px; }
     .list-emp-name { font-weight: 600; color: var(--text-primary); }
     .list-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 1px; }
@@ -178,13 +189,14 @@
       <div class="legend-item"><div class="legend-color" style="background:#2563eb"></div><span>RDO</span></div>
       <div class="legend-item"><div class="legend-color" style="background:#f59e0b"></div><span>Annual Leave</span></div>
       <div class="legend-item"><div class="legend-color" style="background:#9333ea"></div><span>Company Meeting</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#6b7280"></div><span>Training</span></div>
       <div class="legend-item"><div style="width:16px;height:16px;background:rgba(234,88,12,0.08);border:2px solid var(--accent);border-radius:4px"></div><span>Today</span></div>
     </div>
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — YOUR SCHEDULE</div>
       <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.03</div>
+      <div class="card-footer-version">Version V1.07</div>
     </div>
   </div>
 </div>
@@ -201,11 +213,12 @@
 </div>
 
 <script>
+  // BROMAR HUB — YOUR SCHEDULE — Version V1.07
   // ============================================================
   // CONFIG
   // ============================================================
-  const TYPE_COLOURS = { job: '#16a34a', rdo: '#2563eb', public_holiday: '#dc2626', annual_leave: '#f59e0b', company_meeting: '#9333ea', site: '#0d9488' };
-  const TYPE_LABELS  = { job: 'Job', rdo: 'RDO', public_holiday: 'Public Holiday', annual_leave: 'Annual Leave', company_meeting: 'Company Meeting', site: 'Site' };
+  const TYPE_COLOURS = { job: '#16a34a', rdo: '#2563eb', public_holiday: '#dc2626', annual_leave: '#f59e0b', company_meeting: '#9333ea', training: '#6b7280', site: '#0d9488' };
+  const TYPE_LABELS  = { job: 'Job', rdo: 'RDO', public_holiday: 'Public Holiday', annual_leave: 'Annual Leave', company_meeting: 'Company Meeting', training: 'Training', site: 'Site' };
   const SCHED_LABELS = { oneoff: 'One-off', duration: 'Fixed duration', indefinite: 'Ongoing' };
 
   // ============================================================
@@ -251,6 +264,7 @@
   }
   function assignmentsOn(dateStr) { return assignments.filter(a => activeOn(a, dateStr)); }
   function colourFor(a) { return TYPE_COLOURS[a.type] || '#6b7280'; }
+  function isPending(a) { return a.status === 'pending'; }
   function labelFor(a) {
     if (a.type === 'job')  return a.job_number || 'Job';
     if (a.type === 'site') return a.site_name || a.client_name || 'Site assignment';
@@ -322,8 +336,11 @@
     if (!list.length) { el.innerHTML = '<span class="qr-empty">Nothing booked</span>'; return; }
     el.innerHTML = list.map(a => {
       const sub = subFor(a);
-      return '<div class="qr-item"><span class="dot" style="background:' + colourFor(a) + '"></span>' +
-             '<span>' + esc(labelFor(a)) + (sub ? ' <span class="qr-sub">' + esc(sub) + '</span>' : '') + '</span></div>';
+      const col = colourFor(a);
+      const dot = '<span class="dot' + (isPending(a) ? ' pending' : '') + '" style="background:' + col + '">' + (isPending(a) ? '!' : '') + '</span>';
+      const pend = isPending(a) ? ' <span class="qr-sub">· pending</span>' : '';
+      return '<div class="qr-item">' + dot +
+             '<span>' + esc(labelFor(a)) + pend + (sub ? ' <span class="qr-sub">' + esc(sub) + '</span>' : '') + '</span></div>';
     }).join('');
   }
 
@@ -379,9 +396,11 @@
       items.slice(0, 4).forEach(a => {
         const ev = document.createElement('div');
         ev.className = 'day-event';
-        ev.style.background = colourFor(a);
+        const col = colourFor(a);
+        if (isPending(a)) { ev.classList.add('pending'); ev.style.color = col; ev.style.borderColor = col; }
+        else { ev.style.background = col; }
         ev.textContent = labelFor(a);
-        ev.title = labelFor(a);
+        ev.title = labelFor(a) + (isPending(a) ? ' (pending)' : '');
         list.appendChild(ev);
       });
       if (items.length > 4) {
@@ -398,8 +417,10 @@
       items.slice(0, 6).forEach(a => {
         const dot = document.createElement('span');
         dot.className = 'dot';
-        dot.style.background = colourFor(a);
-        dot.title = labelFor(a);
+        const col = colourFor(a);
+        dot.style.background = col;
+        if (isPending(a)) { dot.classList.add('pending'); dot.textContent = '!'; }
+        dot.title = labelFor(a) + (isPending(a) ? ' (pending)' : '');
         dots.appendChild(dot);
       });
       if (items.length > 6) {
@@ -426,17 +447,20 @@
       body.innerHTML = '<div class="day-modal-empty">Nothing booked.</div>';
     } else {
       body.innerHTML = items.map(a => {
+        const col = colourFor(a);
         const rows = [];
         if (a.job_number)  rows.push(row('Job No.', a.job_number));
         if (a.client_name) rows.push(row('Client', a.client_name));
         if (a.site_name)   rows.push(row('Site', a.site_name));
         rows.push(row('Schedule', SCHED_LABELS[a.schedule] || a.schedule));
         rows.push(row('Dates', rangeText(a)));
+        if (a.status)      rows.push(row('Status', isPending(a) ? 'Pending approval' : 'Approved'));
         if (a.notes)       rows.push(row('Notes', a.notes));
+        const pill = isPending(a) ? '<span class="pending-pill" style="color:' + col + ';border-color:' + col + '">Pending</span>' : '';
         return '<div class="assign-block">' +
           '<div class="assign-head">' +
-            '<span class="type-badge" style="background:' + colourFor(a) + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' +
-            '<span class="assign-title">' + esc(labelFor(a)) + '</span>' +
+            '<span class="type-badge" style="background:' + col + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' +
+            '<span class="assign-title">' + esc(labelFor(a)) + '</span>' + pill +
           '</div>' + rows.join('') + '</div>';
       }).join('');
     }
@@ -475,11 +499,13 @@
       html += '<div class="list-group"><div class="list-month-header">' + months[m - 1] + ' ' + y + '</div>';
       groups[key].forEach(a => {
         const sub = subFor(a);
-        html += '<div class="list-row">' +
-          '<span class="list-emp-dot" style="background:' + colourFor(a) + '"></span>' +
+        const col = colourFor(a);
+        const dot = '<span class="list-emp-dot' + (isPending(a) ? ' pending' : '') + '" style="background:' + col + '">' + (isPending(a) ? '!' : '') + '</span>';
+        const pend = isPending(a) ? '<span class="pending-pill" style="color:' + col + ';border-color:' + col + '">Pending</span>' : '';
+        html += '<div class="list-row">' + dot +
           '<div class="list-main"><div class="list-emp-name">' + esc(labelFor(a)) + '</div>' +
           (sub ? '<div class="list-sub">' + esc(sub) + '</div>' : '') + '</div>' +
-          '<span class="list-type-badge" style="background:' + colourFor(a) + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' +
+          '<span class="list-type-badge" style="background:' + col + '">' + esc(TYPE_LABELS[a.type] || a.type) + '</span>' + pend +
           '<span class="list-dates">' + rangeText(a) + '</span>' +
           '</div>';
       });
@@ -513,6 +539,38 @@
     renderQuickRef();
     renderCalendar();
   });
+
+  // ============================================================
+  // PULL TO REFRESH
+  // ============================================================
+  (function () {
+    const TH = 70;
+    let startY = 0, dist = 0, pulling = false;
+    const ind = document.createElement('div');
+    ind.id = 'ptr';
+    ind.innerHTML = '<div class="ptr-spin"></div>';
+    document.body.appendChild(ind);
+
+    window.addEventListener('touchstart', e => {
+      if (window.scrollY <= 0) { startY = e.touches[0].clientY; pulling = true; dist = 0; }
+      else pulling = false;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', e => {
+      if (!pulling || window.scrollY > 0) { pulling = false; return; }
+      dist = e.touches[0].clientY - startY;
+      if (dist > 0) {
+        ind.style.opacity = Math.min(dist / TH, 1);
+        ind.style.transform = 'translateX(-50%) translateY(' + Math.min(dist - 20, 70) + 'px)';
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      if (pulling && dist > TH) { ind.classList.add('refreshing'); location.reload(); }
+      else { ind.style.opacity = 0; ind.style.transform = 'translateX(-50%) translateY(-20px)'; }
+      pulling = false; dist = 0;
+    });
+  })();
 </script>
 
 </body>
