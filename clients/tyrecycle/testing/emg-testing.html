@@ -68,12 +68,15 @@
     .er-hist { border: 1px solid var(--border); background: var(--bg-main); color: var(--text-secondary); font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.72rem; padding: 0.3rem 0.7rem; border-radius: 7px; cursor: pointer; }
     .er-hist:hover { border-color: var(--accent); color: var(--accent); }
     .hist-row { border: 1px solid var(--border); border-radius: 9px; padding: 0.7rem 0.9rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .draft-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; border: 1px solid var(--border); border-radius: 9px; padding: 0.7rem 0.9rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
     .hist-when { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
     .hist-diff { margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; line-height: 1.6; }
     .hist-act { text-transform: uppercase; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 6px; margin-right: 4px; }
     .hist-create { background: var(--success-bg); color: var(--success); }
     .hist-update { background: var(--info-bg); color: var(--info-text); }
     .hist-remove { background: var(--error-bg); color: var(--error); }
+    .hist-rename { background: var(--card-hover); color: var(--accent); }
+    .hist-restore { background: var(--success-bg); color: var(--success); }
 
     /* Area tabs */
     .area-tab { flex: 1; padding: 0.875rem 1rem; border: 2px solid var(--border);
@@ -266,7 +269,9 @@
 
       <div class="form-divider"></div>
       <div class="submit-row">
-        <span class="submit-note">Only fittings marked pass/fail are saved.</span>
+        <span class="submit-note" id="draftNote">Only fittings marked pass/fail are saved.</span>
+        <button type="button" class="btn-secondary" id="openBtn">📂 Open Saved</button>
+        <button type="button" class="btn-secondary" id="saveBtn">💾 Save Progress</button>
         <button type="button" class="btn-secondary" id="pdfBtn">⬇ PDF Report</button>
         <button type="button" class="submit-btn" id="submitBtn">Submit Test Log</button>
       </div>
@@ -279,6 +284,30 @@
           <div class="submit-row" style="margin-top:1.25rem;">
             <button type="button" class="btn-secondary" id="rmCancel">Cancel</button>
             <button type="button" class="submit-btn" id="rmGo" style="background:var(--error);" disabled>Remove Fitting</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="draftModal">
+        <div class="modal-content" style="max-width:560px;">
+          <h2>Open Saved Test</h2>
+          <div id="draftBody" style="max-height:60vh;overflow-y:auto;"></div>
+          <div class="submit-row" style="margin-top:1.25rem;">
+            <button type="button" class="btn-secondary" id="draftClose">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="addModal">
+        <div class="modal-content" style="max-width:460px;">
+          <h2>Add Fitting</h2>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1rem;">Enter the asset number. It must be unique — if this asset was previously removed, it will be restored with its history intact.</p>
+          <label for="addRef">Asset Number</label>
+          <input type="text" id="addRef" autocomplete="off"/>
+          <div id="addMsg" style="font-size:0.85rem;margin-top:0.6rem;"></div>
+          <div class="submit-row" style="margin-top:1.25rem;">
+            <button type="button" class="btn-secondary" id="addCancel">Cancel</button>
+            <button type="button" class="submit-btn" id="addGo">Add Fitting</button>
           </div>
         </div>
       </div>
@@ -317,7 +346,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.07</div>
+        <div class="card-footer-version">Version V1.09</div>
       </div>
     </div>
   </div>
@@ -373,14 +402,56 @@
       (data || []).forEach(r => { const n = parseInt((r.ref.split('-')[1] || '0'), 10); if (n > max) max = n; });
       return PREFIX[area] + '-' + (max + 1);
     }
+    // Open the Add Fitting dialog, pre-filled with the next free asset number
     async function addFitting(area) {
-      const ref = await nextRef(area);
-      const { data } = await window.sb.from(FIT_TABLE).select('sort_order').eq('area', area).order('sort_order', { ascending: false }).limit(1);
-      const sort = (data && data[0] ? data[0].sort_order : 0) + 1;
-      const { error } = await window.sb.from(FIT_TABLE).insert([{ ref, area, sort_order: sort, active: true, updated_by: currentEditor() }]);
-      if (error) { console.error(error); return BromarHub.showInfo('Add failed: ' + error.message); }
-      await loadFittings(); renderList();
+      document.getElementById('addMsg').textContent = '';
+      document.getElementById('addRef').value = await nextRef(area);
+      document.getElementById('addModal').classList.add('show');
+      document.getElementById('addRef').focus();
     }
+    async function confirmAdd() {
+      const area = activeArea;
+      const msg = document.getElementById('addMsg');
+      const ref = document.getElementById('addRef').value.trim().toUpperCase();
+      msg.style.color = 'var(--error)';
+      if (!ref) { msg.textContent = 'Enter an asset number.'; return; }
+      if (!ref.startsWith(PREFIX[area] + '-')) { msg.textContent = `Asset number must start with ${PREFIX[area]}- for this area.`; return; }
+      // Check the whole register, including previously removed fittings
+      const { data, error } = await window.sb.from(FIT_TABLE).select('ref, area, active').eq('ref', ref).maybeSingle();
+      if (error) { msg.textContent = error.message; return; }
+      if (data && data.active) { msg.textContent = `${ref} already exists in the register.`; return; }
+      if (data && !data.active) {
+        const { error: e2 } = await window.sb.from(FIT_TABLE).update({ active: true, updated_by: currentEditor() }).eq('ref', ref);
+        if (e2) { msg.textContent = e2.message; return; }
+        document.getElementById('addModal').classList.remove('show');
+        await loadFittings(); renderList();
+        return BromarHub.showSuccess(`${ref} restored to the register.`);
+      }
+      const sort = parseInt((ref.split('-')[1] || '0'), 10) || 999;
+      const { error: e3 } = await window.sb.from(FIT_TABLE)
+        .insert([{ ref, area, sort_order: sort, active: true, updated_by: currentEditor() }]);
+      if (e3) { msg.textContent = e3.message; return; }
+      document.getElementById('addModal').classList.remove('show');
+      await loadFittings(); renderList();
+      BromarHub.showSuccess(`${ref} added.`);
+    }
+    // Rename an asset number (guarded against duplicates)
+    async function renameFitting(oldRef, newRefRaw) {
+      const newRef = (newRefRaw || '').trim().toUpperCase();
+      if (!newRef || newRef === oldRef) { renderList(); return; }
+      const area = areaOf(oldRef);
+      if (!newRef.startsWith(PREFIX[area] + '-')) {
+        BromarHub.showInfo(`Asset number must start with ${PREFIX[area]}- for this area.`); renderList(); return;
+      }
+      const { data } = await window.sb.from(FIT_TABLE).select('ref').eq('ref', newRef).maybeSingle();
+      if (data) { BromarHub.showInfo(`${newRef} already exists in the register.`); renderList(); return; }
+      const { error } = await window.sb.from(FIT_TABLE).update({ ref: newRef, updated_by: currentEditor() }).eq('ref', oldRef);
+      if (error) { BromarHub.showInfo('Rename failed: ' + error.message); renderList(); return; }
+      if (results[oldRef]) { results[newRef] = results[oldRef]; delete results[oldRef]; }
+      await loadFittings(); renderList();
+      BromarHub.showSuccess(`${oldRef} renamed to ${newRef}.`);
+    }
+
     async function removeFitting(ref) {
       const { error } = await window.sb.from(FIT_TABLE).update({ active: false, updated_by: currentEditor() }).eq('ref', ref);
       if (error) { console.error(error); return BromarHub.showInfo('Remove failed: ' + error.message); }
@@ -414,6 +485,8 @@
             </div>
           </div>
           <div class="edit-grid">
+            <div class="ef"><label>Asset No.</label>
+              <input type="text" class="ei-ref" data-ref="${esc(f.ref)}" value="${esc(f.ref)}"/></div>
             ${field('loc','Location',true)}
             ${field('type','Type')}
             ${field('db','Board')}
@@ -517,6 +590,10 @@
     });
 
     document.getElementById('fittingList').addEventListener('change', e => {
+      if (e.target.classList.contains('ei-ref')) {
+        renameFitting(e.target.dataset.ref, e.target.value);
+        return;
+      }
       if (e.target.classList.contains('ei')) {
         const { ref, key } = e.target.dataset;
         persistEdit(ref, key, e.target.value);
@@ -572,15 +649,16 @@
       document.getElementById('histTitle').textContent = 'Change History — ' + ref;
       document.getElementById('histBody').innerHTML = '<p style="color:var(--text-secondary);">Loading...</p>';
       document.getElementById('historyModal').classList.add('show');
-      const { data, error } = await window.sb.from(AUDIT_TABLE)
-        .select('action, changed_by, changed_at, before, after')
-        .eq('fitting_ref', ref).order('changed_at', { ascending: false });
+      const fid = idByRef[ref];
+      let q = window.sb.from(AUDIT_TABLE).select('action, changed_by, changed_at, before, after');
+      q = fid ? q.eq('fitting_id', fid) : q.eq('fitting_ref', ref);
+      const { data, error } = await q.order('changed_at', { ascending: false });
       if (error) { document.getElementById('histBody').innerHTML = '<p style="color:var(--error);">' + esc(error.message) + '</p>'; return; }
       if (!data || !data.length) { document.getElementById('histBody').innerHTML = '<p style="color:var(--text-secondary);">No changes recorded.</p>'; return; }
-      const COLS = { location: 'Location', type: 'Type', board: 'Board', circuit: 'CB#', maintained: 'M/NM', brand: 'Brand', model: 'Model', active: 'Active' };
+      const COLS = { ref: 'Asset No.', location: 'Location', type: 'Type', board: 'Board', circuit: 'CB#', maintained: 'M/NM', brand: 'Brand', model: 'Model', active: 'Active' };
       document.getElementById('histBody').innerHTML = data.map(h => {
         let changes = '';
-        if (h.action === 'update' && h.before && h.after) {
+        if ((h.action === 'update' || h.action === 'rename') && h.before && h.after) {
           const diffs = Object.keys(COLS).filter(k => (h.before[k] ?? '') !== (h.after[k] ?? ''))
             .map(k => `${COLS[k]}: "${esc(h.before[k] ?? '')}" → "${esc(h.after[k] ?? '')}"`);
           changes = diffs.length ? '<div class="hist-diff">' + diffs.join('<br>') + '</div>' : '';
@@ -590,6 +668,99 @@
       }).join('');
     }
     document.getElementById('histClose').addEventListener('click', () => document.getElementById('historyModal').classList.remove('show'));
+
+    // ── ADD FITTING MODAL ──
+    document.getElementById('addCancel').addEventListener('click', () => document.getElementById('addModal').classList.remove('show'));
+    document.getElementById('addGo').addEventListener('click', confirmAdd);
+
+    // ── SAVE / OPEN PROGRESS (database-backed drafts) ──
+    const DRAFT_TABLE = 'emergency_lighting_drafts';
+    let currentDraftId = null;
+
+    function collectState() {
+      return {
+        test_date: document.getElementById('test_date').value,
+        start: getTime('start'), finish: getTime('finish'),
+        frequency: testFrequency(),
+        tester: document.getElementById('filled_by').value || '',
+        notes: document.getElementById('test_notes').value,
+        remedials: document.getElementById('remedials').value,
+        results: results
+      };
+    }
+    function applyState(s) {
+      if (s.test_date) document.getElementById('test_date').value = s.test_date;
+      const setFromStr = (p, v) => { if (!v) return; const d = new Date(); d.setHours(parseInt(v.slice(0,2),10), parseInt(v.slice(3),10)); setTime(p, d); };
+      setFromStr('start', s.start); setFromStr('finish', s.finish);
+      document.getElementById('freq6').checked = s.frequency === '6 Monthly';
+      document.getElementById('freq12').checked = s.frequency === '12 Monthly';
+      if (s.tester) document.getElementById('filled_by').value = s.tester;
+      document.getElementById('test_notes').value = s.notes || '';
+      document.getElementById('remedials').value = s.remedials || '';
+      Object.keys(results).forEach(k => delete results[k]);
+      Object.assign(results, s.results || {});
+      updateDuration(); renderList();
+    }
+    function draftNote(txt) { document.getElementById('draftNote').textContent = txt; }
+
+    async function saveDraft() {
+      const state = collectState();
+      const label = (state.test_date || 'no date') + ' — ' + (state.tester || 'unassigned');
+      BromarHub.showLoading('Saving progress...', 'Emergency lighting test');
+      try {
+        let res;
+        if (currentDraftId) {
+          res = await window.sb.from(DRAFT_TABLE).update({ label, saved_by: currentEditor(), payload: state, updated_at: new Date().toISOString() }).eq('id', currentDraftId);
+        } else {
+          res = await window.sb.from(DRAFT_TABLE).insert([{ label, saved_by: currentEditor(), payload: state }]).select('id').single();
+          if (res.data) currentDraftId = res.data.id;
+        }
+        BromarHub.hideLoading();
+        if (res.error) return BromarHub.showInfo('Save failed: ' + res.error.message);
+        draftNote('Progress saved ' + new Date().toLocaleTimeString());
+        BromarHub.showSuccess('Progress saved.');
+      } catch (e) { BromarHub.hideLoading(); console.error(e); BromarHub.showInfo('Save failed. Check console.'); }
+    }
+
+    async function openDraftList() {
+      document.getElementById('draftBody').innerHTML = '<p style="color:var(--text-secondary);">Loading...</p>';
+      document.getElementById('draftModal').classList.add('show');
+      const { data, error } = await window.sb.from(DRAFT_TABLE).select('id, label, saved_by, updated_at').order('updated_at', { ascending: false });
+      if (error) { document.getElementById('draftBody').innerHTML = '<p style="color:var(--error);">' + esc(error.message) + '</p>'; return; }
+      if (!data || !data.length) { document.getElementById('draftBody').innerHTML = '<p style="color:var(--text-secondary);">No saved tests.</p>'; return; }
+      document.getElementById('draftBody').innerHTML = data.map(d => `
+        <div class="draft-row">
+          <div>
+            <div style="font-weight:600;">${esc(d.label || 'Untitled')}</div>
+            <div class="hist-when">Saved by ${esc(d.saved_by || 'Unknown')} · ${esc(new Date(d.updated_at).toLocaleString())}</div>
+          </div>
+          <div style="display:flex;gap:0.4rem;">
+            <button type="button" class="er-hist" data-open="${esc(d.id)}">Open</button>
+            <button type="button" class="er-del" data-drop="${esc(d.id)}">Delete</button>
+          </div>
+        </div>`).join('');
+    }
+    document.getElementById('draftBody').addEventListener('click', async e => {
+      const o = e.target.closest('[data-open]'), x = e.target.closest('[data-drop]');
+      if (o) {
+        const { data, error } = await window.sb.from(DRAFT_TABLE).select('payload').eq('id', o.dataset.open).single();
+        if (error) return BromarHub.showInfo('Open failed: ' + error.message);
+        currentDraftId = o.dataset.open;
+        applyState(data.payload || {});
+        document.getElementById('draftModal').classList.remove('show');
+        draftNote('Opened saved test — remember to save progress as you go.');
+        BromarHub.showSuccess('Saved test loaded.');
+      }
+      if (x) {
+        const { error } = await window.sb.from(DRAFT_TABLE).delete().eq('id', x.dataset.drop);
+        if (error) return BromarHub.showInfo('Delete failed: ' + error.message);
+        if (currentDraftId === x.dataset.drop) currentDraftId = null;
+        openDraftList();
+      }
+    });
+    document.getElementById('saveBtn').addEventListener('click', saveDraft);
+    document.getElementById('openBtn').addEventListener('click', openDraftList);
+    document.getElementById('draftClose').addEventListener('click', () => document.getElementById('draftModal').classList.remove('show'));
 
     document.getElementById('filter').addEventListener('input', renderList);
 
@@ -693,6 +864,60 @@
     const ROW_H = 4.6;           // approx autotable row height at 7pt
     const HEAD_H = 6;            // autotable header row
 
+    function nextRetestDue() {
+      const v = document.getElementById('test_date').value;
+      if (!v) return null;
+      const months = testFrequency() === '12 Monthly' ? 12 : 6;
+      const d = new Date(v + 'T00:00:00');
+      if (isNaN(d)) return null;
+      const day = d.getDate();
+      d.setMonth(d.getMonth() + months);
+      if (d.getDate() !== day) d.setDate(0); // clamp short months
+      return d;
+    }
+    function ddmmyyyy(d) { return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
+
+    // Test & tag style summary tiles
+    function drawTiles(doc, y) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE;
+      const tiles = [
+        { n: realFittings().length, l: 'FITTINGS', c: P.navy.rgb },
+        { n: cPass(), l: 'PASS', c: P.success.rgb },
+        { n: cFail(), l: 'FAIL', c: P.error.rgb },
+        { n: cUntested(), l: 'NOT TESTED', c: P.muted.rgb },
+        { n: AREAS.filter(a => FITTINGS[a].length).length, l: 'AREAS', c: P.charcoal.rgb },
+        { n: (durationMins() === null ? '-' : durationMins()), l: 'MINUTES', c: P.accent.rgb }
+      ];
+      const gap = 3, w = (L.contentW - gap * (tiles.length - 1)) / tiles.length, h = 17;
+      tiles.forEach((t, i) => {
+        const x = L.margin + i * (w + gap);
+        doc.setFillColor(246, 246, 248);
+        doc.setDrawColor(P.line.rgb[0], P.line.rgb[1], P.line.rgb[2]);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(x, y, w, h, 1.8, 1.8, 'FD');
+        setF(doc, 14, 'bold', t.c);
+        doc.text(String(t.n), x + w / 2, y + 8.5, { align: 'center' });
+        setF(doc, 5.6, 'bold', P.muted.rgb);
+        doc.text(t.l, x + w / 2, y + 13.5, { align: 'center' });
+      });
+      return y + h;
+    }
+
+    function drawRetestBanner(doc, y) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE;
+      const due = nextRetestDue();
+      const h = 11;
+      doc.setFillColor(255, 247, 240);
+      doc.setDrawColor(P.accent.rgb[0], P.accent.rgb[1], P.accent.rgb[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(L.margin, y, L.contentW, h, 2, 2, 'FD');
+      setF(doc, 8, 'bold', P.charcoal.rgb);
+      doc.text('NEXT RETEST DUE', L.margin + 5, y + 7);
+      setF(doc, 11, 'bold', P.accent.rgb);
+      doc.text(due ? ddmmyyyy(due) : '-', L.margin + 48, y + 7.4);
+      return y + h;
+    }
+
     async function generatePDF() {
       const K = window.BromarReportKit;
       if (!K || !window.jspdf) return BromarHub.showInfo('Report kit not loaded (check /tools/bromar-report-kit.js)');
@@ -735,6 +960,9 @@
         yr = K.pairRow(doc, rightX, yr, 'Result', counts, { labelW: 26 });
         y = Math.max(yl, yr) + 4;
 
+        y = drawTiles(doc, y) + 4;
+        y = drawRetestBanner(doc, y) + 2;
+
         const NAR = { size: 8, lineHeight: 3.5, width: L.contentW };
         const blocks = [
           ['Scope and Purpose', 'This report records the results of a routine 90-minute discharge test of the emergency lighting and exit sign installation at the above site, carried out in accordance with AS/NZS 2293.2 Emergency lighting and exit signs for buildings - Inspection and maintenance.'],
@@ -760,7 +988,61 @@
           y += 4.4;
         });
 
-        /* ── RESULTS TABLES ── */
+        /* ── PAGE 2: ITEMS REQUIRING ATTENTION + REMEDIALS ── */
+        const failed = realFittings().filter(f => results[f.ref]?.status === 'fail');
+        y = newPage();
+        setF(doc, K.FONT.title, 'bold', K.PALETTE.navy.rgb);
+        doc.text('Items Requiring Attention', L.margin, y);
+        y += 5;
+
+        if (failed.length) {
+          doc.autoTable({
+            theme: 'grid',
+            head: [['Asset', 'Location', 'Board / CB', 'Description', 'Failed At', 'Status']],
+            body: failed.map(f => {
+              const r = results[f.ref] || {};
+              const desc = [[f.brand, f.model].filter(Boolean).join(' '), r.faultnote, r.notes].filter(Boolean).join(' — ') || (f.type || '');
+              return [f.ref, f.loc || '-', [f.db, f.ckt ? ('CB ' + f.ckt) : ''].filter(Boolean).join(' \u00B7 ') || '-', desc, r.duration ? r.duration + ' min' : '-', 'Fail'];
+            }),
+            styles: { fontSize: 7.5, cellPadding: 1.8, lineColor: K.PALETTE.line.rgb, lineWidth: 0.1, textColor: K.PALETTE.black.rgb, overflow: 'linebreak' },
+            headStyles: { fillColor: K.PALETTE.accent.rgb, textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [253, 243, 236] },
+            columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 38 }, 2: { cellWidth: 24 }, 3: { cellWidth: 62 }, 4: { cellWidth: 18 }, 5: { cellWidth: 22, halign: 'center' } },
+            margin: { top: L.headerH + 10, left: L.margin, right: L.margin, bottom: 18 },
+            didParseCell: (dd) => { if (dd.section === 'body' && dd.column.index === 5) { dd.cell.styles.textColor = K.PALETTE.accent.rgb; dd.cell.styles.fontStyle = 'bold'; } },
+            didDrawPage: stampPage,
+            startY: y + 2
+          });
+          y = doc.lastAutoTable.finalY;
+        } else {
+          y = K.para(doc, L.margin, y + 5, 'No fittings failed this test. All tested fittings operated for the full 90 minute duration and met the requirements of AS/NZS 2293.2.', { size: 8, lineHeight: 3.6 });
+        }
+
+        const remedialText = document.getElementById('remedials').value.trim();
+        const autoList = failed.map(f => {
+          const r = results[f.ref] || {};
+          return f.ref + ' (' + (f.loc || 'location not recorded') + ') - ' +
+            (r.duration ? 'extinguished at ' + r.duration + ' min. ' : '') +
+            (r.faultnote ? r.faultnote + '. ' : '') + 'Repair and retest.';
+        });
+        y = ensureRoom(y + 8, autoList.length + 2);
+        y = K.sectionHeading(doc, L.margin, y, 'Remedials Required');
+        if (!autoList.length && !remedialText) {
+          y = K.para(doc, L.margin, y + 1, 'No remedial work required.', { size: 8, lineHeight: 3.6 });
+        } else {
+          autoList.forEach(t => {
+            if (y > BOTTOM - 6) y = newPage();
+            y = K.para(doc, L.margin, y + 1, '- ' + t, { size: 8, lineHeight: 3.6 });
+          });
+          if (remedialText) { if (y > BOTTOM - 10) y = newPage(); y = K.para(doc, L.margin, y + 2, remedialText, { size: 8, lineHeight: 3.6 }); }
+        }
+
+        /* ── RESULTS TABLES ──
+           Continue under the attention section only if it used less than
+           half the page; otherwise start the results on a fresh page. */
+        const HALF_PAGE = L.pageH / 2;
+        if (y > HALF_PAGE) y = newPage(); else y += 4;
+
         const head = [['Ref', 'Location', 'Type', 'Board / CB', 'Fitting', 'Result', 'Notes']];
         const mkBody = (area) => FITTINGS[area].map(f => {
           const r = results[f.ref] || {};
@@ -797,45 +1079,6 @@
           y = doc.lastAutoTable.finalY;
         });
 
-        /* ── FAILED SUMMARY + REMEDIALS ── */
-        const failed = realFittings().filter(f => results[f.ref]?.status === 'fail');
-        y = ensureRoom(y + 8, Math.max(failed.length, 1));
-        K.sectionHeading(doc, L.margin, y, 'Summary of Failed Fittings');
-        if (failed.length) {
-          doc.autoTable(Object.assign({}, common, {
-            head: [['Ref', 'Location', 'Fitting', 'Failed At', 'Fault / Notes']],
-            body: failed.map(f => {
-              const r = results[f.ref] || {};
-              return [f.ref, f.loc, [f.brand, f.model].filter(Boolean).join(' '),
-                r.duration ? r.duration + ' min' : '-', [r.faultnote, r.notes].filter(Boolean).join(' - ')];
-            }),
-            columnStyles: { 0: { cellWidth: 13 }, 1: { cellWidth: 52 }, 2: { cellWidth: 34 }, 3: { cellWidth: 18 }, 4: { cellWidth: 65 } },
-            startY: y + 4
-          }));
-          y = doc.lastAutoTable.finalY;
-        } else {
-          y = K.para(doc, L.margin, y + 5, 'No fittings failed this test. All tested fittings operated for the full 90 minute duration.', { size: 8, lineHeight: 3.6 });
-        }
-
-        const remedialText = document.getElementById('remedials').value.trim();
-        const autoList = failed.map(f => {
-          const r = results[f.ref] || {};
-          return f.ref + ' (' + (f.loc || 'location not recorded') + ') - ' +
-            (r.duration ? 'extinguished at ' + r.duration + ' min. ' : '') +
-            (r.faultnote ? r.faultnote + '. ' : '') + 'Repair and retest.';
-        });
-        y = ensureRoom(y + 8, autoList.length + 2);
-        y = K.sectionHeading(doc, L.margin, y, 'Remedials Required');
-        if (!autoList.length && !remedialText) {
-          y = K.para(doc, L.margin, y + 1, 'No remedial work required.', { size: 8, lineHeight: 3.6 });
-        } else {
-          autoList.forEach(t => {
-            if (y > BOTTOM - 6) y = newPage();
-            y = K.para(doc, L.margin, y + 1, '- ' + t, { size: 8, lineHeight: 3.6 });
-          });
-          if (remedialText) { if (y > BOTTOM - 10) y = newPage(); y = K.para(doc, L.margin, y + 2, remedialText, { size: 8, lineHeight: 3.6 }); }
-        }
-
         const notes = document.getElementById('test_notes').value.trim();
         if (notes) {
           y = ensureRoom(y + 8, 3);
@@ -869,7 +1112,6 @@
     function unmarkedFittings() {
       const out = [];
       AREAS.forEach(area => FITTINGS[area].forEach(f => {
-        if (f.na || !f.type) return; // skip removed/placeholder rows
         if (!results[f.ref]?.status) out.push(f.ref);
       }));
       return out;
@@ -886,8 +1128,11 @@
           errs.map(e => `<li>${e}</li>`).join('') + '</ul>');
       }
       if (unmarked.length) {
-        parts.push(`<p style="margin:${errs.length?'1rem':'0'} 0 .5rem;font-weight:600;">${unmarked.length} fitting(s) not marked pass or fail:</p>` +
-          `<p style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;">${unmarked.join(', ')}</p>`);
+        parts.push(`<p style="margin:${errs.length?'1rem':'0'} 0 .5rem;font-weight:600;color:var(--error);">${unmarked.length} fitting(s) have not been tested:</p>` +
+          `<p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.5rem;">Every fitting should be tested. Any left untested will be recorded on the report as NOT TESTED (inaccessible at time of test).</p>` +
+          '<div style="max-height:30vh;overflow-y:auto;font-size:.85rem;line-height:1.7;">' +
+          unmarked.map(ref => { const f = fittingByRef(ref); return `<div><strong>${esc(ref)}</strong> — ${esc(f && f.loc ? f.loc : 'location not recorded')}</div>`; }).join('') +
+          '</div>');
       }
       document.getElementById('vmBody').innerHTML = parts.join('');
       // Hard errors must be fixed — hide "Submit Anyway"
@@ -927,6 +1172,7 @@
         }]);
         BromarHub.hideLoading();
         if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
+        if (currentDraftId) { await window.sb.from(DRAFT_TABLE).delete().eq('id', currentDraftId); currentDraftId = null; draftNote('Submitted — saved progress cleared.'); }
         BromarHub.showSuccess(`Test log saved — ${passed} pass, ${failed} fail.`);
       } catch (err) { BromarHub.hideLoading(); console.error(err); BromarHub.showInfo('Save failed. Check console.'); }
     }
