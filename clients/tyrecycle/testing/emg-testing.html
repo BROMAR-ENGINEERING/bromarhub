@@ -264,9 +264,6 @@
       <div class="section-label">Testing Notes</div>
       <textarea id="test_notes" placeholder="Additional notes to include on the report (access, defects found, follow-up required, etc.)" style="min-height:90px;"></textarea>
 
-      <div class="section-label">Remedials Required</div>
-      <textarea id="remedials" placeholder="Recommended remedial works (failed fittings are listed automatically on the report)." style="min-height:90px;"></textarea>
-
       <div class="form-divider"></div>
       <div class="submit-row">
         <span class="submit-note" id="draftNote">Only fittings marked pass/fail are saved.</span>
@@ -346,7 +343,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.09</div>
+        <div class="card-footer-version">Version V1.10</div>
       </div>
     </div>
   </div>
@@ -684,7 +681,6 @@
         frequency: testFrequency(),
         tester: document.getElementById('filled_by').value || '',
         notes: document.getElementById('test_notes').value,
-        remedials: document.getElementById('remedials').value,
         results: results
       };
     }
@@ -696,7 +692,6 @@
       document.getElementById('freq12').checked = s.frequency === '12 Monthly';
       if (s.tester) document.getElementById('filled_by').value = s.tester;
       document.getElementById('test_notes').value = s.notes || '';
-      document.getElementById('remedials').value = s.remedials || '';
       Object.keys(results).forEach(k => delete results[k]);
       Object.assign(results, s.results || {});
       updateDuration(); renderList();
@@ -860,6 +855,74 @@
       } else { setF(doc, F.title, 'bold', P.accent.rgb); doc.text('BROMAR', M, L.topBarH + 12); }
     }
 
+    // ── Report layout helpers (match the Site Equipment Test Report style) ──
+    const SITE = {
+      customer: 'Tyrecycle',
+      name: 'Somerton',
+      address: '30-56 Encore Ave, Somerton',
+      contact: 'Michael McNiece',
+      email: 'michael.mcniece@tyrecycle.com.au'
+    };
+
+    function reportTitle(doc, y, text) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE;
+      setF(doc, 15, 'bold', P.navy.rgb);
+      doc.text(K.normalize(text), L.pageW / 2, y, { align: 'center' });
+      y += 3.5;
+      doc.setDrawColor(P.accent.rgb[0], P.accent.rgb[1], P.accent.rgb[2]);
+      doc.setLineWidth(0.7);
+      doc.line(L.margin, y, L.pageW - L.margin, y);
+      return y + 6;
+    }
+
+    function secHead(doc, y, text) {
+      const K = window.BromarReportKit, P = K.PALETTE;
+      setF(doc, 11.5, 'bold', P.navy.rgb);
+      doc.text(K.normalize(text), K.LAYOUT.margin, y);
+      return y + 5;
+    }
+
+    function subHead(doc, y, text) {
+      const K = window.BromarReportKit, P = K.PALETTE;
+      setF(doc, 8.6, 'bold', P.accent.rgb);
+      doc.text(K.normalize(text), K.LAYOUT.margin, y);
+      return y + 4.2;
+    }
+
+    // rows = [[ [label,value], [label,value] ], ...]
+    function metaGrid(doc, y, rows) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE;
+      const colX = [L.margin, L.pageW / 2 + 2];
+      const colW = L.contentW / 2 - 6;
+      rows.forEach(pair => {
+        let lineCount = 1;
+        pair.forEach((cell, i) => {
+          if (!cell) return;
+          setF(doc, 6, 'bold', P.muted.rgb);
+          doc.text(K.normalize(cell[0]).toUpperCase(), colX[i], y);
+          setF(doc, 8.4, 'bold', P.black.rgb);
+          const lines = doc.splitTextToSize(K.normalize(cell[1] || '-'), colW);
+          doc.text(lines, colX[i], y + 4);
+          lineCount = Math.max(lineCount, lines.length);
+        });
+        y += 4 + lineCount * 3.5 + 3;
+      });
+      return y;
+    }
+
+    function bulletList(doc, y, items) {
+      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE;
+      items.forEach(t => {
+        setF(doc, 8, 'normal', P.charcoal.rgb);
+        const lines = doc.splitTextToSize(K.normalize(t), L.contentW - 6);
+        doc.setFillColor(P.muted.rgb[0], P.muted.rgb[1], P.muted.rgb[2]);
+        doc.circle(L.margin + 1.4, y - 1.1, 0.45, 'F');
+        lines.forEach((ln, i) => { doc.text(ln, L.margin + 5, y); if (i < lines.length - 1) y += 3.4; });
+        y += 4.2;
+      });
+      return y;
+    }
+
     const BOTTOM = 278;          // last usable y before footer
     const ROW_H = 4.6;           // approx autotable row height at 7pt
     const HEAD_H = 6;            // autotable header row
@@ -942,58 +1005,77 @@
         /* ── PAGE 1: title, meta, narrative ── */
         stampPage();
         let y = L.headerH + 8;
-        setF(doc, K.FONT.title, 'bold', K.PALETTE.navy.rgb);
-        doc.text('Emergency Lighting Discharge Test', L.margin, y);
-        y += 7;
+        y = reportTitle(doc, y + 2, 'Emergency Lighting Test Report');
 
         const d = durationMins();
-        const times = displayTime('start') + ' - ' + displayTime('finish') + (d === null ? '' : '  (' + d + ' min)');
+        const times = displayTime('start') + ' - ' + displayTime('finish') + (d === null ? '  ' : '  (' + d + ' min)');
         const tester = document.getElementById('filled_by').value || (currentUser ? currentUser.name : '-');
-        const counts = cPass() + ' pass / ' + cFail() + ' fail / ' + cUntested() + ' not tested';
-        const rightX = L.pageW / 2 + 4;
-        let yl = y, yr = y;
-        yl = K.pairRow(doc, L.margin, yl, 'Site', 'Tyrecycle - Somerton', { labelW: 24, width: L.pageW / 2 - L.margin - 24 });
-        yl = K.pairRow(doc, L.margin, yl, 'Date', fmtNice(document.getElementById('test_date').value), { labelW: 24 });
-        yl = K.pairRow(doc, L.margin, yl, 'Time', times, { labelW: 24, width: L.pageW / 2 - L.margin - 24 });
-        yr = K.pairRow(doc, rightX, yr, 'Frequency', testFrequency() || '-', { labelW: 26 });
-        yr = K.pairRow(doc, rightX, yr, 'Tested By', tester, { labelW: 26 });
-        yr = K.pairRow(doc, rightX, yr, 'Result', counts, { labelW: 26 });
-        y = Math.max(yl, yr) + 4;
+        const due = nextRetestDue();
+        const dateStr = document.getElementById('test_date').value;
+        const certNo = 'BRO-EL-' + (dateStr ? dateStr.replace(/-/g, '') : 'DRAFT');
 
-        y = drawTiles(doc, y) + 4;
-        y = drawRetestBanner(doc, y) + 2;
+        y = metaGrid(doc, y, [
+          [['Customer', SITE.customer], ['Site Name', SITE.name]],
+          [['Site Address', SITE.address], ['Contact', SITE.contact + '  ' + SITE.email]],
+          [['Test Date', fmtNice(dateStr)], ['Test Period', times]],
+          [['Cert No.', certNo], ['Tested By', tester]]
+        ]);
+
+        y = drawTiles(doc, y + 1) + 5;
+        y = drawRetestBanner(doc, y) + 8;
 
         const NAR = { size: 8, lineHeight: 3.5, width: L.contentW };
-        const blocks = [
-          ['Scope and Purpose', 'This report records the results of a routine 90-minute discharge test of the emergency lighting and exit sign installation at the above site, carried out in accordance with AS/NZS 2293.2 Emergency lighting and exit signs for buildings - Inspection and maintenance.'],
-          ['Requirements', 'AS/NZS 2293.2 requires every emergency luminaire and exit sign to be discharge tested at intervals not exceeding six months. Each fitting must operate from its battery for its full rated duration (nominally 90 minutes), provide adequate illumination for safe evacuation, and recharge within 24 hours of the test. Results must be recorded and retained on site for inspection by the relevant authority. Responsibility for maintaining the system rests with the building owner or occupier.'],
-          ['Test Method', 'Normal supply was isolated at the distribution boards listed and the installation left in emergency mode for the full 90-minute period. Each fitting was inspected at the start of the test, and again at the conclusion, for continued operation, lamp condition, lens and diffuser condition, and legibility of exit signage. Supply was then restored and charge indicators confirmed.']
-        ];
-        blocks.forEach(([h, t]) => { y = K.sectionHeading(doc, L.margin, y + 2, h); y = K.para(doc, L.margin, y, t, NAR) + 1.5; });
+        y = secHead(doc, y, 'Scope and Purpose');
+        y = K.para(doc, L.margin, y, 'This report records the results of a routine 90-minute discharge test of the emergency lighting and exit sign installation at the above site, carried out in accordance with AS/NZS 2293.2 Emergency lighting and exit signs for buildings - Inspection and maintenance.', NAR) + 4;
 
-        y = K.sectionHeading(doc, L.margin, y + 2, 'Results');
-        const legend = [
-          ['PASS', ' - fitting operated for the full duration and met all requirements.', K.PALETTE.success.rgb],
-          ['FAIL', ' - fitting failed to operate, extinguished early, or was defective. Failed items are listed with recommended remedial action and require repair and retest.', K.PALETTE.error.rgb],
-          ['NOT TESTED', ' - fitting inaccessible at time of test.', K.PALETTE.muted.rgb]
-        ];
-        legend.forEach(([tag, txt, rgb]) => {
-          setF(doc, 8, 'bold', rgb);
-          doc.text(tag, L.margin, y);
-          const w = doc.getTextWidth(tag);
-          setF(doc, 8, 'normal', K.PALETTE.charcoal.rgb);
-          const lines = doc.splitTextToSize(K.normalize(txt), L.contentW - w - 1);
-          doc.text(lines[0], L.margin + w, y);
-          for (let i = 1; i < lines.length; i++) { y += 3.5; doc.text(lines[i], L.margin, y); }
-          y += 4.4;
+        y = secHead(doc, y, 'Applicable Standards');
+        y = K.para(doc, L.margin, y, 'The testing presented in this report was conducted in accordance with relevant Australian standards, Energy Safe Victoria publications, and Work Health and Safety regulations.', NAR) + 2;
+
+        doc.autoTable({
+          theme: 'grid',
+          head: [['Document', 'Description']],
+          body: [
+            ['AS/NZS 2293.1:2018', 'Emergency lighting and exit signs for buildings - System design, installation and operation'],
+            ['AS/NZS 2293.2:2019', 'Emergency lighting and exit signs for buildings - Inspection and maintenance'],
+            ['AS/NZS 2293.3:2018', 'Emergency lighting and exit signs for buildings - Emergency luminaires and exit signs'],
+            ['AS/NZS 3000:2018 (Amdt 3)', 'Electrical Installations - Wiring Rules'],
+            ['NCC / BCA Part E4', 'National Construction Code - emergency lighting and exit sign requirements'],
+            ['Electricity Safety Act 1998 (2020 Amdt)', 'Victorian electrical safety act']
+          ],
+          styles: { fontSize: 7.5, cellPadding: 1.8, lineColor: K.PALETTE.line.rgb, lineWidth: 0.1, textColor: K.PALETTE.black.rgb, overflow: 'linebreak' },
+          headStyles: { fillColor: K.PALETTE.accent.rgb, textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [246, 246, 248] },
+          columnStyles: { 0: { cellWidth: 58 }, 1: { cellWidth: 124 } },
+          margin: { top: L.headerH + 10, left: L.margin, right: L.margin, bottom: 18 },
+          didDrawPage: stampPage,
+          startY: y
         });
+        y = doc.lastAutoTable.finalY + 6;
 
-        /* ── PAGE 2: ITEMS REQUIRING ATTENTION + REMEDIALS ── */
+        if (y > BOTTOM - 60) y = newPage();
+        y = secHead(doc, y, 'Testing Requirements');
+        y = subHead(doc, y, 'Commercial & Industrial - Emergency Lighting & Exit Signs (AS/NZS 2293.2:2019)');
+        y = K.para(doc, L.margin, y, 'AS/NZS 2293.2 requires every emergency luminaire and exit sign to be discharge tested at intervals not exceeding six months. Each fitting must operate from its battery for its full rated duration (nominally 90 minutes), provide adequate illumination for safe evacuation, and recharge within 24 hours of the test. Results must be recorded and retained on site for inspection by the relevant authority. Responsibility for maintaining the system rests with the building owner or occupier.', NAR) + 3;
+
+        y = subHead(doc, y, 'Discharge Test Method (90 Minute)');
+        y = bulletList(doc, y, [
+          'Normal supply isolated at the distribution boards listed; the installation is left in emergency mode for the full 90-minute period.',
+          'Each fitting inspected at the start of the test, and again at the conclusion, for continued operation, lamp condition, lens and diffuser condition, and legibility of exit signage.',
+          'Supply restored at the conclusion of the test and charge indicators confirmed; fittings must fully recharge within 24 hours.',
+          'Wiring, terminations and switchboard connections associated with the emergency system are visually inspected in accordance with AS/NZS 3000.'
+        ]) + 1;
+
+        y = subHead(doc, y, 'Result Classification');
+        y = bulletList(doc, y, [
+          'PASS - fitting operated for the full duration and met all requirements.',
+          'FAIL - fitting failed to operate, extinguished early, or was defective. Failed items are listed under Items Requiring Attention and require repair and retest.',
+          'NOT TESTED - fitting inaccessible at time of test.'
+        ]);
+
+        /* ── PAGE 2: ITEMS REQUIRING ATTENTION ── */
         const failed = realFittings().filter(f => results[f.ref]?.status === 'fail');
         y = newPage();
-        setF(doc, K.FONT.title, 'bold', K.PALETTE.navy.rgb);
-        doc.text('Items Requiring Attention', L.margin, y);
-        y += 5;
+        y = reportTitle(doc, y + 2, 'Items Requiring Attention');
 
         if (failed.length) {
           doc.autoTable({
@@ -1016,25 +1098,6 @@
           y = doc.lastAutoTable.finalY;
         } else {
           y = K.para(doc, L.margin, y + 5, 'No fittings failed this test. All tested fittings operated for the full 90 minute duration and met the requirements of AS/NZS 2293.2.', { size: 8, lineHeight: 3.6 });
-        }
-
-        const remedialText = document.getElementById('remedials').value.trim();
-        const autoList = failed.map(f => {
-          const r = results[f.ref] || {};
-          return f.ref + ' (' + (f.loc || 'location not recorded') + ') - ' +
-            (r.duration ? 'extinguished at ' + r.duration + ' min. ' : '') +
-            (r.faultnote ? r.faultnote + '. ' : '') + 'Repair and retest.';
-        });
-        y = ensureRoom(y + 8, autoList.length + 2);
-        y = K.sectionHeading(doc, L.margin, y, 'Remedials Required');
-        if (!autoList.length && !remedialText) {
-          y = K.para(doc, L.margin, y + 1, 'No remedial work required.', { size: 8, lineHeight: 3.6 });
-        } else {
-          autoList.forEach(t => {
-            if (y > BOTTOM - 6) y = newPage();
-            y = K.para(doc, L.margin, y + 1, '- ' + t, { size: 8, lineHeight: 3.6 });
-          });
-          if (remedialText) { if (y > BOTTOM - 10) y = newPage(); y = K.para(doc, L.margin, y + 2, remedialText, { size: 8, lineHeight: 3.6 }); }
         }
 
         /* ── RESULTS TABLES ──
@@ -1167,8 +1230,7 @@
           duration_mins: durationMins(),
           frequency: testFrequency(),
           total: rows.length, passed, failed, results: rows,
-          report_notes: document.getElementById('test_notes').value.trim() || null,
-          remedials: document.getElementById('remedials').value.trim() || null
+          report_notes: document.getElementById('test_notes').value.trim() || null
         }]);
         BromarHub.hideLoading();
         if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
