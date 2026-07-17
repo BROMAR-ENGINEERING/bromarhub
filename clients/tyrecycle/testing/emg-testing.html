@@ -25,6 +25,12 @@
     .site-line { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem; }
     .site-line span { color: var(--accent); }
     .freq-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .time-pick { display: flex; align-items: center; gap: 0.3rem; }
+    .time-pick select { padding: 0.75rem 0.4rem; text-align: center; background-position: right 6px center; padding-right: 20px; }
+    .time-pick .tsep { font-weight: 700; color: var(--text-secondary); }
+    .dur-chip { display: inline-block; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-main); font-size: 0.85rem; color: var(--text-secondary); }
+    .dur-chip strong { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+    .dur-chip.short strong { color: var(--error); }
     .freq-chk { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 140px; padding: 0.7rem 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; margin: 0; transition: all 0.2s; }
     .freq-chk input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
     .freq-chk:has(input:checked) { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
@@ -182,12 +188,21 @@
           <input type="date" id="test_date"/>
         </div>
         <div class="field-group">
-          <label for="start_time">Start Time<span class="required">*</span></label>
-          <input type="time" id="start_time"/>
+          <label>Start Time<span class="required">*</span></label>
+          <div class="time-pick">
+            <select id="start_h"></select><span class="tsep">:</span><select id="start_m"></select>
+            <select id="start_ap"><option>AM</option><option>PM</option></select>
+          </div>
         </div>
         <div class="field-group">
-          <label for="finish_time">Finish Time<span class="required">*</span></label>
-          <input type="time" id="finish_time"/>
+          <label>Finish Time<span class="required">*</span></label>
+          <div class="time-pick">
+            <select id="finish_h"></select><span class="tsep">:</span><select id="finish_m"></select>
+            <select id="finish_ap"><option>AM</option><option>PM</option></select>
+          </div>
+        </div>
+        <div class="field-group full">
+          <div class="dur-chip" id="durChip">Duration: <strong id="durVal">—</strong></div>
         </div>
         <div class="field-group full">
           <label>Test Frequency<span class="required">*</span></label>
@@ -246,6 +261,9 @@
       <div class="section-label">Testing Notes</div>
       <textarea id="test_notes" placeholder="Additional notes to include on the report (access, defects found, follow-up required, etc.)" style="min-height:90px;"></textarea>
 
+      <div class="section-label">Remedials Required</div>
+      <textarea id="remedials" placeholder="Recommended remedial works (failed fittings are listed automatically on the report)." style="min-height:90px;"></textarea>
+
       <div class="form-divider"></div>
       <div class="submit-row">
         <span class="submit-note">Only fittings marked pass/fail are saved.</span>
@@ -299,7 +317,7 @@
       <div class="card-footer">
         <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING TEST</div>
         <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-        <div class="card-footer-version">Version V1.06</div>
+        <div class="card-footer-version">Version V1.07</div>
       </div>
     </div>
   </div>
@@ -580,6 +598,55 @@
     f12.addEventListener('change', () => { if (f12.checked) f6.checked = false; });
     function testFrequency() { return f6.checked ? '6 Monthly' : f12.checked ? '12 Monthly' : ''; }
 
+    // ── TIME PICKERS (12h with AM/PM) ──
+    function buildTimePickers() {
+      const pad = n => String(n).padStart(2, '0');
+      ['start','finish'].forEach(p => {
+        const h = document.getElementById(p + '_h'), m = document.getElementById(p + '_m');
+        h.innerHTML = '<option value="">--</option>' + Array.from({length:12}, (_,i) => `<option value="${i+1}">${i+1}</option>`).join('');
+        m.innerHTML = '<option value="">--</option>' + Array.from({length:60}, (_,i) => `<option value="${pad(i)}">${pad(i)}</option>`).join('');
+      });
+    }
+    // returns 'HH:MM' 24-hour, or '' if incomplete
+    function getTime(p) {
+      const h = document.getElementById(p + '_h').value;
+      const m = document.getElementById(p + '_m').value;
+      const ap = document.getElementById(p + '_ap').value;
+      if (!h || m === '') return '';
+      let hh = parseInt(h, 10) % 12;
+      if (ap === 'PM') hh += 12;
+      return String(hh).padStart(2, '0') + ':' + m;
+    }
+    function setTime(p, date) {
+      let h = date.getHours(); const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12; if (h === 0) h = 12;
+      document.getElementById(p + '_h').value = String(h);
+      document.getElementById(p + '_m').value = String(date.getMinutes()).padStart(2, '0');
+      document.getElementById(p + '_ap').value = ap;
+    }
+    // 12h display for the report, e.g. 2:45 PM
+    function displayTime(p) {
+      const h = document.getElementById(p + '_h').value;
+      const m = document.getElementById(p + '_m').value;
+      if (!h || m === '') return '-';
+      return h + ':' + m + ' ' + document.getElementById(p + '_ap').value;
+    }
+    function durationMins() {
+      const s = getTime('start'), f = getTime('finish');
+      if (!s || !f) return null;
+      const toM = t => parseInt(t.slice(0,2),10) * 60 + parseInt(t.slice(3),10);
+      return (toM(f) - toM(s) + 1440) % 1440;
+    }
+    function updateDuration() {
+      const d = durationMins();
+      const chip = document.getElementById('durChip');
+      document.getElementById('durVal').textContent = d === null ? '—' : d + ' min';
+      chip.classList.toggle('short', d !== null && d < 90);
+      chip.title = d !== null && d < 90 ? 'Less than the 90 minute requirement' : '';
+    }
+    ['start','finish'].forEach(p => ['_h','_m','_ap'].forEach(s =>
+      document.getElementById(p + s).addEventListener('change', updateDuration)));
+
     document.getElementById('allPass').addEventListener('click', () => {
       FITTINGS[activeArea].forEach(f => { if (!f.na && f.type) set(f.ref, { status: 'pass' }); });
       renderList();
@@ -591,9 +658,12 @@
 
     /* ── PDF REPORT (shared Bromar Report Kit) ── */
     document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+    document.getElementById('submitBtn').addEventListener('click', submitLog);
+    document.getElementById('vmClose').addEventListener('click', () => document.getElementById('validateModal').classList.remove('show'));
+    document.getElementById('vmProceed').addEventListener('click', () => { document.getElementById('validateModal').classList.remove('show'); doSave(); });
 
     function fmtNice(v) { if (!v) return '-'; const d = new Date(v + 'T00:00:00'); return isNaN(d) ? v : window.BromarReportKit.formatDate(d); }
-    function realFittings() { return [...FITTINGS.office, ...FITTINGS.factory].filter(f => !f.na && f.type); }
+    function realFittings() { return AREAS.flatMap(a => FITTINGS[a]).filter(f => !f.na && f.type); }
     const cPass = () => realFittings().filter(f => results[f.ref]?.status === 'pass').length;
     const cFail = () => realFittings().filter(f => results[f.ref]?.status === 'fail').length;
     const cUntested = () => realFittings().filter(f => !results[f.ref]?.status).length;
@@ -619,24 +689,9 @@
       } else { setF(doc, F.title, 'bold', P.accent.rgb); doc.text('BROMAR', M, L.topBarH + 12); }
     }
 
-    function drawMeta(doc) {
-      const K = window.BromarReportKit, L = K.LAYOUT, P = K.PALETTE, F = K.FONT, M = L.margin;
-      let y = L.headerH + 8;
-      setF(doc, F.title, 'bold', P.navy.rgb);
-      doc.text('Emergency Lighting Discharge Test', M, y);
-      y += 7;
-      const leftX = M, rightX = L.pageW / 2 + 4;
-      const times = (document.getElementById('start_time').value || '-') + ' - ' + (document.getElementById('finish_time').value || '-');
-      const tester = currentUser ? currentUser.name : (document.getElementById('filled_by').value || '-');
-      const counts = cPass() + ' pass / ' + cFail() + ' fail / ' + cUntested() + ' not tested';
-      let yl = y, yr = y;
-      yl = K.pairRow(doc, leftX, yl, 'Site', 'Tyrecycle - Somerton', { labelW: 24, width: L.pageW / 2 - M - 24 });
-      yl = K.pairRow(doc, leftX, yl, 'Date', fmtNice(document.getElementById('test_date').value), { labelW: 24 });
-      yl = K.pairRow(doc, leftX, yl, 'Time', times, { labelW: 24 });
-      yr = K.pairRow(doc, rightX, yr, 'Frequency', testFrequency() || '-', { labelW: 26 });
-      yr = K.pairRow(doc, rightX, yr, 'Tested By', tester, { labelW: 26 });
-      yr = K.pairRow(doc, rightX, yr, 'Result', counts, { labelW: 26 });
-    }
+    const BOTTOM = 278;          // last usable y before footer
+    const ROW_H = 4.6;           // approx autotable row height at 7pt
+    const HEAD_H = 6;            // autotable header row
 
     async function generatePDF() {
       const K = window.BromarReportKit;
@@ -649,55 +704,153 @@
         const L = K.LAYOUT;
         const title = 'Emergency Lighting Test - Tyrecycle Somerton';
         const ref = fmtNice(document.getElementById('test_date').value);
-        let metaDone = false;
-        const stamp = (data) => { headerSync(doc, logoRec); if (data.pageNumber === 1 && !metaDone) { drawMeta(doc); metaDone = true; } K.drawFooter(doc, { title, ref, pageNo: data.pageNumber }); };
+        const stamped = new Set();
 
-        const head = [['Ref', 'Location', 'Type', 'Board / CB', 'Fitting', 'Result', 'Dur', 'Notes']];
+        function stampPage() { const p = doc.internal.getCurrentPageInfo().pageNumber; if (!stamped.has(p)) { headerSync(doc, logoRec); stamped.add(p); } }
+        function newPage() { doc.addPage(); stampPage(); return L.headerH + 10; }
+        // Push a section to the next page unless at least 3 rows fit under it
+        function ensureRoom(y, rows) {
+          const need = 8 + HEAD_H + Math.min(rows, 3) * ROW_H;
+          return (y + need > BOTTOM) ? newPage() : y;
+        }
+
+        /* ── PAGE 1: title, meta, narrative ── */
+        stampPage();
+        let y = L.headerH + 8;
+        setF(doc, K.FONT.title, 'bold', K.PALETTE.navy.rgb);
+        doc.text('Emergency Lighting Discharge Test', L.margin, y);
+        y += 7;
+
+        const d = durationMins();
+        const times = displayTime('start') + ' - ' + displayTime('finish') + (d === null ? '' : '  (' + d + ' min)');
+        const tester = document.getElementById('filled_by').value || (currentUser ? currentUser.name : '-');
+        const counts = cPass() + ' pass / ' + cFail() + ' fail / ' + cUntested() + ' not tested';
+        const rightX = L.pageW / 2 + 4;
+        let yl = y, yr = y;
+        yl = K.pairRow(doc, L.margin, yl, 'Site', 'Tyrecycle - Somerton', { labelW: 24, width: L.pageW / 2 - L.margin - 24 });
+        yl = K.pairRow(doc, L.margin, yl, 'Date', fmtNice(document.getElementById('test_date').value), { labelW: 24 });
+        yl = K.pairRow(doc, L.margin, yl, 'Time', times, { labelW: 24, width: L.pageW / 2 - L.margin - 24 });
+        yr = K.pairRow(doc, rightX, yr, 'Frequency', testFrequency() || '-', { labelW: 26 });
+        yr = K.pairRow(doc, rightX, yr, 'Tested By', tester, { labelW: 26 });
+        yr = K.pairRow(doc, rightX, yr, 'Result', counts, { labelW: 26 });
+        y = Math.max(yl, yr) + 4;
+
+        const NAR = { size: 8, lineHeight: 3.5, width: L.contentW };
+        const blocks = [
+          ['Scope and Purpose', 'This report records the results of a routine 90-minute discharge test of the emergency lighting and exit sign installation at the above site, carried out in accordance with AS/NZS 2293.2 Emergency lighting and exit signs for buildings - Inspection and maintenance.'],
+          ['Requirements', 'AS/NZS 2293.2 requires every emergency luminaire and exit sign to be discharge tested at intervals not exceeding six months. Each fitting must operate from its battery for its full rated duration (nominally 90 minutes), provide adequate illumination for safe evacuation, and recharge within 24 hours of the test. Results must be recorded and retained on site for inspection by the relevant authority. Responsibility for maintaining the system rests with the building owner or occupier.'],
+          ['Test Method', 'Normal supply was isolated at the distribution boards listed and the installation left in emergency mode for the full 90-minute period. Each fitting was inspected at the start of the test, and again at the conclusion, for continued operation, lamp condition, lens and diffuser condition, and legibility of exit signage. Supply was then restored and charge indicators confirmed.']
+        ];
+        blocks.forEach(([h, t]) => { y = K.sectionHeading(doc, L.margin, y + 2, h); y = K.para(doc, L.margin, y, t, NAR) + 1.5; });
+
+        y = K.sectionHeading(doc, L.margin, y + 2, 'Results');
+        const legend = [
+          ['PASS', ' - fitting operated for the full duration and met all requirements.', K.PALETTE.success.rgb],
+          ['FAIL', ' - fitting failed to operate, extinguished early, or was defective. Failed items are listed with recommended remedial action and require repair and retest.', K.PALETTE.error.rgb],
+          ['NOT TESTED', ' - fitting inaccessible at time of test.', K.PALETTE.muted.rgb]
+        ];
+        legend.forEach(([tag, txt, rgb]) => {
+          setF(doc, 8, 'bold', rgb);
+          doc.text(tag, L.margin, y);
+          const w = doc.getTextWidth(tag);
+          setF(doc, 8, 'normal', K.PALETTE.charcoal.rgb);
+          const lines = doc.splitTextToSize(K.normalize(txt), L.contentW - w - 1);
+          doc.text(lines[0], L.margin + w, y);
+          for (let i = 1; i < lines.length; i++) { y += 3.5; doc.text(lines[i], L.margin, y); }
+          y += 4.4;
+        });
+
+        /* ── RESULTS TABLES ── */
+        const head = [['Ref', 'Location', 'Type', 'Board / CB', 'Fitting', 'Result', 'Notes']];
         const mkBody = (area) => FITTINGS[area].map(f => {
           const r = results[f.ref] || {};
-          const res = f.na ? 'REMOVED' : r.status === 'pass' ? 'PASS' : r.status === 'fail' ? 'FAIL' : '-';
+          const res = r.status === 'pass' ? 'PASS' : r.status === 'fail' ? 'FAIL' : 'NOT TESTED';
           const cb = [f.db, f.ckt ? ('CB ' + f.ckt) : ''].filter(Boolean).join(' \u00B7 ');
           const fit = [f.brand, f.model].filter(Boolean).join(' ');
-          const note = [r.faultnote, r.notes].filter(Boolean).join(' - ');
-          return [f.ref, f.loc, f.type || '', cb, fit, res, r.status === 'fail' ? (r.duration || '') : '', note];
+          const note = [r.status === 'fail' && r.duration ? ('Failed at ' + r.duration + ' min') : '', r.faultnote, r.notes].filter(Boolean).join(' - ');
+          return [f.ref, f.loc, f.type || '', cb, fit, res, note];
         });
         const common = {
           theme: 'grid',
           styles: { fontSize: 7, cellPadding: 1.3, lineColor: K.PALETTE.line.rgb, lineWidth: 0.1, textColor: K.PALETTE.black.rgb, overflow: 'linebreak' },
           headStyles: { fillColor: K.PALETTE.navy.rgb, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
-          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 42 }, 2: { cellWidth: 19 }, 3: { cellWidth: 20 }, 4: { cellWidth: 24 }, 5: { cellWidth: 14 }, 6: { cellWidth: 9 }, 7: { cellWidth: 39 } },
-          margin: { top: L.headerH + 6, left: L.margin, right: L.margin, bottom: 16 },
-          didParseCell: (d) => { if (d.section === 'body' && d.column.index === 5) { const v = d.cell.raw; if (v === 'PASS') { d.cell.styles.textColor = K.PALETTE.success.rgb; d.cell.styles.fontStyle = 'bold'; } else if (v === 'FAIL') { d.cell.styles.textColor = K.PALETTE.error.rgb; d.cell.styles.fontStyle = 'bold'; } } },
-          didDrawPage: stamp
+          columnStyles: { 0: { cellWidth: 13 }, 1: { cellWidth: 44 }, 2: { cellWidth: 20 }, 3: { cellWidth: 20 }, 4: { cellWidth: 30 }, 5: { cellWidth: 14 }, 6: { cellWidth: 41 } },
+          margin: { top: L.headerH + 10, left: L.margin, right: L.margin, bottom: 18 },
+          didParseCell: (dd) => {
+            if (dd.section === 'body' && dd.column.index === 5) {
+              const v = dd.cell.raw;
+              if (v === 'PASS') { dd.cell.styles.textColor = K.PALETTE.success.rgb; dd.cell.styles.fontStyle = 'bold'; }
+              else if (v === 'FAIL') { dd.cell.styles.textColor = K.PALETTE.error.rgb; dd.cell.styles.fontStyle = 'bold'; }
+              else { dd.cell.styles.textColor = K.PALETTE.muted.rgb; }
+            }
+          },
+          didDrawPage: stampPage
         };
 
-        K.sectionHeading(doc, L.margin, L.headerH + 48, 'Office (EM1)');
-        doc.autoTable(Object.assign({}, common, { head, body: mkBody('office'), startY: L.headerH + 52 }));
+        const sections = [['office', 'Office (EM1)'], ['factory', 'Factory (EM2)'], ['external', 'External (EM3)']];
+        sections.forEach(([area, label]) => {
+          const body = mkBody(area);
+          if (!body.length) return;
+          y = ensureRoom(y + 6, body.length);
+          K.sectionHeading(doc, L.margin, y, label);
+          doc.autoTable(Object.assign({}, common, { head, body, startY: y + 4 }));
+          y = doc.lastAutoTable.finalY;
+        });
 
-        let y = doc.lastAutoTable.finalY + 8;
-        if (y > 250) { doc.addPage(); y = L.headerH + 12; }
-        K.sectionHeading(doc, L.margin, y, 'Factory (EM2)');
-        doc.autoTable(Object.assign({}, common, { head, body: mkBody('factory'), startY: y + 4 }));
+        /* ── FAILED SUMMARY + REMEDIALS ── */
+        const failed = realFittings().filter(f => results[f.ref]?.status === 'fail');
+        y = ensureRoom(y + 8, Math.max(failed.length, 1));
+        K.sectionHeading(doc, L.margin, y, 'Summary of Failed Fittings');
+        if (failed.length) {
+          doc.autoTable(Object.assign({}, common, {
+            head: [['Ref', 'Location', 'Fitting', 'Failed At', 'Fault / Notes']],
+            body: failed.map(f => {
+              const r = results[f.ref] || {};
+              return [f.ref, f.loc, [f.brand, f.model].filter(Boolean).join(' '),
+                r.duration ? r.duration + ' min' : '-', [r.faultnote, r.notes].filter(Boolean).join(' - ')];
+            }),
+            columnStyles: { 0: { cellWidth: 13 }, 1: { cellWidth: 52 }, 2: { cellWidth: 34 }, 3: { cellWidth: 18 }, 4: { cellWidth: 65 } },
+            startY: y + 4
+          }));
+          y = doc.lastAutoTable.finalY;
+        } else {
+          y = K.para(doc, L.margin, y + 5, 'No fittings failed this test. All tested fittings operated for the full 90 minute duration.', { size: 8, lineHeight: 3.6 });
+        }
 
-        let ye = doc.lastAutoTable.finalY + 8;
-        if (ye > 250) { doc.addPage(); ye = L.headerH + 12; }
-        K.sectionHeading(doc, L.margin, ye, 'External (EM3)');
-        doc.autoTable(Object.assign({}, common, { head, body: mkBody('external'), startY: ye + 4 }));
+        const remedialText = document.getElementById('remedials').value.trim();
+        const autoList = failed.map(f => {
+          const r = results[f.ref] || {};
+          return f.ref + ' (' + (f.loc || 'location not recorded') + ') - ' +
+            (r.duration ? 'extinguished at ' + r.duration + ' min. ' : '') +
+            (r.faultnote ? r.faultnote + '. ' : '') + 'Repair and retest.';
+        });
+        y = ensureRoom(y + 8, autoList.length + 2);
+        y = K.sectionHeading(doc, L.margin, y, 'Remedials Required');
+        if (!autoList.length && !remedialText) {
+          y = K.para(doc, L.margin, y + 1, 'No remedial work required.', { size: 8, lineHeight: 3.6 });
+        } else {
+          autoList.forEach(t => {
+            if (y > BOTTOM - 6) y = newPage();
+            y = K.para(doc, L.margin, y + 1, '- ' + t, { size: 8, lineHeight: 3.6 });
+          });
+          if (remedialText) { if (y > BOTTOM - 10) y = newPage(); y = K.para(doc, L.margin, y + 2, remedialText, { size: 8, lineHeight: 3.6 }); }
+        }
 
         const notes = document.getElementById('test_notes').value.trim();
         if (notes) {
-          let ny = doc.lastAutoTable.finalY + 10;
-          if (ny > 245) { doc.addPage(); ny = L.headerH + 12; }
-          ny = K.sectionHeading(doc, L.margin, ny, 'Testing Notes');
-          K.para(doc, L.margin, ny + 1, notes);
+          y = ensureRoom(y + 8, 3);
+          y = K.sectionHeading(doc, L.margin, y, 'Testing Notes');
+          K.para(doc, L.margin, y + 1, notes, { size: 8, lineHeight: 3.6 });
         }
+
+        /* ── FOOTERS (page x of y) ── */
+        const total = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= total; i++) { doc.setPage(i); K.drawFooter(doc, { title, ref, pageNo: i + ' of ' + total }); }
 
         doc.save('EMG-Test_Tyrecycle_' + (document.getElementById('test_date').value || 'report') + '.pdf');
         BromarHub.hideLoading();
       } catch (e) { BromarHub.hideLoading(); console.error(e); BromarHub.showInfo('PDF failed: ' + e.message); }
     }
-    document.getElementById('vmClose').addEventListener('click', () => document.getElementById('validateModal').classList.remove('show'));
-    document.getElementById('vmProceed').addEventListener('click', () => { document.getElementById('validateModal').classList.remove('show'); doSave(); });
 
     function requiredFieldErrors() {
       if (!currentUser) {
@@ -706,8 +859,8 @@
       }
       const errs = [];
       if (!document.getElementById('test_date').value) errs.push('Test date');
-      if (!document.getElementById('start_time').value) errs.push('Discharge start time');
-      if (!document.getElementById('finish_time').value) errs.push('Finish time');
+      if (!getTime('start')) errs.push('Start time');
+      if (!getTime('finish')) errs.push('Finish time');
       if (!testFrequency()) errs.push('Test frequency (6 or 12 monthly)');
       if (!currentUser) errs.push('Tested by');
       return errs;
@@ -764,11 +917,13 @@
       try {
         const { error } = await window.sb.from('emergency_lighting_tests').insert([{
           test_date: document.getElementById('test_date').value, site, tester: currentUser.name,
-          start_time: document.getElementById('start_time').value,
-          finish_time: document.getElementById('finish_time').value,
+          start_time: getTime('start'),
+          finish_time: getTime('finish'),
+          duration_mins: durationMins(),
           frequency: testFrequency(),
           total: rows.length, passed, failed, results: rows,
-          report_notes: document.getElementById('test_notes').value.trim() || null
+          report_notes: document.getElementById('test_notes').value.trim() || null,
+          remedials: document.getElementById('remedials').value.trim() || null
         }]);
         BromarHub.hideLoading();
         if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
@@ -778,13 +933,18 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       document.body.setAttribute('data-mode', 'test');
+      buildTimePickers();
       document.getElementById('test_date').value = new Date().toISOString().slice(0, 10);
-      const now = new Date();
-      document.getElementById('start_time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      setTime('start', new Date());
+      updateDuration();
       document.getElementById('fittingList').innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">Loading fittings...</p>';
       EMPLOYEES = await BromarHub.loadEmployees('filled_by');
       await BromarHub.autoSelectLoggedInUser('filled_by');
       const fb = document.getElementById('filled_by');
+      // Tested By stays editable — someone else may be reporting
+      fb.disabled = false;
+      const badge = document.querySelector('label[for="filled_by"] .logged-in-badge');
+      if (badge) badge.remove();
       if (fb.value) { const o = fb.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
       fb.addEventListener('change', function () {
         const o = this.selectedOptions[0];
