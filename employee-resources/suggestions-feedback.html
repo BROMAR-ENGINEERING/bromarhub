@@ -34,6 +34,7 @@
       transition: all 0.2s;
       background: var(--input-bg);
       text-align: center;
+      user-select: none;
     }
     .type-card:hover {
       border-color: var(--brand-primary);
@@ -44,7 +45,9 @@
       background: var(--brand-orange-soft);
     }
     .type-card input[type="radio"] {
-      display: none;
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
     }
     .type-icon {
       font-size: 2rem;
@@ -77,6 +80,7 @@
       transition: all 0.2s;
       background: var(--input-bg);
       text-align: center;
+      user-select: none;
     }
     .priority-badge:hover {
       border-color: var(--brand-primary);
@@ -87,7 +91,9 @@
       background: var(--brand-orange-soft);
     }
     .priority-badge input[type="radio"] {
-      display: none;
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
     }
     .priority-label {
       font-weight: 600;
@@ -127,17 +133,6 @@
     @media (max-width: 420px) {
       .card-footer-title { font-size: 0.85rem; letter-spacing: 0.5px; }
     }
-    .card-footer-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: var(--brand-orange, #c2440e);
-      text-decoration: none;
-      font-weight: 600;
-      margin-bottom: 14px;
-    }
-    .card-footer-link:hover { text-decoration: underline; }
     .card-footer-version {
       font-size: 0.78rem;
       color: var(--text-faded, #9ca3af);
@@ -171,14 +166,14 @@
       </div>
 
       <div class="field-row">
-        <div class="field-group full" id="group-name">
+        <div class="field-group" id="group-name">
           <label for="user_name">Your Name <span class="required">*</span></label>
           <select id="user_name" name="user_name" required>
             <option value="">Loading employees...</option>
           </select>
           <span class="error-msg">Please select your name</span>
         </div>
-        <div class="field-group full" id="group-email">
+        <div class="field-group" id="group-email">
           <label for="user_email">Email Address <span class="required">*</span></label>
           <input type="email" id="user_email" name="user_email" placeholder="oldmate@bromar.com.au" autocomplete="email" readonly style="background: var(--input-bg); cursor: not-allowed;"/>
           <span class="error-msg">Please enter a valid email</span>
@@ -271,8 +266,7 @@
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — FEEDBACK & BUG REPORT</div>
-      <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.05</div>
     </div>
   </div>
 </div>
@@ -286,24 +280,16 @@
 
   async function initializePage() {
     try {
-      // Check authentication
       const { data: { session }, error } = await window.sb.auth.getSession();
-      
+
       if (error || !session) {
-        // Not logged in - redirect to login page
         window.location.href = '/login.html';
         return;
       }
 
-      const userEmail = session.user.email;
-
-      // Load employees into dropdown
       EMPLOYEES = await BromarHub.loadEmployees('user_name');
-      
-      // Auto-select logged-in user
       await BromarHub.autoSelectLoggedInUser('user_name');
-      
-      // Get the selected employee's details
+
       const nameSelect = document.getElementById('user_name');
       if (nameSelect.value) {
         const selectedOption = nameSelect.selectedOptions[0];
@@ -311,16 +297,11 @@
           name: selectedOption.value,
           email: selectedOption.dataset.email || ''
         };
-
-        // Update email field
         document.getElementById('user_email').value = currentUser.email;
-
-        // Show logged-in badge
         document.getElementById('loggedInName').textContent = currentUser.name;
         document.getElementById('loggedInBadge').style.display = 'inline-flex';
       }
 
-      // Handle name change to update email
       nameSelect.addEventListener('change', function() {
         const selectedOption = this.selectedOptions[0];
         if (selectedOption && selectedOption.value) {
@@ -339,12 +320,10 @@
 
     } catch (err) {
       console.error('Initialization error:', err);
-      // Redirect to login on any error
       window.location.href = '/login.html';
     }
   }
 
-  // Wait for auth.js to be ready, then initialize
   if (window.sb) {
     initializePage();
   } else {
@@ -358,13 +337,16 @@
   const prioritySection = document.getElementById('prioritySection');
 
   typeCards.forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
       typeCards.forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      
+
       const radioInput = card.querySelector('input[type="radio"]');
       radioInput.checked = true;
-      
+
       if (radioInput.value === 'Bug Report') {
         prioritySection.style.display = 'block';
       } else {
@@ -379,9 +361,15 @@
   const priorityBadges = document.querySelectorAll('.priority-badge');
 
   priorityBadges.forEach(badge => {
-    badge.addEventListener('click', () => {
+    badge.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
       priorityBadges.forEach(b => b.classList.remove('selected'));
       badge.classList.add('selected');
+
+      const radioInput = badge.querySelector('input[type="radio"]');
+      radioInput.checked = true;
     });
   });
 
@@ -404,7 +392,6 @@
       }
     }
 
-    // Fallback: update currentUser if not set
     if (!currentUser) {
       const nameSelect = document.getElementById('user_name');
       if (nameSelect.value) {
@@ -477,7 +464,7 @@
     const description = document.getElementById('description').value.trim();
     const pageUrl = document.getElementById('page_url').value.trim() || null;
     const browser = document.getElementById('browser').value.trim() || null;
-    
+
     let priority = 'N/A';
     if (reportType === 'Bug Report') {
       const priorityInput = document.querySelector('input[name="priority"]:checked');
@@ -509,8 +496,7 @@
       BromarHub.hideLoading();
       const banner = document.getElementById('successBanner');
       banner.classList.add('show');
-      
-      // Reset only the feedback fields, not the user details
+
       document.getElementById('subject').value = '';
       document.getElementById('description').value = '';
       document.getElementById('page_url').value = '';
@@ -518,7 +504,7 @@
       typeCards.forEach(c => c.classList.remove('selected'));
       document.querySelectorAll('input[name="report_type"]').forEach(r => r.checked = false);
       prioritySection.style.display = 'none';
-      
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => banner.classList.remove('show'), 8000);
 
@@ -540,7 +526,7 @@
     if (!browserInput.value) {
       const userAgent = navigator.userAgent;
       let browserName = 'Unknown';
-      
+
       if (userAgent.indexOf('Firefox') > -1) {
         browserName = 'Firefox';
       } else if (userAgent.indexOf('Chrome') > -1) {
@@ -550,7 +536,7 @@
       } else if (userAgent.indexOf('Edge') > -1) {
         browserName = 'Edge';
       }
-      
+
       const platform = navigator.platform || 'Unknown';
       browserInput.placeholder = `e.g., ${browserName} on ${platform}`;
     }
