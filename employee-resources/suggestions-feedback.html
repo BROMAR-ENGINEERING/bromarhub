@@ -1,3 +1,4 @@
+<!-- employee-resources/suggestions-feedback.html — V1.07 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -155,7 +156,12 @@
 
       <div class="success-banner" id="successBanner">
         <span>✅</span>
-        <span>Thank you for your feedback! Your report has been submitted successfully.</span>
+        <span id="successText">Thank you for your feedback! Your report has been submitted successfully.</span>
+      </div>
+
+      <div class="info-banner" id="infoBanner">
+        <span>ℹ️</span>
+        <span id="infoBannerText"></span>
       </div>
 
       <div class="section-label">Your Details</div>
@@ -266,27 +272,20 @@
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — FEEDBACK & BUG REPORT</div>
-      <div class="card-footer-version">Version V1.05</div>
+      <div class="card-footer-version">Version V1.07</div>
     </div>
   </div>
 </div>
 
 <script>
   // ============================================================
-  // AUTHENTICATION CHECK & USER AUTO-POPULATE
+  // USER AUTO-POPULATE  (auth.js already gatekeeps the page)
   // ============================================================
   let currentUser = null;
   let EMPLOYEES = [];
 
   async function initializePage() {
     try {
-      const { data: { session }, error } = await window.sb.auth.getSession();
-
-      if (error || !session) {
-        window.location.href = '/login.html';
-        return;
-      }
-
       EMPLOYEES = await BromarHub.loadEmployees('user_name');
       await BromarHub.autoSelectLoggedInUser('user_name');
 
@@ -320,15 +319,10 @@
 
     } catch (err) {
       console.error('Initialization error:', err);
-      window.location.href = '/login.html';
     }
   }
 
-  if (window.sb) {
-    initializePage();
-  } else {
-    window.addEventListener('load', initializePage);
-  }
+  window.addEventListener('load', initializePage);
 
   // ============================================================
   // TYPE CARD SELECTION
@@ -457,61 +451,54 @@
 
     BromarHub.showLoading('Submitting your feedback', 'This will only take a moment...');
 
-    const userName = currentUser.name;
-    const userEmail = currentUser.email;
-    const reportType = document.querySelector('input[name="report_type"]:checked').value;
-    const subject = document.getElementById('subject').value.trim();
-    const description = document.getElementById('description').value.trim();
-    const pageUrl = document.getElementById('page_url').value.trim() || null;
-    const browser = document.getElementById('browser').value.trim() || null;
+    const payload = {
+      user_name: currentUser.name,
+      user_email: currentUser.email,
+      report_type: document.querySelector('input[name="report_type"]:checked').value,
+      subject: document.getElementById('subject').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      page_url: document.getElementById('page_url').value.trim() || null,
+      browser: document.getElementById('browser').value.trim() || null,
+      priority: 'N/A'
+    };
 
-    let priority = 'N/A';
-    if (reportType === 'Bug Report') {
+    if (payload.report_type === 'Bug Report') {
       const priorityInput = document.querySelector('input[name="priority"]:checked');
-      priority = priorityInput ? priorityInput.value : 'Medium';
+      payload.priority = priorityInput ? priorityInput.value : 'Medium';
     }
 
     try {
-      const response = await fetch('/.netlify/functions/submit-feedback', {
+      const res = await fetch('/.netlify/functions/submit-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_name: userName,
-          user_email: userEmail,
-          report_type: reportType,
-          subject: subject,
-          description: description,
-          page_url: pageUrl,
-          browser: browser,
-          priority: priority
-        })
+        body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      const out = await res.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Submission failed');
+      if (res.ok && out.success) {
+        BromarHub.hideLoading();
+        BromarHub.showSuccess('Thank you for your feedback! Your report has been submitted successfully.');
+
+        document.getElementById('subject').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('page_url').value = '';
+        document.getElementById('browser').value = '';
+        typeCards.forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('input[name="report_type"]').forEach(r => r.checked = false);
+        prioritySection.style.display = 'none';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        BromarHub.hideLoading();
+        BromarHub.showInfo('Submission failed — please try again, or contact admin@bromar.com.au directly.');
+        console.error(out);
       }
-
-      BromarHub.hideLoading();
-      const banner = document.getElementById('successBanner');
-      banner.classList.add('show');
-
-      document.getElementById('subject').value = '';
-      document.getElementById('description').value = '';
-      document.getElementById('page_url').value = '';
-      document.getElementById('browser').value = '';
-      typeCards.forEach(c => c.classList.remove('selected'));
-      document.querySelectorAll('input[name="report_type"]').forEach(r => r.checked = false);
-      prioritySection.style.display = 'none';
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => banner.classList.remove('show'), 8000);
 
     } catch (err) {
       console.error('Submission error:', err);
       BromarHub.hideLoading();
-      BromarHub.showInfo('Something went wrong submitting your feedback: ' + err.message + '. Please contact admin@bromar.com.au directly.');
+      BromarHub.showInfo('Something went wrong submitting your feedback. Please contact admin@bromar.com.au directly.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Report';
