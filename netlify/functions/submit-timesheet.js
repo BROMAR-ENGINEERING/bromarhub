@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // From address — during testing this stays as onboarding@resend.dev,
-// once domain is verified set FROM_EMAIL to "Bromar Service <servicet@bromar.com.au>"
+// once domain is verified set FROM_EMAIL to "Bromar Hub <hub@bromar.com.au>"
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>';
 // Optional override — while domain is unverified, force all mail to one test inbox
 const TEST_TO = process.env.TEST_TO || null;
@@ -408,7 +408,7 @@ exports.handler = async (event) => {
 
     // TEST_TO override forces both emails to the test inbox
     const employeeTo = TEST_TO ? [TEST_TO] : [employeeEmail];
-    const adminTo = TEST_TO ? [TEST_TO] : ['servicet@bromar.com.au'];
+    const adminTo = TEST_TO ? [TEST_TO] : ['admin@bromar.com.au'];
 
     const employeeMsg = {
       from: FROM_EMAIL,
