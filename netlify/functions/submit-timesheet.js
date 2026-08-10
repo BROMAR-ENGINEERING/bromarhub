@@ -10,6 +10,10 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>
 // Optional override — while domain is unverified, force all mail to one test inbox
 const TEST_TO = process.env.TEST_TO || null;
 
+console.log('[boot] FROM_EMAIL =', JSON.stringify(FROM_EMAIL));
+console.log('[boot] TEST_TO =', JSON.stringify(TEST_TO));
+console.log('[boot] RESEND_API_KEY present =', !!process.env.RESEND_API_KEY);
+
 // Initialize Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
