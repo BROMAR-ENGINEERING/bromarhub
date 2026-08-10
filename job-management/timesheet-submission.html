@@ -497,7 +497,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.21</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.22</p>
       </div>
     </div>
   </div>
@@ -1724,7 +1724,7 @@
     if (weeklyAllowances.length) { doc.text(`Weekly Allowances: ${weeklyAllowances.join(', ')}`, margin, y); y += 4.5; }
 
     // ── Parse jobs from formData (same pattern as backend) ──
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const rows = [];
     let totalNormal = 0, totalOT = 0, totalTravel = 0;
 
