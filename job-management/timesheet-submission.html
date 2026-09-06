@@ -272,6 +272,58 @@
       display: inline-block;
     }
 
+    /* ── FLOATING WEEK TOTALS BAR ── */
+    .week-totals-bar {
+      position: fixed;
+      bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      display: flex; gap: 14px;
+      align-items: center;
+      z-index: 500;
+      font-size: 0.82rem; font-weight: 600;
+      pointer-events: none;   /* never blocks clicks */
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      max-width: calc(100vw - 24px);
+      white-space: nowrap;
+    }
+    .week-totals-bar .wt-item { display: flex; align-items: center; gap: 4px; }
+    .week-totals-bar .wt-label {
+      font-size: 0.68rem; font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .week-totals-bar .wt-value {
+      font-weight: 700; color: var(--text-primary);
+      min-width: 30px; text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .week-totals-bar .wt-divider {
+      width: 1px; height: 18px; background: var(--border);
+    }
+    /* Normal-hours colour states */
+    .week-totals-bar.state-under { border-color: var(--error); box-shadow: 0 6px 24px rgba(220,38,38,0.25); }
+    .week-totals-bar.state-under .wt-normal-value { color: var(--error); }
+    .week-totals-bar.state-ok    { border-color: var(--success); box-shadow: 0 6px 24px rgba(21,128,61,0.28); }
+    .week-totals-bar.state-ok    .wt-normal-value { color: var(--success); }
+    .week-totals-bar.state-over  { border-color: var(--accent); box-shadow: 0 6px 24px rgba(234,88,12,0.28); }
+    .week-totals-bar.state-over  .wt-normal-value { color: var(--accent); }
+
+    @media (max-width: 520px) {
+      .week-totals-bar {
+        gap: 8px; padding: 6px 10px;
+        font-size: 0.75rem;
+        bottom: 12px;
+      }
+      .week-totals-bar .wt-label { font-size: 0.6rem; }
+      .week-totals-bar .wt-divider { height: 14px; }
+    }
+
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
     .source-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -358,6 +410,29 @@
       <button type="button" class="btn-secondary" id="bhModalCancel">Cancel</button>
       <button type="button" class="submit-btn" id="bhModalOk">OK</button>
     </div>
+  </div>
+</div>
+
+<!-- Floating week totals bar -->
+<div class="week-totals-bar state-under" id="weekTotalsBar" style="display:none;">
+  <div class="wt-item">
+    <span class="wt-label">Normal</span>
+    <span class="wt-value wt-normal-value" id="wtNormal">0.0</span>
+  </div>
+  <div class="wt-divider"></div>
+  <div class="wt-item">
+    <span class="wt-label">OT</span>
+    <span class="wt-value" id="wtOvertime">0.0</span>
+  </div>
+  <div class="wt-divider"></div>
+  <div class="wt-item">
+    <span class="wt-label">Travel</span>
+    <span class="wt-value" id="wtTravel">0.0</span>
+  </div>
+  <div class="wt-divider"></div>
+  <div class="wt-item">
+    <span class="wt-label">Total</span>
+    <span class="wt-value" id="wtTotal">0.0</span>
   </div>
 </div>
 
@@ -497,7 +572,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.22</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.23</p>
       </div>
     </div>
   </div>
@@ -1393,6 +1468,12 @@
       overtimeHoursInput.addEventListener('input', () => updateDayTotal(dayIndex));
     }
 
+    // Wire travel-hours input so the floating totals bar updates
+    const travelHoursInputEl = jobRow.querySelector('.travel-hours');
+    if (travelHoursInputEl) {
+      travelHoursInputEl.addEventListener('input', updateWeekTotals);
+    }
+
     // Remove button
     const removeBtn = jobRow.querySelector('.remove-job');
     if (removeBtn) {
@@ -1493,6 +1574,34 @@
     const totalDisplay = document.querySelector(`.total-hours[data-day="${dayIndex}"]`);
     if (totalDisplay) {
       totalDisplay.textContent = total.toFixed(1);
+    }
+    updateWeekTotals();
+  }
+
+  // ============================================================
+  // FLOATING WEEK TOTALS BAR
+  // ============================================================
+  function updateWeekTotals() {
+    const bar = document.getElementById('weekTotalsBar');
+    if (!bar) return;
+    let normal = 0, overtime = 0, travel = 0;
+    document.querySelectorAll('.normal-hours').forEach(i => normal += parseFloat(i.value) || 0);
+    document.querySelectorAll('.overtime-hours').forEach(i => overtime += parseFloat(i.value) || 0);
+    document.querySelectorAll('.travel-hours').forEach(i => travel += parseFloat(i.value) || 0);
+
+    document.getElementById('wtNormal').textContent   = normal.toFixed(2);
+    document.getElementById('wtOvertime').textContent = overtime.toFixed(2);
+    document.getElementById('wtTravel').textContent   = travel.toFixed(2);
+    document.getElementById('wtTotal').textContent    = (normal + overtime + travel).toFixed(2);
+
+    bar.classList.remove('state-under', 'state-ok', 'state-over');
+    if (normal < 40)      bar.classList.add('state-under');
+    else if (normal === 40) bar.classList.add('state-ok');
+    else                  bar.classList.add('state-over');
+
+    // Reveal once user has entered anything (avoids flashing "0.00" on load)
+    if (bar.style.display === 'none' && (normal + overtime + travel) > 0) {
+      bar.style.display = '';
     }
   }
 
@@ -1938,6 +2047,8 @@
         clearFormData();  // remove auto-saved data
         document.getElementById('formCard').style.display = 'none';
         document.getElementById('pageTitleWrapper').style.display = 'none';
+        const _wtb = document.getElementById('weekTotalsBar');
+        if (_wtb) _wtb.style.display = 'none';
 
         const weekText = document.getElementById('successWeekText');
         const weekVal = debugData.week_starting;
@@ -2127,25 +2238,11 @@
       });
       console.log('[loadJobSheets] clientByJob:', clientByJob);
 
-      // Confirm if any day already has data
-      const dayCards = document.querySelectorAll('.day-card');
-      let hasExisting = false;
-      dayCards.forEach(card => {
-        const jobs = card.querySelectorAll('.job-row');
-        jobs.forEach(row => {
-          const type = row.querySelector('[name$="_type"]')?.value;
-          const normal = row.querySelector('[name$="_hours"]')?.value;
-          if (type || (normal && parseFloat(normal) > 0)) hasExisting = true;
-        });
-      });
-      if (hasExisting) {
-        window.BromarHub?.hideLoading();
-        const proceed = await bhConfirm(`Found ${grouped.size} entries from job sheets. This will overwrite existing entries. Continue?`, { icon: '⚠️', title: 'Overwrite existing?', okText: 'Overwrite' });
-        if (!proceed) return;
-        window.BromarHub?.showLoading('Loading job sheets…', 'Populating your timesheet');
-        // Clear existing rows by regenerating the week
-        generateWeek();
-      }
+      // MERGE strategy: never wipe manual entries.
+      // For each day + job number pulled from jobsheets:
+      //   - if a row on that day already has that job number, update its hours (keep other manual rows)
+      //   - else, add a new row below any manual entries
+      // Rows without job numbers (e.g. leave, admin, tender) are left completely alone.
 
       // Populate — group entries by dayIndex first
       const byDay = new Map();
@@ -2155,6 +2252,8 @@
       });
 
       let addedCount = 0;
+      let updatedCount = 0;
+
       byDay.forEach((entries, dayIndex) => {
         const dayCard = document.querySelector(`.day-card[data-day-index="${dayIndex}"]`);
         if (!dayCard) return;
@@ -2170,12 +2269,31 @@
 
         const dayBody = dayCard.querySelector('.day-body');
 
-        entries.forEach((entry, idx) => {
-          // Reuse first empty job row, or add new
-          let jobRow = dayBody.querySelectorAll('.job-row')[idx];
-          if (!jobRow) {
-            addJobRow(dayBody, dayIndex);
-            jobRow = dayBody.querySelectorAll('.job-row')[idx];
+        entries.forEach(entry => {
+          // Look for an existing row with the same job number
+          const existingRows = Array.from(dayBody.querySelectorAll('.job-row'));
+          let jobRow = existingRows.find(r => {
+            const type = r.querySelector('[name$="_type"]')?.value;
+            const num = r.querySelector('[name$="_number"]')?.value?.trim();
+            return type === 'Job Number' && num && num.toLowerCase() === (entry.jobNumber || '').toLowerCase();
+          });
+
+          const isNewRow = !jobRow;
+
+          if (isNewRow) {
+            // Reuse a completely empty row (no type + no hours + no job number), else create new
+            jobRow = existingRows.find(r => {
+              const type = r.querySelector('[name$="_type"]')?.value;
+              const num  = r.querySelector('[name$="_number"]')?.value?.trim();
+              const nrm  = r.querySelector('[name$="_hours"]')?.value;
+              const ovt  = r.querySelector('[name$="_overtime"]')?.value;
+              return !type && !num && (!nrm || parseFloat(nrm) === 0) && (!ovt || parseFloat(ovt) === 0);
+            });
+            if (!jobRow) {
+              addJobRow(dayBody, dayIndex);
+              const allRows = dayBody.querySelectorAll('.job-row');
+              jobRow = allRows[allRows.length - 1];
+            }
           }
           if (!jobRow) return;
 
@@ -2188,7 +2306,7 @@
           const numberInput = jobRow.querySelector('[name$="_number"]');
           if (numberInput) numberInput.value = entry.jobNumber || '';
           const clientInput = jobRow.querySelector('[name$="_client"]');
-          if (clientInput) clientInput.value = entry.client || '';
+          if (clientInput && entry.client) clientInput.value = entry.client;
           const normalInput = jobRow.querySelector('[name$="_hours"]');
           if (normalInput) {
             normalInput.value = entry.normalHours.toFixed(2);
@@ -2209,7 +2327,9 @@
             src.innerHTML = '🔗 From jobsheet';
             badge.after(src);
           }
-          addedCount++;
+
+          if (isNewRow) addedCount++;
+          else updatedCount++;
         });
 
         // Recompute day total
@@ -2217,7 +2337,15 @@
       });
 
       window.BromarHub?.hideLoading();
-      await bhAlert(`Loaded ${addedCount} entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. You can still add manual entries for admin/office work.`, { icon: '✅', title: 'Loaded' });
+      updateWeekTotals();
+
+      let msg;
+      if (addedCount && updatedCount)      msg = `Added ${addedCount} new and updated ${updatedCount} existing entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. Your manual entries were kept.`;
+      else if (addedCount)                 msg = `Added ${addedCount} entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. Your manual entries were kept.`;
+      else if (updatedCount)               msg = `Updated ${updatedCount} existing entries from ${data.length} job sheet${data.length === 1 ? '' : 's'}. Your manual entries were kept.`;
+      else                                 msg = `Nothing to change — your timesheet already matches the job sheets.`;
+
+      await bhAlert(msg, { icon: '✅', title: 'Loaded' });
     } catch (err) {
       console.error('Load from jobsheets failed:', err);
       window.BromarHub?.hideLoading();
