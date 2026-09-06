@@ -1,4 +1,4 @@
-<!-- employee-resources/suggestions-feedback.html — V1.08 -->
+<!-- employee-resources/suggestions-feedback.html — V1.09 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,6 +16,9 @@
     @media (max-width: 520px) {
       .page-wrapper { margin-top: 80px; }
     }
+
+    /* Keep both fields top-aligned even if a label grows */
+    .field-row { align-items: start; }
 
     /* Validation states (not in shared CSS) */
     .error-msg {
@@ -118,7 +121,7 @@
     }
     .priority-badge.selected .priority-label { color: var(--accent); }
 
-    .logged-in-badge {
+    .user-logged-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -181,7 +184,7 @@
 
       <div class="section-label">Your Details</div>
 
-      <div class="logged-in-badge" id="loggedInBadge" style="display: none;">
+      <div class="user-logged-badge" id="loggedInBadge" style="display: none;">
         <span>✓</span>
         <span>Logged in as <span id="loggedInName"></span></span>
       </div>
@@ -287,7 +290,7 @@
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — FEEDBACK & BUG REPORT</div>
-      <div class="card-footer-version">Version V1.08</div>
+      <div class="card-footer-version">Version V1.09</div>
     </div>
   </div>
 </div>
