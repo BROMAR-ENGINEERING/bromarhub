@@ -24,6 +24,22 @@
 <!-- Header injected by bromar-hub.js -->
 <div id="bromar-header"></div>
 
+<!-- Floating job context bar -->
+<div id="jobContextBar" style="position:sticky; top:78px; z-index:900; background:var(--bg-secondary); color:var(--text-secondary); border-bottom:1px solid var(--border); padding:6px 14px; font-size:0.82rem; font-weight:600; text-align:center; transition:background 0.3s, color 0.3s;">
+  <span id="jobContextText" style="display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">No job selected</span>
+</div>
+<style>
+  @media (max-width: 720px) {
+    #jobContextBar { top: 68px; padding:5px 10px; font-size:0.78rem; }
+  }
+  #jobContextBar.active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+    color: white;
+    border-bottom-color: transparent;
+  }
+  #jobContextBar.hidden { display: none; }
+</style>
+
 <div class="page-title-wrapper">
   <h1>Daily Job Sheet</h1>
   <p class="subtitle">Quick daily documentation</p>
@@ -354,7 +370,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.64</div>
+<div class="revision-number">V1.65</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -412,10 +428,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const val = document.getElementById('sheet_date').value;
     const dayEl = document.getElementById('sheet_date_day');
     if (!val) { dayEl.textContent = ''; return; }
-    const d = new Date(val + 'T12:00:00'); // noon avoids timezone edge cases
+    const d = new Date(val + 'T12:00:00');
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const holiday = getPublicHoliday(val);
     dayEl.textContent = days[d.getDay()] + (holiday ? ` — ${holiday} 🎉` : '');
+    updateJobContextBar();
   };
   document.getElementById('sheet_date').addEventListener('change', () => { applyDateRulesToAllLabour(); updateDayDisplay(); });
   updateDayDisplay();
@@ -681,6 +698,7 @@ function setPostJobSectionsVisible(visible) {
   document.querySelector('.submit-row').style.display      = visible ? 'flex'  : 'none';
   document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
   document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
+  updateJobContextBar();
 }
 
 // ── DRAFT SAVE / RESTORE ─────────────────────────────────────
@@ -1012,15 +1030,46 @@ async function searchJobs(query) {
   } catch (err) { BromarHub.showInfo('Search failed: ' + err.message); }
 }
 
+// ── FLOATING JOB CONTEXT BAR ──────────────────────────────────
+function updateJobContextBar() {
+  const bar = document.getElementById('jobContextBar');
+  const text = document.getElementById('jobContextText');
+  if (!bar || !text) return;
+
+  const dateVal = document.getElementById('sheet_date')?.value;
+  let dateStr = '';
+  if (dateVal) {
+    const d = new Date(dateVal + 'T12:00:00');
+    dateStr = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  if (selectedJobData) {
+    const parts = [];
+    if (dateStr) parts.push(`📅 ${dateStr}`);
+    parts.push(selectedJobData.job_number);
+    if (selectedJobData.client_name) parts.push(selectedJobData.client_name);
+    if (selectedJobData.site_name && selectedJobData.site_name !== selectedJobData.client_name) parts.push(selectedJobData.site_name);
+    text.textContent = parts.join(' · ');
+    bar.classList.add('active');
+  } else {
+    text.textContent = dateStr ? `📅 ${dateStr} · No job selected` : 'No job selected';
+    bar.classList.remove('active');
+  }
+}
+
 // ── MY RECENT JOBS QUICK-PICK ─────────────────────────────────
 async function loadMyRecentJobs(userName) {
   if (!userName) return;
   const wrapper = document.getElementById('myJobsWrapper');
   const select = document.getElementById('myJobsSelect');
   try {
-    // Jobs the user has a sheet on
+    // Only sheets from the last 30 days
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffISO = cutoff.toISOString().slice(0, 10);
+
     const { data: sheets } = await window.sb.from('job_sheets')
       .select('job_number, sheet_date, labour, created_by')
+      .gte('sheet_date', cutoffISO)
       .order('sheet_date', { ascending: false }).limit(200);
 
     const jobNumSet = new Set();
@@ -1031,7 +1080,7 @@ async function loadMyRecentJobs(userName) {
 
     if (!jobNumSet.size) { wrapper.style.display = 'none'; return; }
 
-    // Fetch job register rows for those (active only), newest first
+    // Fetch job register rows — active only (not completed)
     const { data: jobs } = await window.sb.from('job_number_register')
       .select('job_number, client_name, site_name, site_address, prefix, status, created_at')
       .in('job_number', [...jobNumSet])
@@ -1698,11 +1747,11 @@ async function handleFormSubmit(e){
 
 // ── COMPLETION SCREEN / LOCKDOWN ──────────────────────────────
 function showCompletionScreen(sheetNumber, hadServiceReport) {
-  // Hide the entire form and the footer disclaimer
   document.getElementById('jobSheetForm').style.display = 'none';
   const footer = document.querySelector('.footer-disclaimer');
   if (footer) footer.style.display = 'none';
-  // Show completion screen
+  const bar = document.getElementById('jobContextBar');
+  if (bar) bar.classList.add('hidden');
   const screen = document.getElementById('completionScreen');
   document.getElementById('completionSheetNumber').textContent = sheetNumber;
   document.getElementById('completionDetail').textContent = hadServiceReport
@@ -1721,6 +1770,8 @@ function amendSheet() {
   document.getElementById('jobSheetForm').style.display = 'block';
   const footer = document.querySelector('.footer-disclaimer');
   if (footer) footer.style.display = '';
+  const bar = document.getElementById('jobContextBar');
+  if (bar) bar.classList.remove('hidden');
   document.getElementById('submitBtn').textContent = 'Update Job Sheet';
   document.getElementById('jobSheetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   BromarHub.showInfo('Editing ' + currentJobSheetNumber + ' — saving will update this sheet');
@@ -1968,7 +2019,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.64`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.65`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
