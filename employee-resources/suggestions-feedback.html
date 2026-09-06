@@ -1,4 +1,4 @@
-<!-- employee-resources/suggestions-feedback.html — V1.07 -->
+<!-- employee-resources/suggestions-feedback.html — V1.08 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +17,19 @@
       .page-wrapper { margin-top: 80px; }
     }
 
+    /* Validation states (not in shared CSS) */
+    .error-msg {
+      display: none;
+      font-size: 0.76rem;
+      color: var(--error);
+      margin-top: 5px;
+    }
+    .field-group.has-error .error-msg { display: block; }
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+    }
+
     .type-cards {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -28,22 +41,22 @@
     }
 
     .type-card {
-      border: 2px solid var(--input-border);
-      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      border-radius: 10px;
       padding: 18px 16px;
       cursor: pointer;
       transition: all 0.2s;
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       text-align: center;
       user-select: none;
     }
     .type-card:hover {
-      border-color: var(--brand-primary);
-      background: var(--brand-white);
+      border-color: var(--accent);
+      background: var(--card-hover);
     }
     .type-card.selected {
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
+      border-color: var(--accent);
+      background: var(--card-hover);
     }
     .type-card input[type="radio"] {
       position: absolute;
@@ -60,9 +73,10 @@
       color: var(--text-primary);
       margin-bottom: 4px;
     }
+    .type-card.selected .type-title { color: var(--accent); }
     .type-desc {
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       line-height: 1.4;
     }
 
@@ -74,22 +88,22 @@
     .priority-badge {
       flex: 1;
       min-width: 120px;
-      border: 2px solid var(--input-border);
-      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      border-radius: 10px;
       padding: 12px 14px;
       cursor: pointer;
       transition: all 0.2s;
-      background: var(--input-bg);
+      background: var(--bg-secondary);
       text-align: center;
       user-select: none;
     }
     .priority-badge:hover {
-      border-color: var(--brand-primary);
-      background: var(--brand-white);
+      border-color: var(--accent);
+      background: var(--card-hover);
     }
     .priority-badge.selected {
-      border-color: var(--brand-orange);
-      background: var(--brand-orange-soft);
+      border-color: var(--accent);
+      background: var(--card-hover);
     }
     .priority-badge input[type="radio"] {
       position: absolute;
@@ -102,14 +116,15 @@
       color: var(--text-primary);
       display: block;
     }
+    .priority-badge.selected .priority-label { color: var(--accent); }
 
     .logged-in-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--brand-orange-soft);
-      color: var(--brand-orange);
-      border: 1px solid var(--brand-orange);
+      background: var(--card-hover);
+      color: var(--accent);
+      border: 1px solid var(--accent);
       border-radius: 20px;
       padding: 4px 12px;
       font-size: 0.75rem;
@@ -120,7 +135,7 @@
     .card-footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid var(--divider, #e5e7eb);
+      border-top: 1px solid var(--border);
       text-align: center;
     }
     .card-footer-title {
@@ -136,7 +151,7 @@
     }
     .card-footer-version {
       font-size: 0.78rem;
-      color: var(--text-faded, #9ca3af);
+      color: var(--text-secondary);
       font-weight: 500;
     }
   </style>
@@ -181,7 +196,7 @@
         </div>
         <div class="field-group" id="group-email">
           <label for="user_email">Email Address <span class="required">*</span></label>
-          <input type="email" id="user_email" name="user_email" placeholder="oldmate@bromar.com.au" autocomplete="email" readonly style="background: var(--input-bg); cursor: not-allowed;"/>
+          <input type="email" id="user_email" name="user_email" placeholder="oldmate@bromar.com.au" autocomplete="email" readonly style="background: var(--bg-secondary); cursor: not-allowed;"/>
           <span class="error-msg">Please enter a valid email</span>
         </div>
       </div>
@@ -234,11 +249,11 @@
 
       <div class="field-row">
         <div class="field-group">
-          <label for="page_url">Page/Section <span style="color: var(--text-muted); font-weight: 400; font-size: 0.75rem; margin-left: 4px;">(optional)</span></label>
+          <label for="page_url">Page/Section <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.75rem; margin-left: 4px;">(optional)</span></label>
           <input type="text" id="page_url" name="page_url" placeholder="e.g., Timesheet form, Home page" autocomplete="off"/>
         </div>
         <div class="field-group">
-          <label for="browser">Browser/Device <span style="color: var(--text-muted); font-weight: 400; font-size: 0.75rem; margin-left: 4px;">(optional)</span></label>
+          <label for="browser">Browser/Device <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.75rem; margin-left: 4px;">(optional)</span></label>
           <input type="text" id="browser" name="browser" placeholder="e.g., Chrome on Windows, Safari on iPhone" autocomplete="off"/>
         </div>
       </div>
@@ -272,7 +287,7 @@
 
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — FEEDBACK & BUG REPORT</div>
-      <div class="card-footer-version">Version V1.07</div>
+      <div class="card-footer-version">Version V1.08</div>
     </div>
   </div>
 </div>
@@ -424,6 +439,8 @@
   document.addEventListener('input', (e) => {
     if (e.target.matches('input, select, textarea')) {
       e.target.classList.remove('error');
+      const grp = e.target.closest('.field-group');
+      if (grp) grp.classList.remove('has-error');
     }
   });
 
