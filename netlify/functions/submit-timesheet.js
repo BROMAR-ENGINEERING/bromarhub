@@ -1,3 +1,4 @@
+// netlify/functions/submit-timesheet.js — V1.23 — 2026-05-19
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 
