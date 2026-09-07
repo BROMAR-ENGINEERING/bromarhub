@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- timesheet-submission.html — V1.24 — 2026-05-19 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -272,26 +273,29 @@
       display: inline-block;
     }
 
-    /* ── FLOATING WEEK TOTALS BAR ── */
+    /* ── FIXED WEEK TOTALS BAR (under shared 60px header) ── */
     .week-totals-bar {
       position: fixed;
-      bottom: 18px; left: 50%;
-      transform: translateX(-50%);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 14px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
-      display: flex; gap: 14px;
-      align-items: center;
-      z-index: 500;
+      top: 60px; left: 0; right: 0;
+      background: var(--bg-glass, var(--bg-secondary));
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 2px solid var(--border);
+      padding: 8px 16px;
+      z-index: 90;   /* below the header (100) but above content */
+      display: flex; align-items: center; justify-content: center;
+      gap: 18px;
       font-size: 0.82rem; font-weight: 600;
-      pointer-events: none;   /* never blocks clicks */
-      transition: border-color 0.25s ease, box-shadow 0.25s ease;
-      max-width: calc(100vw - 24px);
-      white-space: nowrap;
+      pointer-events: none;
+      transition: border-color 0.25s ease, background 0.25s ease;
+      flex-wrap: wrap;
     }
-    .week-totals-bar .wt-item { display: flex; align-items: center; gap: 4px; }
+    .week-totals-bar .wt-week {
+      font-size: 0.75rem; font-weight: 600;
+      color: var(--text-secondary);
+      margin-right: 6px;
+    }
+    .week-totals-bar .wt-item { display: flex; align-items: center; gap: 5px; }
     .week-totals-bar .wt-label {
       font-size: 0.68rem; font-weight: 700;
       color: var(--text-secondary);
@@ -304,24 +308,28 @@
       font-variant-numeric: tabular-nums;
     }
     .week-totals-bar .wt-divider {
-      width: 1px; height: 18px; background: var(--border);
+      width: 1px; height: 16px; background: var(--border);
     }
     /* Normal-hours colour states */
-    .week-totals-bar.state-under { border-color: var(--error); box-shadow: 0 6px 24px rgba(220,38,38,0.25); }
+    .week-totals-bar.state-under { border-bottom-color: var(--error); background: linear-gradient(180deg, rgba(220,38,38,0.06) 0%, var(--bg-secondary) 100%); }
     .week-totals-bar.state-under .wt-normal-value { color: var(--error); }
-    .week-totals-bar.state-ok    { border-color: var(--success); box-shadow: 0 6px 24px rgba(21,128,61,0.28); }
+    .week-totals-bar.state-ok    { border-bottom-color: var(--success); background: linear-gradient(180deg, rgba(21,128,61,0.08) 0%, var(--bg-secondary) 100%); }
     .week-totals-bar.state-ok    .wt-normal-value { color: var(--success); }
-    .week-totals-bar.state-over  { border-color: var(--accent); box-shadow: 0 6px 24px rgba(234,88,12,0.28); }
+    .week-totals-bar.state-over  { border-bottom-color: var(--accent); background: linear-gradient(180deg, rgba(234,88,12,0.08) 0%, var(--bg-secondary) 100%); }
     .week-totals-bar.state-over  .wt-normal-value { color: var(--accent); }
 
-    @media (max-width: 520px) {
+    /* Push page content down so the fixed bar doesn't overlap when visible */
+    body.has-week-totals-bar .page-title-wrapper { margin-top: 3.5rem !important; }
+
+    @media (max-width: 620px) {
       .week-totals-bar {
-        gap: 8px; padding: 6px 10px;
-        font-size: 0.75rem;
-        bottom: 12px;
+        gap: 10px; padding: 6px 10px;
+        font-size: 0.72rem;
       }
-      .week-totals-bar .wt-label { font-size: 0.6rem; }
-      .week-totals-bar .wt-divider { height: 14px; }
+      .week-totals-bar .wt-week { width: 100%; text-align: center; margin: 0 0 2px; }
+      .week-totals-bar .wt-label { font-size: 0.58rem; }
+      .week-totals-bar .wt-divider { height: 12px; }
+      body.has-week-totals-bar .page-title-wrapper { margin-top: 4.5rem !important; }
     }
 
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
@@ -413,8 +421,9 @@
   </div>
 </div>
 
-<!-- Floating week totals bar -->
+<!-- Fixed week totals bar (under Bromar Hub header) -->
 <div class="week-totals-bar state-under" id="weekTotalsBar" style="display:none;">
+  <span class="wt-week" id="wtWeek">—</span>
   <div class="wt-item">
     <span class="wt-label">Normal</span>
     <span class="wt-value wt-normal-value" id="wtNormal">0.0</span>
@@ -572,7 +581,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.23</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.24</p>
       </div>
     </div>
   </div>
@@ -959,6 +968,8 @@
       const dayCard = createDayCard(date, i);
       daysContainer.appendChild(dayCard);
     }
+    // Show bar + update week label whenever the week is (re)built
+    if (typeof updateWeekTotals === 'function') updateWeekTotals();
   }
 
   function createDayCard(date, index) {
@@ -1599,9 +1610,21 @@
     else if (normal === 40) bar.classList.add('state-ok');
     else                  bar.classList.add('state-over');
 
-    // Reveal once user has entered anything (avoids flashing "0.00" on load)
-    if (bar.style.display === 'none' && (normal + overtime + travel) > 0) {
+    // Week label: "Week of Mon 12 May – Sun 18 May"
+    const weekLabel = document.getElementById('wtWeek');
+    const wsInput = document.getElementById('week_starting');
+    if (weekLabel && wsInput?.value) {
+      const start = new Date(wsInput.value);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const fmt = d => d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+      weekLabel.textContent = `Week of ${fmt(start)} – ${fmt(end)}`;
+    }
+
+    // Always visible while form is up
+    if (bar.style.display === 'none') {
       bar.style.display = '';
+      document.body.classList.add('has-week-totals-bar');
     }
   }
 
@@ -2049,6 +2072,7 @@
         document.getElementById('pageTitleWrapper').style.display = 'none';
         const _wtb = document.getElementById('weekTotalsBar');
         if (_wtb) _wtb.style.display = 'none';
+        document.body.classList.remove('has-week-totals-bar');
 
         const weekText = document.getElementById('successWeekText');
         const weekVal = debugData.week_starting;
