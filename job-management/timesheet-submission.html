@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- timesheet-submission.html — V1.25 — 2026-05-19 -->
+<!-- timesheet-submission.html — V1.26 — 2026-05-19 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -468,6 +468,129 @@
       .summary-totals { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* ── DAY OPTIONS COLLAPSIBLE (bottom of each day tile) ── */
+    .day-options-collapsible {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 10px;
+    }
+    .day-options-collapsible summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      background: var(--bg-main);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      user-select: none;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .day-options-collapsible summary:hover {
+      color: var(--accent); border-color: var(--accent);
+    }
+    .day-options-collapsible summary::-webkit-details-marker { display: none; }
+    .day-options-collapsible .doc-chev {
+      margin-left: auto;
+      transition: transform 0.2s;
+    }
+    .day-options-collapsible[open] .doc-chev { transform: rotate(180deg); }
+    .day-options-collapsible .doc-count {
+      font-size: 0.68rem; font-weight: 700;
+      color: var(--accent);
+      background: var(--card-hover);
+      padding: 2px 8px; border-radius: 10px;
+      margin-left: 6px;
+    }
+    .day-options-inner { padding: 12px 4px 4px; }
+    .day-options-inner .shift-row {
+      display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .day-options-inner .shift-wrap { flex: 0 0 auto; min-width: 130px; }
+    .day-options-inner .shift-wrap label {
+      font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+      display: block; margin-bottom: 4px;
+    }
+    .day-options-inner .shift-select {
+      width: 100%; padding: 8px 32px 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+    .day-options-inner .shift-select:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    }
+    .day-options-inner .owncar-km-field {
+      display: none; margin-top: 8px;
+    }
+    .day-options-inner .owncar-km-field.show { display: block; }
+    .day-options-inner .owncar-km-field label {
+      font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+      display: block; margin-bottom: 4px;
+    }
+    .day-options-inner .owncar-km-input {
+      width: 160px; padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+    }
+    .day-options-inner .owncar-km-input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    }
+
+    /* Per-job options — Site Allowance / Own Car collapsible */
+    .job-options-collapsible {
+      margin-top: 10px;
+      border-top: 1px dashed var(--border);
+      padding-top: 8px;
+    }
+    .job-options-collapsible summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; font-weight: 600;
+      color: var(--text-secondary);
+      user-select: none;
+    }
+    .job-options-collapsible summary::-webkit-details-marker { display: none; }
+    .job-options-collapsible summary:hover { color: var(--accent); }
+    .job-options-collapsible .joc-chev {
+      margin-left: auto;
+      transition: transform 0.2s;
+    }
+    .job-options-collapsible[open] .joc-chev { transform: rotate(180deg); }
+    .job-options-inner { padding: 8px 0 2px; }
+
+    /* ── SUMMARY: per-day job details ── */
+    .summary-day-jobs {
+      padding: 4px 0 4px 8px;
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-day-jobs .sdj-entry {
+      display: flex; gap: 6px;
+      padding: 2px 0;
+    }
+    .summary-day-jobs .sdj-bullet {
+      color: var(--accent); font-weight: 700;
+    }
+
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
     .source-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -717,7 +840,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.25</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.26</p>
       </div>
     </div>
   </div>
@@ -1183,109 +1306,6 @@
         </div>
       </div>
       <div class="day-body" data-day="${index}">
-        ${isWeekend ? `
-          <div class="day-options" style="margin-bottom: 12px;">
-            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
-              <div style="flex: 0 0 auto; min-width: 120px;">
-                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
-                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
-                  <option value="Day" selected>Day</option>
-                  <option value="Afternoon">Afternoon</option>
-                  <option value="Night">Night</option>
-                </select>
-              </div>
-              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">LAHA</span>
-                </label>
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Start/Finish at Office</span>
-                </label>
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Own Car</span>
-                </label>
-              </div>
-            </div>
-            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
-              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
-              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
-            </div>
-            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
-              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
-                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
-                <span class="checkbox-custom"></span>
-                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
-              </label>
-              <div style="display: flex; gap: 12px; margin-top: 10px;">
-                <div style="flex: 1;">
-                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
-                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
-                </div>
-                <div style="flex: 1;">
-                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
-                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
-                </div>
-              </div>
-            </div>
-          </div>
-        ` : `
-          <div class="day-options" style="margin-bottom: 12px;">
-            <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px;">
-              <div style="flex: 0 0 auto; min-width: 120px;">
-                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">Shift</label>
-                <select name="day_${index}_shift" class="shift-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;">
-                  <option value="Day" selected>Day</option>
-                  <option value="Afternoon">Afternoon</option>
-                  <option value="Night">Night</option>
-                </select>
-              </div>
-              <div class="day-allowances" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">LAHA</span>
-                </label>
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Start/Finish at Office</span>
-                </label>
-                <label class="checkbox-label" style="padding: 8px 12px; margin: 0;">
-                  <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-text">Own Car</span>
-                </label>
-              </div>
-            </div>
-            <div class="owncar-km-field" style="display: none; margin-top: 8px;">
-              <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">KM travelled (outside 50km radius from office)</label>
-              <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0" style="width: 150px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem;"/>
-            </div>
-            <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
-              <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
-                <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
-                <span class="checkbox-custom"></span>
-                <span class="checkbox-text" style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
-              </label>
-              <div style="display: flex; gap: 12px; margin-top: 10px;">
-                <div style="flex: 1;">
-                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
-                  <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
-                </div>
-                <div style="flex: 1;">
-                  <label style="font-size: 0.75rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
-                  <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.875rem;"/>
-                </div>
-              </div>
-            </div>
-          </div>
-        `}
         <!-- Jobs will be added here -->
       </div>
     `;
@@ -1311,6 +1331,90 @@
       }
     });
     dayBody.appendChild(addBtn);
+
+    // ─── Day options collapsible (Shift / LAHA / Office / Own Car + KM) ───
+    const optsWrap = document.createElement('details');
+    optsWrap.className = 'day-options-collapsible';
+    optsWrap.innerHTML = `
+      <summary>
+        <span>⚙</span>
+        <span>Day options</span>
+        <span class="doc-count" style="display:none;">0</span>
+        <span class="doc-chev">▾</span>
+      </summary>
+      <div class="day-options-inner">
+        <div class="shift-row">
+          <div class="shift-wrap">
+            <label for="day_${index}_shift">Shift</label>
+            <select id="day_${index}_shift" name="day_${index}_shift" class="shift-select">
+              <option value="Day" selected>Day</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Night">Night</option>
+            </select>
+          </div>
+          <div class="day-allowances" style="flex: 1;">
+            <label class="checkbox-label">
+              <input type="checkbox" class="laha-checkbox" data-day="${index}" name="day_${index}_laha"/>
+              LAHA
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="office-checkbox" data-day="${index}" name="day_${index}_office"/>
+              Start/Finish at Office
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="owncar-checkbox" data-day="${index}" name="day_${index}_owncar"/>
+              Own Car
+            </label>
+          </div>
+        </div>
+        <div class="owncar-km-field">
+          <label>KM travelled (outside 50km radius from office)</label>
+          <input type="number" name="day_${index}_owncar_km" class="owncar-km-input" min="0" step="1" placeholder="0"/>
+        </div>
+        <div class="callout-break-warning" style="display: none; margin-top: 12px; padding: 12px 14px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0;">
+          <label class="checkbox-label" style="padding: 0; margin: 0 0 10px 0;">
+            <input type="checkbox" name="day_${index}_break_achieved" class="break-achieved-checkbox"/>
+            <span style="color: #92400e; font-weight: 600;">10-hour break achieved after previous day's call-out</span>
+          </label>
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <div style="flex: 1;">
+              <label style="font-size: 0.72rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Start Time Today</label>
+              <input type="time" name="day_${index}_callout_start" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.85rem;"/>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 0.72rem; font-weight: 600; color: #92400e; display: block; margin-bottom: 4px;">Finish Time Today</label>
+              <input type="time" name="day_${index}_callout_finish" style="width: 100%; padding: 6px 8px; border: 1px solid #f59e0b; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 0.85rem;"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    dayBody.appendChild(optsWrap);
+
+    // Wire Own Car → show KM input
+    const ownCarCb = optsWrap.querySelector('.owncar-checkbox');
+    const kmField  = optsWrap.querySelector('.owncar-km-field');
+    if (ownCarCb && kmField) {
+      ownCarCb.addEventListener('change', () => {
+        kmField.classList.toggle('show', ownCarCb.checked);
+      });
+    }
+
+    // Refresh checkbox count badge in summary bubble
+    const countBadge = optsWrap.querySelector('.doc-count');
+    function refreshOptCount() {
+      const checked = optsWrap.querySelectorAll('input[type="checkbox"]:checked').length;
+      if (checked > 0) {
+        countBadge.style.display = '';
+        countBadge.textContent = checked;
+      } else {
+        countBadge.style.display = 'none';
+      }
+    }
+    optsWrap.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', refreshOptCount);
+    });
+    refreshOptCount();
 
     // Weekend toggle functionality
     if (isWeekend) {
@@ -2425,6 +2529,37 @@
       if (doo) parts.push(`${doo.toFixed(2)} OT`);
       if (dt)  parts.push(`${dt.toFixed(2)} T`);
       dayRows += `<div class="summary-day-row"><span class="summary-day-name">${dayNamesArr[d]}</span><span class="summary-day-hours">${parts.join(' + ')}</span></div>`;
+
+      // Per-job details for this day
+      const jobEntries = [];
+      body.querySelectorAll('.job-row').forEach(row => {
+        let type = row.querySelector('[name$="_type"]')?.value?.trim() || '';
+        if (!type) return;
+        const nh = parseFloat(row.querySelector('[name$="_hours"]')?.value) || 0;
+        const oh = parseFloat(row.querySelector('[name$="_overtime"]')?.value) || 0;
+        const th = parseFloat(row.querySelector('[name$="_travel_time"]')?.value) || 0;
+        if (nh + oh + th === 0) return;
+
+        const otherType = (row.querySelector('[name$="_other_type"]')?.value || '').trim();
+        if (type === 'Other' && otherType) type = `Other: ${otherType}`;
+
+        const jobNum = row.querySelector('[name$="_number"]')?.value?.trim() || '';
+        const client = row.querySelector('[name$="_client"]')?.value?.trim() || '';
+
+        let label;
+        if (type === 'Job Number' || type === 'Tender/Quote') {
+          const bits = [];
+          if (jobNum) bits.push(jobNum);
+          if (client) bits.push(client);
+          label = `${type}${bits.length ? ' · ' + bits.join(' · ') : ''}`;
+        } else {
+          label = type;
+        }
+        jobEntries.push(`<div class="sdj-entry"><span class="sdj-bullet">•</span><span>${label.replace(/</g, '&lt;')}</span></div>`);
+      });
+      if (jobEntries.length) {
+        dayRows += `<div class="summary-day-jobs">${jobEntries.join('')}</div>`;
+      }
     }
     if (!dayRows) dayRows = '<div class="summary-day-row"><span class="summary-day-name">No entries</span></div>';
 
