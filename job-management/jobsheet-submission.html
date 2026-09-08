@@ -24,13 +24,16 @@
 <!-- Header injected by bromar-hub.js -->
 <div id="bromar-header"></div>
 
-<!-- Floating job context bar -->
-<div id="jobContextBar" style="position:sticky; top:78px; z-index:900; background:var(--bg-secondary); color:var(--text-secondary); border-bottom:1px solid var(--border); padding:6px 14px; font-size:0.82rem; font-weight:600; text-align:center; transition:background 0.3s, color 0.3s;">
+<!-- Floating job context bar — flush under the fixed Bromar header -->
+<div id="jobContextBar" style="position:fixed; top:78px; left:0; right:0; z-index:900; background:var(--bg-secondary); color:var(--text-secondary); border-bottom:1px solid var(--border); padding:6px 14px; font-size:0.82rem; font-weight:600; text-align:center; transition:background 0.3s, color 0.3s;">
   <span id="jobContextText" style="display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">No job selected</span>
 </div>
 <style>
+  /* Push page content down by bar height so it doesn't hide under the fixed bar */
+  body { padding-top: 34px; }
   @media (max-width: 720px) {
     #jobContextBar { top: 68px; padding:5px 10px; font-size:0.78rem; }
+    body { padding-top: 30px; }
   }
   #jobContextBar.active {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
@@ -81,8 +84,24 @@
       </div>
 
       <!-- JOB NUMBER -->
-      <div class="section-label">Job Number</div>
-      <div class="job-number-section">
+      <div class="section-label" id="jobNumberLabel">Job Number</div>
+
+      <!-- Collapsed summary shown once a job is selected -->
+      <div id="jobNumberCollapsed" style="display:none; background:var(--bg-main); border:1px solid var(--border); border-radius:12px; padding:0.75rem 1rem; margin-bottom:1rem; cursor:pointer;" onclick="expandJobNumberSection()">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:0.7rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Job</div>
+            <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              <span id="jobCollapsedNumber" style="color:var(--accent); font-family:'JetBrains Mono',monospace;"></span>
+              <span id="jobCollapsedClient" style="color:var(--text-primary);"></span>
+            </div>
+            <div id="jobCollapsedSite" style="font-size:0.75rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;"></div>
+          </div>
+          <span style="font-size:0.75rem; color:var(--accent); font-weight:600; white-space:nowrap;">▼ Change</span>
+        </div>
+      </div>
+
+      <div class="job-number-section" id="jobNumberSection">
         <div class="job-number-toggle">
           <div class="radio-option">
             <input type="radio" id="existing_job" name="job_type" value="existing" checked/>
@@ -202,16 +221,6 @@
       <!-- ALL SECTIONS HIDDEN UNTIL JOB PICKED -->
       <div id="postJobSections" style="display:none;">
 
-        <!-- PHOTOS & DOCUMENTS -->
-        <div class="section-label">Photos &amp; Documents</div>
-        <div class="file-upload-area" id="fileUploadArea" style="cursor:pointer;">
-          <div class="upload-icon">📁</div>
-          <div class="upload-text"><strong>Add photos or documents</strong></div>
-          <div class="upload-hint">Tap to add — Max 50MB per file</div>
-          <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;"/>
-        </div>
-        <div class="file-list" id="fileList"></div>
-
         <!-- TASKS -->
         <div class="section-label">Work Performed</div>
         <div id="tasksContainer"></div>
@@ -231,6 +240,21 @@
         <div class="section-label">Notes &amp; Notifications</div>
         <div id="notesContainer"></div>
         <button type="button" class="add-btn" id="addNoteBtn">+ Add Note</button>
+
+        <!-- PHOTOS & DOCUMENTS (collapsed by default) -->
+        <div class="section-label" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;" onclick="togglePhotosSection()">
+          <span>Photos &amp; Documents <span id="photosCount" style="font-weight:400; color:var(--text-secondary); font-size:0.85rem;"></span></span>
+          <span id="photosChevron" style="color:var(--accent); font-weight:600; font-size:0.85rem;">▼ Show</span>
+        </div>
+        <div id="photosSection" style="display:none;">
+          <div class="file-upload-area" id="fileUploadArea" style="cursor:pointer;">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text"><strong>Add photos or documents</strong></div>
+            <div class="upload-hint">Tap to add — Max 50MB per file</div>
+            <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;"/>
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
 
         <!-- SERVICE REPORT -->
         <div class="section-label">Service Report Options</div>
@@ -370,7 +394,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.65</div>
+<div class="revision-number">V1.66</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -423,7 +447,12 @@ let isAmending = false;          // true when editing an already-saved sheet
 document.addEventListener('DOMContentLoaded', async () => {
   if (!window.sb) { alert('Supabase failed to load — check connection and refresh.'); return; }
 
-  document.getElementById('sheet_date').valueAsDate = new Date();
+  // Set to local date (valueAsDate uses UTC which can show yesterday in AEST)
+  {
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    document.getElementById('sheet_date').value = localDate;
+  }
   const updateDayDisplay = () => {
     const val = document.getElementById('sheet_date').value;
     const dayEl = document.getElementById('sheet_date_day');
@@ -698,8 +727,30 @@ function setPostJobSectionsVisible(visible) {
   document.querySelector('.submit-row').style.display      = visible ? 'flex'  : 'none';
   document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
   document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
+  // Collapse or expand the Job Number section
+  if (visible && selectedJobData) collapseJobNumberSection(); else expandJobNumberSection();
   updateJobContextBar();
 }
+
+function collapseJobNumberSection() {
+  const collapsed = document.getElementById('jobNumberCollapsed');
+  const expanded  = document.getElementById('jobNumberSection');
+  const label     = document.getElementById('jobNumberLabel');
+  if (!collapsed || !expanded || !selectedJobData) return;
+  document.getElementById('jobCollapsedNumber').textContent = selectedJobData.job_number;
+  document.getElementById('jobCollapsedClient').textContent = selectedJobData.client_name ? ' · ' + selectedJobData.client_name : '';
+  const siteBits = [selectedJobData.site_name, selectedJobData.site_address].filter(Boolean).join(' · ');
+  document.getElementById('jobCollapsedSite').textContent = siteBits;
+  expanded.style.display = 'none';
+  label.style.display = 'none';
+  collapsed.style.display = 'block';
+}
+
+window.expandJobNumberSection = function() {
+  document.getElementById('jobNumberCollapsed').style.display = 'none';
+  document.getElementById('jobNumberSection').style.display   = 'block';
+  document.getElementById('jobNumberLabel').style.display     = 'block';
+};
 
 // ── DRAFT SAVE / RESTORE ─────────────────────────────────────
 function collectDraftData() {
@@ -1028,6 +1079,25 @@ async function searchJobs(query) {
       results.classList.add('show');
     }
   } catch (err) { BromarHub.showInfo('Search failed: ' + err.message); }
+}
+
+// ── PHOTOS SECTION COLLAPSE ───────────────────────────────────
+window.togglePhotosSection = function() {
+  const sec = document.getElementById('photosSection');
+  const chev = document.getElementById('photosChevron');
+  if (sec.style.display === 'none') {
+    sec.style.display = 'block';
+    chev.textContent = '▲ Hide';
+  } else {
+    sec.style.display = 'none';
+    chev.textContent = '▼ Show';
+  }
+};
+
+function updatePhotosCount() {
+  const files = document.getElementById('fileList')?.children.length || 0;
+  const badge = document.getElementById('photosCount');
+  if (badge) badge.textContent = files ? `(${files} attached)` : '';
 }
 
 // ── FLOATING JOB CONTEXT BAR ──────────────────────────────────
@@ -2019,7 +2089,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.65`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.66`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
