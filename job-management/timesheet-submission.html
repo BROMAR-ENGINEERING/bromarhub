@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- timesheet-submission.html — V1.24 — 2026-05-19 -->
+<!-- timesheet-submission.html — V1.25 — 2026-05-19 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -74,31 +74,6 @@
       transition: border-color 0.2s;
     }
     .day-card:hover { border-color: var(--accent); }
-    .day-header {
-      background: var(--bg-main);
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
-    .day-name {
-      font-weight: 700; font-size: 1rem;
-      color: var(--text-primary);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .day-date {
-      font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;
-    }
-    .day-total {
-      font-size: 0.85rem; font-weight: 600;
-      color: var(--accent);
-      background: var(--card-hover);
-      padding: 4px 12px; border-radius: 20px;
-    }
-    .day-body { padding: 1rem; }
-    .day-card.disabled .day-body { opacity: 0.5; pointer-events: none; }
-    .day-card.disabled .day-header { background: var(--bg-main); }
 
     /* ── WEEKEND TOGGLE ── */
     .weekend-toggle {
@@ -330,6 +305,167 @@
       .week-totals-bar .wt-label { font-size: 0.58rem; }
       .week-totals-bar .wt-divider { height: 12px; }
       body.has-week-totals-bar .page-title-wrapper { margin-top: 4.5rem !important; }
+    }
+
+    /* ── DAY HEADER (inline date, chevron, accordion) ── */
+    .day-header {
+      background: var(--bg-main);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .day-header:hover { background: var(--card-hover); }
+    .day-header-right { display: flex; align-items: center; gap: 10px; }
+    .day-name {
+      font-weight: 700; font-size: 1rem;
+      color: var(--text-primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .day-sep { color: var(--text-secondary); font-weight: 400; }
+    .day-date {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+    }
+    .day-total {
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--accent);
+      background: var(--card-hover);
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .day-chevron {
+      font-size: 1rem; color: var(--text-secondary);
+      transition: transform 0.25s ease;
+      display: inline-block;
+    }
+    .day-card.open .day-chevron { transform: rotate(180deg); }
+
+    /* Collapsible body */
+    .day-body {
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 1rem;
+      transition: max-height 0.28s ease, padding 0.2s ease;
+    }
+    .day-card.open .day-body {
+      max-height: 4000px;   /* generous cap so complex days don't clip */
+      padding: 1rem;
+    }
+    .day-card.disabled .day-body { opacity: 0.5; pointer-events: none; }
+    .day-card.disabled .day-header { background: var(--bg-main); }
+
+    /* ── COMMENT TOGGLE (mobile only) ── */
+    .comment-toggle {
+      display: none;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .comment-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .comment-toggle .cog-icon { margin-right: 4px; }
+
+    /* ── PRE-SUBMIT SUMMARY MODAL ── */
+    .summary-modal .bh-modal { max-width: 560px; text-align: left; }
+    .summary-modal .bh-modal-title { text-align: left; }
+    .summary-modal .bh-modal-message { text-align: left; }
+    .summary-week { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px; }
+    .summary-totals {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 6px; margin-bottom: 14px;
+    }
+    .summary-totals .st-box {
+      background: var(--bg-main); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px; text-align: center;
+    }
+    .summary-totals .st-label {
+      font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+      color: var(--text-secondary); letter-spacing: 0.4px;
+    }
+    .summary-totals .st-value {
+      font-size: 1.15rem; font-weight: 700; color: var(--text-primary);
+      margin-top: 2px;
+    }
+    .summary-totals .st-normal.under .st-value { color: var(--error); }
+    .summary-totals .st-normal.ok    .st-value { color: var(--success); }
+    .summary-totals .st-normal.over  .st-value { color: var(--accent); }
+    .summary-day-list {
+      background: var(--bg-main); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px;
+      max-height: 220px; overflow-y: auto;
+      font-size: 0.82rem;
+      margin-bottom: 12px;
+    }
+    .summary-day-row {
+      display: flex; justify-content: space-between;
+      padding: 5px 0; border-bottom: 1px solid var(--border);
+    }
+    .summary-day-row:last-child { border-bottom: none; }
+    .summary-day-name { font-weight: 600; }
+    .summary-day-hours { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .summary-flag {
+      background: var(--card-hover); color: var(--accent);
+      padding: 4px 10px; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 600;
+      display: inline-block; margin-right: 4px; margin-bottom: 4px;
+    }
+    .summary-comment {
+      background: var(--bg-main); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      margin-bottom: 12px; white-space: pre-wrap;
+    }
+
+    /* ── MOBILE COMPACT ── */
+    @media (max-width: 620px) {
+      .day-header { padding: 10px 12px; }
+      .day-name { font-size: 0.92rem; gap: 6px; }
+      .day-date { font-size: 0.78rem; }
+      .day-total { font-size: 0.78rem; padding: 3px 9px; }
+      .day-header-right { gap: 6px; }
+      .day-card.open .day-body { padding: 0.75rem; }
+
+      /* Tighter checkbox strips */
+      .job-checkboxes,
+      .day-allowances,
+      .day-options { gap: 6px 10px; margin-top: 6px; }
+      .checkbox-label { font-size: 0.75rem; gap: 4px; }
+      .checkbox-label input[type="checkbox"],
+      .checkbox-label input[type="radio"] { width: 14px; height: 14px; }
+
+      /* Normal + OT side-by-side on mobile — occupy half-width each within the job-fields grid */
+      .job-field.normal-hours-field,
+      .job-field.overtime-hours-field {
+        grid-column: span 1 !important;
+      }
+      .job-fields {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px;
+      }
+      /* Fields that need full width stay full */
+      .job-field.full,
+      .job-field.job-number-field,
+      .job-field.client-field,
+      .job-field.other-type-field,
+      .job-field.travel-time-field {
+        grid-column: 1 / -1 !important;
+      }
+
+      /* Comment collapse */
+      .comment-toggle { display: inline-flex; align-items: center; }
+      .job-field.comment-field { display: none; }
+      .job-field.comment-field.show { display: block; }
+
+      /* Summary totals stack tighter on mobile */
+      .summary-totals { grid-template-columns: repeat(2, 1fr); }
     }
 
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
@@ -581,7 +717,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.24</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.25</p>
       </div>
     </div>
   </div>
@@ -968,8 +1104,48 @@
       const dayCard = createDayCard(date, i);
       daysContainer.appendChild(dayCard);
     }
+    // Wire accordion: click day header → open only that one
+    daysContainer.querySelectorAll('.day-header').forEach(h => {
+      h.addEventListener('click', (e) => {
+        // Ignore clicks that originated inside the weekend toggle
+        if (e.target.closest('.weekend-toggle')) return;
+        const card = h.closest('.day-card');
+        toggleDayCard(card);
+      });
+    });
+    // Open the current weekday by default (or Monday if outside week)
+    openDefaultDay(weekStart);
+
     // Show bar + update week label whenever the week is (re)built
     if (typeof updateWeekTotals === 'function') updateWeekTotals();
+  }
+
+  function toggleDayCard(card) {
+    if (!card) return;
+    const wasOpen = card.classList.contains('open');
+    // Close all
+    daysContainer.querySelectorAll('.day-card.open').forEach(c => c.classList.remove('open'));
+    if (!wasOpen) card.classList.add('open');
+  }
+
+  function openDayByIndex(idx) {
+    const card = daysContainer.querySelector(`.day-card[data-day-index="${idx}"]`);
+    if (card) {
+      daysContainer.querySelectorAll('.day-card.open').forEach(c => c.classList.remove('open'));
+      card.classList.add('open');
+      // Scroll into view under the fixed header + totals bar (~110px)
+      const y = card.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }
+
+  function openDefaultDay(weekStart) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const wsMid = new Date(weekStart); wsMid.setHours(0,0,0,0);
+    const diff = Math.floor((today - wsMid) / 86400000);
+    const idx = diff >= 0 && diff < 7 ? diff : 0;   // this week → today, otherwise Monday
+    const card = daysContainer.querySelector(`.day-card[data-day-index="${idx}"]`);
+    if (card) card.classList.add('open');
   }
 
   function createDayCard(date, index) {
@@ -985,24 +1161,26 @@
     card.dataset.dayIndex = index;
     
     card.innerHTML = `
-      <div class="day-header">
-        <div>
-          <div class="day-name">${dayName}</div>
-          <div class="day-date">${dateStr}</div>
+      <div class="day-header" data-toggle="${index}">
+        <div class="day-title-block">
+          <div class="day-name">${dayName} <span class="day-sep">·</span> <span class="day-date">${dateStr}</span></div>
         </div>
-        ${isWeekend ? `
-          <div class="weekend-toggle">
-            <span class="toggle-label">Worked</span>
-            <label class="toggle-switch">
-              <input type="checkbox" class="weekend-worked" data-day="${index}"/>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        ` : `
-          <div class="day-total">
-            <span class="total-hours" data-day="${index}">0.0</span> hrs
-          </div>
-        `}
+        <div class="day-header-right">
+          ${isWeekend ? `
+            <div class="weekend-toggle" onclick="event.stopPropagation();">
+              <span class="toggle-label">Worked</span>
+              <label class="toggle-switch">
+                <input type="checkbox" class="weekend-worked" data-day="${index}"/>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          ` : `
+            <div class="day-total">
+              <span class="total-hours" data-day="${index}">0.0</span> hrs
+            </div>
+          `}
+          <span class="day-chevron" aria-hidden="true">▾</span>
+        </div>
       </div>
       <div class="day-body" data-day="${index}">
         ${isWeekend ? `
@@ -1258,10 +1436,13 @@
           <label>Call-Out Complete Time</label>
           <input type="time" name="${jobId}_callout_complete" autocomplete="off"/>
         </div>
-        <div class="job-field full">
+        <div class="job-field full comment-field">
           <label>Comment</label>
           <textarea name="${jobId}_comment" rows="2" placeholder="Add notes about this job..." autocomplete="off"></textarea>
         </div>
+        <button type="button" class="comment-toggle" data-target="${jobId}_comment">
+          <span class="cog-icon">💬</span>Add comment
+        </button>
       </div>
       <div class="job-checkboxes allowance-checkboxes" style="display: none;">
         <label class="checkbox-label">
@@ -1483,6 +1664,24 @@
     const travelHoursInputEl = jobRow.querySelector('.travel-hours');
     if (travelHoursInputEl) {
       travelHoursInputEl.addEventListener('input', updateWeekTotals);
+    }
+
+    // Comment toggle (mobile): show textarea + hide the button
+    const commentToggle = jobRow.querySelector('.comment-toggle');
+    const commentField = jobRow.querySelector('.comment-field');
+    if (commentToggle && commentField) {
+      commentToggle.addEventListener('click', () => {
+        commentField.classList.add('show');
+        commentToggle.style.display = 'none';
+        const ta = commentField.querySelector('textarea');
+        if (ta) ta.focus();
+      });
+      // If restored value is present, auto-expand
+      const ta = commentField.querySelector('textarea');
+      if (ta && ta.value?.trim()) {
+        commentField.classList.add('show');
+        commentToggle.style.display = 'none';
+      }
     }
 
     // Remove button
@@ -1768,9 +1967,14 @@
       }
     }
 
-    // Scroll to first error
+    // Scroll to first error — open its day accordion first
     if (!valid && firstErrorElement) {
-      firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const parentCard = firstErrorElement.closest('.day-card');
+      if (parentCard && !parentCard.classList.contains('open')) {
+        daysContainer.querySelectorAll('.day-card.open').forEach(c => c.classList.remove('open'));
+        parentCard.classList.add('open');
+      }
+      setTimeout(() => firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
     }
 
     return valid;
@@ -2020,6 +2224,14 @@
       return;
     }
 
+    // Pre-submit summary — user reviews before actual send
+    const summaryHtml = buildTimesheetSummaryHTML();
+    const proceed = await bhSummaryConfirm(summaryHtml);
+    if (!proceed) {
+      submitBtn.disabled = false;
+      return;
+    }
+
     // Show loading overlay (provided by bromar-hub.js)
     window.BromarHub?.showLoading('Preparing submission…', 'Just a moment');
 
@@ -2153,6 +2365,102 @@
       bhModalOk.onclick = () => cleanup(true);
       bhModalCancel.onclick = () => cleanup(false);
     });
+  }
+
+  // Rich pre-submit summary: HTML content in message, custom button labels
+  function bhSummaryConfirm(htmlContent, { title = 'Review your timesheet', icon = '📋', okText = 'Confirm & Submit', cancelText = 'Back to edit' } = {}) {
+    return new Promise(resolve => {
+      bhModal.classList.add('summary-modal');
+      bhModalIcon.textContent = icon;
+      bhModalTitle.textContent = title;
+      bhModalMessage.innerHTML = htmlContent;
+      bhModalOk.textContent = okText;
+      bhModalCancel.textContent = cancelText;
+      bhModalCancel.style.display = '';
+      bhModal.classList.add('show');
+      const cleanup = (result) => {
+        bhModal.classList.remove('show');
+        bhModal.classList.remove('summary-modal');
+        bhModalMessage.innerHTML = ''; bhModalMessage.textContent = '';
+        bhModalOk.onclick = null; bhModalCancel.onclick = null;
+        resolve(result);
+      };
+      bhModalOk.onclick = () => cleanup(true);
+      bhModalCancel.onclick = () => cleanup(false);
+    });
+  }
+
+  function buildTimesheetSummaryHTML() {
+    // Employee + week
+    const name = (window.currentUser?.name || document.getElementById('employee_name')?.value || '').trim();
+    const wsInput = document.getElementById('week_starting');
+    let weekLine = '';
+    if (wsInput?.value) {
+      const start = new Date(wsInput.value);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      const fmt = d => d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+      weekLine = `${name} • Week of ${fmt(start)} – ${fmt(end)}`;
+    }
+
+    // Totals
+    let n = 0, o = 0, t = 0;
+    document.querySelectorAll('.normal-hours').forEach(i => n += parseFloat(i.value) || 0);
+    document.querySelectorAll('.overtime-hours').forEach(i => o += parseFloat(i.value) || 0);
+    document.querySelectorAll('.travel-hours').forEach(i => t += parseFloat(i.value) || 0);
+    const stateCls = n < 40 ? 'under' : (n === 40 ? 'ok' : 'over');
+
+    // Per-day breakdown
+    const dayNamesArr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    let dayRows = '';
+    for (let d = 0; d < 7; d++) {
+      const body = document.querySelector(`.day-body[data-day="${d}"]`);
+      if (!body) continue;
+      let dn = 0, doo = 0, dt = 0;
+      body.querySelectorAll('.normal-hours').forEach(i => dn += parseFloat(i.value) || 0);
+      body.querySelectorAll('.overtime-hours').forEach(i => doo += parseFloat(i.value) || 0);
+      body.querySelectorAll('.travel-hours').forEach(i => dt += parseFloat(i.value) || 0);
+      if (dn + doo + dt === 0) continue;
+      const parts = [];
+      if (dn)  parts.push(`${dn.toFixed(2)} N`);
+      if (doo) parts.push(`${doo.toFixed(2)} OT`);
+      if (dt)  parts.push(`${dt.toFixed(2)} T`);
+      dayRows += `<div class="summary-day-row"><span class="summary-day-name">${dayNamesArr[d]}</span><span class="summary-day-hours">${parts.join(' + ')}</span></div>`;
+    }
+    if (!dayRows) dayRows = '<div class="summary-day-row"><span class="summary-day-name">No entries</span></div>';
+
+    // Flags
+    const flags = [];
+    if (document.querySelector('[name="allowance_first_aid"]:checked')) flags.push('First Aid Allowance');
+    if (document.querySelector('[name="allowance_construction_wiring"]:checked')) flags.push('Construction Wiring');
+    if (document.querySelector('[name="standby"]:checked')) flags.push('On-Call Standby');
+
+    // Comments
+    const comments = (document.getElementById('general_comments')?.value || '').trim();
+
+    return `
+      <div class="summary-week">${weekLine}</div>
+      <div class="summary-totals">
+        <div class="st-box st-normal ${stateCls}">
+          <div class="st-label">Normal</div>
+          <div class="st-value">${n.toFixed(2)}</div>
+        </div>
+        <div class="st-box">
+          <div class="st-label">OT</div>
+          <div class="st-value">${o.toFixed(2)}</div>
+        </div>
+        <div class="st-box">
+          <div class="st-label">Travel</div>
+          <div class="st-value">${t.toFixed(2)}</div>
+        </div>
+        <div class="st-box">
+          <div class="st-label">Total</div>
+          <div class="st-value">${(n + o + t).toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="summary-day-list">${dayRows}</div>
+      ${flags.length ? `<div>${flags.map(f => `<span class="summary-flag">${f}</span>`).join('')}</div>` : ''}
+      ${comments ? `<div class="summary-comment"><strong>Notes:</strong> ${comments.replace(/</g, '&lt;')}</div>` : ''}
+    `;
   }
 
   // New Timesheet button — refresh page for a clean form
