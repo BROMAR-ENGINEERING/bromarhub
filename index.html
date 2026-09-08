@@ -366,6 +366,41 @@
             padding: 0.5rem 0.7rem;
         }
 
+        /* WIP Feed - re-uses tasks-feed styles but with subtle differentiation */
+        #wipFeed .tasks-count-badge { background: #6b7280; }
+        [data-theme="dark"] #wipFeed .tasks-count-badge { background: #9ca3af; color: #1a1a1e; }
+        .wip-kind-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex-shrink: 0;
+            background: rgba(107, 114, 128, 0.15);
+            color: #6b7280;
+        }
+        [data-theme="dark"] .wip-kind-badge { color: #9ca3af; }
+        .wip-item-delete {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .wip-item-delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .wip-item-delete svg {
+            width: 14px; height: 14px;
+            stroke: currentColor; stroke-width: 2; fill: none;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+
         /* Task Detail Modal */
         .task-modal {
             display: none;
@@ -742,6 +777,42 @@
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+        }
+        .password-wrapper {
+            position: relative;
+            display: flex;
+        }
+        .password-wrapper .form-input {
+            flex: 1;
+            padding-right: 46px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            padding: 0;
+            transition: color 0.2s ease, background 0.2s ease;
+        }
+        .password-toggle:hover { color: var(--accent); background: var(--bg-secondary); }
+        .password-toggle svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
         .login-button {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
@@ -1138,7 +1209,13 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required autocomplete="current-password"/>
+                    <div class="password-wrapper">
+                        <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required autocomplete="current-password"/>
+                        <button type="button" id="togglePasswordBtn" class="password-toggle" aria-label="Show password" title="Show password">
+                            <svg class="eye-open" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="eye-closed" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a19.86 19.86 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" id="loginButton" class="login-button">Login to Bromar Hub</button>
             </form>
@@ -1197,19 +1274,6 @@
                 <input type="search" id="searchInput" class="search-input" placeholder="Search for forms, resources, schedules..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="bromar-hub-search-no-autofill" data-lpignore="true" data-form-type="other">
             </div>
 
-            <div class="tasks-feed" id="tasksFeed" style="display: none;">
-                <div class="schedule-feed-header">
-                    <div class="schedule-feed-title">
-                        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                        Your Tasks & Announcements
-                    </div>
-                    <div class="tasks-count-badge" id="tasksCountBadge">0</div>
-                </div>
-                <div id="tasksFeedBody">
-                    <div class="schedule-loading">Loading your tasks...</div>
-                </div>
-            </div>
-
             <div class="schedule-feed" id="scheduleFeed">
                 <div class="schedule-feed-header">
                     <div class="schedule-feed-title">
@@ -1225,6 +1289,32 @@
                 </div>
                 <div id="scheduleFeedBody">
                     <div class="schedule-loading">Loading your schedule...</div>
+                </div>
+            </div>
+
+            <div class="tasks-feed" id="tasksFeed" style="display: none;">
+                <div class="schedule-feed-header">
+                    <div class="schedule-feed-title">
+                        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        Your Tasks & Announcements
+                    </div>
+                    <div class="tasks-count-badge" id="tasksCountBadge">0</div>
+                </div>
+                <div id="tasksFeedBody">
+                    <div class="schedule-loading">Loading your tasks...</div>
+                </div>
+            </div>
+
+            <div class="tasks-feed" id="wipFeed" style="display: none;">
+                <div class="schedule-feed-header">
+                    <div class="schedule-feed-title">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+                        Work in Progress
+                    </div>
+                    <div class="tasks-count-badge" id="wipCountBadge">0</div>
+                </div>
+                <div id="wipFeedBody">
+                    <div class="schedule-loading">Loading your drafts...</div>
                 </div>
             </div>
 
@@ -1587,6 +1677,41 @@
         </div>
     </div>
 
+    <!-- Themed Confirm Modal -->
+    <div id="confirmModal" class="task-modal">
+        <div class="task-modal-content" style="max-width: 400px;">
+            <div class="task-modal-header">
+                <div class="task-modal-title-block">
+                    <div class="task-modal-title" id="confirmModalTitle">Confirm</div>
+                </div>
+            </div>
+            <div class="task-modal-body">
+                <div class="task-modal-value" id="confirmModalMessage" style="font-size: 0.95rem;">Are you sure?</div>
+            </div>
+            <div class="task-modal-footer">
+                <button class="task-modal-btn" id="confirmModalCancel" style="background: var(--bg-main); color: var(--text-primary);">Cancel</button>
+                <button class="task-modal-btn close-off" id="confirmModalOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Themed Alert Modal -->
+    <div id="alertModal" class="task-modal">
+        <div class="task-modal-content" style="max-width: 400px;">
+            <div class="task-modal-header">
+                <div class="task-modal-title-block">
+                    <div class="task-modal-title" id="alertModalTitle">Notice</div>
+                </div>
+            </div>
+            <div class="task-modal-body">
+                <div class="task-modal-value" id="alertModalMessage" style="font-size: 0.95rem;">—</div>
+            </div>
+            <div class="task-modal-footer">
+                <button class="task-modal-btn close-off" id="alertModalOk">OK</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Logout Confirmation Modal -->
     <div id="logoutModal" class="logout-modal">
         <div class="logout-modal-content">
@@ -1626,7 +1751,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.64</div>
+    <div class="revision-number">V1.67</div>
 
     <script>
         // SUPABASE AUTH
@@ -1657,6 +1782,21 @@
             document.getElementById('hubContent').style.display = 'none';
         }
         
+        // Password show/hide toggle
+        (function initPasswordToggle() {
+            const btn = document.getElementById('togglePasswordBtn');
+            const input = document.getElementById('loginPassword');
+            if (!btn || !input) return;
+            btn.addEventListener('click', () => {
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                btn.querySelector('.eye-open').style.display = showing ? 'block' : 'none';
+                btn.querySelector('.eye-closed').style.display = showing ? 'none' : 'block';
+                btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+                btn.setAttribute('title', showing ? 'Show password' : 'Hide password');
+            });
+        })();
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
@@ -2298,12 +2438,13 @@
             if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                 loadScheduleFeed();
                 loadTasksFeed();
+                loadWipFeed();
             }
         });
         // Also trigger on load if session already exists
         (async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) { loadScheduleFeed(); loadTasksFeed(); }
+            if (session) { loadScheduleFeed(); loadTasksFeed(); loadWipFeed(); }
         })();
 
         // ============================================
@@ -2468,6 +2609,27 @@
             if (e.target.id === 'taskModal') closeTaskModal();
         });
 
+        // Themed alert/confirm helpers
+        function showThemedAlert(message, title = 'Notice') {
+            document.getElementById('alertModalTitle').textContent = title;
+            document.getElementById('alertModalMessage').textContent = message;
+            const modal = document.getElementById('alertModal');
+            modal.classList.add('show');
+            return new Promise(resolve => {
+                document.getElementById('alertModalOk').onclick = () => { modal.classList.remove('show'); resolve(); };
+            });
+        }
+        function showThemedConfirm(message, title = 'Confirm') {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMessage').textContent = message;
+            const modal = document.getElementById('confirmModal');
+            modal.classList.add('show');
+            return new Promise(resolve => {
+                document.getElementById('confirmModalOk').onclick = () => { modal.classList.remove('show'); resolve(true); };
+                document.getElementById('confirmModalCancel').onclick = () => { modal.classList.remove('show'); resolve(false); };
+            });
+        }
+
         async function acknowledgeTask() {
             if (!currentTask) return;
             const btn = document.getElementById('taskAckBtn');
@@ -2488,13 +2650,14 @@
                 console.error('[Tasks] ack failed', e);
                 btn.disabled = false;
                 btn.textContent = 'Acknowledge';
-                alert('Could not acknowledge task. Please try again.');
+                showThemedAlert('Could not acknowledge task. Please try again.', 'Error');
             }
         }
 
         async function closeOffTask() {
             if (!currentTask) return;
-            if (!window.confirm('Close off this task? It will be removed from your list.')) return;
+            const ok = await showThemedConfirm('Close off this task? It will be removed from your list.', 'Close Task');
+            if (!ok) return;
             const btn = document.getElementById('taskCloseBtn');
             btn.disabled = true;
             btn.textContent = 'Closing...';
@@ -2510,7 +2673,130 @@
                 console.error('[Tasks] close failed', e);
                 btn.disabled = false;
                 btn.textContent = 'Close Off';
-                alert('Could not close task. Please try again.');
+                showThemedAlert('Could not close task. Please try again.', 'Error');
+            }
+        }
+
+        // ============================================
+        // WORK IN PROGRESS FEED
+        // ============================================
+        const WIP_KIND_META = {
+            'jobsheet':          { label: 'Jobsheet',           path: '/job-management/jobsheet-submission.html' },
+            'test-switchboard':  { label: 'Switchboard Test',   path: '/toolbox/testing.html' },
+            'test-construction': { label: 'Construction Test',  path: '/toolbox/testing.html' },
+            'swms':              { label: 'SWMS',               path: '/safety/swms-builder.html' },
+        };
+
+        async function loadWipFeed() {
+            const feed = document.getElementById('wipFeed');
+            const body = document.getElementById('wipFeedBody');
+            const badge = document.getElementById('wipCountBadge');
+            if (!feed || !body) return;
+
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user?.email) { feed.style.display = 'none'; return; }
+
+                const { data: rows, error } = await supabaseClient
+                    .from('work_in_progress')
+                    .select('*')
+                    .eq('employee_email', user.email)
+                    .in('status', ['draft', 'in_progress'])
+                    .order('last_saved_at', { ascending: false, nullsFirst: false })
+                    .order('updated_at', { ascending: false });
+
+                if (error) {
+                    console.error('[WIP]', error);
+                    feed.style.display = 'none';
+                    return;
+                }
+
+                if (!rows || !rows.length) { feed.style.display = 'none'; return; }
+
+                feed.style.display = 'block';
+                badge.textContent = String(rows.length);
+                body.innerHTML = rows.map(renderWipItem).join('');
+
+                // Row click → resume
+                body.querySelectorAll('[data-wip-open]').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        if (e.target.closest('.wip-item-delete')) return;
+                        const row = rows.find(r => r.id === el.dataset.wipOpen);
+                        if (row) resumeWip(row);
+                    });
+                });
+                // Delete click
+                body.querySelectorAll('.wip-item-delete').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const row = rows.find(r => r.id === btn.dataset.wipDelete);
+                        if (row) await deleteWip(row);
+                    });
+                });
+            } catch (err) {
+                console.error('[WIP]', err);
+                feed.style.display = 'none';
+            }
+        }
+
+        function renderWipItem(row) {
+            const meta = WIP_KIND_META[row.kind] || { label: row.kind || 'Draft', path: null };
+            const title = row.title || row.job_number || meta.label;
+            const savedAgo = formatSavedAgo(row.last_saved_at || row.updated_at);
+            const metaLine = savedAgo ? `<div class="task-item-meta">${escapeHtml(savedAgo)}</div>` : '';
+            return `
+                <button type="button" class="task-item" data-wip-open="${escapeHtml(row.id)}">
+                    <span class="task-priority-dot" style="background: #6b7280;" title="Draft"></span>
+                    <div class="task-item-body">
+                        <div class="task-item-title">${escapeHtml(title)}</div>
+                        ${metaLine}
+                    </div>
+                    <span class="wip-kind-badge">${escapeHtml(meta.label)}</span>
+                    <button type="button" class="wip-item-delete" data-wip-delete="${escapeHtml(row.id)}" aria-label="Delete draft" title="Delete draft">
+                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </button>`;
+        }
+
+        function formatSavedAgo(ts) {
+            if (!ts) return '';
+            try {
+                const d = new Date(ts);
+                const diffMs = Date.now() - d.getTime();
+                const mins = Math.floor(diffMs / 60000);
+                if (mins < 1) return 'Saved just now';
+                if (mins < 60) return `Saved ${mins}m ago`;
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return `Saved ${hours}h ago`;
+                const days = Math.floor(hours / 24);
+                if (days < 7) return `Saved ${days}d ago`;
+                return 'Saved ' + d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short' });
+            } catch (_) { return ''; }
+        }
+
+        function resumeWip(row) {
+            const meta = WIP_KIND_META[row.kind];
+            if (!meta || !meta.path) {
+                showThemedAlert('This draft type does not have a resume path configured yet.', 'Cannot Resume');
+                return;
+            }
+            window.location.href = `${meta.path}?wip=${encodeURIComponent(row.id)}`;
+        }
+
+        async function deleteWip(row) {
+            const label = (WIP_KIND_META[row.kind]?.label) || 'this draft';
+            const ok = await showThemedConfirm(`Delete this ${label} draft? This cannot be undone.`, 'Delete Draft');
+            if (!ok) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('work_in_progress')
+                    .delete()
+                    .eq('id', row.id);
+                if (error) throw error;
+                loadWipFeed();
+            } catch (e) {
+                console.error('[WIP] delete failed', e);
+                showThemedAlert('Could not delete the draft. Please try again.', 'Error');
             }
         }
 
