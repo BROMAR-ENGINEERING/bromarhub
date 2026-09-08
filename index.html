@@ -1,3 +1,4 @@
+<!-- index.html - V1.68 - 2026-07-08 - / -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -197,8 +198,15 @@
             flex: 1;
             min-width: 0;
             display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            overflow: hidden;
+        }
+        .schedule-item-row {
+            display: flex;
             align-items: center;
             gap: 0.5rem;
+            min-width: 0;
             overflow: hidden;
         }
         .schedule-item-title {
@@ -222,6 +230,18 @@
             margin-right: 0.4rem;
             color: var(--text-secondary);
         }
+        .schedule-item-note {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.35;
+            white-space: normal;
+            word-wrap: break-word;
+            opacity: 0.85;
+        }
+        .schedule-item.has-note { align-items: flex-start; padding-top: 0.55rem; padding-bottom: 0.55rem; }
+        .schedule-item.has-note .schedule-item-icon,
+        .schedule-item.has-note .schedule-item-badge { margin-top: 2px; }
         .schedule-item-badge {
             font-size: 0.6rem;
             font-weight: 700;
@@ -1751,7 +1771,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.67</div>
+    <div class="revision-number">V1.68</div>
 
     <script>
         // SUPABASE AUTH
@@ -2418,12 +2438,18 @@
                 badgeText = leaveType.toUpperCase();
             }
 
+            // Notes shown as a second line under the meta (site + job only, leave subtype already shows via title)
+            const noteLine = (item.type !== 'leave' && item.notes) ? item.notes.trim() : '';
+
             return `
-                <div class="schedule-item">
+                <div class="schedule-item ${noteLine ? 'has-note' : ''}">
                     <div class="schedule-item-icon type-${item.type}">${icon}</div>
                     <div class="schedule-item-body">
-                        <div class="schedule-item-title">${escapeHtml(title)}</div>
-                        ${meta ? `<div class="schedule-item-meta">${escapeHtml(meta)}</div>` : ''}
+                        <div class="schedule-item-row">
+                            <div class="schedule-item-title">${escapeHtml(title)}</div>
+                            ${meta ? `<div class="schedule-item-meta">${escapeHtml(meta)}</div>` : ''}
+                        </div>
+                        ${noteLine ? `<div class="schedule-item-note">${escapeHtml(noteLine)}</div>` : ''}
                     </div>
                     <div class="schedule-item-badge type-${item.type}">${escapeHtml(badgeText)}</div>
                 </div>`;
