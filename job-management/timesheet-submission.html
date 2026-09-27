@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- timesheet-submission.html — V1.27 — 2026-05-19 -->
+<!-- Employee Timesheet Submission - V1.28 - 2026-09-28 - /job-management/timesheet-submission.html -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -598,6 +598,33 @@
       color: var(--accent); font-weight: 700;
     }
 
+    /* ── PUBLIC HOLIDAY ── */
+    .ph-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(234, 88, 12, 0.12);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+    .day-card.public-holiday { border-color: var(--accent); }
+    .day-card.public-holiday .day-header { background: rgba(234, 88, 12, 0.06); }
+    .ph-work-toggle {
+      display: none;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--card-hover);
+      border: 1px dashed var(--accent);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+    }
+    .job-row.is-public-holiday .ph-work-toggle { display: block; }
+    .ph-work-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
     .source-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -841,7 +868,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.27</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.28</p>
       </div>
     </div>
   </div>
@@ -1242,6 +1269,196 @@
 
     // Show bar + update week label whenever the week is (re)built
     if (typeof updateWeekTotals === 'function') updateWeekTotals();
+
+    // Apply public holidays for this week (async — no blocking)
+    applyPublicHolidays(weekStart);
+  }
+
+  // ============================================================
+  // PUBLIC HOLIDAYS (VIC)
+  // Supabase lookup with hardcoded fallback for offline / failed fetches
+  // ============================================================
+  const PUBLIC_HOLIDAY_FALLBACK = {
+    // 2026
+    '2026-01-01': "New Year's Day",
+    '2026-01-26': 'Australia Day',
+    '2026-03-09': 'Labour Day',
+    '2026-04-03': 'Good Friday',
+    '2026-04-04': 'Saturday before Easter',
+    '2026-04-05': 'Easter Sunday',
+    '2026-04-06': 'Easter Monday',
+    '2026-04-25': 'Anzac Day',
+    '2026-06-08': "King's Birthday",
+    '2026-09-25': 'AFL Grand Final Friday',
+    '2026-11-03': 'Melbourne Cup Day',
+    '2026-12-25': 'Christmas Day',
+    '2026-12-26': 'Boxing Day',
+    '2026-12-28': 'Boxing Day (observed)',
+    // 2027
+    '2027-01-01': "New Year's Day",
+    '2027-01-26': 'Australia Day',
+    '2027-03-08': 'Labour Day',
+    '2027-03-26': 'Good Friday',
+    '2027-03-27': 'Saturday before Easter',
+    '2027-03-28': 'Easter Sunday',
+    '2027-03-29': 'Easter Monday',
+    '2027-04-26': 'Anzac Day (observed)',
+    '2027-06-14': "King's Birthday",
+    '2027-10-01': 'AFL Grand Final Friday',
+    '2027-11-02': 'Melbourne Cup Day',
+    '2027-12-25': 'Christmas Day',
+    '2027-12-27': 'Christmas Day (observed)',
+    '2027-12-28': 'Boxing Day (observed)',
+    // 2028
+    '2028-01-03': "New Year's Day (observed)",
+    '2028-01-26': 'Australia Day',
+    '2028-03-13': 'Labour Day',
+    '2028-04-14': 'Good Friday',
+    '2028-04-15': 'Saturday before Easter',
+    '2028-04-16': 'Easter Sunday',
+    '2028-04-17': 'Easter Monday',
+    '2028-04-25': 'Anzac Day',
+    '2028-06-12': "King's Birthday",
+    '2028-09-29': 'AFL Grand Final Friday',
+    '2028-11-07': 'Melbourne Cup Day',
+    '2028-12-25': 'Christmas Day',
+    '2028-12-26': 'Boxing Day'
+  };
+
+  // Cache for one session
+  let phCache = null;
+  async function fetchPublicHolidaysForWeek(weekStart) {
+    const start = new Date(weekStart);
+    const end = new Date(weekStart);
+    end.setDate(start.getDate() + 6);
+    const startIso = start.toISOString().slice(0, 10);
+    const endIso   = end.toISOString().slice(0, 10);
+
+    const map = {};
+    // Try Supabase first
+    try {
+      if (window.sb) {
+        const { data, error } = await window.sb
+          .from('public_holidays')
+          .select('date, name, state')
+          .in('state', ['VIC', 'NATIONAL'])
+          .gte('date', startIso)
+          .lte('date', endIso);
+        if (!error && data) {
+          data.forEach(r => { map[r.date] = r.name; });
+          return map;
+        }
+      }
+    } catch (err) {
+      console.warn('[PH] Supabase fetch failed, using fallback:', err.message);
+    }
+    // Fallback: hardcoded list
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      if (PUBLIC_HOLIDAY_FALLBACK[iso]) map[iso] = PUBLIC_HOLIDAY_FALLBACK[iso];
+    }
+    return map;
+  }
+
+  async function applyPublicHolidays(weekStart) {
+    let holidays;
+    try {
+      holidays = await fetchPublicHolidaysForWeek(weekStart);
+    } catch (e) {
+      console.warn('[PH] apply failed', e);
+      return;
+    }
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      const name = holidays[iso];
+      if (!name) continue;
+
+      const card = daysContainer.querySelector(`.day-card[data-day-index="${i}"]`);
+      if (!card) return;
+      card.classList.add('public-holiday');
+      card.dataset.publicHoliday = name;
+
+      // Add badge next to date if not already
+      const dateSpan = card.querySelector('.day-date');
+      if (dateSpan && !dateSpan.parentElement.querySelector('.ph-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'ph-badge';
+        badge.innerHTML = `🎉 ${name}`;
+        dateSpan.after(badge);
+      }
+
+      // Auto-fill a Public Holiday entry only if the day has no user entries yet
+      const dayBody = card.querySelector('.day-body');
+      if (!dayBody) continue;
+      const existingRows = Array.from(dayBody.querySelectorAll('.job-row'));
+      const hasUserEntry = existingRows.some(r => {
+        const type = r.querySelector('[name$="_type"]')?.value;
+        const nh   = parseFloat(r.querySelector('[name$="_hours"]')?.value) || 0;
+        const oh   = parseFloat(r.querySelector('[name$="_overtime"]')?.value) || 0;
+        return type || nh || oh;
+      });
+      if (hasUserEntry) continue;
+
+      // Weekend: turn on Worked toggle so body reveals
+      if (i >= 5) {
+        const wt = card.querySelector('.weekend-worked');
+        if (wt && !wt.checked) {
+          wt.checked = true;
+          wt.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+
+      // Populate first row as Public Holiday
+      let firstRow = dayBody.querySelector('.job-row');
+      if (!firstRow) {
+        addJobRow(dayBody, i);
+        firstRow = dayBody.querySelector('.job-row');
+      }
+      if (!firstRow) continue;
+      const typeSelect = firstRow.querySelector('[name$="_type"]');
+      if (typeSelect) {
+        typeSelect.value = 'Public Holiday';
+        typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // Mark row so ph-work-toggle CSS reveals
+      firstRow.classList.add('is-public-holiday');
+
+      // Insert the "Worked overtime on this PH" toggle if not present
+      if (!firstRow.querySelector('.ph-work-toggle')) {
+        const t = document.createElement('div');
+        t.className = 'ph-work-toggle';
+        t.innerHTML = `
+          <label>
+            <input type="checkbox" class="ph-worked-checkbox" data-day="${i}"/>
+            Worked on this public holiday (overtime rate)
+          </label>
+        `;
+        firstRow.appendChild(t);
+        const cb = t.querySelector('.ph-worked-checkbox');
+        cb.addEventListener('change', (e) => {
+          const nh = firstRow.querySelector('[name$="_hours"]');
+          const oh = firstRow.querySelector('[name$="_overtime"]');
+          if (e.target.checked) {
+            // Move 8 from normal to overtime; user can then set actual number
+            if (nh) { nh.value = '0'; nh.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (oh) {
+              if (!parseFloat(oh.value)) {
+                oh.value = '8';
+                oh.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              oh.focus(); oh.select();
+            }
+          } else {
+            // Back to standard PH — restore 8 normal, clear OT
+            if (nh) { nh.value = '8'; nh.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (oh) { oh.value = '0'; oh.dispatchEvent(new Event('input', { bubbles: true })); }
+          }
+        });
+      }
+    }
   }
 
   function toggleDayCard(card) {
@@ -1496,6 +1713,7 @@
             <option value="Stand Down Time (Callout)">Stand Down Time (Callout)</option>
             <option value="Stand Down Time (Shift Change)">Stand Down Time (Shift Change)</option>
             <option value="RDO">RDO</option>
+            <option value="Public Holiday">Public Holiday</option>
             <option value="Annual Leave">Annual Leave</option>
             <option value="Carer's Leave">Carer's Leave</option>
             <option value="Sick Leave">Sick Leave</option>
@@ -1591,7 +1809,7 @@
 
       // If switching TO a leave-type and job number / client have values,
       // ask before wiping them so the user doesn't lose data by accident.
-      const leaveTypesForClear = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', "Carer's Leave", 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
+      const leaveTypesForClear = ['RDO', 'Public Holiday', 'Annual Leave', 'Long Service Leave', 'Sick Leave', "Carer's Leave", 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
       if (leaveTypesForClear.includes(e.target.value)) {
         const jobNumInput = jobRow.querySelector('[name$="_number"]');
         const clientInput = jobRow.querySelector('[name$="_client"]');
@@ -1696,7 +1914,7 @@
       }
       
       // Auto-fill hours for leave types - fill remaining hours up to 8
-      const leaveTypes = ['RDO', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
+      const leaveTypes = ['RDO', 'Public Holiday', 'Annual Leave', 'Long Service Leave', 'Sick Leave', 'Carer\'s Leave', 'Trade School', 'TIL (Taken)', 'Unpaid Leave'];
       if (normalHoursInput && leaveTypes.includes(e.target.value)) {
         if (!normalHoursInput.value || normalHoursInput.value === '0') {
           // Calculate how many hours are already used on this day
