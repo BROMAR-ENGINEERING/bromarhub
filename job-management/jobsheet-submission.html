@@ -1,4 +1,4 @@
-<!-- Daily Jobsheet Submission - V1.68 - 2026-09-08 - job-management/jobsheet-submission.html -->
+<!-- Daily Jobsheet Submission - V1.69 - 2026-10-05 - job-management/jobsheet-submission.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -403,7 +403,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.68</div>
+<div class="revision-number">V1.69</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1577,8 +1577,8 @@ async function loadJobTypesIntoSelect() {
   if (!sel) return;
   try {
     const { data, error } = await window.sb.from('job_types')
-      .select('id, code, name, category, sort_order, is_active')
-      .eq('is_active', true)
+      .select('id, code, name, category, sort_order, active')
+      .eq('active', true)
       .order('category', { ascending: true })
       .order('sort_order', { ascending: true });
     if (error) throw error;
@@ -1630,9 +1630,9 @@ async function loadCustomFieldsForJobType(prefix, name) {
 
   try {
     const { data: fields, error } = await window.sb.from('job_type_fields')
-      .select('id, job_type_id, field_key, label, field_type, options, unit, placeholder, help_text, is_required, sort_order, is_active')
+      .select('id, job_type_id, field_key, label, field_type, options, unit, placeholder, help_text, is_required, sort_order, active')
       .eq('job_type_id', jt.id)
-      .eq('is_active', true)
+      .eq('active', true)
       .order('sort_order', { ascending: true });
     if (error) throw error;
 
@@ -2499,7 +2499,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.68`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.69`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
