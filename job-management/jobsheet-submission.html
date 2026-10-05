@@ -1,4 +1,4 @@
-<!-- Daily Jobsheet Submission - V1.69 - 2026-10-05 - job-management/jobsheet-submission.html -->
+<!-- Daily Jobsheet Submission - V1.70 - 2026-10-05 - job-management/jobsheet-submission.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -403,7 +403,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.69</div>
+<div class="revision-number">V1.70</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1645,9 +1645,11 @@ async function loadCustomFieldsForJobType(prefix, name) {
     container.innerHTML = CURRENT_JOB_TYPE_FIELDS.map(renderCustomField).join('');
     section.style.display = 'block';
 
-    // Wire file-type fields
+    // Wire interactive field types
     CURRENT_JOB_TYPE_FIELDS.forEach(f => {
-      if (f.field_type === 'file') wireCustomFileField(f);
+      if (f.field_type === 'file')  wireCustomFileField(f);
+      if (f.field_type === 'photo') wireCustomPhotoField(f);
+      if (f.field_type === 'form')  wireCustomFormField(f);
     });
 
     // If we have pending values (from draft resume or amend), apply them now
@@ -1742,6 +1744,28 @@ function renderCustomField(f) {
         <div class="cf-file-status" data-cf-id="${f.id}" style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;"></div>
         ${help}
       </div>`;
+    case 'photo':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="photo" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label>${label} ${req}</label>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <button type="button" class="btn-secondary cf-photo-camera" data-cf-id="${f.id}">📷 Take photo</button>
+          <button type="button" class="btn-secondary cf-photo-upload" data-cf-id="${f.id}">🖼️ Choose</button>
+        </div>
+        <div class="cf-photo-grid" data-cf-id="${f.id}" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:6px; margin-top:8px;"></div>
+        ${help}
+      </div>`;
+    case 'form': {
+      const opts = parseOptions(f.options);
+      const slug = opts[0]?.value || opts[0]?.slug || '';
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="form" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}" data-cf-slug="${esc(slug)}">
+        <label>${label} ${req}</label>
+        <div style="margin-top:4px;">
+          <button type="button" class="btn-secondary cf-form-btn" data-cf-id="${f.id}">📝 Complete form</button>
+          <span class="cf-form-status" data-cf-id="${f.id}" style="font-size:0.78rem; color:var(--text-secondary); margin-left:10px;"></span>
+        </div>
+        ${help}
+      </div>`;
+    }
     default:
       return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="text" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
         <label for="${id}">${label} ${req}</label>
@@ -1789,6 +1813,97 @@ async function uploadCustomFieldFile(file, label) {
   return path;
 }
 
+function wireCustomPhotoField(f) {
+  const camera = document.querySelector(`.cf-photo-camera[data-cf-id="${f.id}"]`);
+  const upload = document.querySelector(`.cf-photo-upload[data-cf-id="${f.id}"]`);
+  const grid   = document.querySelector(`.cf-photo-grid[data-cf-id="${f.id}"]`);
+  if (!camera || !upload || !grid) return;
+
+  const pick = (useCamera) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (useCamera) input.capture = 'environment';
+    input.multiple = !useCamera;
+    input.addEventListener('change', async () => {
+      if (!input.files?.length) return;
+      for (const file of input.files) {
+        try {
+          const path = await uploadCustomFieldFile(file, f.label || f.field_key);
+          const { data: urlData } = await window.sb.storage.from('job-sheet-files').createSignedUrl(path, 3600);
+          const url = urlData?.signedUrl || '';
+          addPhotoToGrid(grid, { name: file.name, path, url });
+        } catch (err) { console.error('[CF photo upload]', err); }
+      }
+    });
+    input.click();
+  };
+
+  camera.addEventListener('click', () => pick(true));
+  upload.addEventListener('click', () => pick(false));
+}
+
+function addPhotoToGrid(grid, photo) {
+  const existing = JSON.parse(grid.dataset.photos || '[]');
+  existing.push(photo);
+  grid.dataset.photos = JSON.stringify(existing);
+  renderPhotoGrid(grid);
+}
+
+function renderPhotoGrid(grid) {
+  const photos = JSON.parse(grid.dataset.photos || '[]');
+  grid.innerHTML = photos.map((p, i) => `
+    <div style="position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:1px solid var(--border);">
+      <img src="${esc(p.url || '')}" alt="${esc(p.name || 'photo')}" style="width:100%; height:100%; object-fit:cover;"/>
+      <button type="button" onclick="removeCustomPhoto('${grid.dataset.cfId}', ${i})" style="position:absolute; top:2px; right:2px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,0.6); color:white; font-size:14px; cursor:pointer; line-height:1;">✕</button>
+    </div>`).join('');
+}
+
+window.removeCustomPhoto = function(cfId, idx) {
+  const grid = document.querySelector(`.cf-photo-grid[data-cf-id="${cfId}"]`);
+  if (!grid) return;
+  const photos = JSON.parse(grid.dataset.photos || '[]');
+  photos.splice(idx, 1);
+  grid.dataset.photos = JSON.stringify(photos);
+  renderPhotoGrid(grid);
+};
+
+function wireCustomFormField(f) {
+  const btn = document.querySelector(`.cf-form-btn[data-cf-id="${f.id}"]`);
+  const status = document.querySelector(`.cf-form-status[data-cf-id="${f.id}"]`);
+  if (!btn) return;
+  const wrap = btn.closest('[data-cf-id]');
+  const slug = wrap?.dataset.cfSlug || '';
+  if (!slug) {
+    btn.disabled = true;
+    if (status) { status.textContent = 'No form configured'; status.style.color = 'var(--error)'; }
+    return;
+  }
+
+  btn.addEventListener('click', async () => {
+    if (!window.BromarFormKit) {
+      BromarHub.showInfo('Form kit not loaded on this page.'); return;
+    }
+    try {
+      const result = await window.BromarFormKit.open({
+        slug,
+        latestRevision: true,
+        jobNumber: selectedJobData?.job_number,
+        jobSheetNumber: currentJobSheetNumber,
+        preparedBy: currentUser?.name
+      });
+      if (result?.submissionId) {
+        wrap.dataset.cfValue = result.submissionId;
+        wrap.dataset.cfFormName = result.name || slug;
+        if (status) { status.textContent = `✅ Submitted (${result.name || slug})`; status.style.color = 'var(--success)'; }
+      }
+    } catch (err) {
+      console.error('[CF form]', err);
+      BromarHub.showInfo('Could not open form: ' + (err.message || err));
+    }
+  });
+}
+
 function collectCustomFieldValues() {
   const rows = [];
   document.querySelectorAll('[data-cf-id]').forEach(wrap => {
@@ -1802,6 +1917,11 @@ function collectCustomFieldValues() {
     } else if (type === 'file') {
       const btn = wrap.querySelector('.cf-file-btn');
       try { value = JSON.parse(btn?.dataset.files || '[]'); } catch { value = []; }
+    } else if (type === 'photo') {
+      const grid = wrap.querySelector('.cf-photo-grid');
+      try { value = JSON.parse(grid?.dataset.photos || '[]'); } catch { value = []; }
+    } else if (type === 'form') {
+      value = wrap.dataset.cfValue || null;
     } else {
       const el = wrap.querySelector('.cf-input');
       value = el ? el.value : null;
@@ -1827,6 +1947,18 @@ function applyCustomFieldValues(values) {
         btn.dataset.files = JSON.stringify(v.value);
         if (status) status.textContent = v.value.length ? `${v.value.length} file(s) attached` : '';
       }
+    } else if (type === 'photo') {
+      const grid = wrap.querySelector('.cf-photo-grid');
+      if (grid && Array.isArray(v.value)) {
+        grid.dataset.photos = JSON.stringify(v.value);
+        renderPhotoGrid(grid);
+      }
+    } else if (type === 'form') {
+      const status = wrap.querySelector('.cf-form-status');
+      if (v.value) {
+        wrap.dataset.cfValue = v.value;
+        if (status) { status.textContent = `✅ Submitted (${v.value})`; status.style.color = 'var(--success)'; }
+      }
     } else {
       const el = wrap.querySelector('.cf-input');
       if (el && v.value != null) el.value = v.value;
@@ -1846,11 +1978,17 @@ function validateCustomFields() {
       let files = [];
       try { files = JSON.parse(wrap.querySelector('.cf-file-btn')?.dataset.files || '[]'); } catch {}
       empty = !files.length;
+    } else if (type === 'photo') {
+      let photos = [];
+      try { photos = JSON.parse(wrap.querySelector('.cf-photo-grid')?.dataset.photos || '[]'); } catch {}
+      empty = !photos.length;
+    } else if (type === 'form') {
+      empty = !wrap.dataset.cfValue;
     } else {
       const v = wrap.querySelector('.cf-input')?.value;
       empty = v === '' || v == null;
     }
-    if (empty) return { ok: false, label, el: wrap.querySelector('.cf-input, .cf-file-btn') };
+    if (empty) return { ok: false, label, el: wrap.querySelector('.cf-input, .cf-file-btn, .cf-photo-camera, .cf-form-btn') };
   }
   return { ok: true };
 }
@@ -1870,6 +2008,13 @@ function formatCustomFieldValue(row) {
   if (row.type === 'file') {
     if (Array.isArray(v) && v.length) return v.map(f => f.name || f.label || 'file').join(', ');
     return '';
+  }
+  if (row.type === 'photo') {
+    if (Array.isArray(v) && v.length) return `${v.length} photo(s) attached`;
+    return '';
+  }
+  if (row.type === 'form') {
+    return v ? `Submitted (id: ${v})` : 'Not submitted';
   }
   if (v == null || v === '') return '';
   return row.unit ? `${v} ${row.unit}` : String(v);
@@ -2366,22 +2511,59 @@ async function generatePDF(sheetNumbers){
       if (y > ph-40) { pdf.addPage(); y=m; }
       sh(`${jtName} Details`);
       y += 2;
+      // Helper: render one custom field row (handles photo thumbnails + form)
+      const renderCfRow = async (row) => {
+        if (row.type === 'photo' && Array.isArray(row.value) && row.value.length) {
+          if (y > ph-30) { pdf.addPage(); y=m; }
+          pdf.setFont(undefined,'bold'); pdf.setTextColor(80,80,80);
+          pdf.text(`${row.label}:`, m, y); y += 5;
+          pdf.setFont(undefined,'normal'); pdf.setTextColor(40,40,40);
+          // Thumbnail strip
+          const thumbW = 32, thumbH = 32, gap = 3;
+          let x = m;
+          for (const p of row.value) {
+            if (x + thumbW > pw - m) { x = m; y += thumbH + gap; }
+            if (y + thumbH > ph - m) { pdf.addPage(); y = m; x = m; }
+            try {
+              let src = p.url;
+              if (!src && p.path) {
+                const { data: urlData } = await window.sb.storage.from('job-sheet-files').createSignedUrl(p.path, 3600);
+                src = urlData?.signedUrl;
+              }
+              if (src) {
+                const img = await loadImage(src);
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width; canvas.height = img.naturalHeight || img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', x, y, thumbW, thumbH);
+              }
+            } catch (err) { console.warn('[CF photo PDF]', err); }
+            x += thumbW + gap;
+          }
+          y += thumbH + 4;
+        } else if (row.type === 'form') {
+          df(`${row.label}:`, row.value ? `✓ Submitted (ref: ${row.value})` : 'Not submitted');
+        } else {
+          df(`${row.label}:`, formatCustomFieldValue(row));
+        }
+      };
+
       if (isMulti) {
-        sheets.forEach(s => {
+        for (const s of sheets) {
           const cf = Array.isArray(s.custom_fields) ? s.custom_fields : [];
-          if (!cf.length) return;
+          if (!cf.length) continue;
           if (y > ph-25) { pdf.addPage(); y=m; }
           const dayLabel = new Date(s.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
           pdf.setFont(undefined,'bold'); pdf.setFontSize(9);
           pdf.setFillColor(255,243,238); pdf.rect(m, y-3, pw-2*m, 6,'F');
           pdf.setTextColor(194,68,14); pdf.text(dayLabel, m+2, y); y+=7;
           pdf.setFont(undefined,'normal'); pdf.setTextColor(40,40,40); pdf.setFontSize(10);
-          cf.forEach(row => { df(`${row.label}:`, formatCustomFieldValue(row)); });
+          for (const row of cf) await renderCfRow(row);
           y += 2;
-        });
+        }
       } else {
         const cf = Array.isArray(jobSheet.custom_fields) ? jobSheet.custom_fields : [];
-        cf.forEach(row => { df(`${row.label}:`, formatCustomFieldValue(row)); });
+        for (const row of cf) await renderCfRow(row);
       }
       y += 6;
     }
@@ -2499,7 +2681,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.69`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.70`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
