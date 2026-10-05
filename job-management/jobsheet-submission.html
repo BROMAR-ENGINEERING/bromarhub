@@ -1,4 +1,4 @@
-<!-- Daily Jobsheet Submission - V1.67 - 2026-09-08 - job-management/jobsheet-submission.html -->
+<!-- Daily Jobsheet Submission - V1.68 - 2026-09-08 - job-management/jobsheet-submission.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -25,17 +25,13 @@
 <!-- Header injected by bromar-hub.js -->
 <div id="bromar-header"></div>
 
-<!-- Floating job context bar — flush under the fixed Bromar header -->
-<div id="jobContextBar" style="position:fixed; top:78px; left:0; right:0; z-index:900; background:var(--bg-secondary); color:var(--text-secondary); border-bottom:1px solid var(--border); padding:6px 14px; font-size:0.82rem; font-weight:600; text-align:center; transition:background 0.3s, color 0.3s;">
+<!-- Floating job context bar — flush under the fixed Bromar header (60px tall) -->
+<div id="jobContextBar" style="position:fixed; top:60px; left:0; right:0; z-index:900; background:var(--bg-secondary); color:var(--text-secondary); border-bottom:1px solid var(--border); padding:5px 14px; font-size:0.8rem; font-weight:600; text-align:center; transition:background 0.3s, color 0.3s;">
   <span id="jobContextText" style="display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">No job selected</span>
 </div>
 <style>
-  /* Push page content down by bar height so it doesn't hide under the fixed bar */
-  body { padding-top: 34px; }
-  @media (max-width: 720px) {
-    #jobContextBar { top: 68px; padding:5px 10px; font-size:0.78rem; }
-    body { padding-top: 30px; }
-  }
+  /* Push page content down so the fixed header (60px) + context bar (~28px) don't cover it */
+  body { padding-top: 28px; }
   #jobContextBar.active {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
     color: white;
@@ -72,14 +68,15 @@
 
       <!-- BASIC INFO -->
       <div class="section-label">Basic Information</div>
-      <div class="field-row">
+      <div class="field-row" style="grid-template-columns:1fr;">
         <div class="field-group">
           <label for="sheet_date">Date of Works <span class="required">*</span></label>
           <input type="date" id="sheet_date" name="sheet_date" required/>
           <div id="sheet_date_day" style="font-size:0.8rem; color:var(--accent); font-weight:600; margin-top:4px; padding-left:2px;"></div>
         </div>
-        <div class="field-group">
-          <label for="filled_by">Filled Out By <span class="required">*</span></label>
+        <!-- Filled Out By is now auto-assigned from the logged-in user; the select stays hidden for existing JS/data hooks -->
+        <div class="field-group" style="display:none;">
+          <label for="filled_by">Filled Out By</label>
           <select id="filled_by" required><option value="">Loading employees...</option></select>
         </div>
       </div>
@@ -147,26 +144,7 @@
             <div class="field-group full">
               <label for="new_job_type">Job Type <span class="required">*</span></label>
               <select id="new_job_type">
-                <option value="">Select job type...</option>
-                <optgroup label="Maintenance — BM">
-                  <option value="BM|Maintenance">Maintenance</option>
-                  <option value="BM|Shift Coverage">Shift Coverage</option>
-                </optgroup>
-                <optgroup label="Service — BS">
-                  <option value="BS|After-Hours Callout">After-Hours Callout</option>
-                  <option value="BS|Breakdown">Breakdown</option>
-                  <option value="BS|Small Job">Small Job</option>
-                </optgroup>
-                <optgroup label="Construction — BC">
-                  <option value="BC|Temporary Wiring">Temporary Wiring</option>
-                  <option value="BC|General Construction">General Construction</option>
-                  <option value="BC|Test &amp; Tag">Test &amp; Tag</option>
-                  <option value="BC|RCD Testing">RCD Testing</option>
-                </optgroup>
-                <optgroup label="Automation — BA">
-                  <option value="BA|Programming">Programming</option>
-                  <option value="BA|CAD Drawings">CAD Drawings</option>
-                </optgroup>
+                <option value="">Loading job types...</option>
               </select>
             </div>
             <div style="display:none;"><input type="hidden" id="new_prefix"/></div>
@@ -226,6 +204,12 @@
         <div class="section-label">Work Performed</div>
         <div id="tasksContainer"></div>
         <button type="button" class="add-btn" id="addTaskBtn">+ Add Task</button>
+
+        <!-- JOB-TYPE CUSTOM FIELDS (populated from job_type_fields when a job type has fields) -->
+        <div id="customFieldsSection" style="display:none;">
+          <div class="section-label"><span id="customFieldsTitle">Details</span></div>
+          <div id="customFieldsContainer"></div>
+        </div>
 
         <!-- LABOUR -->
         <div class="section-label">Labour</div>
@@ -335,6 +319,30 @@
           <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px;">Marking a job as completed will close it from future job sheets.</div>
         </div>
 
+        <!-- COES -->
+        <div class="section-label">Certificate of Electrical Safety (COES)</div>
+        <div style="background:var(--bg-main); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-bottom:1.5rem;">
+          <label style="font-size:0.9rem; font-weight:600; margin-bottom:0.75rem; display:block;">Has a COES been completed for these works? <span class="required">*</span></label>
+          <div class="job-number-toggle" style="margin-bottom:0;">
+            <div class="radio-option">
+              <input type="radio" id="coes_yes" name="coes_status" value="yes"/>
+              <label for="coes_yes">✅ Yes</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="coes_na" name="coes_status" value="na"/>
+              <label for="coes_na">➖ N/A</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="coes_already" name="coes_status" value="already"/>
+              <label for="coes_already">📁 Already Completed</label>
+            </div>
+          </div>
+          <div id="coesCertNumberWrap" style="display:none; margin-top:12px;">
+            <label for="coes_cert_number" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Certificate Number <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
+            <input type="text" id="coes_cert_number" placeholder="e.g. COES-123456" style="width:100%;"/>
+          </div>
+        </div>
+
       </div><!-- /postJobSections -->
 
       <!-- SUBMIT -->
@@ -395,7 +403,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.67</div>
+<div class="revision-number">V1.68</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -531,8 +539,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // New job type
   document.getElementById('new_job_type').addEventListener('change', async function() {
     const preview = document.getElementById('next_job_preview');
-    if (!this.value) { preview.value = 'Select job type first...'; document.getElementById('new_prefix').value = ''; updateConfirmJobBtn(); return; }
-    const [prefix] = this.value.split('|');
+    if (!this.value) { preview.value = 'Select job type first...'; document.getElementById('new_prefix').value = ''; updateConfirmJobBtn(); hideCustomFields(); return; }
+    const [prefix, name] = this.value.split('|');
     document.getElementById('new_prefix').value = prefix;
     preview.value = 'Loading...';
     try {
@@ -541,6 +549,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       preview.value = `${prefix}${(data.last_sequence + 1).toString().padStart(4, '0')}`;
     } catch { preview.value = 'Error'; }
     updateConfirmJobBtn(); checkAndCreateNewJob();
+    // Render custom fields for this job type (preview, before job is created)
+    loadCustomFieldsForJobType(prefix, name);
   });
 
   // Client search
@@ -666,6 +676,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Card add buttons
   document.getElementById('addTaskBtn').addEventListener('click',     addTask);
   document.getElementById('addLabourBtn').addEventListener('click',   addLabour);
+
+  // COES cert-number reveal
+  document.querySelectorAll('input[name="coes_status"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const wrap = document.getElementById('coesCertNumberWrap');
+      wrap.style.display = document.getElementById('coes_yes').checked ? 'block' : 'none';
+    });
+  });
   document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
   document.getElementById('addNoteBtn').addEventListener('click',     addNote);
 
@@ -730,6 +748,7 @@ function setPostJobSectionsVisible(visible) {
   document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
   // Collapse or expand the Job Number section
   if (visible && selectedJobData) collapseJobNumberSection(); else expandJobNumberSection();
+  if (!visible) hideCustomFields();
   updateJobContextBar();
 }
 
@@ -784,7 +803,10 @@ function collectDraftData() {
     },
     signoffMethod: document.querySelector('input[name="signoff_method"]:checked')?.value,
     signoffEmail: document.getElementById('signoff_email').value,
-    jobCompleted: document.querySelector('input[name="job_completed"]:checked')?.value
+    jobCompleted: document.querySelector('input[name="job_completed"]:checked')?.value,
+    coesStatus: document.querySelector('input[name="coes_status"]:checked')?.value,
+    coesCertNumber: document.getElementById('coes_cert_number')?.value || '',
+    customFields: collectCustomFieldValues()
   };
 }
 
@@ -912,6 +934,21 @@ async function resumeDraft() {
     const radio = document.getElementById(`job_complete_${d.jobCompleted}`);
     if (radio) radio.checked = true;
   }
+
+  // Restore COES
+  if (d.coesStatus) {
+    const r = document.getElementById(`coes_${d.coesStatus}`);
+    if (r) { r.checked = true; r.dispatchEvent(new Event('change', {bubbles:true})); }
+    if (d.coesStatus === 'yes' && d.coesCertNumber) {
+      const cn = document.getElementById('coes_cert_number'); if (cn) cn.value = d.coesCertNumber;
+    }
+  }
+
+  // Restore custom fields: queue values, then load the field set for this job
+  if (d.customFields && d.customFields.length) {
+    PENDING_CUSTOM_VALUES = d.customFields;
+  }
+  if (d.selectedJobData) await loadCustomFieldsForExistingJob(d.selectedJobData);
 
   BromarHub.showSuccess('Draft restored');
 }
@@ -1244,6 +1281,8 @@ function applyJobSelection(job) {
   setPostJobSectionsVisible(true);
   // Refresh sheet picker if service report is toggled on
   if (document.getElementById('isServiceReport')?.checked) loadMultiDaySheets();
+  // Load custom fields for this job type
+  loadCustomFieldsForExistingJob(job);
   window.sb.from('job_sheet_counters').select('last_sequence').eq('job_number', job.job_number).maybeSingle()
     .then(({ data }) => {
       const sheetNum = `${job.job_number}-JS${String(data ? data.last_sequence+1 : 1).padStart(3,'0')}`;
@@ -1527,6 +1566,318 @@ function updateMultiDayStatus() {
 // ── TASKS / LABOUR / MATERIALS / NOTES ───────────────────────
 let taskCount=0, labourCount=0, materialCount=0, noteCount=0;
 
+// ── JOB TYPES + CUSTOM FIELDS ─────────────────────────────────
+let JOB_TYPES = [];
+let CURRENT_JOB_TYPE_ID = null;
+let CURRENT_JOB_TYPE_FIELDS = [];
+let PENDING_CUSTOM_VALUES = null; // used by draft/amend to seed values after render
+
+async function loadJobTypesIntoSelect() {
+  const sel = document.getElementById('new_job_type');
+  if (!sel) return;
+  try {
+    const { data, error } = await window.sb.from('job_types')
+      .select('id, code, name, category, sort_order, is_active')
+      .eq('is_active', true)
+      .order('category', { ascending: true })
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    JOB_TYPES = data || [];
+
+    // Group by category
+    const groups = {};
+    JOB_TYPES.forEach(jt => {
+      const key = `${jt.category || 'Other'} — ${jt.code}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(jt);
+    });
+
+    const parts = ['<option value="">Select job type...</option>'];
+    Object.keys(groups).forEach(label => {
+      parts.push(`<optgroup label="${esc(label)}">`);
+      groups[label].forEach(jt => {
+        parts.push(`<option value="${esc(jt.code)}|${esc(jt.name)}" data-type-id="${jt.id}">${esc(jt.name)}</option>`);
+      });
+      parts.push('</optgroup>');
+    });
+    sel.innerHTML = parts.join('');
+  } catch (err) {
+    console.error('[JobTypes] load failed', err);
+    sel.innerHTML = '<option value="">Could not load job types</option>';
+  }
+}
+
+function findJobType(prefix, name) {
+  if (!JOB_TYPES.length) return null;
+  if (name) {
+    const byName = JOB_TYPES.find(jt => jt.code === prefix && (jt.name || '').toLowerCase() === String(name).toLowerCase());
+    if (byName) return byName;
+  }
+  return JOB_TYPES.find(jt => jt.code === prefix) || null;
+}
+
+async function loadCustomFieldsForJobType(prefix, name) {
+  const section = document.getElementById('customFieldsSection');
+  const container = document.getElementById('customFieldsContainer');
+  const title = document.getElementById('customFieldsTitle');
+  if (!section || !container) return;
+
+  // Ensure job types are loaded
+  if (!JOB_TYPES.length) await loadJobTypesIntoSelect();
+
+  const jt = findJobType(prefix, name);
+  if (!jt) { hideCustomFields(); return; }
+
+  try {
+    const { data: fields, error } = await window.sb.from('job_type_fields')
+      .select('id, job_type_id, field_key, label, field_type, options, unit, placeholder, help_text, is_required, sort_order, is_active')
+      .eq('job_type_id', jt.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+
+    CURRENT_JOB_TYPE_ID = jt.id;
+    CURRENT_JOB_TYPE_FIELDS = fields || [];
+
+    if (!CURRENT_JOB_TYPE_FIELDS.length) { hideCustomFields(); return; }
+
+    title.textContent = `${jt.name} Details`;
+    container.innerHTML = CURRENT_JOB_TYPE_FIELDS.map(renderCustomField).join('');
+    section.style.display = 'block';
+
+    // Wire file-type fields
+    CURRENT_JOB_TYPE_FIELDS.forEach(f => {
+      if (f.field_type === 'file') wireCustomFileField(f);
+    });
+
+    // If we have pending values (from draft resume or amend), apply them now
+    if (PENDING_CUSTOM_VALUES) {
+      applyCustomFieldValues(PENDING_CUSTOM_VALUES);
+      PENDING_CUSTOM_VALUES = null;
+    }
+  } catch (err) {
+    console.error('[CustomFields] load failed', err);
+    hideCustomFields();
+  }
+}
+
+function hideCustomFields() {
+  const section = document.getElementById('customFieldsSection');
+  if (section) section.style.display = 'none';
+  CURRENT_JOB_TYPE_ID = null;
+  CURRENT_JOB_TYPE_FIELDS = [];
+}
+
+function parseOptions(opts) {
+  if (!opts) return [];
+  if (Array.isArray(opts)) return opts.map(o => (typeof o === 'string' ? { value: o, label: o } : o));
+  if (typeof opts === 'string') {
+    try {
+      const parsed = JSON.parse(opts);
+      return Array.isArray(parsed) ? parsed.map(o => (typeof o === 'string' ? { value: o, label: o } : o)) : [];
+    } catch { return []; }
+  }
+  if (typeof opts === 'object') {
+    // Allow { options: [...] }
+    if (Array.isArray(opts.options)) return opts.options.map(o => (typeof o === 'string' ? { value: o, label: o } : o));
+  }
+  return [];
+}
+
+function renderCustomField(f) {
+  const req = f.is_required ? '<span class="required">*</span>' : '';
+  const id = `cf_${f.id}`;
+  const label = esc(f.label || f.field_key);
+  const help = f.help_text ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">${esc(f.help_text)}</div>` : '';
+  const unit = f.unit ? `<span style="color:var(--text-secondary); font-size:0.85rem; margin-left:6px;">${esc(f.unit)}</span>` : '';
+
+  switch (f.field_type) {
+    case 'number':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="number" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${unit} ${req}</label>
+        <input type="number" step="any" id="${id}" class="cf-input" placeholder="${esc(f.placeholder||'')}"/>
+        ${help}
+      </div>`;
+    case 'text':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="text" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${req}</label>
+        <input type="text" id="${id}" class="cf-input" placeholder="${esc(f.placeholder||'')}"/>
+        ${help}
+      </div>`;
+    case 'textarea':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="textarea" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${req}</label>
+        <textarea id="${id}" class="cf-input" rows="3" placeholder="${esc(f.placeholder||'')}"></textarea>
+        ${help}
+      </div>`;
+    case 'checkbox':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="checkbox" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="${id}" class="cf-input" style="width:18px; height:18px; accent-color:var(--accent);"/>
+          <span>${label} ${req}</span>
+        </label>
+        ${help}
+      </div>`;
+    case 'select': {
+      const opts = parseOptions(f.options);
+      const optionHtml = ['<option value="">Select...</option>']
+        .concat(opts.map(o => `<option value="${esc(o.value)}">${esc(o.label || o.value)}</option>`))
+        .join('');
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="select" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${req}</label>
+        <select id="${id}" class="cf-input">${optionHtml}</select>
+        ${help}
+      </div>`;
+    }
+    case 'date':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="date" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${req}</label>
+        <input type="date" id="${id}" class="cf-input"/>
+        ${help}
+      </div>`;
+    case 'file':
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="file" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label>${label} ${req}</label>
+        <button type="button" class="btn-secondary cf-file-btn" data-cf-id="${f.id}" style="margin-top:4px;">📎 Upload file</button>
+        <div class="cf-file-status" data-cf-id="${f.id}" style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;"></div>
+        ${help}
+      </div>`;
+    default:
+      return `<div class="field-group" data-cf-id="${f.id}" data-cf-type="text" data-cf-key="${esc(f.field_key)}" data-cf-label="${esc(f.label||f.field_key)}" data-cf-unit="${esc(f.unit||'')}" data-cf-required="${f.is_required?1:0}">
+        <label for="${id}">${label} ${req}</label>
+        <input type="text" id="${id}" class="cf-input"/>
+        ${help}
+      </div>`;
+  }
+}
+
+function wireCustomFileField(f) {
+  const btn = document.querySelector(`.cf-file-btn[data-cf-id="${f.id}"]`);
+  const status = document.querySelector(`.cf-file-status[data-cf-id="${f.id}"]`);
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const label = prompt(`Label for this ${f.label || f.field_key} file:`, f.label || f.field_key);
+    if (label === null) return;
+    // Trigger the existing file input with the chosen label
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*,.pdf,.doc,.docx';
+    input.addEventListener('change', async () => {
+      if (!input.files?.length) return;
+      const uploaded = [];
+      for (const file of input.files) {
+        try {
+          const path = await uploadCustomFieldFile(file, label);
+          uploaded.push({ name: file.name, label, path });
+        } catch (err) { console.error('[CF upload]', err); }
+      }
+      if (uploaded.length) {
+        const existing = JSON.parse(btn.dataset.files || '[]');
+        btn.dataset.files = JSON.stringify(existing.concat(uploaded));
+        status.textContent = `${existing.length + uploaded.length} file(s) attached`;
+      }
+    });
+    input.click();
+  });
+}
+
+async function uploadCustomFieldFile(file, label) {
+  if (!selectedJobData?.job_number) throw new Error('No job selected');
+  const safe = (label || 'file').replace(/[^A-Za-z0-9._-]+/g, '-');
+  const path = `${selectedJobData.job_number}/custom-fields/${Date.now()}-${safe}-${file.name}`;
+  const { error } = await window.sb.storage.from('job-sheet-files').upload(path, file, { upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+function collectCustomFieldValues() {
+  const rows = [];
+  document.querySelectorAll('[data-cf-id]').forEach(wrap => {
+    const type = wrap.dataset.cfType;
+    const key = wrap.dataset.cfKey;
+    const label = wrap.dataset.cfLabel;
+    const unit = wrap.dataset.cfUnit || null;
+    let value = null;
+    if (type === 'checkbox') {
+      value = wrap.querySelector('.cf-input')?.checked || false;
+    } else if (type === 'file') {
+      const btn = wrap.querySelector('.cf-file-btn');
+      try { value = JSON.parse(btn?.dataset.files || '[]'); } catch { value = []; }
+    } else {
+      const el = wrap.querySelector('.cf-input');
+      value = el ? el.value : null;
+      if (type === 'number' && value !== null && value !== '') value = parseFloat(value);
+    }
+    rows.push({ key, label, type, unit, value });
+  });
+  return rows;
+}
+
+function applyCustomFieldValues(values) {
+  if (!Array.isArray(values)) return;
+  values.forEach(v => {
+    const wrap = document.querySelector(`[data-cf-key="${CSS.escape(v.key)}"]`);
+    if (!wrap) return;
+    const type = wrap.dataset.cfType;
+    if (type === 'checkbox') {
+      const el = wrap.querySelector('.cf-input'); if (el) el.checked = !!v.value;
+    } else if (type === 'file') {
+      const btn = wrap.querySelector('.cf-file-btn');
+      const status = wrap.querySelector('.cf-file-status');
+      if (btn && Array.isArray(v.value)) {
+        btn.dataset.files = JSON.stringify(v.value);
+        if (status) status.textContent = v.value.length ? `${v.value.length} file(s) attached` : '';
+      }
+    } else {
+      const el = wrap.querySelector('.cf-input');
+      if (el && v.value != null) el.value = v.value;
+    }
+  });
+}
+
+function validateCustomFields() {
+  for (const wrap of document.querySelectorAll('[data-cf-id]')) {
+    if (wrap.dataset.cfRequired !== '1') continue;
+    const type = wrap.dataset.cfType;
+    const label = wrap.dataset.cfLabel;
+    let empty = false;
+    if (type === 'checkbox') {
+      empty = !wrap.querySelector('.cf-input')?.checked;
+    } else if (type === 'file') {
+      let files = [];
+      try { files = JSON.parse(wrap.querySelector('.cf-file-btn')?.dataset.files || '[]'); } catch {}
+      empty = !files.length;
+    } else {
+      const v = wrap.querySelector('.cf-input')?.value;
+      empty = v === '' || v == null;
+    }
+    if (empty) return { ok: false, label, el: wrap.querySelector('.cf-input, .cf-file-btn') };
+  }
+  return { ok: true };
+}
+
+async function loadCustomFieldsForExistingJob(job) {
+  // For existing jobs: resolve from prefix + job_type stored on job_number_register
+  if (!job) { hideCustomFields(); return; }
+  const prefix = job.prefix || (job.job_number || '').match(/^[A-Z]+/)?.[0] || '';
+  const name = job.job_type || null;
+  await loadCustomFieldsForJobType(prefix, name);
+}
+
+function formatCustomFieldValue(row) {
+  if (!row) return '';
+  const v = row.value;
+  if (row.type === 'checkbox') return v ? 'Yes' : 'No';
+  if (row.type === 'file') {
+    if (Array.isArray(v) && v.length) return v.map(f => f.name || f.label || 'file').join(', ');
+    return '';
+  }
+  if (v == null || v === '') return '';
+  return row.unit ? `${v} ${row.unit}` : String(v);
+}
+
+// Load job types up-front on page load
+document.addEventListener('DOMContentLoaded', () => { loadJobTypesIntoSelect(); });
+
 function addTask() {
   taskCount++;
   const id=taskCount, div=document.createElement('div');
@@ -1704,6 +2055,16 @@ async function handleFormSubmit(e){
     if (!completionAnswer) { fail('Please answer whether this job is completed — see the Job Completion section at the bottom', document.getElementById('job_complete_no')); return; }
     const jobIsCompleted = completionAnswer.value === 'yes';
 
+    const coesAnswer = document.querySelector('input[name="coes_status"]:checked');
+    if (!coesAnswer) { fail('Please answer the COES question at the bottom of the form', document.getElementById('coes_yes')); return; }
+    const coesStatus = coesAnswer.value;
+    const coesCertNumber = coesStatus === 'yes' ? (document.getElementById('coes_cert_number').value.trim() || null) : null;
+
+    // Validate required custom fields
+    const cfCheck = validateCustomFields();
+    if (!cfCheck.ok) { fail(`${cfCheck.label} is required`, cfCheck.el); return; }
+    const customFieldValues = collectCustomFieldValues();
+
     // Files all labelled?
     if (uploadedFiles.length > 0) {
       const invalid = uploadedFiles.find(f => !f.alreadyUploaded && !(f.fileTypeLabel||'').trim());
@@ -1733,6 +2094,11 @@ async function handleFormSubmit(e){
     );
     if (!multiDaySelectedSheets.includes(jobSheetNumber)) multiDaySelectedSheets.unshift(jobSheetNumber);
     if(materials.length && !isAmending)await window.sb.from('job_sheets').update({materials}).eq('job_sheet_number',jobSheetNumber);
+    // Store COES status + cert number on the sheet
+    await window.sb.from('job_sheets').update({ coes_status: coesStatus, coes_cert_number: coesCertNumber }).eq('job_sheet_number', jobSheetNumber);
+    // Store job-type custom field snapshot (always written, even if empty, so amend overwrites correctly)
+    { const { error: cfErr } = await window.sb.from('job_sheets').update({ custom_fields: customFieldValues }).eq('job_sheet_number', jobSheetNumber).select();
+      if (cfErr) console.error('[CustomFields] save failed', cfErr); }
     if(jobIsCompleted)await window.sb.from('job_number_register').update({status:'completed',completed_at:new Date().toISOString()}).eq('job_number',jobNumber);
     const pendingFiles=uploadedFiles.filter(f=>!f.alreadyUploaded);
     if(pendingFiles.length){BromarHub.showLoading('Uploading files...',`${pendingFiles.length} file(s)`);await uploadFilesToSupabase(jobSheetNumber,jobNumber,pendingFiles);}
@@ -1833,7 +2199,7 @@ function showCompletionScreen(sheetNumber, hadServiceReport) {
   screen.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function amendSheet() {
+async function amendSheet() {
   if (!confirm('Re-open this job sheet for editing? Saving again will update the existing sheet, not create a new one.')) return;
   isAmending = true;
   submissionComplete = false;
@@ -1844,6 +2210,19 @@ function amendSheet() {
   const bar = document.getElementById('jobContextBar');
   if (bar) bar.classList.remove('hidden');
   document.getElementById('submitBtn').textContent = 'Update Job Sheet';
+
+  // Reload custom fields for this job type and re-apply stored values
+  try {
+    if (selectedJobData) {
+      // Load the field definitions
+      await loadCustomFieldsForExistingJob(selectedJobData);
+      // Fetch stored values from the sheet
+      const { data: sheet } = await window.sb.from('job_sheets')
+        .select('custom_fields').eq('job_sheet_number', currentJobSheetNumber).maybeSingle();
+      if (sheet?.custom_fields) applyCustomFieldValues(sheet.custom_fields);
+    }
+  } catch (err) { console.error('[Amend] custom fields reload failed', err); }
+
   document.getElementById('jobSheetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   BromarHub.showInfo('Editing ' + currentJobSheetNumber + ' — saving will update this sheet');
 }
@@ -1978,6 +2357,36 @@ async function generatePDF(sheetNumbers){
     }
   }
 
+  // ── JOB-TYPE DETAILS (custom fields) ──
+  {
+    const anyWithCF = sheets.some(s => Array.isArray(s.custom_fields) && s.custom_fields.length);
+    if (anyWithCF) {
+      // Resolve a human title from the register's job_type if available
+      const jtName = client?.job_type || 'Details';
+      if (y > ph-40) { pdf.addPage(); y=m; }
+      sh(`${jtName} Details`);
+      y += 2;
+      if (isMulti) {
+        sheets.forEach(s => {
+          const cf = Array.isArray(s.custom_fields) ? s.custom_fields : [];
+          if (!cf.length) return;
+          if (y > ph-25) { pdf.addPage(); y=m; }
+          const dayLabel = new Date(s.sheet_date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
+          pdf.setFont(undefined,'bold'); pdf.setFontSize(9);
+          pdf.setFillColor(255,243,238); pdf.rect(m, y-3, pw-2*m, 6,'F');
+          pdf.setTextColor(194,68,14); pdf.text(dayLabel, m+2, y); y+=7;
+          pdf.setFont(undefined,'normal'); pdf.setTextColor(40,40,40); pdf.setFontSize(10);
+          cf.forEach(row => { df(`${row.label}:`, formatCustomFieldValue(row)); });
+          y += 2;
+        });
+      } else {
+        const cf = Array.isArray(jobSheet.custom_fields) ? jobSheet.custom_fields : [];
+        cf.forEach(row => { df(`${row.label}:`, formatCustomFieldValue(row)); });
+      }
+      y += 6;
+    }
+  }
+
   // ── LABOUR ──
   if (jobSheet.report_sections?.labour) {
     if (isMulti) {
@@ -2090,7 +2499,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.67`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.68`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
