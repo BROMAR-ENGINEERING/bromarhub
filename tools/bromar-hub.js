@@ -1,19 +1,19 @@
-// bromar-hub.js - V1.01 - 2026-10-12 - /tools/bromar-hub.js
-/* ============================================================
-   BROMAR HUB — SHARED JAVASCRIPT
-   Staff pages — import after Supabase CDN + auth.js:
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-     <script src="/tools/auth.js"></script>
-     <link rel="stylesheet" href="/tools/bromar-hub.css"/>
-     <script src="/tools/bromar-hub.js" defer></script>
-
-   Client portal pages (/clients/*/compliance/) — import WITHOUT auth.js:
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-     <link rel="stylesheet" href="/tools/bromar-hub.css"/>
-     <script src="/tools/bromar-hub.js" defer></script>
-   On those pages this file creates window.sb itself (same auth options as
-   auth.js so sessions are shared across the whole site).
-   ============================================================ */
+// bromar-hub.js - V1.02 - 2026-10-12 - /tools/bromar-hub.js - Bromar Hub
+//
+// SHARED JAVASCRIPT for the Bromar Hub.
+//
+// Staff pages — import after Supabase CDN + auth.js:
+//   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+//   <script src="/tools/auth.js"></script>
+//   <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+//   <script src="/tools/bromar-hub.js" defer></script>
+//
+// Client portal pages (under /clients/[slug]/compliance/) — import WITHOUT auth.js:
+//   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+//   <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+//   <script src="/tools/bromar-hub.js" defer></script>
+// On those pages this file creates window.sb itself using the same auth
+// options as auth.js so sessions are shared across the whole site.
 
 (function () {
   // ── SUPABASE ──────────────────────────────────────────────
