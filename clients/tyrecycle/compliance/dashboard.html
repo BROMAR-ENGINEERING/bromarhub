@@ -1,0 +1,423 @@
+<!--
+  ============================================================
+  BROMAR HUB — CLIENT COMPLIANCE PORTAL — DASHBOARD
+  Version: V1.00
+  Repo path: /clients/tyrecycle/compliance/dashboard.html
+  Does NOT load /tools/auth.js (client accounts). Own auth guard below.
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Compliance Dashboard | Tyrecycle Somerton | Bromar</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<script src="/tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── PAGE-SPECIFIC ── */
+  html.guarding body { visibility: hidden; }
+  .page-wrapper { max-width: 760px; }
+  .page-title-wrapper { max-width: 760px; }
+
+  .user-bar {
+    display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);
+  }
+  .user-bar strong { color: var(--text-primary); font-weight: 600; }
+  .staff-badge { padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: var(--info-bg); color: var(--info-text); border: 1px solid var(--info-border); }
+  .signout-btn {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px 12px; font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
+    color: var(--text-secondary); cursor: pointer;
+  }
+  .signout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Overall status */
+  .overall {
+    display: flex; gap: 1rem; align-items: center;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    border: 1px solid var(--border); border-left-width: 5px; border-radius: 14px;
+    background: var(--bg-secondary);
+  }
+  .overall-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .overall-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .overall h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.3; }
+  .overall p { font-size: 0.875rem; color: var(--text-secondary); }
+  .overall.ok    { border-left-color: var(--success); }
+  .overall.ok .overall-icon { background: var(--success-bg); color: var(--success); }
+  .overall.warn  { border-left-color: #d97706; }
+  .overall.warn .overall-icon { background: rgba(217,119,6,0.12); color: #d97706; }
+  .overall.bad   { border-left-color: var(--error); }
+  .overall.bad .overall-icon { background: var(--error-bg); color: var(--error); }
+  .overall.none  { border-left-color: var(--border); }
+  .overall.none .overall-icon { background: var(--bg-main); color: var(--text-secondary); }
+
+  /* Section panels */
+  .section-panel {
+    border: 1px solid var(--border); border-radius: 14px; background: var(--bg-secondary);
+    margin-bottom: 1rem; overflow: hidden;
+  }
+  .sp-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; flex-wrap: wrap; }
+  .sp-title { display: flex; align-items: center; gap: 0.75rem; }
+  .sp-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--card-hover); border: 1px solid var(--border); flex-shrink: 0; }
+  .sp-icon svg { width: 19px; height: 19px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sp-name { font-size: 1.05rem; font-weight: 600; }
+  .sp-std { font-size: 0.75rem; color: var(--text-secondary); }
+
+  .pill { padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+  .pill.ok   { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+  .pill.warn { background: rgba(217,119,6,0.12); color: #b45309; border-color: rgba(217,119,6,0.35); }
+  [data-theme="dark"] .pill.warn { color: #fbbf24; }
+  .pill.bad  { background: var(--error-bg); color: var(--error); border-color: var(--error-border); }
+  .pill.none { background: var(--bg-main); color: var(--text-secondary); border-color: var(--border); }
+
+  .sp-facts { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border); }
+  .fact { padding: 0.85rem 1.25rem; }
+  .fact + .fact { border-left: 1px solid var(--border); }
+  .fact-label { font-size: 0.75rem; color: var(--text-secondary); }
+  .fact-val { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fact-val.bad { color: var(--error); }
+  .fact-val.good { color: var(--success); }
+
+  .sp-attn { border-top: 1px solid var(--border); padding: 0.9rem 1.25rem; background: var(--bg-main); }
+  .sp-attn h3 { font-size: 0.85rem; font-weight: 600; color: var(--error); margin-bottom: 0.4rem; }
+  .attn-row { display: flex; gap: 0.75rem; font-size: 0.85rem; padding: 0.3rem 0; }
+  .attn-row + .attn-row { border-top: 1px dashed var(--border); }
+  .attn-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); min-width: 64px; }
+  .attn-desc { color: var(--text-secondary); }
+  .attn-desc strong { color: var(--text-primary); font-weight: 600; }
+
+  .sp-empty { border-top: 1px solid var(--border); padding: 1rem 1.25rem; font-size: 0.875rem; color: var(--text-secondary); }
+
+  .sp-foot { border-top: 1px solid var(--border); padding: 0.75rem 1.25rem; display: flex; justify-content: flex-end; }
+  .view-link { font-size: 0.875rem; font-weight: 600; color: var(--accent); text-decoration: none; }
+  .view-link:hover { text-decoration: underline; }
+
+  .no-access { text-align: center; padding: 2rem 1rem; color: var(--text-secondary); font-size: 0.9rem; }
+
+  .skeleton { height: 120px; border-radius: 14px; background: var(--bg-secondary); border: 1px solid var(--border); margin-bottom: 1rem; }
+
+  @media (max-width: 620px) {
+    .sp-facts { grid-template-columns: repeat(2, 1fr); }
+    .fact:nth-child(3) { border-left: none; }
+    .fact:nth-child(n+3) { border-top: 1px solid var(--border); }
+    .overall { padding: 1rem; }
+  }
+
+  /* In-card footer */
+  .card-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; }
+  .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+  @media (max-width: 420px) { .card-footer-title { font-size: 0.8rem; letter-spacing: 0.4px; } }
+  .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+<script>document.documentElement.classList.add('guarding');</script>
+</head>
+<body>
+
+<!-- Hard-coded header (3+ folder depth) -->
+<div class="header">
+  <div class="header-controls">
+    <a href="/clients/tyrecycle/compliance/dashboard.html" class="control-btn" aria-label="Portal home">
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    </a>
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
+<div class="page-title-wrapper">
+  <h1>Tyrecycle Somerton</h1>
+  <p class="subtitle">Electrical compliance status</p>
+  <div class="user-bar">
+    <span>Signed in as <strong id="userName">…</strong></span>
+    <span class="staff-badge" id="staffBadge" hidden>Bromar staff view</span>
+    <button type="button" class="signout-btn" id="signOutBtn">Sign out</button>
+  </div>
+</div>
+
+<div class="page-wrapper">
+  <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+
+  <div id="overall" class="overall none">
+    <div class="overall-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div>
+    <div><h2>Loading compliance status…</h2><p>Checking the latest test records.</p></div>
+  </div>
+
+  <div id="sections">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+
+  <div class="card-footer">
+    <div class="card-footer-title">BROMAR HUB — CLIENT COMPLIANCE PORTAL</div>
+    <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20compliance%20portal">Questions about these records? Contact Bromar</a>
+    <div class="card-footer-version">Version V1.00</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CLIENT_SLUG = 'tyrecycle';
+  const PORTAL_URL  = '/clients/tyrecycle/compliance/index.html';
+  const BASE        = '/clients/tyrecycle/compliance/';
+  const DUE_SOON_DAYS = 30;
+
+  const ICONS = {
+    emergency_lighting: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 15l3-3-3-3M13 15h3"/></svg>',
+    rcd_testing: '<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
+    test_tagging: '<svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>'
+  };
+
+  const SECTIONS = [
+    { key: 'emergency_lighting', name: 'Emergency lighting', std: 'AS/NZS 2293.2', page: 'emergency-lighting.html', loader: loadEmergencyLighting },
+    { key: 'rcd_testing',        name: 'RCD testing',        std: 'AS/NZS 3760, AS/NZS 3000', page: 'rcd-testing.html',  loader: notYetConnected },
+    { key: 'test_tagging',       name: 'Test & tagging',     std: 'AS/NZS 3760', page: 'test-tagging.html', loader: notYetConnected }
+  ];
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ── DATE HELPERS (ISO YYYY-MM-DD strings) ──
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function addMonthsISO(iso, months) {
+    const d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return null;
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() !== day) d.setDate(0);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function daysBetween(fromISO, toISO) {
+    return Math.round((new Date(toISO + 'T00:00:00') - new Date(fromISO + 'T00:00:00')) / 86400000);
+  }
+  function niceDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    return isNaN(d) ? iso : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // status: ok | warn | bad | none
+  function statusFor({ dueISO, failures, hasRecords }) {
+    if (!hasRecords) return { cls: 'none', label: 'No records yet', rank: 0 };
+    const days = dueISO ? daysBetween(todayISO(), dueISO) : null;
+    if (days !== null && days < 0) return { cls: 'bad', label: 'Overdue', rank: 3, days };
+    if (failures > 0) return { cls: 'bad', label: 'Action required', rank: 3, days };
+    if (days !== null && days <= DUE_SOON_DAYS) return { cls: 'warn', label: 'Due soon', rank: 2, days };
+    return { cls: 'ok', label: 'Up to date', rank: 1, days };
+  }
+
+  // ── SECTION LOADERS ──
+  async function loadEmergencyLighting() {
+    const { data, error } = await window.sb.from('emergency_lighting_tests')
+      .select('id, test_date, frequency, total, passed, failed, results')
+      .order('test_date', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const t = (data || [])[0];
+    if (!t) return { hasRecords: false };
+    const months = t.frequency === '12 Monthly' ? 12 : 6;
+    const dueISO = addMonthsISO(t.test_date, months);
+    const failedItems = (t.results || []).filter(r => r.result === 'fail').map(r => ({
+      ref: r.ref,
+      title: r.location || '',
+      detail: [r.duration_min ? 'Failed at ' + r.duration_min + ' min' : '', r.fault_note].filter(Boolean).join(' · ')
+    }));
+    return {
+      hasRecords: true,
+      lastISO: t.test_date,
+      dueISO,
+      count: t.total || 0,
+      countLabel: 'Fittings tested',
+      failures: t.failed || failedItems.length,
+      failedItems
+    };
+  }
+
+  async function notYetConnected() { return { hasRecords: false }; }
+
+  // ── RENDER ──
+  function renderSection(sec, res, allowed) {
+    const head = `
+      <div class="sp-head">
+        <div class="sp-title">
+          <span class="sp-icon">${ICONS[sec.key]}</span>
+          <div><div class="sp-name">${esc(sec.name)}</div><div class="sp-std">${esc(sec.std)}</div></div>
+        </div>
+        ${allowed ? `<span class="pill ${res.status.cls}">${esc(res.status.label)}</span>` : '<span class="pill none">Not included</span>'}
+      </div>`;
+
+    if (!allowed) {
+      return `<div class="section-panel">${head}<div class="sp-empty">Your account doesn't include these records. Contact Bromar to add them.</div></div>`;
+    }
+    if (res.error) {
+      return `<div class="section-panel">${head}<div class="sp-empty">These records couldn't load. Refresh the page to try again.</div></div>`;
+    }
+    if (!res.hasRecords) {
+      return `<div class="section-panel">${head}<div class="sp-empty">No test records have been published here yet. They'll appear after Bromar's next visit.</div></div>`;
+    }
+
+    const days = res.status.days;
+    let dueText = niceDate(res.dueISO);
+    let dueCls = '';
+    if (days !== null && days !== undefined) {
+      if (days < 0) { dueCls = 'bad'; }
+    }
+
+    const facts = `
+      <div class="sp-facts">
+        <div class="fact"><div class="fact-label">Last tested</div><div class="fact-val">${esc(niceDate(res.lastISO))}</div></div>
+        <div class="fact"><div class="fact-label">Next due</div><div class="fact-val ${dueCls}">${esc(dueText)}</div></div>
+        <div class="fact"><div class="fact-label">${esc(res.countLabel)}</div><div class="fact-val">${esc(res.count)}</div></div>
+        <div class="fact"><div class="fact-label">Failed</div><div class="fact-val ${res.failures ? 'bad' : 'good'}">${esc(res.failures)}</div></div>
+      </div>`;
+
+    let attn = '';
+    if (res.failedItems && res.failedItems.length) {
+      const shown = res.failedItems.slice(0, 5);
+      attn = `
+        <div class="sp-attn">
+          <h3>Items requiring attention</h3>
+          ${shown.map(i => `
+            <div class="attn-row">
+              <span class="attn-ref">${esc(i.ref)}</span>
+              <span class="attn-desc"><strong>${esc(i.title)}</strong>${i.detail ? ' — ' + esc(i.detail) : ''}</span>
+            </div>`).join('')}
+          ${res.failedItems.length > shown.length ? `<div class="attn-row"><span class="attn-desc">and ${res.failedItems.length - shown.length} more</span></div>` : ''}
+        </div>`;
+    }
+
+    const foot = `<div class="sp-foot"><a class="view-link" href="${BASE + sec.page}">View records and reports</a></div>`;
+    return `<div class="section-panel">${head}${facts}${attn}${foot}</div>`;
+  }
+
+  function renderOverall(results) {
+    const el = $('overall');
+    const active = results.filter(r => r.allowed && r.res.hasRecords);
+    const icon = {
+      ok:   '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+      warn: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      bad:  '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+      none: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>'
+    };
+
+    let cls, title, text;
+    if (!active.length) {
+      cls = 'none'; title = 'No test records yet';
+      text = 'Results will appear here once Bromar publishes them.';
+    } else {
+      const bad  = active.filter(r => r.res.status.cls === 'bad');
+      const warn = active.filter(r => r.res.status.cls === 'warn');
+      if (bad.length) {
+        cls = 'bad';
+        title = bad.length === 1 ? `${bad[0].sec.name} needs attention` : `${bad.length} areas need attention`;
+        text = bad.map(r => `${r.sec.name}: ${r.res.status.label.toLowerCase()}`).join('. ') + '.';
+      } else if (warn.length) {
+        cls = 'warn';
+        title = warn.length === 1 ? `${warn[0].sec.name} is due soon` : `${warn.length} areas are due soon`;
+        text = 'Bromar will contact you to book the next test.';
+      } else {
+        cls = 'ok';
+        title = 'All published records are up to date';
+        text = 'No failed items and nothing due in the next ' + DUE_SOON_DAYS + ' days.';
+      }
+    }
+    el.className = 'overall ' + cls;
+    el.innerHTML = `<div class="overall-icon">${icon[cls]}</div><div><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`;
+  }
+
+  // ── AUTH GUARD ──
+  async function guard() {
+    const sb = window.sb;
+    if (!sb) { window.location.replace(PORTAL_URL); return null; }
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.replace(PORTAL_URL); return null; }
+
+    const user = session.user;
+    const meta = user.app_metadata || {};
+
+    if (meta.role !== 'client') {
+      // Bromar staff: full view
+      return { isStaff: true, name: user.email, sections: SECTIONS.map(s => s.key) };
+    }
+
+    if (meta.client !== CLIENT_SLUG) {
+      await sb.auth.signOut();
+      window.location.replace(PORTAL_URL);
+      return null;
+    }
+
+    const { data: cu, error } = await sb.from('client_users')
+      .select('full_name, sections, active')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error || !cu || !cu.active) {
+      await sb.auth.signOut();
+      window.location.replace(PORTAL_URL);
+      return null;
+    }
+
+    try {
+      if (!sessionStorage.getItem('portalLoginTouched')) {
+        await sb.rpc('client_touch_login');
+        sessionStorage.setItem('portalLoginTouched', '1');
+      }
+    } catch (_) { /* non-critical */ }
+
+    return { isStaff: false, name: cu.full_name || user.email, sections: cu.sections || [] };
+  }
+
+  async function signOut() {
+    try { sessionStorage.removeItem('portalLoginTouched'); } catch (_) {}
+    await window.sb.auth.signOut();
+    window.location.replace(PORTAL_URL);
+  }
+
+  // ── INIT ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    const who = await guard();
+    if (!who) return;
+
+    document.documentElement.classList.remove('guarding');
+    $('userName').textContent = who.name;
+    $('staffBadge').hidden = !who.isStaff;
+    $('signOutBtn').addEventListener('click', signOut);
+
+    const results = await Promise.all(SECTIONS.map(async sec => {
+      const allowed = who.sections.includes(sec.key);
+      if (!allowed) return { sec, allowed, res: { hasRecords: false, status: statusFor({ hasRecords: false }) } };
+      try {
+        const res = await sec.loader();
+        res.status = statusFor(res);
+        return { sec, allowed, res };
+      } catch (err) {
+        console.error('[portal] ' + sec.key, err);
+        return { sec, allowed, res: { hasRecords: false, error: true, status: { cls: 'none', label: 'Unavailable', rank: 0 } } };
+      }
+    }));
+
+    $('sections').innerHTML = results.map(r => renderSection(r.sec, r.res, r.allowed)).join('');
+    renderOverall(results);
+  });
+})();
+</script>
+</body>
+</html>
