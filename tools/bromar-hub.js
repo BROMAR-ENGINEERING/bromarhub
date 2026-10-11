@@ -1,4 +1,4 @@
-// bromar-hub.js - V1.02 - 2026-10-12 - /tools/bromar-hub.js - Bromar Hub
+// bromar-hub.js - V1.03 - 2026-10-12 - /tools/bromar-hub.js - Bromar Hub
 //
 // SHARED JAVASCRIPT for the Bromar Hub.
 //
@@ -97,10 +97,24 @@
 
   // ── FAVICON ───────────────────────────────────────────────
   function initFavicon() {
-    if (document.querySelector('link[rel="icon"]')) return;
-    const link = document.createElement('link');
-    link.rel = 'icon'; link.type = 'image/png'; link.href = '/assets/icons/icon-32x32.png';
-    document.head.appendChild(link);
+    // Remove any pre-existing favicon links on the page — subpages may have
+    // stale or wrong hrefs that fall back to the host's default icon.
+    document.querySelectorAll(
+      'link[rel="icon"], link[rel="shortcut icon"], link[rel="mask-icon"]'
+    ).forEach(el => el.remove());
+
+    const add = (rel, href, sizes, type) => {
+      const link = document.createElement('link');
+      link.rel = rel;
+      link.href = href;
+      if (sizes) link.sizes = sizes;
+      if (type) link.type = type;
+      document.head.appendChild(link);
+    };
+    add('icon',          '/assets/icons/icon-32x32.png',  '32x32',  'image/png');
+    add('icon',          '/assets/icons/icon-16x16.png',  '16x16',  'image/png');
+    add('shortcut icon', '/assets/icons/icon-32x32.png',  null,     'image/png');
+    add('icon',          '/assets/icons/icon-192x192.png','192x192','image/png');
   }
 
   // ── PWA ───────────────────────────────────────────────────
