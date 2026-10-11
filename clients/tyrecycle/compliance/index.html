@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Compliance Portal | Tyrecycle Somerton | Bromar</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<script src="/tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── PAGE-SPECIFIC ── */
+  .page-wrapper { margin-top: 0; max-width: 560px; }
+  .page-title-wrapper { max-width: 560px; }
+  .site-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 0.75rem; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 999px;
+    background: var(--bg-secondary); font-size: 0.8rem; color: var(--text-secondary);
+  }
+  .site-tag svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; }
+
+  input[type="password"] {
+    width: 100%; padding: 0.75rem 1rem;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: 'Outfit', sans-serif; font-size: 1rem;
+    color: var(--text-primary); background: var(--bg-secondary);
+    transition: all 0.3s ease; outline: none;
+  }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 4.25rem; }
+  .pw-show {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; padding: 6px 8px; border-radius: 6px;
+  }
+  .pw-show:hover { color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  .panel-intro { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
+
+  .full-btn { width: 100%; margin-top: 0.5rem; }
+  .text-link {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
+    color: var(--accent); text-decoration: none;
+  }
+  .text-link:hover { text-decoration: underline; }
+  .link-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; gap: 1rem; flex-wrap: wrap; }
+
+  .form-error {
+    display: none; padding: 0.75rem 1rem; margin-bottom: 1rem;
+    background: var(--error-bg); border: 1px solid var(--error-border);
+    color: var(--error); border-radius: 10px; font-size: 0.875rem;
+  }
+  .form-error.show { display: block; }
+
+  .restricted-note {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    font-size: 0.8rem; color: var(--text-secondary);
+  }
+  .restricted-note svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .section-checkboxes { grid-template-columns: 1fr; }
+  .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+  .done-state { text-align: center; padding: 1rem 0; }
+  .done-icon {
+    width: 56px; height: 56px; margin: 0 auto 1rem; border-radius: 50%;
+    background: var(--success-bg); border: 1px solid var(--success-border);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .done-icon svg { width: 26px; height: 26px; stroke: var(--success); fill: none; stroke-width: 2.5; }
+  .done-state h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .done-state p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
+
+  /* What's in the portal */
+  .includes { margin-top: 2rem; }
+  .includes h2 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.75rem; padding-left: 0.25rem; }
+  .include-list { list-style: none; border: 1px solid var(--border); border-radius: 16px; background: var(--bg-secondary); overflow: hidden; }
+  .include-list li { display: flex; gap: 1rem; padding: 1rem 1.25rem; align-items: flex-start; }
+  .include-list li + li { border-top: 1px solid var(--border); }
+  .include-icon {
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--card-hover); border: 1px solid var(--border);
+  }
+  .include-icon svg { width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .include-name { font-weight: 600; font-size: 0.95rem; }
+  .include-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+  .include-std { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; opacity: 0.8; }
+
+  /* In-card footer */
+  .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+  .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+  @media (max-width: 420px) { .card-footer-title { font-size: 0.8rem; letter-spacing: 0.4px; } }
+  .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
+
+  .header-spacer { width: 40px; height: 40px; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .panel.active { animation: none; } }
+</style>
+</head>
+<body>
+
+<!-- Hard-coded header (3+ folder depth) -->
+<div class="header">
+  <div class="header-controls">
+    <div class="header-spacer" aria-hidden="true"></div>
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
+<div class="page-title-wrapper">
+  <h1>Compliance Portal</h1>
+  <p class="subtitle">Electrical compliance records maintained by Bromar Electrical Services</p>
+  <span class="site-tag">
+    <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+    Tyrecycle Somerton
+  </span>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+
+    <div class="success-banner" id="successBanner"><span id="successText"></span></div>
+    <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+
+    <!-- Mode toggle -->
+    <div class="job-number-toggle" id="modeToggle" role="tablist">
+      <div class="radio-option">
+        <input type="radio" name="mode" id="mode_signin" value="signin" checked/>
+        <label for="mode_signin">Sign in</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" name="mode" id="mode_request" value="request"/>
+        <label for="mode_request">Request access</label>
+      </div>
+    </div>
+
+    <!-- SIGN IN -->
+    <section class="panel active" id="panel_signin">
+      <div class="form-error" id="err_signin"></div>
+      <form id="signinForm" novalidate>
+        <div class="field-group">
+          <label for="signin_email">Email</label>
+          <input type="email" id="signin_email" autocomplete="username" required/>
+        </div>
+        <div class="field-group">
+          <label for="signin_password">Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="signin_password" autocomplete="current-password" required/>
+            <button type="button" class="pw-show" data-target="signin_password">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="submit-btn full-btn" id="signinBtn">Sign in</button>
+      </form>
+      <div class="link-row">
+        <button type="button" class="text-link" id="forgotLink">Forgot password?</button>
+        <button type="button" class="text-link" id="noAccountLink">No account? Request access</button>
+      </div>
+      <div class="restricted-note">
+        <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span>Access is limited to authorised Tyrecycle personnel. Sign-ins are recorded.</span>
+      </div>
+    </section>
+
+    <!-- FORGOT PASSWORD -->
+    <section class="panel" id="panel_forgot">
+      <p class="panel-intro">Enter the email you sign in with. If it matches an account, we'll send a link to set a new password.</p>
+      <div class="form-error" id="err_forgot"></div>
+      <form id="forgotForm" novalidate>
+        <div class="field-group">
+          <label for="forgot_email">Email</label>
+          <input type="email" id="forgot_email" autocomplete="username" required/>
+        </div>
+        <button type="submit" class="submit-btn full-btn" id="forgotBtn">Send reset link</button>
+      </form>
+      <div class="link-row">
+        <button type="button" class="text-link" data-back>Back to sign in</button>
+      </div>
+    </section>
+
+    <!-- SET NEW PASSWORD (from email link) -->
+    <section class="panel" id="panel_recovery">
+      <p class="panel-intro">Choose a new password. Use at least 10 characters.</p>
+      <div class="form-error" id="err_recovery"></div>
+      <form id="recoveryForm" novalidate>
+        <div class="field-group">
+          <label for="new_password">New password</label>
+          <div class="pw-wrap">
+            <input type="password" id="new_password" autocomplete="new-password" minlength="10" required/>
+            <button type="button" class="pw-show" data-target="new_password">Show</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="confirm_password">Confirm new password</label>
+          <input type="password" id="confirm_password" autocomplete="new-password" minlength="10" required/>
+        </div>
+        <button type="submit" class="submit-btn full-btn" id="recoveryBtn">Save password</button>
+      </form>
+    </section>
+
+    <!-- REQUEST ACCESS -->
+    <section class="panel" id="panel_request">
+      <p class="panel-intro">Tell us who you are. Bromar will review your request and email your login details once approved.</p>
+      <div class="form-error" id="err_request"></div>
+      <form id="requestForm" novalidate>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="req_name">Full name<span class="required">*</span></label>
+            <input type="text" id="req_name" autocomplete="name" maxlength="120" required/>
+          </div>
+          <div class="field-group">
+            <label for="req_position">Position</label>
+            <input type="text" id="req_position" autocomplete="organization-title" maxlength="120"/>
+          </div>
+          <div class="field-group">
+            <label for="req_company">Company<span class="required">*</span></label>
+            <input type="text" id="req_company" autocomplete="organization" maxlength="120" value="Tyrecycle" required/>
+          </div>
+          <div class="field-group">
+            <label for="req_phone">Phone</label>
+            <input type="tel" id="req_phone" autocomplete="tel" maxlength="40"/>
+          </div>
+          <div class="field-group full">
+            <label for="req_email">Work email<span class="required">*</span></label>
+            <input type="email" id="req_email" autocomplete="email" maxlength="160" required/>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Records you need<span class="required">*</span></label>
+          <div class="section-checkboxes">
+            <div class="checkbox-item"><input type="checkbox" id="sec_em" value="emergency_lighting" checked/><label for="sec_em">Emergency lighting</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="sec_rcd" value="rcd_testing" checked/><label for="sec_rcd">RCD testing</label></div>
+            <div class="checkbox-item"><input type="checkbox" id="sec_tt" value="test_tagging" checked/><label for="sec_tt">Test &amp; tagging</label></div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="req_reason">Why you need access</label>
+          <textarea id="req_reason" maxlength="1000" placeholder="e.g. Site safety coordinator, preparing for audit"></textarea>
+        </div>
+
+        <div class="hp-field" aria-hidden="true">
+          <label for="req_website">Website</label>
+          <input type="text" id="req_website" tabindex="-1" autocomplete="off"/>
+        </div>
+
+        <button type="submit" class="submit-btn full-btn" id="requestBtn">Send request</button>
+      </form>
+    </section>
+
+    <!-- REQUEST SENT -->
+    <section class="panel" id="panel_done">
+      <div class="done-state">
+        <div class="done-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <h3>Request sent</h3>
+        <p>Bromar has your request and will email you once it's been reviewed.</p>
+        <button type="button" class="btn-secondary" data-back>Back to sign in</button>
+      </div>
+    </section>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — CLIENT COMPLIANCE PORTAL</div>
+      <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Compliance%20portal%20help">Need help? Contact Bromar</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+
+  <div class="includes">
+    <h2>What you can view</h2>
+    <ul class="include-list">
+      <li>
+        <span class="include-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 15l3-3-3-3M13 15h3"/></svg></span>
+        <div>
+          <div class="include-name">Emergency lighting</div>
+          <div class="include-desc">Discharge test results by fitting, failed items and when the next test is due.</div>
+          <div class="include-std">AS/NZS 2293.2</div>
+        </div>
+      </li>
+      <li>
+        <span class="include-icon"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
+        <div>
+          <div class="include-name">RCD testing</div>
+          <div class="include-desc">Push-button and trip-time results for each RCD, with pass/fail status and due dates.</div>
+          <div class="include-std">AS/NZS 3760 · AS/NZS 3000</div>
+        </div>
+      </li>
+      <li>
+        <span class="include-icon"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
+        <div>
+          <div class="include-name">Test &amp; tagging</div>
+          <div class="include-desc">Register of tested equipment, tag results, items removed from service and retest dates.</div>
+          <div class="include-std">AS/NZS 3760</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CLIENT_SLUG = 'tyrecycle';
+  const PORTAL_URL  = '/clients/tyrecycle/compliance/index.html';
+  const DASHBOARD   = '/clients/tyrecycle/compliance/dashboard.html';
+  const REQUEST_FN  = '/.netlify/functions/client-access-request';
+
+  const hash = window.location.hash || '';
+  let recoveryMode = hash.includes('type=recovery');
+
+  const $ = id => document.getElementById(id);
+
+  // ── PANELS ─────────────────────────────────
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    $('panel_' + name).classList.add('active');
+    $('modeToggle').style.display = (name === 'signin' || name === 'request') ? 'flex' : 'none';
+    if (name === 'signin')  $('mode_signin').checked  = true;
+    if (name === 'request') $('mode_request').checked = true;
+    document.querySelectorAll('.form-error').forEach(e => e.classList.remove('show'));
+  }
+
+  function showError(panel, msg) {
+    const el = $('err_' + panel);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function setBusy(btn, busy, label) {
+    btn.disabled = busy;
+    if (busy) { btn.dataset.label = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.label) btn.textContent = btn.dataset.label;
+  }
+
+  function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+
+  function canUsePortal(user) {
+    const meta = user?.app_metadata || {};
+    if (meta.role === 'client') return meta.client === CLIENT_SLUG;
+    return true; // Bromar staff
+  }
+
+  // ── WIRING ─────────────────────────────────
+  document.querySelectorAll('input[name="mode"]').forEach(r =>
+    r.addEventListener('change', () => showPanel(r.value)));
+  $('forgotLink').addEventListener('click', () => {
+    $('forgot_email').value = $('signin_email').value.trim();
+    showPanel('forgot');
+  });
+  $('noAccountLink').addEventListener('click', () => showPanel('request'));
+  document.querySelectorAll('[data-back]').forEach(b =>
+    b.addEventListener('click', () => showPanel('signin')));
+  document.querySelectorAll('.pw-show').forEach(b =>
+    b.addEventListener('click', () => {
+      const input = $(b.dataset.target);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      b.textContent = show ? 'Hide' : 'Show';
+    }));
+
+  // ── SIGN IN ────────────────────────────────
+  $('signinForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('signin_email').value.trim().toLowerCase();
+    const password = $('signin_password').value;
+    if (!isEmail(email) || !password) return showError('signin', 'Enter your email and password.');
+
+    const btn = $('signinBtn');
+    setBusy(btn, true, 'Signing in...');
+    const { data, error } = await window.sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      setBusy(btn, false);
+      return showError('signin', 'Email or password is incorrect. Check both and try again.');
+    }
+    if (!canUsePortal(data.user)) {
+      await window.sb.auth.signOut();
+      setBusy(btn, false);
+      return showError('signin', 'This account does not have access to the Tyrecycle portal.');
+    }
+    window.location.replace(DASHBOARD);
+  });
+
+  // ── FORGOT PASSWORD ────────────────────────
+  $('forgotForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('forgot_email').value.trim().toLowerCase();
+    if (!isEmail(email)) return showError('forgot', 'Enter a valid email address.');
+
+    const btn = $('forgotBtn');
+    setBusy(btn, true, 'Sending...');
+    await window.sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + PORTAL_URL
+    });
+    setBusy(btn, false);
+    showPanel('signin');
+    BromarHub.showSuccess('If that email has an account, a reset link is on its way.', 7000);
+  });
+
+  // ── SET NEW PASSWORD ───────────────────────
+  $('recoveryForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const pw = $('new_password').value;
+    const confirm = $('confirm_password').value;
+    if (pw.length < 10) return showError('recovery', 'Use at least 10 characters.');
+    if (pw !== confirm) return showError('recovery', 'The two passwords don\'t match.');
+
+    const btn = $('recoveryBtn');
+    setBusy(btn, true, 'Saving...');
+    const { data, error } = await window.sb.auth.updateUser({ password: pw });
+    if (error) {
+      setBusy(btn, false);
+      return showError('recovery', 'The reset link has expired. Request a new one from the sign-in screen.');
+    }
+    recoveryMode = false;
+    history.replaceState(null, '', PORTAL_URL);
+    if (canUsePortal(data.user)) window.location.replace(DASHBOARD);
+    else { await window.sb.auth.signOut(); showPanel('signin'); }
+  });
+
+  // ── REQUEST ACCESS ─────────────────────────
+  $('requestForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const sections = ['sec_em', 'sec_rcd', 'sec_tt'].filter(id => $(id).checked).map(id => $(id).value);
+    const payload = {
+      full_name: $('req_name').value.trim(),
+      position:  $('req_position').value.trim(),
+      company:   $('req_company').value.trim(),
+      phone:     $('req_phone').value.trim(),
+      email:     $('req_email').value.trim().toLowerCase(),
+      reason:    $('req_reason').value.trim(),
+      sections,
+      client_slug: CLIENT_SLUG,
+      website:   $('req_website').value
+    };
+    if (!payload.full_name || !payload.company) return showError('request', 'Enter your full name and company.');
+    if (!isEmail(payload.email)) return showError('request', 'Enter a valid work email address.');
+    if (!sections.length) return showError('request', 'Select at least one type of record.');
+
+    const btn = $('requestBtn');
+    setBusy(btn, true, 'Sending...');
+    try {
+      const res = await fetch(REQUEST_FN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const out = await res.json().catch(() => ({}));
+      setBusy(btn, false);
+      if (res.status === 429) return showError('request', 'Too many requests from this connection. Try again in an hour.');
+      if (!res.ok) return showError('request', out.error || 'The request didn\'t send. Try again, or email admin@bromar.com.au.');
+      $('requestForm').reset();
+      $('req_company').value = 'Tyrecycle';
+      ['sec_em', 'sec_rcd', 'sec_tt'].forEach(id => $(id).checked = true);
+      showPanel('done');
+    } catch (err) {
+      setBusy(btn, false);
+      showError('request', 'No connection. Check your internet and try again.');
+    }
+  });
+
+  // ── INIT ───────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (!window.sb) return showError('signin', 'The portal couldn\'t connect. Refresh the page to try again.');
+
+    window.sb.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') { recoveryMode = true; showPanel('recovery'); }
+    });
+
+    if (hash.includes('error_description')) {
+      history.replaceState(null, '', PORTAL_URL);
+      showPanel('signin');
+      return showError('signin', 'That link has expired or was already used. Request a new reset link.');
+    }
+
+    if (recoveryMode) { showPanel('recovery'); return; }
+
+    const { data: { session } } = await window.sb.auth.getSession();
+    if (session && !recoveryMode && canUsePortal(session.user)) {
+      window.location.replace(DASHBOARD);
+    }
+  });
+})();
+</script>
+</body>
+</html>
