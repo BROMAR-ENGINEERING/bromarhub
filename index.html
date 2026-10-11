@@ -1,4 +1,4 @@
-<!-- index.html - V1.68 - 2026-07-08 - / -->
+<!-- index.html - V1.69 - 2026-10-12 - / -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -1771,7 +1771,7 @@
         </div>
     </div>
 
-    <div class="revision-number">V1.68</div>
+    <div class="revision-number">V1.69</div>
 
     <script>
         // SUPABASE AUTH
@@ -1782,9 +1782,28 @@
             auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true, storage: window.localStorage }
         });
         
+        // Send client-role accounts to their compliance portal instead of the staff hub.
+        function redirectIfClient(session) {
+            const role = session?.user?.app_metadata?.role;
+            if (role !== 'client') return false;
+            try { document.documentElement.style.visibility = 'hidden'; } catch (_) {}
+            const rawSlug = session.user?.app_metadata?.client || '';
+            const slug = String(rawSlug).toLowerCase().replace(/[^a-z0-9-]/g, '');
+            const target = slug
+                ? `/clients/${slug}/compliance/index.html`
+                : '/index.html';
+            window.location.replace(target);
+            return true;
+        }
+
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) showHub(); else showLogin();
+            if (session) {
+                if (redirectIfClient(session)) return;
+                showHub();
+            } else {
+                showLogin();
+            }
         }
         function showHub() {
             document.getElementById('loginContainer').style.display = 'none';
@@ -1837,6 +1856,8 @@
                     loginButton.disabled = false;
                     loginButton.textContent = 'Login to Bromar Hub';
                 } else {
+                    // Client accounts belong on their compliance portal, not the staff hub.
+                    if (redirectIfClient(data?.session)) return;
                     successDiv.className = 'success-message';
                     successDiv.textContent = 'Login successful! Loading Bromar Hub...';
                     successDiv.style.display = 'block';
