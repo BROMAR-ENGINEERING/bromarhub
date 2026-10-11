@@ -1,10 +1,18 @@
+// bromar-hub.js - V1.01 - 2026-10-12 - /tools/bromar-hub.js
 /* ============================================================
    BROMAR HUB — SHARED JAVASCRIPT
-   Import on every hub page AFTER Supabase CDN + auth.js:
+   Staff pages — import after Supabase CDN + auth.js:
      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
      <script src="/tools/auth.js"></script>
      <link rel="stylesheet" href="/tools/bromar-hub.css"/>
      <script src="/tools/bromar-hub.js" defer></script>
+
+   Client portal pages (/clients/*/compliance/) — import WITHOUT auth.js:
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+     <script src="/tools/bromar-hub.js" defer></script>
+   On those pages this file creates window.sb itself (same auth options as
+   auth.js so sessions are shared across the whole site).
    ============================================================ */
 
 (function () {
@@ -12,10 +20,22 @@
   const SUPABASE_URL     = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
 
-  if (!window.supabase?.createClient) {
+  if (window.sb) {
+    // auth.js already created the client — reuse it so a single session is
+    // shared and we don't end up with two clients fighting over storage.
+  } else if (!window.supabase?.createClient) {
     console.error('[BromarHub] Supabase library not loaded');
   } else {
-    window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // No auth.js on this page (e.g. client portal pages). Create the client
+    // here with the SAME auth options as auth.js so sessions remain shared.
+    window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+      }
+    });
   }
 
   window.EMPLOYEES   = [];
