@@ -1,4 +1,4 @@
-<!-- job-management/jobsheet-submission.html — V1.76 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.77 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.76</div>
+<div class="revision-number">V1.77</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1038,7 +1038,7 @@ async function searchJobs(query) {
   if (query.length < 2) { results.classList.remove('show'); return; }
   try {
     const { data, error } = await window.sb.from('job_number_register')
-      .select('job_number, client_name, site_name, site_address, prefix, status')
+      .select('job_number, client_name, site_name, site_address, prefix, status, client_id, site_id')
       .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
       .order('job_number', { ascending: false }).limit(10);
     if (error) throw error;
@@ -1134,7 +1134,7 @@ async function loadMyRecentJobs(userName) {
 
     // Fetch job register rows — active only (not completed)
     const { data: jobs } = await window.sb.from('job_number_register')
-      .select('job_number, client_name, site_name, site_address, prefix, status, created_at')
+      .select('job_number, client_name, site_name, site_address, prefix, status, created_at, client_id, site_id')
       .in('job_number', [...jobNumSet])
       .neq('status', 'completed')
       .order('created_at', { ascending: false })
@@ -1212,8 +1212,16 @@ function showCompletedJobWarning(job) {
   };
 }
 
-function applyJobSelection(job) {
+async function applyJobSelection(job) {
   selectedJobData = job;
+  // Enrich with client email for the recipient picker fallback
+  if (job.client_id && !job.client_email) {
+    try {
+      const { data: client } = await window.sb.from('clients')
+        .select('email').eq('id', job.client_id).maybeSingle();
+      if (client?.email) selectedJobData.client_email = client.email;
+    } catch (err) { console.warn('[applyJobSelection] client email fetch failed', err); }
+  }
   document.getElementById('existing_job_number').value = job.job_number;
   document.getElementById('detail-client').textContent    = job.client_name;
   document.getElementById('detail-site-name').textContent = job.site_name ? job.site_name + ' · ' : '';
@@ -1585,8 +1593,14 @@ async function loadCustomFieldsForJobType(prefix, name) {
       if ('is_active' in f) return f.is_active !== false;
       return true;
     });
-    // Normalise is_required if the column is named differently
-    fields.forEach(f => { if (f.is_required == null && 'required' in f) f.is_required = f.required; });
+    // Normalise is_required — accept whichever column name the schema uses
+    fields.forEach(f => {
+      if (f.is_required == null) {
+        if ('required' in f) f.is_required = f.required;
+        else if ('mandatory' in f) f.is_required = f.mandatory;
+      }
+    });
+    console.log('[CustomFields] loaded', fields.length, 'fields for', jt.name, fields);
 
     CURRENT_JOB_TYPE_ID = jt.id;
     CURRENT_JOB_TYPE_FIELDS = fields || [];
@@ -2657,7 +2671,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.76`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.77`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
@@ -2703,6 +2717,7 @@ async function sendSigningLinkEmail(payload) {
 
 // ── RECIPIENT PICKER — defaults to site primary contact ───────
 async function pickRecipientEmail() {
+  console.log('[pickRecipientEmail] selectedJobData', selectedJobData);
   // Fetch contacts for the current site (if any)
   let contacts = [];
   const siteId = selectedJobData?.site_id;
@@ -2715,7 +2730,10 @@ async function pickRecipientEmail() {
         .order('name', { ascending: true });
       if (error) throw error;
       contacts = (data || []).filter(c => c.email);
+      console.log('[pickRecipientEmail] contacts for site', siteId, contacts);
     } catch (err) { console.warn('[pickRecipientEmail] site_contacts fetch failed', err); }
+  } else {
+    console.log('[pickRecipientEmail] no site_id on selectedJobData — picker will fall back');
   }
 
   // Fallback: client-level email
@@ -2725,6 +2743,7 @@ async function pickRecipientEmail() {
 
   // If nothing to choose from, fall back to the simple prompt
   if (!contacts.length && !clientEmail) {
+    console.log('[pickRecipientEmail] no contacts, no client email — showing plain prompt');
     return prompt('Enter client email address:');
   }
 
