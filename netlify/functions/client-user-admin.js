@@ -1,6 +1,6 @@
 /* ============================================================
    NETLIFY FUNCTION — CLIENT USER ADMIN
-   V1.01 — netlify/functions/client-user-admin.js
+   V1.02 — netlify/functions/client-user-admin.js
    Handles all client portal user management writes.
    Requires: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY),
              RESEND_API_KEY, RESEND_FROM
@@ -14,22 +14,30 @@ const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || 'Bromar Ops <noreply@bromar.com.au>';
 const PORTAL_URL = 'https://bromarhub.netlify.app/clients/tyrecycle/compliance/index.html';
-const ALLOWED_ORIGIN = 'https://bromarhub.netlify.app';
+const ALLOWED_ORIGINS = [
+  'https://bromarhub.netlify.app',
+  'https://bromar-engineering.github.io',
+];
 
 const VALID_SECTIONS = ['emergency_lighting', 'rcd_testing', 'test_tagging'];
 const VALID_CLIENTS = { tyrecycle: 'Tyrecycle Somerton' };
 
 const sb = createClient(SB_URL, SB_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function getHeaders(event) {
+  const origin = event?.headers?.origin || '';
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers };
+  _headers = getHeaders(event);
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: _headers };
   if (event.httpMethod !== 'POST') return reply(405, { error: 'Method not allowed' });
 
   /* ── Auth check ── */
@@ -273,8 +281,9 @@ async function deleteUser({ user_id }) {
 
 /* ── HELPERS ── */
 
+let _headers = {};
 function reply(status, data) {
-  return { statusCode: status, headers, body: JSON.stringify(data) };
+  return { statusCode: status, headers: _headers, body: JSON.stringify(data) };
 }
 
 function escapeHtml(str) {
