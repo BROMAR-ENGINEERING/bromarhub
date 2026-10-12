@@ -1,0 +1,441 @@
+<!-- emergency-lighting.html - V1.00 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Emergency Lighting | Tyrecycle Somerton | Bromar</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<script src="/tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── PAGE-SPECIFIC ── */
+  html.guarding body { visibility: hidden; }
+  .page-wrapper, .page-title-wrapper { max-width: 960px; }
+
+  .view-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .view-tab { padding: 0.65rem 1.1rem; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.92rem; color: var(--text-secondary); }
+  .view-tab:hover { color: var(--text-primary); }
+  .view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; padding: 0; margin-bottom: 1rem; }
+  .back-link:hover { text-decoration: underline; }
+
+  .tools { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .tools input[type="text"] { flex: 1; min-width: 200px; }
+  .tools .count { font-size: 0.85rem; color: var(--text-secondary); }
+  .chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; margin: 0; cursor: pointer; }
+  .chk input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+  .area-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .area-chip { padding: 0.4rem 0.9rem; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-main); font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+  .area-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .area-chip.active { border-color: var(--accent); background: var(--card-hover); color: var(--accent); }
+
+  .source-line { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; }
+  .source-line strong { color: var(--text-primary); font-weight: 600; }
+  .source-line a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .source-line a:hover { text-decoration: underline; }
+
+  .test-row {
+    display: grid; grid-template-columns: 1.2fr 1.4fr 1fr auto; gap: 1rem; align-items: center;
+    width: 100%; text-align: left; font-family: 'Outfit', sans-serif; color: var(--text-primary);
+    padding: 1rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 0.6rem; cursor: pointer; transition: border-color 0.2s;
+  }
+  .test-row:hover { border-color: var(--accent); }
+  .tr-date { font-weight: 700; font-size: 0.95rem; }
+  .tr-sub { font-size: 0.78rem; color: var(--text-secondary); }
+  .tr-counts { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+  @media (max-width: 680px) { .test-row { grid-template-columns: 1fr; gap: 0.4rem; } .tr-counts { justify-content: flex-start; } }
+
+  .cnt { padding: 2px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cnt.pass { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+  .cnt.fail { background: var(--error-bg); color: var(--error); border-color: var(--error-border); }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary); font-size: 0.9rem; border: 1px dashed var(--border); border-radius: 12px; }
+
+  .detail-top { margin-bottom: 1.25rem; }
+  .detail-top h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+  .detail-top .cert { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem 1.5rem; margin-bottom: 1.5rem; }
+  .m-label { font-size: 0.75rem; color: var(--text-secondary); }
+  .m-val { font-size: 0.92rem; font-weight: 600; word-break: break-word; }
+  @media (max-width: 680px) { .meta-grid { grid-template-columns: 1fr 1fr; } }
+
+  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; }
+  .tile { border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.5rem; text-align: center; background: var(--bg-main); }
+  .tile-num { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .tile-num.sm { font-size: 1rem; line-height: 1.75; }
+  .tile-label { font-size: 0.72rem; color: var(--text-secondary); }
+  .tile.pass .tile-num { color: var(--success); }
+  .tile.fail .tile-num { color: var(--error); }
+  @media (max-width: 680px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+
+  .sub-head { font-size: 1.05rem; font-weight: 600; margin: 1.75rem 0 0.75rem; }
+  .note-box { background: var(--bg-main); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.875rem; margin-bottom: 1.5rem; white-space: pre-wrap; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 700px; }
+  table.data th { text-align: left; font-weight: 600; font-size: 0.76rem; color: var(--text-secondary); background: var(--bg-main); padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.data td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data tr:last-child td { border-bottom: none; }
+  table.data td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  table.data tr.row-fail td { background: var(--error-bg); }
+  .state { font-weight: 700; font-size: 0.78rem; }
+  .state.pass { color: var(--success); }
+  .state.fail { color: var(--error); }
+  .state.none { color: var(--text-secondary); }
+  .cell-note { display: block; font-size: 0.76rem; color: var(--text-secondary); font-weight: 400; margin-top: 2px; }
+
+  /* In-card footer */
+  .card-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; }
+  .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+  @media (max-width: 420px) { .card-footer-title { font-size: 0.8rem; letter-spacing: 0.4px; } }
+  .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+<script>document.documentElement.classList.add('guarding');</script>
+</head>
+<body>
+
+<!-- Hard-coded header (3+ folder depth) -->
+<div class="header">
+  <div class="header-controls">
+    <a href="/clients/tyrecycle/compliance/dashboard.html" class="control-btn" aria-label="Portal home">
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    </a>
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
+<div class="page-title-wrapper">
+  <h1>Emergency Lighting</h1>
+  <p class="subtitle">Tyrecycle Somerton — 90-minute discharge testing, AS/NZS 2293.2</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+    <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+
+    <div id="main">
+      <div class="view-tabs" role="tablist">
+        <button type="button" class="view-tab" data-view="register" role="tab">Asset register</button>
+        <button type="button" class="view-tab" data-view="history" role="tab">Test history</button>
+      </div>
+
+      <section id="registerView" hidden>
+        <div id="registerBody"><div class="empty-state">Loading register…</div></div>
+      </section>
+
+      <section id="historyView" hidden>
+        <div id="historyBody"><div class="empty-state">Loading test history…</div></div>
+      </section>
+
+      <section id="detailView" hidden>
+        <button type="button" class="back-link" id="backBtn">‹ Test history</button>
+        <div id="detailBody"></div>
+      </section>
+    </div>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING</div>
+      <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20emergency%20lighting">Questions about these results? Contact Bromar</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CLIENT_SLUG = 'tyrecycle';
+  const SECTION     = 'emergency_lighting';
+  const PORTAL_URL  = '/clients/tyrecycle/compliance/index.html';
+  const AREAS = { office: 'Office (EM1)', factory: 'Factory (EM2)', external: 'External (EM3)' };
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const dash = v => (v === null || v === undefined || v === '') ? '—' : v;
+
+  let FITTINGS = [];
+  let TESTS = [];        // summary rows, newest first
+  let LATEST = null;     // latest test (full row)
+
+  // ── DATE HELPERS ──
+  function niceDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+    return isNaN(d) ? iso : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function addMonthsISO(iso, months) {
+    const d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return null;
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() !== day) d.setDate(0);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dueFor(t) { return t ? addMonthsISO(t.test_date, t.frequency === '12 Monthly' ? 12 : 6) : null; }
+  function time12(hhmm) {
+    if (!hhmm) return '—';
+    const [h, m] = String(hhmm).split(':').map(Number);
+    if (isNaN(h)) return hhmm;
+    return ((h % 12) || 12) + ':' + String(m || 0).padStart(2, '0') + (h >= 12 ? ' PM' : ' AM');
+  }
+  function resultCell(r) {
+    if (!r || !r.result) return '<span class="state none">Not tested</span>';
+    const note = [r.result === 'fail' && r.duration_min ? 'Failed at ' + r.duration_min + ' min' : '', r.fault_note, r.notes].filter(Boolean).join(' · ');
+    return `<span class="state ${r.result === 'fail' ? 'fail' : 'pass'}">${r.result === 'fail' ? 'Fail' : 'Pass'}</span>${note ? `<span class="cell-note">${esc(note)}</span>` : ''}`;
+  }
+
+  // ── AUTH GUARD ──
+  async function guard() {
+    const sb = window.sb;
+    if (!sb) { window.location.replace(PORTAL_URL); return null; }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.replace(PORTAL_URL); return null; }
+    const meta = session.user.app_metadata || {};
+    if (meta.role !== 'client') return { allowed: true };
+    if (meta.client !== CLIENT_SLUG) { await sb.auth.signOut(); window.location.replace(PORTAL_URL); return null; }
+    const { data: cu, error } = await sb.from('client_users').select('sections, active').eq('user_id', session.user.id).maybeSingle();
+    if (error || !cu || !cu.active) { await sb.auth.signOut(); window.location.replace(PORTAL_URL); return null; }
+    return { allowed: (cu.sections || []).includes(SECTION) };
+  }
+
+  // ── DATA ──
+  async function loadAll() {
+    const [fit, tests] = await Promise.all([
+      window.sb.from('emergency_lighting_fittings')
+        .select('ref, area, location, type, board, circuit, maintained, brand, model')
+        .eq('active', true).order('area').order('sort_order'),
+      window.sb.from('emergency_lighting_tests')
+        .select('id, test_date, frequency, tester, duration_mins, total, passed, failed')
+        .order('test_date', { ascending: false })
+    ]);
+    if (fit.error) throw fit.error;
+    if (tests.error) throw tests.error;
+    FITTINGS = fit.data || [];
+    TESTS = tests.data || [];
+    if (TESTS.length) {
+      const { data, error } = await window.sb.from('emergency_lighting_tests').select('*').eq('id', TESTS[0].id).maybeSingle();
+      if (error) throw error;
+      LATEST = data;
+    }
+  }
+
+  // ── REGISTER ──
+  function renderRegister() {
+    const body = $('registerBody');
+    if (!FITTINGS.length) {
+      body.innerHTML = '<div class="empty-state">The fitting register hasn\'t been published yet.</div>';
+      return;
+    }
+    const byRef = {};
+    (LATEST?.results || []).forEach(r => { byRef[r.ref] = r; });
+    const pass = FITTINGS.filter(f => byRef[f.ref]?.result === 'pass').length;
+    const fail = FITTINGS.filter(f => byRef[f.ref]?.result === 'fail').length;
+    const untested = FITTINGS.length - pass - fail;
+    const due = dueFor(LATEST);
+    const overdue = due && due < new Date().toISOString().slice(0, 10);
+
+    body.innerHTML = `
+      ${LATEST ? `<div class="source-line">Results from the <a href="#test=${esc(LATEST.id)}">${esc(niceDate(LATEST.test_date))}</a> discharge test, tested by <strong>${esc(dash(LATEST.tester))}</strong></div>`
+               : '<div class="source-line">No discharge tests recorded yet.</div>'}
+      <div class="tiles">
+        <div class="tile"><div class="tile-num">${FITTINGS.length}</div><div class="tile-label">Fittings</div></div>
+        <div class="tile pass"><div class="tile-num">${pass}</div><div class="tile-label">Pass</div></div>
+        <div class="tile fail"><div class="tile-num">${fail}</div><div class="tile-label">Fail</div></div>
+        <div class="tile"><div class="tile-num">${untested}</div><div class="tile-label">Not tested</div></div>
+        <div class="tile"><div class="tile-num sm">${esc(LATEST ? niceDate(LATEST.test_date) : '—')}</div><div class="tile-label">Last tested</div></div>
+        <div class="tile ${overdue ? 'fail' : ''}"><div class="tile-num sm">${esc(due ? niceDate(due) : '—')}</div><div class="tile-label">${overdue ? 'Overdue since' : 'Next due'}</div></div>
+      </div>
+      <div class="area-chips" id="areaChips">
+        <button type="button" class="area-chip active" data-area="">All areas</button>
+        ${Object.entries(AREAS).filter(([k]) => FITTINGS.some(f => f.area === k))
+          .map(([k, v]) => `<button type="button" class="area-chip" data-area="${k}">${esc(v)}</button>`).join('')}
+      </div>
+      <div class="tools">
+        <input type="text" id="regSearch" placeholder="Search ref, location or fitting" aria-label="Search register"/>
+        <label class="chk"><input type="checkbox" id="regIssues"/> Fail and not tested only</label>
+        <span class="count" id="regCount"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Ref</th><th>Area</th><th>Location</th><th>Type</th><th>Board / CB</th><th>M / NM</th><th>Fitting</th><th>Last result</th></tr></thead>
+          <tbody id="regRows"></tbody>
+        </table>
+      </div>`;
+
+    let area = '';
+    const draw = () => {
+      const q = ($('regSearch').value || '').trim().toLowerCase();
+      const issues = $('regIssues').checked;
+      const rows = FITTINGS.filter(f => {
+        if (area && f.area !== area) return false;
+        if (issues && byRef[f.ref]?.result === 'pass') return false;
+        return !q || [f.ref, f.location, f.brand, f.model, f.type].some(v => String(v || '').toLowerCase().includes(q));
+      });
+      $('regCount').textContent = `${rows.length} of ${FITTINGS.length}`;
+      $('regRows').innerHTML = rows.length ? rows.map(f => {
+        const r = byRef[f.ref];
+        return `
+          <tr class="${r?.result === 'fail' ? 'row-fail' : ''}">
+            <td class="mono">${esc(f.ref)}</td>
+            <td>${esc(AREAS[f.area] || f.area || '—')}</td>
+            <td>${esc(dash(f.location))}</td>
+            <td>${esc(dash(f.type))}</td>
+            <td>${esc(dash([f.board, f.circuit ? 'CB ' + f.circuit : ''].filter(Boolean).join(' · ')))}</td>
+            <td>${esc(dash(f.maintained))}</td>
+            <td>${esc(dash([f.brand, f.model].filter(Boolean).join(' ')))}</td>
+            <td>${resultCell(r)}</td>
+          </tr>`;
+      }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:1rem;">Nothing matches. Clear the search or change the filter.</td></tr>';
+    };
+    $('areaChips').addEventListener('click', e => {
+      const c = e.target.closest('.area-chip'); if (!c) return;
+      document.querySelectorAll('.area-chip').forEach(x => x.classList.toggle('active', x === c));
+      area = c.dataset.area; draw();
+    });
+    $('regSearch').addEventListener('input', draw);
+    $('regIssues').addEventListener('change', draw);
+    draw();
+  }
+
+  // ── HISTORY ──
+  function renderHistory() {
+    const body = $('historyBody');
+    if (!TESTS.length) {
+      body.innerHTML = '<div class="empty-state">No discharge tests recorded yet. Results will appear after Bromar\'s next visit.</div>';
+      return;
+    }
+    body.innerHTML = TESTS.map(t => `
+      <button type="button" class="test-row" data-id="${esc(t.id)}">
+        <div><div class="tr-date">${esc(niceDate(t.test_date))}</div><div class="tr-sub">${esc(dash(t.frequency))} test</div></div>
+        <div><div class="tr-sub">Tested by</div><div style="font-size:0.9rem;font-weight:600;">${esc(dash(t.tester))}</div></div>
+        <div><div class="tr-sub">Duration</div><div style="font-size:0.9rem;">${t.duration_mins != null ? esc(t.duration_mins) + ' min' : '—'}</div></div>
+        <div class="tr-counts">
+          <span class="cnt">${esc(t.total ?? 0)} tested</span>
+          <span class="cnt pass">${esc(t.passed ?? 0)} pass</span>
+          ${t.failed ? `<span class="cnt fail">${esc(t.failed)} fail</span>` : ''}
+        </div>
+      </button>`).join('');
+  }
+
+  // ── TEST DETAIL ──
+  async function openDetail(id) {
+    $('detailBody').innerHTML = '<div class="empty-state">Loading test…</div>';
+    const { data: t, error } = (LATEST && LATEST.id === id)
+      ? { data: LATEST, error: null }
+      : await window.sb.from('emergency_lighting_tests').select('*').eq('id', id).maybeSingle();
+    if (error || !t) {
+      if (error) console.error('[el] detail', error);
+      $('detailBody').innerHTML = '<div class="empty-state">This test isn\'t available. Go back to the history and choose another.</div>';
+      return;
+    }
+    const rows = Array.isArray(t.results) ? t.results : [];
+    const failed = rows.filter(r => r.result === 'fail');
+    const due = dueFor(t);
+    const meta = [
+      ['Site', t.site || 'Tyrecycle — Somerton'], ['Test date', niceDate(t.test_date)], ['Frequency', t.frequency],
+      ['Test period', `${time12(t.start_time)} – ${time12(t.finish_time)}`], ['Duration', t.duration_mins != null ? t.duration_mins + ' min' : '—'], ['Tested by', t.tester],
+      ['Next test due', due ? niceDate(due) : '—']
+    ];
+
+    const table = list => `
+      <div class="table-scroll"><table class="data">
+        <thead><tr><th>Ref</th><th>Location</th><th>Type</th><th>Board / CB</th><th>Fitting</th><th>Result</th></tr></thead>
+        <tbody>${list.map(r => `
+          <tr class="${r.result === 'fail' ? 'row-fail' : ''}">
+            <td class="mono">${esc(r.ref)}</td><td>${esc(dash(r.location))}</td><td>${esc(dash(r.type))}</td>
+            <td>${esc(dash([r.db, r.circuit ? 'CB ' + r.circuit : ''].filter(Boolean).join(' · ')))}</td>
+            <td>${esc(dash([r.brand, r.model].filter(Boolean).join(' ')))}</td>
+            <td>${resultCell(r)}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>`;
+
+    const byArea = Object.keys(AREAS).map(k => [k, rows.filter(r => r.area === k)]).filter(([, l]) => l.length);
+
+    $('detailBody').innerHTML = `
+      <div class="detail-top">
+        <div class="cert">BRO-EL-${esc(String(t.test_date || '').replace(/-/g, ''))}</div>
+        <h2>Discharge test — ${esc(niceDate(t.test_date))}</h2>
+      </div>
+      <div class="meta-grid">${meta.map(([l, v]) => `<div><div class="m-label">${esc(l)}</div><div class="m-val">${esc(dash(v))}</div></div>`).join('')}</div>
+      <div class="tiles" style="grid-template-columns:repeat(3,1fr);">
+        <div class="tile"><div class="tile-num">${esc(t.total ?? rows.length)}</div><div class="tile-label">Tested</div></div>
+        <div class="tile pass"><div class="tile-num">${esc(t.passed ?? 0)}</div><div class="tile-label">Pass</div></div>
+        <div class="tile fail"><div class="tile-num">${esc(t.failed ?? 0)}</div><div class="tile-label">Fail</div></div>
+      </div>
+      ${t.report_notes ? `<div class="note-box">${esc(t.report_notes)}</div>` : ''}
+      ${failed.length ? `<h3 class="sub-head">Items requiring attention</h3>${table(failed)}` : ''}
+      ${byArea.map(([k, l]) => `<h3 class="sub-head">${esc(AREAS[k])}</h3>${table(l)}`).join('')}
+      ${!rows.length ? '<div class="empty-state">No individual results are stored with this test.</div>' : ''}`;
+  }
+
+  // ── ROUTING: #register (default) | #history | #test=<id> ──
+  function show(view) {
+    $('registerView').hidden = view !== 'register';
+    $('historyView').hidden = view !== 'history';
+    $('detailView').hidden = view !== 'detail';
+    document.querySelectorAll('.view-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.view === (view === 'detail' ? 'history' : view)));
+  }
+  function route() {
+    const h = window.location.hash;
+    const m = h.match(/test=([0-9a-f-]{36})/i);
+    if (m) { show('detail'); window.scrollTo(0, 0); openDetail(m[1]); }
+    else if (h === '#history') show('history');
+    else show('register');
+  }
+
+  // ── INIT ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    const who = await guard();
+    if (!who) return;
+    document.documentElement.classList.remove('guarding');
+
+    if (!who.allowed) {
+      $('main').innerHTML = '<div class="empty-state">Your account doesn\'t include emergency lighting records. Contact Bromar to add them.</div>';
+      return;
+    }
+
+    document.querySelectorAll('.view-tab').forEach(t =>
+      t.addEventListener('click', () => { window.location.hash = t.dataset.view; }));
+    $('historyBody').addEventListener('click', e => {
+      const row = e.target.closest('.test-row');
+      if (row) window.location.hash = 'test=' + row.dataset.id;
+    });
+    $('backBtn').addEventListener('click', () => { window.location.hash = 'history'; });
+    window.addEventListener('hashchange', route);
+
+    try {
+      await loadAll();
+    } catch (err) {
+      console.error('[el] load', err);
+      const msg = '<div class="empty-state">Records couldn\'t load. Refresh the page to try again.</div>';
+      $('registerBody').innerHTML = msg;
+      $('historyBody').innerHTML = msg;
+      route();
+      return;
+    }
+    renderRegister();
+    renderHistory();
+    route();
+  });
+})();
+</script>
+</body>
+</html>
