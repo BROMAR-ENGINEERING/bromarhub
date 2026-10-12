@@ -1,4 +1,4 @@
-<!-- dashboard.html - V1.02 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
+<!-- dashboard.html - V1.03 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,7 +158,7 @@
   <div class="card-footer">
     <div class="card-footer-title">BROMAR HUB — CLIENT COMPLIANCE PORTAL</div>
     <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20compliance%20portal">Questions about these records? Contact Bromar</a>
-    <div class="card-footer-version">Version V1.02</div>
+    <div class="card-footer-version">Version V1.03</div>
   </div>
 </div>
 
@@ -178,7 +178,7 @@
   const SECTIONS = [
     { key: 'emergency_lighting', name: 'Emergency lighting', std: 'AS/NZS 2293.2', page: 'emergency-lighting.html', loader: loadEmergencyLighting },
     { key: 'rcd_testing',        name: 'RCD testing',        std: 'AS/NZS 3760, AS/NZS 3000', page: 'rcd-testing.html',  loader: loadRcdTesting },
-    { key: 'test_tagging',       name: 'Test & tagging',     std: 'AS/NZS 3760', page: 'test-tagging.html', loader: notYetConnected }
+    { key: 'test_tagging',       name: 'Test & tagging',     std: 'AS/NZS 3760', page: '', loader: notYetConnected }
   ];
 
   const $ = id => document.getElementById(id);
@@ -309,8 +309,10 @@
     if (res.error) {
       return `<div class="section-panel">${head}<div class="sp-empty">These records couldn't load. Refresh the page to try again.</div></div>`;
     }
+    const foot = `<div class="sp-foot"><a class="view-link" href="${BASE + sec.page}">${res.hasRecords ? 'View records and reports' : 'View asset register'}</a></div>`;
+
     if (!res.hasRecords) {
-      return `<div class="section-panel">${head}<div class="sp-empty">No test records have been published here yet. They'll appear after Bromar's next visit.</div></div>`;
+      return `<div class="section-panel">${head}<div class="sp-empty">No test results have been published here yet. They'll appear after Bromar's next visit.</div>${sec.page ? foot : ''}</div>`;
     }
 
     const days = res.status.days;
@@ -343,7 +345,6 @@
         </div>`;
     }
 
-    const foot = `<div class="sp-foot"><a class="view-link" href="${BASE + sec.page}">View records and reports</a></div>`;
     return `<div class="section-panel">${head}${facts}${attn}${foot}</div>`;
   }
 
