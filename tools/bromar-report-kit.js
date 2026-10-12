@@ -41,7 +41,7 @@
 
   /* ── COMPANY CONSTANTS (single source of truth) ── */
   const COMPANY = {
-    name:    'Bromar Electrical Services Pty Ltd',
+    name:    'Bromar Electrical Services Aust',
     address: '2/98-108 Western Ave, Westmeadows 3049',
     phone:   '9335 5344',
     rec:     '30340',
