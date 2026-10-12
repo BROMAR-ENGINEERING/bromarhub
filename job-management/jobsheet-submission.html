@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.81 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.82 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -399,7 +399,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.81</div>
+<div class="revision-number">V1.82</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -2365,15 +2365,46 @@ async function handleSignoffConfirm(){
 // ── FORM SUBMISSION ───────────────────────────────────────────
 let _submitConfirmed = false;
 
+// Watchdog — if a loading overlay has been visible for more than 30s without a hide,
+// release it so the user isn't stuck. Also re-enables the submit button.
+(function startLoadingWatchdog() {
+  const WATCH_MS = 30000;
+  let visibleSince = null;
+  setInterval(() => {
+    const el = document.getElementById('loadingOverlay') || document.getElementById('bromarLoadingOverlay');
+    if (el && el.classList.contains('show')) {
+      visibleSince ||= Date.now();
+      if (Date.now() - visibleSince > WATCH_MS) {
+        console.warn('[watchdog] loader stuck > 30s — releasing');
+        try { BromarHub.hideLoading(); } catch {}
+        const sb = document.getElementById('submitBtn'); if (sb) sb.disabled = false;
+        BromarHub.showInfo('That took longer than expected. Please try again — check the console for details.');
+        visibleSince = null;
+      }
+    } else {
+      visibleSince = null;
+    }
+  }, 2000);
+})();
+
 function openSubmitConfirmModal() {
-  // Peek at the next job sheet number for the preview (best-effort — the real number is assigned on save)
+  // Remove any previous instance (prevents stacking if user double-clicks Save)
+  const prev = document.getElementById('submitConfirmOverlay');
+  if (prev) prev.remove();
+
   const previewNumber = currentJobSheetNumber || '(will be assigned on save)';
   const jobNum = selectedJobData?.job_number || '';
 
-  // Build summary HTML (reuses the Sign Now summary builder)
-  const summaryHtml = (typeof buildSummaryHTML === 'function')
-    ? buildSummaryHTML(previewNumber, jobNum)
-    : '<p>Preview unavailable.</p>';
+  // Build summary HTML — catch so a bad render never leaves the user with no modal
+  let summaryHtml;
+  try {
+    summaryHtml = (typeof buildSummaryHTML === 'function')
+      ? buildSummaryHTML(previewNumber, jobNum)
+      : '<p>Preview unavailable.</p>';
+  } catch (err) {
+    console.error('[submit] buildSummaryHTML failed', err);
+    summaryHtml = '<p>Preview unavailable — click Confirm &amp; Save to continue anyway.</p>';
+  }
 
   // Build the modal shell
   const overlay = document.createElement('div');
@@ -2415,7 +2446,16 @@ async function handleFormSubmit(e){
 
   // Show confirmation summary modal first (unless already confirmed from the modal itself)
   if (!_submitConfirmed) {
-    openSubmitConfirmModal();
+    // Clear any stale loader + re-enable the submit button so the user isn't stuck
+    try { BromarHub.hideLoading(); } catch {}
+    const sb = document.getElementById('submitBtn'); if (sb) sb.disabled = false;
+    try {
+      openSubmitConfirmModal();
+    } catch (err) {
+      console.error('[submit] confirm modal failed to open', err);
+      _submitConfirmed = true;
+      document.getElementById('jobSheetForm').requestSubmit();
+    }
     return;
   }
   _submitConfirmed = false; // reset for next time
@@ -2949,7 +2989,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.81`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.82`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
