@@ -1,4 +1,4 @@
-<!-- Daily Jobsheet Submission - V1.70 - 2026-10-05 - job-management/jobsheet-submission.html -->
+<!-- job-management/jobsheet-submission.html — V1.72 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -403,7 +403,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.70</div>
+<div class="revision-number">V1.72</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -701,14 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); BromarHub.hideLoading(); BromarHub.showSuccess('Link copied!'); }
     catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
   });
-  document.getElementById('emailPdfBtn').addEventListener('click', async () => {
-    const email = prompt('Enter client email address:'); if (!email) return;
-    BromarHub.showLoading('Preparing email...','Generating PDF');
-    try {
-      const url = await generateAndUploadPDF(); BromarHub.hideLoading();
-      window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
-    } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
-  });
+  document.getElementById('emailPdfBtn').addEventListener('click', () => openEmailChooser());
   document.getElementById('newSheetBtn')?.addEventListener('click', () => { if (confirm('Start a new job sheet? Current data will be cleared.')) location.reload(); });
 
   // Completion screen buttons
@@ -722,14 +715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { const url = await generateAndUploadPDF(); await navigator.clipboard.writeText(url); BromarHub.hideLoading(); BromarHub.showSuccess('Link copied!'); }
     catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
   };
-  const compEmail = async () => {
-    const email = prompt('Enter client email address:'); if (!email) return;
-    BromarHub.showLoading('Preparing email...','Generating PDF');
-    try {
-      const url = await generateAndUploadPDF(); BromarHub.hideLoading();
-      window.location.href = `mailto:${email}?subject=${encodeURIComponent('Service Report - '+currentJobSheetNumber)}&body=${encodeURIComponent('Hi,\n\nPlease find your service report for job '+currentJobNumber+':\n\n'+url+'\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au')}`;
-    } catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); }
-  };
+  const compEmail = () => openEmailChooser();
   document.getElementById('comp_downloadPdfBtn').addEventListener('click', compDownload);
   document.getElementById('comp_copyLinkBtn').addEventListener('click', compCopy);
   document.getElementById('comp_emailPdfBtn').addEventListener('click', compEmail);
@@ -2146,7 +2132,19 @@ async function handleSignoffConfirm(){
       const pdf=await generatePDF(getActiveSheetNumbers());
       await window.sb.storage.from('job-sheet-files').upload(`${currentJobNumber}/service-reports/signed-${currentJobSheetNumber}.pdf`,pdf.output('blob'),{contentType:'application/pdf',upsert:true});
       BromarHub.showLoading('Emailing signed report...',pendingSignoffEmail);
-      const{error:emailErr}=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:pendingSignoffEmail,jobSheetNumber:currentJobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:sigName,pdfBase64:pdf.output('datauristring').split(',')[1]}});
+      const emailErr = await sendServiceReportEmail({
+        recipientEmail: pendingSignoffEmail,
+        replyToEmail:   currentUser?.email || '',
+        jobSheetNumber: currentJobSheetNumber,
+        jobNumber:      currentJobNumber,
+        clientName:     selectedJobData?.client_name || '',
+        siteName:       selectedJobData?.site_name || '',
+        siteAddress:    selectedJobData?.site_address || '',
+        sheetDate:      document.getElementById('sheet_date')?.value || '',
+        preparedBy:     currentUser?.name || '',
+        signedByName:   sigName,
+        pdfBase64:      pdf.output('datauristring').split(',')[1]
+      });
       BromarHub.hideLoading();
       if(emailErr)BromarHub.showInfo(`Signature saved — but email failed: ${emailErr.message}`);
       else BromarHub.showSuccess(`Signed report emailed to ${pendingSignoffEmail}`);
@@ -2306,8 +2304,20 @@ async function handleFormSubmit(e){
         if (doSend) {
           BromarHub.showLoading('Emailing report...',clientEmail);
           const pdfBase64=reportPdf.output('datauristring').split(',')[1];
-          console.log('[Email] send-signed-report, pdfBase64_length:',pdfBase64?.length);
-          const emailResponse=await window.sb.functions.invoke('send-signed-report',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signedByName:'(No signature required)',pdfBase64}});
+          console.log('[Email] submit-jobsheet, pdfBase64_length:',pdfBase64?.length);
+          const emailResponse = { error: await sendServiceReportEmail({
+            recipientEmail: clientEmail,
+            replyToEmail:   currentUser?.email || '',
+            jobSheetNumber,
+            jobNumber,
+            clientName:     selectedJobData?.client_name || '',
+            siteName:       selectedJobData?.site_name || '',
+            siteAddress:    selectedJobData?.site_address || '',
+            sheetDate:      document.getElementById('sheet_date')?.value || '',
+            preparedBy:     currentUser?.name || '',
+            signedByName:   '(No signature required)',
+            pdfBase64
+          }) };
           console.log('[Email] Response:',emailResponse);
           BromarHub.hideLoading();
           if(emailResponse.error)BromarHub.showInfo(`Report saved — email failed: ${emailResponse.error.message}`);
@@ -2681,11 +2691,130 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.70`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.72`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
 function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
+
+// ── SEND SERVICE REPORT via Netlify function (Resend) ─────────
+async function sendServiceReportEmail(payload) {
+  try {
+    console.log('[submit-jobsheet] sending', { ...payload, pdfBase64: `<${payload.pdfBase64?.length || 0} chars>` });
+    const res = await fetch('/.netlify/functions/submit-jobsheet', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+    const result = await res.json().catch(() => ({}));
+    console.log('[submit-jobsheet] response', res.status, result);
+    if (!res.ok || result.error) return { message: result.error || `HTTP ${res.status}`, details: result.details };
+    return null;
+  } catch (err) {
+    console.error('[submit-jobsheet] fetch failed', err);
+    return { message: err.message || String(err) };
+  }
+}
+
+// ── EMAIL CLIENT — chooser modal ──────────────────────────────
+async function openEmailChooser() {
+  const email = prompt('Enter client email address:'); if (!email) return;
+
+  BromarHub.showLoading('Preparing email...','Generating PDF');
+  let url;
+  try { url = await generateAndUploadPDF(); }
+  catch (err) { BromarHub.hideLoading(); BromarHub.showInfo('Error: '+err.message); return; }
+  BromarHub.hideLoading();
+
+  const subject = `Service Report - ${currentJobSheetNumber}`;
+  const body    = `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`;
+  const to      = encodeURIComponent(email);
+  const su      = encodeURIComponent(subject);
+  const bo      = encodeURIComponent(body);
+
+  const links = {
+    outlook_mobile: `ms-outlook://compose?to=${to}&subject=${su}&body=${bo}`,
+    outlook_web:    `https://outlook.office.com/mail/deeplink/compose?to=${email}&subject=${su}&body=${bo}`,
+    gmail_mobile:   `googlegmail://co?to=${to}&subject=${su}&body=${bo}`,
+    gmail_web:      `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${su}&body=${bo}`,
+    default_mail:   `mailto:${email}?subject=${su}&body=${bo}`
+  };
+
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Build modal
+  const overlay = document.createElement('div');
+  overlay.id = 'emailChooserOverlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; padding:1.25rem; max-width:380px; width:100%; box-shadow:0 24px 48px rgba(0,0,0,0.3);">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+        <h3 style="margin:0; font-size:1rem; color:var(--text-primary);">Send email with…</h3>
+        <button type="button" id="emailChooserClose" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; padding:0 4px;">✕</button>
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem; word-break:break-all;">To: ${esc(email)}</div>
+
+      <div style="display:grid; gap:8px;">
+        <button type="button" class="btn-secondary email-chooser-btn" data-link="${isMobile ? 'outlook_mobile' : 'outlook_web'}" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; text-align:left;">
+          <span style="font-size:1.2rem;">📨</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;">Outlook</div>
+            <div style="font-size:0.72rem; color:var(--text-secondary);">${isMobile ? 'Outlook mobile app' : 'Outlook on the web'}</div>
+          </div>
+        </button>
+
+        <button type="button" class="btn-secondary email-chooser-btn" data-link="${isMobile ? 'gmail_mobile' : 'gmail_web'}" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; text-align:left;">
+          <span style="font-size:1.2rem;">✉️</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;">Gmail</div>
+            <div style="font-size:0.72rem; color:var(--text-secondary);">${isMobile ? 'Gmail mobile app' : 'Gmail on the web'}</div>
+          </div>
+        </button>
+
+        <button type="button" class="btn-secondary email-chooser-btn" data-link="default_mail" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; text-align:left;">
+          <span style="font-size:1.2rem;">📱</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;">Default mail app</div>
+            <div style="font-size:0.72rem; color:var(--text-secondary);">Whatever's set on this device</div>
+          </div>
+        </button>
+
+        <button type="button" class="btn-secondary email-chooser-btn" data-link="copy" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; text-align:left;">
+          <span style="font-size:1.2rem;">📋</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;">Copy to clipboard</div>
+            <div style="font-size:0.72rem; color:var(--text-secondary);">Paste into any email app</div>
+          </div>
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  const close = () => { overlay.remove(); };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.getElementById('emailChooserClose').addEventListener('click', close);
+
+  overlay.querySelectorAll('.email-chooser-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const choice = btn.dataset.link;
+      if (choice === 'copy') {
+        try {
+          await navigator.clipboard.writeText(`To: ${email}\nSubject: ${subject}\n\n${body}`);
+          BromarHub.showSuccess('Email copied to clipboard');
+        } catch { BromarHub.showInfo('Could not copy — select and copy manually'); }
+      } else {
+        const link = links[choice];
+        if (choice === 'outlook_web' || choice === 'gmail_web') {
+          window.open(link, '_blank');
+        } else {
+          window.location.href = link;
+        }
+      }
+      close();
+    });
+  });
+}
 
 function getActiveSheetNumbers() {
   // Always ensure the real saved sheet number is in the list
