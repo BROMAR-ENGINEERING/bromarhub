@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.80 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.81 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -399,7 +399,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.80</div>
+<div class="revision-number">V1.81</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -2021,12 +2021,11 @@ document.addEventListener('DOMContentLoaded', () => { loadJobTypesIntoSelect(); 
 let _accordionSections = [];
 
 function initFormAccordion() {
-  const formCard = document.querySelector('.form-card');
-  if (!formCard) return;
+  const form = document.getElementById('jobSheetForm');
+  if (!form) return;
 
-  // Step 1 — flatten #postJobSections so its children live directly inside the form card.
-  // This makes every .section-label a sibling at the same level and lets the walker treat
-  // "next sibling .section-label" as the correct section boundary.
+  // Step 1 — flatten #postJobSections so its children live directly inside the form,
+  // making every .section-label a sibling at the same level.
   const postJob = document.getElementById('postJobSections');
   if (postJob && postJob.parentNode) {
     const parent = postJob.parentNode;
@@ -2035,9 +2034,8 @@ function initFormAccordion() {
     postJob.style.display = 'contents';
   }
 
-  // Step 2 — collect every .section-label inside the form card (now all siblings at the root)
-  // and wrap each into an accordion-section.
-  const labels = Array.from(formCard.querySelectorAll(':scope > .section-label'));
+  // Step 2 — collect every .section-label that is a direct child of the form
+  const labels = Array.from(form.querySelectorAll(':scope > .section-label'));
   const sections = [];
 
   labels.forEach((label, idx) => {
@@ -2951,7 +2949,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.80`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.81`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
