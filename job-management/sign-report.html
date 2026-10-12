@@ -1,3 +1,4 @@
+<!-- sign-report.html — V1.01 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -792,20 +793,35 @@
         .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       if (uploadErr) console.warn('PDF upload failed (continuing):', uploadErr);
 
-      // Step 4: Email signed PDF to client
+      // Step 4: Email signed PDF to client via Netlify function (Resend)
       submitBtn.textContent = 'Emailing report...';
       const pdfBase64 = pdf.output('datauristring').split(',')[1];
-      const emailResp = await sb.functions.invoke('send-signed-report', {
-        body: {
+      try {
+        const emailPayload = {
           recipientEmail: currentReport.signing_sent_to,
           jobSheetNumber: currentReport.job_sheet_number,
-          clientName: currentReport.client_name,
-          signedByName: name,
+          jobNumber:      currentReport.job_number,
+          clientName:     currentReport.client_name || '',
+          siteName:       currentReport.site_name || '',
+          siteAddress:    currentReport.site_address || '',
+          sheetDate:      currentReport.sheet_date || '',
+          preparedBy:     currentReport.prepared_by || currentReport.created_by || '',
+          signedByName:   name,
           pdfBase64
+        };
+        console.log('[submit-jobsheet] sending signed copy', { ...emailPayload, pdfBase64: `<${pdfBase64?.length || 0} chars>` });
+        const emailResp = await fetch('/.netlify/functions/submit-jobsheet', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(emailPayload)
+        });
+        const emailResult = await emailResp.json().catch(() => ({}));
+        console.log('[submit-jobsheet] response', emailResp.status, emailResult);
+        if (!emailResp.ok || emailResult.error) {
+          console.warn('Email send failed:', emailResult.error || emailResp.status);
         }
-      });
-      if (emailResp.error) {
-        console.warn('Email send failed:', emailResp.error);
+      } catch (err) {
+        console.warn('Email fetch failed:', err);
       }
 
       // Done - show success regardless of email outcome
