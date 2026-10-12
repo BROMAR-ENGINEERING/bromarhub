@@ -1,4 +1,4 @@
-<!-- dashboard.html - V1.01 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
+<!-- dashboard.html - V1.02 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,7 +158,7 @@
   <div class="card-footer">
     <div class="card-footer-title">BROMAR HUB — CLIENT COMPLIANCE PORTAL</div>
     <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20compliance%20portal">Questions about these records? Contact Bromar</a>
-    <div class="card-footer-version">Version V1.01</div>
+    <div class="card-footer-version">Version V1.02</div>
   </div>
 </div>
 
@@ -263,6 +263,7 @@
     const { data, error } = await window.sb.from('test_tag_reports')
       .select('id, total, fail, oos, overdue, generated_date, updated_at, report_data')
       .eq('client_slug', 'tyrecycle')
+      .not('pdf_path', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1);
     if (error) throw error;
