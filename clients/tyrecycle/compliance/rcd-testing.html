@@ -1,4 +1,4 @@
-<!-- rcd-testing.html - V1.01 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
+<!-- rcd-testing.html - V1.02 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -165,7 +165,7 @@
     <div class="card-footer">
       <div class="card-footer-title">BROMAR HUB — RCD TESTING</div>
       <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20RCD%20testing">Questions about these results? Contact Bromar</a>
-      <div class="card-footer-version">Version V1.01</div>
+      <div class="card-footer-version">Version V1.02</div>
     </div>
   </div>
 </div>
@@ -184,7 +184,7 @@
 
   let REPORTS = [];
   let CURRENT = null;
-  let LATEST = null;   // latest issued report (full row) for the register
+  let LATEST = null;   // latest report (full row) for the register
 
   function niceDate(ts) {
     if (!ts) return '—';
@@ -225,12 +225,11 @@
     return { allowed: (cu.sections || []).includes(SECTION) };
   }
 
-  // ── DATA ── (issued reports only: a stored PDF is required)
+  // ── DATA ──
   async function loadReports() {
     const { data, error } = await window.sb.from(TABLE)
       .select('id, cert_no, job_number, site_name, date_range, generated_date, total, pass, fail, oos, overdue, pdf_path, updated_at')
       .eq('client_slug', CLIENT_SLUG)
-      .not('pdf_path', 'is', null)
       .order('updated_at', { ascending: false });
     if (error) throw error;
     REPORTS = data || [];
@@ -247,7 +246,7 @@
   function renderRegister() {
     const body = $('registerBody');
     if (!LATEST) {
-      body.innerHTML = '<div class="empty-state">No issued RCD reports yet. The register will appear after Bromar\'s next visit.</div>';
+      body.innerHTML = '<div class="empty-state">No RCD reports yet. The register will appear after Bromar\'s next visit.</div>';
       return;
     }
     const assets = (LATEST.report_data && Array.isArray(LATEST.report_data.assets)) ? LATEST.report_data.assets : [];
@@ -317,7 +316,7 @@
     const q = ($('search').value || '').trim().toLowerCase();
     const rows = REPORTS.filter(r => !q || [r.cert_no, r.site_name, r.job_number].some(v => String(v || '').toLowerCase().includes(q)));
     $('listCount').textContent = REPORTS.length ? `${rows.length} of ${REPORTS.length} reports` : '';
-    if (!REPORTS.length) { $('reportList').innerHTML = '<div class="empty-state">No issued RCD reports yet. They\'ll appear here after Bromar\'s next visit.</div>'; return; }
+    if (!REPORTS.length) { $('reportList').innerHTML = '<div class="empty-state">No RCD reports yet. They\'ll appear here after Bromar\'s next visit.</div>'; return; }
     if (!rows.length) { $('reportList').innerHTML = '<div class="empty-state">No reports match that search. Try a certificate number, site or job number.</div>'; return; }
     $('reportList').innerHTML = rows.map(r => `
       <button type="button" class="report-row" data-id="${esc(r.id)}">
@@ -337,7 +336,7 @@
   async function openDetail(id) {
     $('detailBody').innerHTML = '<div class="empty-state">Loading report…</div>';
     const { data, error } = await window.sb.from(TABLE).select('*')
-      .eq('id', id).eq('client_slug', CLIENT_SLUG).not('pdf_path', 'is', null).maybeSingle();
+      .eq('id', id).eq('client_slug', CLIENT_SLUG).maybeSingle();
     if (error || !data) {
       if (error) console.error('[rcd] detail', error);
       $('detailBody').innerHTML = '<div class="empty-state">This report isn\'t available. Go back to the list and choose another.</div>';
@@ -368,7 +367,7 @@
     $('detailBody').innerHTML = `
       <div class="detail-top">
         <div><div class="cert">${esc(dash(r.cert_no))}</div><h2>RCD test report</h2></div>
-        <button type="button" class="submit-btn" id="pdfBtn">Download PDF</button>
+        ${r.pdf_path ? '<button type="button" class="submit-btn" id="pdfBtn">Download PDF</button>' : ''}
       </div>
       <div class="meta-grid">${meta.map(([l, v]) => `<div><div class="m-label">${esc(l)}</div><div class="m-val">${esc(dash(v))}</div></div>`).join('')}</div>
       <div class="tiles">
@@ -401,7 +400,7 @@
           <tbody id="assetRows"></tbody>
         </table></div>` : '<div class="empty-state">No individual results are stored with this report. Download the PDF for the full record.</div>'}`;
 
-    $('pdfBtn').addEventListener('click', openPdf);
+    if (r.pdf_path) $('pdfBtn').addEventListener('click', openPdf);
     if (assets.length) {
       const draw = () => {
         const q = ($('assetSearch').value || '').trim().toLowerCase();
