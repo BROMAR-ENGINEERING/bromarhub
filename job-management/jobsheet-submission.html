@@ -1,4 +1,4 @@
-<!-- job-management/jobsheet-submission.html — V1.73 — 2026-10-12 — Bromar Hub -->
+<!-- job-management/jobsheet-submission.html — V1.74 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.73</div>
+<div class="revision-number">V1.74</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -2642,7 +2642,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.73`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.74`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
@@ -2667,9 +2667,96 @@ async function sendServiceReportEmail(payload) {
   }
 }
 
+// ── RECIPIENT PICKER — defaults to site primary contact ───────
+async function pickRecipientEmail() {
+  // Fetch contacts for the current site (if any)
+  let contacts = [];
+  const siteId = selectedJobData?.site_id;
+  if (siteId) {
+    try {
+      const { data, error } = await window.sb.from('site_contacts')
+        .select('id, name, role, email, phone, is_primary')
+        .eq('site_id', siteId)
+        .order('is_primary', { ascending: false })
+        .order('name', { ascending: true });
+      if (error) throw error;
+      contacts = (data || []).filter(c => c.email);
+    } catch (err) { console.warn('[pickRecipientEmail] site_contacts fetch failed', err); }
+  }
+
+  // Fallback: client-level email
+  const clientEmail = selectedJobData?.client_email || '';
+  const defaultContact = contacts.find(c => c.is_primary) || contacts[0] || null;
+  const defaultEmail = defaultContact?.email || clientEmail || '';
+
+  // If nothing to choose from, fall back to the simple prompt
+  if (!contacts.length && !clientEmail) {
+    return prompt('Enter client email address:');
+  }
+
+  // Build picker modal
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.id = 'recipientPickerOverlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;';
+
+    const options = contacts.map(c => {
+      const label = `${esc(c.name || '(no name)')}${c.role ? ' — ' + esc(c.role) : ''}${c.is_primary ? ' ⭐' : ''}`;
+      return `<option value="${esc(c.email)}" ${c.email === defaultEmail ? 'selected' : ''}>${label} &lt;${esc(c.email)}&gt;</option>`;
+    });
+    if (clientEmail && !contacts.some(c => c.email.toLowerCase() === clientEmail.toLowerCase())) {
+      options.push(`<option value="${esc(clientEmail)}" ${clientEmail === defaultEmail ? 'selected' : ''}>Client — ${esc(clientEmail)}</option>`);
+    }
+    options.push('<option value="__other__">Other… (enter manually)</option>');
+
+    overlay.innerHTML = `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; padding:1.25rem; max-width:420px; width:100%; box-shadow:0 24px 48px rgba(0,0,0,0.3);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+          <h3 style="margin:0; font-size:1rem; color:var(--text-primary);">Send to…</h3>
+          <button type="button" id="recipClose" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; padding:0 4px;">✕</button>
+        </div>
+
+        <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Site contact</label>
+        <select id="recipSelect" style="width:100%; padding:0.6rem 0.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-main); color:var(--text-primary); font-size:0.9rem; margin-bottom:12px;">
+          ${options.join('')}
+        </select>
+
+        <div id="recipOtherWrap" style="display:none; margin-bottom:12px;">
+          <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Email address</label>
+          <input type="email" id="recipOther" placeholder="name@example.com" style="width:100%; padding:0.6rem 0.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg-main); color:var(--text-primary); font-size:0.9rem;"/>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" id="recipCancel" class="btn-secondary" style="padding:0.6rem 1rem;">Cancel</button>
+          <button type="button" id="recipOk" class="btn-secondary" style="padding:0.6rem 1rem; background:var(--accent); color:white; border-color:var(--accent);">Continue</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const sel   = document.getElementById('recipSelect');
+    const other = document.getElementById('recipOther');
+    const otherWrap = document.getElementById('recipOtherWrap');
+    const toggleOther = () => { otherWrap.style.display = sel.value === '__other__' ? 'block' : 'none'; if (sel.value === '__other__') other.focus(); };
+    sel.addEventListener('change', toggleOther); toggleOther();
+
+    const cleanup = (val) => { overlay.remove(); resolve(val); };
+    document.getElementById('recipClose').addEventListener('click', () => cleanup(null));
+    document.getElementById('recipCancel').addEventListener('click', () => cleanup(null));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(null); });
+    document.getElementById('recipOk').addEventListener('click', () => {
+      const val = sel.value === '__other__' ? (other.value || '').trim() : sel.value;
+      if (!val || !/\S+@\S+\.\S+/.test(val)) { BromarHub.showInfo('Please enter a valid email address'); return; }
+      cleanup(val);
+    });
+  });
+}
+
 // ── EMAIL CLIENT — chooser modal ──────────────────────────────
 async function openEmailChooser() {
-  const email = prompt('Enter client email address:'); if (!email) return;
+  // Pick recipient (defaults to site primary contact)
+  const email = await pickRecipientEmail();
+  if (!email) return;
 
   BromarHub.showLoading('Preparing email...','Generating PDF');
   let url;
