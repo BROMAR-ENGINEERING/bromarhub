@@ -1,11 +1,4 @@
-<!--
-  ============================================================
-  BROMAR HUB — CLIENT COMPLIANCE PORTAL — DASHBOARD
-  Version: V1.00
-  Repo path: /clients/tyrecycle/compliance/dashboard.html
-  Does NOT load /tools/auth.js (client accounts). Own auth guard below.
-  ============================================================
--->
+<!-- dashboard.html - V1.01 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -165,7 +158,7 @@
   <div class="card-footer">
     <div class="card-footer-title">BROMAR HUB — CLIENT COMPLIANCE PORTAL</div>
     <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20compliance%20portal">Questions about these records? Contact Bromar</a>
-    <div class="card-footer-version">Version V1.00</div>
+    <div class="card-footer-version">Version V1.01</div>
   </div>
 </div>
 
@@ -184,7 +177,7 @@
 
   const SECTIONS = [
     { key: 'emergency_lighting', name: 'Emergency lighting', std: 'AS/NZS 2293.2', page: 'emergency-lighting.html', loader: loadEmergencyLighting },
-    { key: 'rcd_testing',        name: 'RCD testing',        std: 'AS/NZS 3760, AS/NZS 3000', page: 'rcd-testing.html',  loader: notYetConnected },
+    { key: 'rcd_testing',        name: 'RCD testing',        std: 'AS/NZS 3760, AS/NZS 3000', page: 'rcd-testing.html',  loader: loadRcdTesting },
     { key: 'test_tagging',       name: 'Test & tagging',     std: 'AS/NZS 3760', page: 'test-tagging.html', loader: notYetConnected }
   ];
 
@@ -247,6 +240,52 @@
       countLabel: 'Fittings tested',
       failures: t.failed || failedItems.length,
       failedItems
+    };
+  }
+
+  // Accepts YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, or anything Date can parse → ISO
+  function toISO(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+    if (m) {
+      const y = m[3].length === 2 ? '20' + m[3] : m[3];
+      return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
+    const d = new Date(s);
+    if (isNaN(d)) return null;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  async function loadRcdTesting() {
+    const { data, error } = await window.sb.from('test_tag_reports')
+      .select('id, total, fail, oos, overdue, generated_date, updated_at, report_data')
+      .eq('client_slug', 'tyrecycle')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const r = (data || [])[0];
+    if (!r) return { hasRecords: false };
+
+    const assets = (r.report_data && Array.isArray(r.report_data.assets)) ? r.report_data.assets : [];
+    const testedDates = assets.map(a => toISO(a.tested)).filter(Boolean).sort();
+    const dueDates = assets.map(a => toISO(a.due)).filter(Boolean).sort();
+    const issues = assets.filter(a => ['fail', 'oos'].includes(String(a.state || '').toLowerCase()));
+
+    return {
+      hasRecords: true,
+      lastISO: testedDates.length ? testedDates[testedDates.length - 1] : (toISO(r.generated_date) || toISO(r.updated_at)),
+      dueISO: dueDates[0] || null,
+      count: r.total ?? assets.length,
+      countLabel: 'RCDs tested',
+      failures: (r.fail || 0) + (r.oos || 0),
+      failedItems: issues.map(a => ({
+        ref: a.assetNo || a.barcode || '—',
+        title: [a.location, a.sublocation].filter(Boolean).join(' / '),
+        detail: [String(a.state).toLowerCase() === 'oos' ? 'Out of service' : 'Failed', a.measure].filter(Boolean).join(' · ')
+      }))
     };
   }
 
