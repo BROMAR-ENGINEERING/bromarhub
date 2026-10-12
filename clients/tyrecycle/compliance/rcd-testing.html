@@ -1,0 +1,445 @@
+<!-- rcd-testing.html - V1.00 - 2026-10-12 - Bromar Hub - /clients/tyrecycle/compliance/ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>RCD Testing | Tyrecycle Somerton | Bromar</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<script src="/tools/bromar-hub.js" defer></script>
+
+<style>
+  /* ── PAGE-SPECIFIC ── */
+  html.guarding body { visibility: hidden; }
+  .page-wrapper, .page-title-wrapper { max-width: 960px; }
+
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; color: var(--accent); text-decoration: none; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; padding: 0; margin-bottom: 1rem; }
+  .back-link:hover { text-decoration: underline; }
+
+  /* List */
+  .list-tools { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .list-tools input { flex: 1; min-width: 200px; }
+  .list-count { font-size: 0.85rem; color: var(--text-secondary); }
+
+  .report-row {
+    display: grid; grid-template-columns: 1.3fr 1.4fr 1fr auto; gap: 1rem; align-items: center;
+    width: 100%; text-align: left; font-family: 'Outfit', sans-serif; color: var(--text-primary);
+    padding: 1rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 0.6rem; cursor: pointer; transition: border-color 0.2s;
+  }
+  .report-row:hover { border-color: var(--accent); }
+  .rr-cert { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .rr-sub { font-size: 0.78rem; color: var(--text-secondary); }
+  .rr-site { font-weight: 600; font-size: 0.92rem; }
+  .rr-counts { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+
+  .cnt { padding: 2px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cnt.pass { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+  .cnt.fail { background: var(--error-bg); color: var(--error); border-color: var(--error-border); }
+  .cnt.oos  { background: rgba(217,119,6,0.12); color: #b45309; border-color: rgba(217,119,6,0.35); }
+  [data-theme="dark"] .cnt.oos { color: #fbbf24; }
+
+  @media (max-width: 680px) {
+    .report-row { grid-template-columns: 1fr; gap: 0.4rem; }
+    .rr-counts { justify-content: flex-start; }
+  }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary); font-size: 0.9rem; border: 1px dashed var(--border); border-radius: 12px; }
+
+  /* Detail */
+  .detail-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .detail-top h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+  .detail-top .cert { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem 1.5rem; margin-bottom: 1.5rem; }
+  .meta-grid .m-label { font-size: 0.75rem; color: var(--text-secondary); }
+  .meta-grid .m-val { font-size: 0.92rem; font-weight: 600; word-break: break-word; }
+  @media (max-width: 680px) { .meta-grid { grid-template-columns: 1fr 1fr; } }
+
+  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin-bottom: 1.75rem; }
+  .tile { border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.5rem; text-align: center; background: var(--bg-main); }
+  .tile-num { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .tile-label { font-size: 0.72rem; color: var(--text-secondary); }
+  .tile.pass .tile-num { color: var(--success); }
+  .tile.fail .tile-num { color: var(--error); }
+  .tile.oos .tile-num { color: #d97706; }
+  @media (max-width: 680px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+
+  .sub-head { font-size: 1.05rem; font-weight: 600; margin: 1.75rem 0 0.75rem; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 640px; }
+  table.data th { text-align: left; font-weight: 600; font-size: 0.76rem; color: var(--text-secondary); background: var(--bg-main); padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.data td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data tr:last-child td { border-bottom: none; }
+  table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  table.data tr.row-fail td { background: var(--error-bg); }
+  table.data tr.row-oos td { background: rgba(217,119,6,0.10); }
+  .state { font-weight: 700; font-size: 0.78rem; }
+  .state.pass { color: var(--success); }
+  .state.fail { color: var(--error); }
+  .state.oos  { color: #d97706; }
+  .state.na   { color: var(--text-secondary); }
+
+  .asset-tools { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; align-items: center; }
+  .asset-tools input[type="text"] { flex: 1; min-width: 180px; }
+  .chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; margin: 0; cursor: pointer; }
+  .chk input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+  .note-box { background: var(--bg-main); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.875rem; margin-bottom: 1.5rem; white-space: pre-wrap; }
+
+  /* In-card footer */
+  .card-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; }
+  .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; white-space: nowrap; }
+  @media (max-width: 420px) { .card-footer-title { font-size: 0.8rem; letter-spacing: 0.4px; } }
+  .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .card-footer-link:hover { text-decoration: underline; }
+  .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+<script>document.documentElement.classList.add('guarding');</script>
+</head>
+<body>
+
+<!-- Hard-coded header (3+ folder depth) -->
+<div class="header">
+  <div class="header-controls">
+    <a href="/clients/tyrecycle/compliance/dashboard.html" class="control-btn" aria-label="Portal home">
+      <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    </a>
+    <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+      <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="header-content">
+    <img src="/Bromar-Primary-Logo-Full-Colour.png" alt="Bromar" class="logo-image light-logo"/>
+    <img src="/Bromar-Primary-Logo-Reverse-White.png" alt="Bromar" class="logo-image dark-logo"/>
+  </div>
+</div>
+
+<div class="page-title-wrapper">
+  <h1>RCD Testing</h1>
+  <p class="subtitle">Tyrecycle Somerton — trip-time and push-button results, AS/NZS 3760</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="form-card">
+    <div class="info-banner" id="infoBanner"><span id="infoBannerText"></span></div>
+
+    <!-- LIST VIEW -->
+    <section id="listView">
+      <div class="list-tools">
+        <input type="text" id="search" placeholder="Search by certificate, site or job number" aria-label="Search reports"/>
+        <span class="list-count" id="listCount"></span>
+      </div>
+      <div id="reportList"><div class="empty-state">Loading reports…</div></div>
+    </section>
+
+    <!-- DETAIL VIEW -->
+    <section id="detailView" hidden>
+      <button type="button" class="back-link" id="backBtn">‹ All reports</button>
+      <div id="detailBody"></div>
+    </section>
+
+    <div class="card-footer">
+      <div class="card-footer-title">BROMAR HUB — RCD TESTING</div>
+      <a class="card-footer-link" href="mailto:admin@bromar.com.au?subject=Tyrecycle%20RCD%20testing">Questions about these results? Contact Bromar</a>
+      <div class="card-footer-version">Version V1.00</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CLIENT_SLUG = 'tyrecycle';
+  const SECTION     = 'rcd_testing';
+  const PORTAL_URL  = '/clients/tyrecycle/compliance/index.html';
+  const TABLE       = 'test_tag_reports';
+  const BUCKET      = 'test-tag-reports';
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const dash = v => (v === null || v === undefined || v === '') ? '—' : v;
+
+  let REPORTS = [];
+  let CURRENT = null;
+
+  function niceDateTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return isNaN(d) ? ts : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function stateOf(a) {
+    const s = String(a.state || '').toLowerCase();
+    return ['pass', 'fail', 'oos', 'na'].includes(s) ? s : 'na';
+  }
+  const STATE_LABEL = { pass: 'Pass', fail: 'Fail', oos: 'Out of service', na: 'N/A' };
+
+  // ── AUTH GUARD ──
+  async function guard() {
+    const sb = window.sb;
+    if (!sb) { window.location.replace(PORTAL_URL); return null; }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.replace(PORTAL_URL); return null; }
+
+    const meta = session.user.app_metadata || {};
+    if (meta.role !== 'client') return { isStaff: true, allowed: true };
+
+    if (meta.client !== CLIENT_SLUG) {
+      await sb.auth.signOut(); window.location.replace(PORTAL_URL); return null;
+    }
+    const { data: cu, error } = await sb.from('client_users')
+      .select('sections, active').eq('user_id', session.user.id).maybeSingle();
+    if (error || !cu || !cu.active) {
+      await sb.auth.signOut(); window.location.replace(PORTAL_URL); return null;
+    }
+    return { isStaff: false, allowed: (cu.sections || []).includes(SECTION) };
+  }
+
+  // ── LIST ──
+  async function loadList() {
+    const { data, error } = await window.sb.from(TABLE)
+      .select('id, cert_no, job_number, site_name, date_range, generated_date, total, pass, fail, oos, overdue, pdf_path, updated_at')
+      .eq('client_slug', CLIENT_SLUG)
+      .order('updated_at', { ascending: false });
+    if (error) {
+      console.error('[rcd] list', error);
+      $('reportList').innerHTML = '<div class="empty-state">Reports couldn\'t load. Refresh the page to try again.</div>';
+      return;
+    }
+    REPORTS = data || [];
+    renderList();
+  }
+
+  function renderList() {
+    const q = ($('search').value || '').trim().toLowerCase();
+    const rows = REPORTS.filter(r => !q ||
+      [r.cert_no, r.site_name, r.job_number].some(v => String(v || '').toLowerCase().includes(q)));
+
+    $('listCount').textContent = REPORTS.length ? `${rows.length} of ${REPORTS.length} reports` : '';
+
+    if (!REPORTS.length) {
+      $('reportList').innerHTML = '<div class="empty-state">No RCD test reports have been published yet. They\'ll appear here after Bromar\'s next visit.</div>';
+      return;
+    }
+    if (!rows.length) {
+      $('reportList').innerHTML = '<div class="empty-state">No reports match that search. Try a certificate number, site or job number.</div>';
+      return;
+    }
+
+    $('reportList').innerHTML = rows.map(r => `
+      <button type="button" class="report-row" data-id="${esc(r.id)}">
+        <div>
+          <div class="rr-cert">${esc(dash(r.cert_no))}</div>
+          <div class="rr-sub">${r.job_number ? 'Job ' + esc(r.job_number) : ''}</div>
+        </div>
+        <div>
+          <div class="rr-site">${esc(dash(r.site_name))}</div>
+          <div class="rr-sub">${esc(dash(r.date_range))}</div>
+        </div>
+        <div>
+          <div class="rr-sub">Issued</div>
+          <div style="font-size:0.88rem;">${esc(r.generated_date || niceDateTime(r.updated_at))}</div>
+        </div>
+        <div class="rr-counts">
+          <span class="cnt">${esc(r.total ?? 0)} tested</span>
+          <span class="cnt pass">${esc(r.pass ?? 0)} pass</span>
+          ${r.fail ? `<span class="cnt fail">${esc(r.fail)} fail</span>` : ''}
+          ${r.oos ? `<span class="cnt oos">${esc(r.oos)} OOS</span>` : ''}
+        </div>
+      </button>`).join('');
+  }
+
+  // ── DETAIL ──
+  async function openDetail(id) {
+    $('listView').hidden = true;
+    $('detailView').hidden = false;
+    $('detailBody').innerHTML = '<div class="empty-state">Loading report…</div>';
+    window.scrollTo(0, 0);
+
+    const { data, error } = await window.sb.from(TABLE)
+      .select('*').eq('id', id).eq('client_slug', CLIENT_SLUG).maybeSingle();
+    if (error || !data) {
+      if (error) console.error('[rcd] detail', error);
+      $('detailBody').innerHTML = '<div class="empty-state">This report isn\'t available. Go back to the list and choose another.</div>';
+      return;
+    }
+    CURRENT = data;
+    renderDetail();
+  }
+
+  function renderDetail() {
+    const r = CURRENT;
+    const rd = r.report_data || {};
+    const assets = Array.isArray(rd.assets) ? rd.assets : [];
+
+    // Location summary
+    const groups = {};
+    assets.forEach(a => {
+      const key = (a.location || '—') + '||' + (a.sublocation || '');
+      const g = groups[key] || (groups[key] = { location: a.location || '—', sub: a.sublocation || '', total: 0, pass: 0, fail: 0, oos: 0 });
+      g.total++;
+      const s = stateOf(a);
+      if (s === 'pass') g.pass++; else if (s === 'fail') g.fail++; else if (s === 'oos') g.oos++;
+    });
+    const locRows = Object.values(groups).sort((a, b) => (a.location + a.sub).localeCompare(b.location + b.sub));
+
+    const meta = [
+      ['Customer', r.customer], ['Site', r.site_name], ['Site address', r.site_address],
+      ['Contact', [r.contact, r.contact_email].filter(Boolean).join(' · ')], ['Test period', r.date_range], ['Tested by', r.tested_by],
+      ['Job number', r.job_number], ['Installation type', r.installation_type], ['Issued', r.generated_date || niceDateTime(r.updated_at)]
+    ];
+
+    $('detailBody').innerHTML = `
+      <div class="detail-top">
+        <div>
+          <div class="cert">${esc(dash(r.cert_no))}</div>
+          <h2>RCD test report</h2>
+        </div>
+        ${r.pdf_path ? '<button type="button" class="submit-btn" id="pdfBtn">Download PDF</button>' : ''}
+      </div>
+
+      <div class="meta-grid">
+        ${meta.map(([l, v]) => `<div><div class="m-label">${esc(l)}</div><div class="m-val">${esc(dash(v))}</div></div>`).join('')}
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><div class="tile-num">${esc(r.total ?? assets.length)}</div><div class="tile-label">Tested</div></div>
+        <div class="tile pass"><div class="tile-num">${esc(r.pass ?? 0)}</div><div class="tile-label">Pass</div></div>
+        <div class="tile fail"><div class="tile-num">${esc(r.fail ?? 0)}</div><div class="tile-label">Fail</div></div>
+        <div class="tile oos"><div class="tile-num">${esc(r.oos ?? 0)}</div><div class="tile-label">Out of service</div></div>
+        <div class="tile"><div class="tile-num">${esc(r.boards ?? 0)}</div><div class="tile-label">Boards</div></div>
+        <div class="tile ${r.overdue ? 'fail' : ''}"><div class="tile-num">${esc(r.overdue ?? 0)}</div><div class="tile-label">Overdue</div></div>
+      </div>
+
+      ${r.note ? `<div class="note-box">${esc(r.note)}</div>` : ''}
+
+      ${locRows.length ? `
+        <h3 class="sub-head">Location summary</h3>
+        <div class="table-scroll">
+          <table class="data">
+            <thead><tr><th>Location</th><th>Sub-location</th><th>Tested</th><th>Pass</th><th>Fail</th><th>OOS</th></tr></thead>
+            <tbody>
+              ${locRows.map(g => `
+                <tr class="${g.fail ? 'row-fail' : g.oos ? 'row-oos' : ''}">
+                  <td>${esc(g.location)}</td><td>${esc(dash(g.sub))}</td>
+                  <td class="num">${g.total}</td><td class="num">${g.pass}</td>
+                  <td class="num">${g.fail}</td><td class="num">${g.oos}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : ''}
+
+      <h3 class="sub-head">Results by RCD</h3>
+      ${assets.length ? `
+        <div class="asset-tools">
+          <input type="text" id="assetSearch" placeholder="Search location, barcode, asset or description" aria-label="Search results"/>
+          <label class="chk"><input type="checkbox" id="issuesOnly"/> Fail and out of service only</label>
+        </div>
+        <div class="table-scroll">
+          <table class="data">
+            <thead><tr><th>Location</th><th>Barcode</th><th>Asset no.</th><th>Description</th><th>Test performed</th><th>Trip time / result</th><th>Status</th><th>Next due</th></tr></thead>
+            <tbody id="assetRows"></tbody>
+          </table>
+        </div>` : '<div class="empty-state">No individual results are stored with this report. Download the PDF for the full record.</div>'}
+    `;
+
+    if (r.pdf_path) $('pdfBtn').addEventListener('click', openPdf);
+    if (assets.length) {
+      $('assetSearch').addEventListener('input', () => renderAssets(assets));
+      $('issuesOnly').addEventListener('change', () => renderAssets(assets));
+      renderAssets(assets);
+    }
+  }
+
+  function renderAssets(assets) {
+    const q = ($('assetSearch').value || '').trim().toLowerCase();
+    const issues = $('issuesOnly').checked;
+    const rows = assets.filter(a => {
+      const s = stateOf(a);
+      if (issues && s !== 'fail' && s !== 'oos') return false;
+      if (!q) return true;
+      return [a.location, a.sublocation, a.barcode, a.assetNo, a.description]
+        .some(v => String(v || '').toLowerCase().includes(q));
+    });
+    $('assetRows').innerHTML = rows.length ? rows.map(a => {
+      const s = stateOf(a);
+      const loc = [a.location, a.sublocation].filter(Boolean).join(' / ');
+      return `
+        <tr class="${s === 'fail' ? 'row-fail' : s === 'oos' ? 'row-oos' : ''}">
+          <td>${esc(dash(loc))}</td>
+          <td class="mono">${esc(dash(a.barcode))}</td>
+          <td class="mono">${esc(dash(a.assetNo))}</td>
+          <td>${esc(dash(a.description))}</td>
+          <td>${esc(dash(a.testPerformed))}</td>
+          <td class="mono">${esc(dash(a.measure))}</td>
+          <td><span class="state ${s}">${esc(a.status || STATE_LABEL[s])}</span></td>
+          <td>${esc(dash(a.due))}</td>
+        </tr>`;
+    }).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:1rem;">No results match. Clear the search or untick the filter.</td></tr>`;
+  }
+
+  // ── PDF (issued copy of record — signed URL, never regenerated) ──
+  async function openPdf() {
+    const btn = $('pdfBtn');
+    const win = window.open('', '_blank');
+    btn.disabled = true; btn.textContent = 'Opening…';
+    const { data, error } = await window.sb.storage.from(BUCKET).createSignedUrl(CURRENT.pdf_path, 300);
+    btn.disabled = false; btn.textContent = 'Download PDF';
+    if (error || !data?.signedUrl) {
+      if (win) win.close();
+      console.error('[rcd] pdf', error);
+      BromarHub.showInfo('The PDF couldn\'t be opened. Try again, or contact Bromar for a copy.');
+      return;
+    }
+    if (win) win.location.href = data.signedUrl;
+    else window.location.href = data.signedUrl;
+  }
+
+  // ── ROUTING (#report=<id>) ──
+  function route() {
+    const m = window.location.hash.match(/report=([0-9a-f-]{36})/i);
+    if (m) openDetail(m[1]);
+    else {
+      CURRENT = null;
+      $('detailView').hidden = true;
+      $('listView').hidden = false;
+    }
+  }
+
+  // ── INIT ──
+  document.addEventListener('DOMContentLoaded', async () => {
+    const who = await guard();
+    if (!who) return;
+    document.documentElement.classList.remove('guarding');
+
+    if (!who.allowed) {
+      $('listView').innerHTML = '<div class="empty-state">Your account doesn\'t include RCD testing records. Contact Bromar to add them.</div>';
+      return;
+    }
+
+    $('search').addEventListener('input', renderList);
+    $('reportList').addEventListener('click', e => {
+      const row = e.target.closest('.report-row');
+      if (row) window.location.hash = 'report=' + row.dataset.id;
+    });
+    $('backBtn').addEventListener('click', () => {
+      history.pushState(null, '', window.location.pathname);
+      route();
+    });
+    window.addEventListener('hashchange', route);
+
+    await loadList();
+    route();
+  });
+})();
+</script>
+</body>
+</html>
