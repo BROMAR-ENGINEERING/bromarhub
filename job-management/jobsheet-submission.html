@@ -1,4 +1,4 @@
-<!-- job-management/jobsheet-submission.html — V1.72 — 2026-10-12 — Bromar Hub -->
+<!-- job-management/jobsheet-submission.html — V1.73 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -319,30 +319,6 @@
           <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px;">Marking a job as completed will close it from future job sheets.</div>
         </div>
 
-        <!-- COES -->
-        <div class="section-label">Certificate of Electrical Safety (COES)</div>
-        <div style="background:var(--bg-main); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-bottom:1.5rem;">
-          <label style="font-size:0.9rem; font-weight:600; margin-bottom:0.75rem; display:block;">Has a COES been completed for these works? <span class="required">*</span></label>
-          <div class="job-number-toggle" style="margin-bottom:0;">
-            <div class="radio-option">
-              <input type="radio" id="coes_yes" name="coes_status" value="yes"/>
-              <label for="coes_yes">✅ Yes</label>
-            </div>
-            <div class="radio-option">
-              <input type="radio" id="coes_na" name="coes_status" value="na"/>
-              <label for="coes_na">➖ N/A</label>
-            </div>
-            <div class="radio-option">
-              <input type="radio" id="coes_already" name="coes_status" value="already"/>
-              <label for="coes_already">📁 Already Completed</label>
-            </div>
-          </div>
-          <div id="coesCertNumberWrap" style="display:none; margin-top:12px;">
-            <label for="coes_cert_number" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">Certificate Number <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
-            <input type="text" id="coes_cert_number" placeholder="e.g. COES-123456" style="width:100%;"/>
-          </div>
-        </div>
-
       </div><!-- /postJobSections -->
 
       <!-- SUBMIT -->
@@ -403,7 +379,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.72</div>
+<div class="revision-number">V1.73</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -677,13 +653,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('addTaskBtn').addEventListener('click',     addTask);
   document.getElementById('addLabourBtn').addEventListener('click',   addLabour);
 
-  // COES cert-number reveal
-  document.querySelectorAll('input[name="coes_status"]').forEach(r => {
-    r.addEventListener('change', () => {
-      const wrap = document.getElementById('coesCertNumberWrap');
-      wrap.style.display = document.getElementById('coes_yes').checked ? 'block' : 'none';
-    });
-  });
   document.getElementById('addMaterialBtn').addEventListener('click', addMaterial);
   document.getElementById('addNoteBtn').addEventListener('click',     addNote);
 
@@ -790,8 +759,6 @@ function collectDraftData() {
     signoffMethod: document.querySelector('input[name="signoff_method"]:checked')?.value,
     signoffEmail: document.getElementById('signoff_email').value,
     jobCompleted: document.querySelector('input[name="job_completed"]:checked')?.value,
-    coesStatus: document.querySelector('input[name="coes_status"]:checked')?.value,
-    coesCertNumber: document.getElementById('coes_cert_number')?.value || '',
     customFields: collectCustomFieldValues()
   };
 }
@@ -919,15 +886,6 @@ async function resumeDraft() {
   if (d.jobCompleted) {
     const radio = document.getElementById(`job_complete_${d.jobCompleted}`);
     if (radio) radio.checked = true;
-  }
-
-  // Restore COES
-  if (d.coesStatus) {
-    const r = document.getElementById(`coes_${d.coesStatus}`);
-    if (r) { r.checked = true; r.dispatchEvent(new Event('change', {bubbles:true})); }
-    if (d.coesStatus === 'yes' && d.coesCertNumber) {
-      const cn = document.getElementById('coes_cert_number'); if (cn) cn.value = d.coesCertNumber;
-    }
   }
 
   // Restore custom fields: queue values, then load the field set for this job
@@ -2198,11 +2156,6 @@ async function handleFormSubmit(e){
     if (!completionAnswer) { fail('Please answer whether this job is completed — see the Job Completion section at the bottom', document.getElementById('job_complete_no')); return; }
     const jobIsCompleted = completionAnswer.value === 'yes';
 
-    const coesAnswer = document.querySelector('input[name="coes_status"]:checked');
-    if (!coesAnswer) { fail('Please answer the COES question at the bottom of the form', document.getElementById('coes_yes')); return; }
-    const coesStatus = coesAnswer.value;
-    const coesCertNumber = coesStatus === 'yes' ? (document.getElementById('coes_cert_number').value.trim() || null) : null;
-
     // Validate required custom fields
     const cfCheck = validateCustomFields();
     if (!cfCheck.ok) { fail(`${cfCheck.label} is required`, cfCheck.el); return; }
@@ -2237,8 +2190,6 @@ async function handleFormSubmit(e){
     );
     if (!multiDaySelectedSheets.includes(jobSheetNumber)) multiDaySelectedSheets.unshift(jobSheetNumber);
     if(materials.length && !isAmending)await window.sb.from('job_sheets').update({materials}).eq('job_sheet_number',jobSheetNumber);
-    // Store COES status + cert number on the sheet
-    await window.sb.from('job_sheets').update({ coes_status: coesStatus, coes_cert_number: coesCertNumber }).eq('job_sheet_number', jobSheetNumber);
     // Store job-type custom field snapshot (always written, even if empty, so amend overwrites correctly)
     { const { error: cfErr } = await window.sb.from('job_sheets').update({ custom_fields: customFieldValues }).eq('job_sheet_number', jobSheetNumber).select();
       if (cfErr) console.error('[CustomFields] save failed', cfErr); }
@@ -2691,7 +2642,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.72`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.73`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
@@ -2727,7 +2678,11 @@ async function openEmailChooser() {
   BromarHub.hideLoading();
 
   const subject = `Service Report - ${currentJobSheetNumber}`;
-  const body    = `Hi,\n\nPlease find your service report for job ${currentJobNumber}:\n\n${url}\n\nBromar\nPh: 03 9335 5344\nadmin@bromar.com.au`;
+  // Plain-text body for mailto / mobile deep links. Most mail apps auto-linkify the URL
+  // beneath the "Download service report" label into a tappable link.
+  const body    = `Hi,\n\nPlease find your service report for job ${currentJobNumber}.\n\nDownload service report:\n${url}\n\nRegards,\nBromar Electrical Services\nPh: 03 9335 5344\nadmin@bromar.com.au`;
+  // Rich HTML body — used by Copy to clipboard so the pasted email shows a clean "Click here" hyperlink.
+  const bodyHtml = `<p>Hi,</p><p>Please find your service report for job <strong>${esc(currentJobNumber)}</strong>.</p><p><a href="${esc(url)}">Click here to download the service report</a></p><p>Regards,<br>Bromar Electrical Services<br>Ph: 03 9335 5344<br><a href="mailto:admin@bromar.com.au">admin@bromar.com.au</a></p>`;
   const to      = encodeURIComponent(email);
   const su      = encodeURIComponent(subject);
   const bo      = encodeURIComponent(body);
@@ -2783,7 +2738,7 @@ async function openEmailChooser() {
           <span style="font-size:1.2rem;">📋</span>
           <div style="flex:1;">
             <div style="font-weight:600;">Copy to clipboard</div>
-            <div style="font-size:0.72rem; color:var(--text-secondary);">Paste into any email app</div>
+            <div style="font-size:0.72rem; color:var(--text-secondary);">Pastes a clean "Click here" hyperlink into any email app</div>
           </div>
         </button>
       </div>
@@ -2800,7 +2755,15 @@ async function openEmailChooser() {
       const choice = btn.dataset.link;
       if (choice === 'copy') {
         try {
-          await navigator.clipboard.writeText(`To: ${email}\nSubject: ${subject}\n\n${body}`);
+          // Write both plain text and rich HTML so pasting into Gmail/Outlook keeps the "Click here" hyperlink
+          try {
+            const htmlBlob  = new Blob([bodyHtml], { type: 'text/html' });
+            const plainBlob = new Blob([`To: ${email}\nSubject: ${subject}\n\n${body}`], { type: 'text/plain' });
+            await navigator.clipboard.write([new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': plainBlob })]);
+          } catch {
+            // Fallback for older browsers
+            await navigator.clipboard.writeText(`To: ${email}\nSubject: ${subject}\n\n${body}`);
+          }
           BromarHub.showSuccess('Email copied to clipboard');
         } catch { BromarHub.showInfo('Could not copy — select and copy manually'); }
       } else {
