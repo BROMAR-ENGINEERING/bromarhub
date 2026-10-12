@@ -1,4 +1,4 @@
-<!-- job-management/jobsheet-submission.html — V1.75 — 2026-10-12 — Bromar Hub -->
+<!-- job-management/jobsheet-submission.html — V1.76 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.75</div>
+<div class="revision-number">V1.76</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -2248,7 +2248,14 @@ async function handleFormSubmit(e){
         if(!token)throw new Error('Signing token was empty');
         const signUrl=`${window.location.origin}${window.location.pathname.replace(/[^/]*$/,'sign-report.html')}?token=${token}`;
         BromarHub.showLoading('Sending signing link...',clientEmail);
-        const{error:linkErr}=await window.sb.functions.invoke('send-signing-link',{body:{recipientEmail:clientEmail,jobSheetNumber,clientName:selectedJobData?.client_name||'',signUrl,preparedBy:currentUser?.name||''}});
+        const linkErr = await sendSigningLinkEmail({
+          recipientEmail: clientEmail,
+          replyToEmail:   currentUser?.email || '',
+          jobSheetNumber,
+          clientName:     selectedJobData?.client_name || '',
+          signUrl,
+          preparedBy:     currentUser?.name || ''
+        });
         BromarHub.hideLoading();
         if(linkErr)BromarHub.showInfo(`Link generated — but email failed: ${linkErr.message}`);
         else BromarHub.showSuccess(`Signing link sent to ${clientEmail}`);
@@ -2650,7 +2657,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.75`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.76`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
@@ -2671,6 +2678,25 @@ async function sendServiceReportEmail(payload) {
     return null;
   } catch (err) {
     console.error('[submit-jobsheet] fetch failed', err);
+    return { message: err.message || String(err) };
+  }
+}
+
+// ── SEND SIGNING LINK via Netlify function (Resend) ───────────
+async function sendSigningLinkEmail(payload) {
+  try {
+    console.log('[send-signing-link] sending', payload);
+    const res = await fetch('/.netlify/functions/send-signing-link', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+    const result = await res.json().catch(() => ({}));
+    console.log('[send-signing-link] response', res.status, result);
+    if (!res.ok || result.error) return { message: result.error || `HTTP ${res.status}`, details: result.details };
+    return null;
+  } catch (err) {
+    console.error('[send-signing-link] fetch failed', err);
     return { message: err.message || String(err) };
   }
 }
