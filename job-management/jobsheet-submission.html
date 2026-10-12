@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.77 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.79 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -19,6 +19,26 @@
   <!-- Bromar Hub shared styles + JS -->
   <link rel="stylesheet" href="../tools/bromar-hub.css"/>
   <script src="../tools/bromar-hub.js" defer></script>
+<style>
+  /* ── FORM ACCORDION ── */
+  .accordion-section { border:1px solid var(--border); border-radius:12px; margin-bottom:10px; overflow:hidden; background:var(--bg-secondary); }
+  .accordion-head {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px; cursor:pointer; user-select:none;
+    font-size:1.05rem; font-weight:600; color:var(--text-primary);
+    transition:background 0.15s ease;
+  }
+  .accordion-head:hover { background:var(--bg-main); }
+  .accordion-head .acc-title { flex:1; }
+  .accordion-head .acc-req { color:var(--accent); font-weight:700; margin-left:4px; }
+  .accordion-head .acc-chev { color:var(--text-secondary); font-size:0.85rem; transition:transform 0.2s ease; }
+  .accordion-section.open .accordion-head { border-bottom:1px solid var(--border); background:var(--bg-main); }
+  .accordion-section.open .acc-chev { transform:rotate(180deg); }
+  .accordion-body { padding:16px; display:none; }
+  .accordion-section.open .accordion-body { display:block; }
+  /* Hide the original section-label since the accordion head replaces it */
+  .accordion-body > .section-label { display:none; }
+</style>
 </head>
 <body>
 
@@ -379,7 +399,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.77</div>
+<div class="revision-number">V1.79</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1987,7 +2007,87 @@ function formatCustomFieldValue(row) {
 }
 
 // Load job types up-front on page load
-document.addEventListener('DOMContentLoaded', () => { loadJobTypesIntoSelect(); });
+document.addEventListener('DOMContentLoaded', () => { loadJobTypesIntoSelect(); initFormAccordion(); });
+
+// ── FORM ACCORDION ────────────────────────────────────────────
+function initFormAccordion() {
+  const labels = Array.from(document.querySelectorAll('.form-card .section-label'));
+  const sections = [];
+
+  labels.forEach(label => {
+    // Skip labels that are inside hidden containers that aren't themselves accordion-ready
+    // (e.g. the signoff modal's internal section-label — we only accordion ones inside the main form card)
+    if (label.closest('.signoff-modal, .modal-overlay')) return;
+
+    // Pick heading text (first text child or inner text, cleaned)
+    const titleText = (label.textContent || '').replace(/[▼▲]/g, '').replace(/\s*\([^)]*\)\s*$/,'').trim() || 'Section';
+
+    // Collect siblings until next .section-label (within same parent)
+    const parent = label.parentElement;
+    const nodes = [];
+    let n = label.nextSibling;
+    while (n && !(n.nodeType === 1 && n.classList && n.classList.contains('section-label'))) {
+      const next = n.nextSibling;
+      nodes.push(n);
+      n = next;
+    }
+
+    // Build accordion wrapper
+    const wrap = document.createElement('div');
+    wrap.className = 'accordion-section';
+    const head = document.createElement('div');
+    head.className = 'accordion-head';
+    head.innerHTML = `<span class="acc-title">${esc(titleText)}</span><span class="acc-req" style="display:none;">*</span><span class="acc-chev">▼</span>`;
+    wrap.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'accordion-body';
+    wrap.appendChild(body);
+
+    // Move label (hidden by CSS) + its following siblings into the body
+    parent.insertBefore(wrap, label);
+    body.appendChild(label);
+    nodes.forEach(nd => body.appendChild(nd));
+
+    sections.push({ wrap, head, body, titleText });
+  });
+
+  // Click to open / close others
+  sections.forEach(s => {
+    s.head.addEventListener('click', () => {
+      const isOpen = s.wrap.classList.contains('open');
+      sections.forEach(x => x.wrap.classList.remove('open'));
+      if (!isOpen) {
+        s.wrap.classList.add('open');
+        s.wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    });
+  });
+
+  // Open the first section (Basic Information) by default
+  if (sections[0]) sections[0].wrap.classList.add('open');
+
+  // Keep required asterix in sync (initial + on each refresh)
+  const refreshRequired = () => {
+    sections.forEach(s => {
+      const hasRequired = !!s.body.querySelector('[required], .required, [data-cf-required="1"]');
+      s.head.querySelector('.acc-req').style.display = hasRequired ? 'inline' : 'none';
+    });
+  };
+  refreshRequired();
+
+  // Re-run when custom fields or any dynamic rows get inserted
+  const observer = new MutationObserver(() => refreshRequired());
+  sections.forEach(s => observer.observe(s.body, { childList:true, subtree:true, attributes:true, attributeFilter:['required','data-cf-required'] }));
+
+  // Expose helper so submit confirmation can jump to a section
+  window.openAccordionSection = function(name) {
+    const target = sections.find(s => s.titleText.toLowerCase().startsWith((name||'').toLowerCase()));
+    if (!target) return;
+    sections.forEach(x => x.wrap.classList.remove('open'));
+    target.wrap.classList.add('open');
+    target.wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+  };
+}
 
 function addTask() {
   taskCount++;
@@ -2002,7 +2102,9 @@ function addLabour() {
   labourCount++;
   const id=labourCount, div=document.createElement('div');
   div.className='labour-card'; div.dataset.labourId=id;
-  const opts=EMPLOYEES.map(e=>`<option value="${e.full_name}">${e.full_name}</option>`).join('');
+  // Active-only safety filter in case EMPLOYEES ever gets populated with inactive rows
+  const activeEmps = EMPLOYEES.filter(e => e.is_active !== false);
+  const opts = activeEmps.map(e => `<option value="${esc(e.full_name)}">${esc(e.full_name)}</option>`).join('');
   div.innerHTML=`<div class="labour-header"><span class="labour-title">Labour Entry ${id}</span>${id>1?`<button type="button" class="remove-btn" onclick="removeLabour(${id})">Remove</button>`:''}</div>
     <div class="field-group"><label>Employee <span class="required">*</span></label><select class="labour-employee"><option value="">Select employee...</option>${opts}</select></div>
     <div class="hours-inputs">
@@ -2039,7 +2141,7 @@ function addNote() {
     <div class="field-group" style="margin-bottom:0;">
       <label>Notify Staff <span style="font-weight:400; color:var(--text-secondary);">(optional — select multiple)</span></label>
       <div id="note-employees-${id}" style="max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; background:var(--bg-main); padding:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-        ${EMPLOYEES.map(e=>`<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:400; border:1px solid transparent; transition:all 0.15s;" class="note-emp-label"><input type="checkbox" class="note-notify-cb" value="${esc(e.full_name)}" data-email="${esc(e.email||'')}" onchange="highlightNoteEmp(this)" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;"/> ${esc(e.full_name)}</label>`).join('')}
+        ${EMPLOYEES.filter(e => e.is_active !== false).map(e=>`<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:400; border:1px solid transparent; transition:all 0.15s;" class="note-emp-label"><input type="checkbox" class="note-notify-cb" value="${esc(e.full_name)}" data-email="${esc(e.email||'')}" onchange="highlightNoteEmp(this)" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;"/> ${esc(e.full_name)}</label>`).join('')}
       </div>
       <div id="note-selected-${id}" style="margin-top:6px; font-size:0.75rem; color:var(--text-secondary);"></div>
     </div>`;
@@ -2091,11 +2193,98 @@ async function openSignoffModal(jobSheetNumber,jobNumber,clientEmail){
   document.getElementById('signoffModal').classList.add('show');
   setTimeout(()=>{const c=document.getElementById('signatureCanvas');const r=c.getBoundingClientRect();c.width=r.width;c.height=r.height;},50);
 }
-function buildSummaryHTML(jobSheetNumber,jobNumber){
-  const sections={labour:document.getElementById('include_labour').checked,tasks:document.getElementById('include_tasks').checked};
-  let html=`<div class="summary-section"><h3>Job Details</h3><table class="summary-table"><tbody><tr><td><strong>Report #</strong></td><td>${jobSheetNumber}</td></tr><tr><td><strong>Job #</strong></td><td>${jobNumber}</td></tr><tr><td><strong>Date</strong></td><td>${new Date(document.getElementById('sheet_date').value).toLocaleDateString('en-AU')}</td></tr>${selectedJobData?`<tr><td><strong>Client</strong></td><td>${selectedJobData.client_name}</td></tr>`:''}<tr><td><strong>Prepared by</strong></td><td>${currentUser?.name||''}</td></tr></tbody></table></div>`;
-  if(sections.tasks){const tasks=Array.from(document.querySelectorAll('.task-description')).map(t=>t.value.trim()).filter(t=>t);if(tasks.length)html+=`<div class="summary-section"><h3>Work Performed</h3><ol class="summary-list">${tasks.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>`;}
-  if(sections.labour){const labour=Array.from(document.querySelectorAll('[data-labour-id]')).map(c=>({employee:c.querySelector('.labour-employee').value,normal:parseFloat(c.querySelector('.labour-normal').value)||0,ot:parseFloat(c.querySelector('.labour-overtime').value)||0})).filter(l=>l.employee);if(labour.length){const tN=labour.reduce((s,l)=>s+l.normal,0),tO=labour.reduce((s,l)=>s+l.ot,0);html+=`<div class="summary-section"><h3>Labour</h3><table class="summary-table"><thead><tr><th>Employee</th><th>Normal</th><th>OT</th></tr></thead><tbody>${labour.map(l=>`<tr><td>${esc(l.employee)}</td><td>${l.normal}h</td><td>${l.ot}h</td></tr>`).join('')}</tbody><tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${tN}h</strong></td><td><strong>${tO}h</strong></td></tr></tfoot></table></div>`;}}
+function buildSummaryHTML(jobSheetNumber, jobNumber) {
+  const sheetDate = document.getElementById('sheet_date').value;
+  const dateStr   = sheetDate ? new Date(sheetDate + 'T12:00:00').toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '';
+  const sj        = selectedJobData || {};
+
+  // ── Job details ──
+  let html = `
+    <div class="summary-section">
+      <h3>Job Details</h3>
+      <table class="summary-table"><tbody>
+        <tr><td><strong>Report #</strong></td><td>${esc(jobSheetNumber)}</td></tr>
+        <tr><td><strong>Job #</strong></td><td>${esc(jobNumber)}</td></tr>
+        <tr><td><strong>Date</strong></td><td>${esc(dateStr)}</td></tr>
+        ${sj.client_name ? `<tr><td><strong>Client</strong></td><td>${esc(sj.client_name)}</td></tr>` : ''}
+        ${sj.site_name   ? `<tr><td><strong>Site</strong></td><td>${esc(sj.site_name)}</td></tr>`   : ''}
+        ${sj.site_address? `<tr><td><strong>Address</strong></td><td>${esc(sj.site_address)}</td></tr>` : ''}
+        <tr><td><strong>Prepared by</strong></td><td>${esc(currentUser?.name || '')}</td></tr>
+      </tbody></table>
+    </div>`;
+
+  // ── Tasks (always shown) ──
+  const tasks = Array.from(document.querySelectorAll('.task-description'))
+    .map(t => t.value.trim()).filter(Boolean);
+  if (tasks.length) {
+    html += `
+      <div class="summary-section">
+        <h3>Work Performed</h3>
+        <ol class="summary-list">${tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+      </div>`;
+  }
+
+  // ── Job-type custom field details (always shown) ──
+  const cfValues = (typeof collectCustomFieldValues === 'function') ? collectCustomFieldValues() : [];
+  if (cfValues.length) {
+    const rows = cfValues.map(row => `
+      <tr><td><strong>${esc(row.label)}</strong></td><td>${esc(formatCustomFieldValue(row))}</td></tr>
+    `).join('');
+    html += `
+      <div class="summary-section">
+        <h3>Details</h3>
+        <table class="summary-table"><tbody>${rows}</tbody></table>
+      </div>`;
+  }
+
+  // ── Materials (always shown) ──
+  const materials = Array.from(document.querySelectorAll('[data-material-id]')).map(c => ({
+    description: c.querySelector('.material-description')?.value.trim() || '',
+    qty:         c.querySelector('.material-qty')?.value || '',
+    unit:        c.querySelector('.material-unit')?.value || ''
+  })).filter(m => m.description);
+  if (materials.length) {
+    html += `
+      <div class="summary-section">
+        <h3>Materials</h3>
+        <table class="summary-table">
+          <thead><tr><th>Description</th><th>Qty</th><th>Unit</th></tr></thead>
+          <tbody>${materials.map(m => `<tr><td>${esc(m.description)}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── Labour (always shown) ──
+  const labour = Array.from(document.querySelectorAll('[data-labour-id]')).map(c => ({
+    employee: c.querySelector('.labour-employee')?.value || '',
+    normal:   parseFloat(c.querySelector('.labour-normal')?.value) || 0,
+    ot:       parseFloat(c.querySelector('.labour-overtime')?.value) || 0
+  })).filter(l => l.employee);
+  if (labour.length) {
+    const tN = labour.reduce((s,l) => s + l.normal, 0);
+    const tO = labour.reduce((s,l) => s + l.ot, 0);
+    html += `
+      <div class="summary-section">
+        <h3>Labour</h3>
+        <table class="summary-table">
+          <thead><tr><th>Employee</th><th>Normal</th><th>OT</th><th>Total</th></tr></thead>
+          <tbody>${labour.map(l => `<tr><td>${esc(l.employee)}</td><td>${l.normal}h</td><td>${l.ot}h</td><td><strong>${(l.normal + l.ot).toFixed(2)}h</strong></td></tr>`).join('')}</tbody>
+          <tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${tN}h</strong></td><td><strong>${tO}h</strong></td><td><strong>${(tN+tO).toFixed(2)}h</strong></td></tr></tfoot>
+        </table>
+      </div>`;
+  }
+
+  // ── Notes (always shown) ──
+  const notes = Array.from(document.querySelectorAll('.note-content'))
+    .map(n => n.value.trim()).filter(Boolean);
+  if (notes.length) {
+    html += `
+      <div class="summary-section">
+        <h3>Notes</h3>
+        <ul class="summary-list">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+      </div>`;
+  }
+
   return html;
 }
 async function handleSignoffConfirm(){
@@ -2135,13 +2324,63 @@ async function handleSignoffConfirm(){
 }
 
 // ── FORM SUBMISSION ───────────────────────────────────────────
+let _submitConfirmed = false;
+
+function openSubmitConfirmModal() {
+  // Peek at the next job sheet number for the preview (best-effort — the real number is assigned on save)
+  const previewNumber = currentJobSheetNumber || '(will be assigned on save)';
+  const jobNum = selectedJobData?.job_number || '';
+
+  // Build summary HTML (reuses the Sign Now summary builder)
+  const summaryHtml = (typeof buildSummaryHTML === 'function')
+    ? buildSummaryHTML(previewNumber, jobNum)
+    : '<p>Preview unavailable.</p>';
+
+  // Build the modal shell
+  const overlay = document.createElement('div');
+  overlay.id = 'submitConfirmOverlay';
+  overlay.className = 'signoff-modal show';
+  overlay.innerHTML = `
+    <div class="signoff-modal-content">
+      <div class="signoff-modal-header">
+        <h2>Review Job Sheet</h2>
+        <button type="button" class="signoff-close" id="submitConfirmClose">&times;</button>
+      </div>
+      <div class="signoff-modal-body" id="submitConfirmBody">${summaryHtml}</div>
+      <div class="signoff-modal-footer">
+        <div class="signoff-instruction">Please review the summary above. Click <strong>Confirm &amp; Save</strong> to submit, or go back to make changes.</div>
+        <div class="signoff-modal-actions">
+          <button type="button" class="btn-secondary" id="submitConfirmCancel">Back to Edit</button>
+          <button type="button" class="submit-btn"    id="submitConfirmGo">Confirm &amp; Save</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  document.getElementById('submitConfirmClose').addEventListener('click', close);
+  document.getElementById('submitConfirmCancel').addEventListener('click', close);
+  document.getElementById('submitConfirmGo').addEventListener('click', () => {
+    close();
+    _submitConfirmed = true;
+    document.getElementById('jobSheetForm').requestSubmit();
+  });
+}
+
 async function handleFormSubmit(e){
   e.preventDefault();
-  // Guard against duplicate submissions
   if (submissionComplete) {
     BromarHub.showInfo('This sheet has already been saved. Use "Amend This Sheet" to make changes.');
     return;
   }
+
+  // Show confirmation summary modal first (unless already confirmed from the modal itself)
+  if (!_submitConfirmed) {
+    openSubmitConfirmModal();
+    return;
+  }
+  _submitConfirmed = false; // reset for next time
+
   const submitBtn=document.getElementById('submitBtn');
   submitBtn.disabled=true;
   BromarHub.showLoading(isAmending ? 'Updating job sheet...' : 'Saving job sheet...','Processing your data');
@@ -2671,7 +2910,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.77`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.79`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
