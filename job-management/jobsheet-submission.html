@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.79 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.80 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -399,7 +399,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.79</div>
+<div class="revision-number">V1.80</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -716,14 +716,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 function esc(s) { return BromarHub.escapeHtml(s); }
 
 function setPostJobSectionsVisible(visible) {
-  document.getElementById('postJobSections').style.display = visible ? 'block' : 'none';
+  // Toggle each accordion section AFTER Job Number (Basic Information, Work Performed, etc.)
+  if (_accordionSections.length) {
+    _accordionSections.forEach(s => {
+      if (/^Job Number/i.test(s.titleText)) return; // Job Number always shown
+      s.wrap.style.display = visible ? '' : 'none';
+    });
+  }
   document.querySelector('.form-divider').style.display    = visible ? 'block' : 'none';
   document.querySelector('.submit-row').style.display      = visible ? 'flex'  : 'none';
   document.getElementById('awaitingJobMessage').style.display = visible ? 'none' : 'block';
   document.getElementById('saveDraftBtn').style.display    = visible ? 'inline-flex' : 'none';
-  // Collapse or expand the Job Number section
+  // Collapse or expand the Job Number card view
   if (visible && selectedJobData) collapseJobNumberSection(); else expandJobNumberSection();
   if (!visible) hideCustomFields();
+  // When a job is first picked, auto-open Basic Information
+  if (visible) openBasicInformationSection();
   updateJobContextBar();
 }
 
@@ -2010,20 +2018,32 @@ function formatCustomFieldValue(row) {
 document.addEventListener('DOMContentLoaded', () => { loadJobTypesIntoSelect(); initFormAccordion(); });
 
 // ── FORM ACCORDION ────────────────────────────────────────────
+let _accordionSections = [];
+
 function initFormAccordion() {
-  const labels = Array.from(document.querySelectorAll('.form-card .section-label'));
+  const formCard = document.querySelector('.form-card');
+  if (!formCard) return;
+
+  // Step 1 — flatten #postJobSections so its children live directly inside the form card.
+  // This makes every .section-label a sibling at the same level and lets the walker treat
+  // "next sibling .section-label" as the correct section boundary.
+  const postJob = document.getElementById('postJobSections');
+  if (postJob && postJob.parentNode) {
+    const parent = postJob.parentNode;
+    while (postJob.firstChild) parent.insertBefore(postJob.firstChild, postJob);
+    // Keep the empty wrapper in place so JS that toggles its display still works harmlessly
+    postJob.style.display = 'contents';
+  }
+
+  // Step 2 — collect every .section-label inside the form card (now all siblings at the root)
+  // and wrap each into an accordion-section.
+  const labels = Array.from(formCard.querySelectorAll(':scope > .section-label'));
   const sections = [];
 
-  labels.forEach(label => {
-    // Skip labels that are inside hidden containers that aren't themselves accordion-ready
-    // (e.g. the signoff modal's internal section-label — we only accordion ones inside the main form card)
-    if (label.closest('.signoff-modal, .modal-overlay')) return;
-
-    // Pick heading text (first text child or inner text, cleaned)
+  labels.forEach((label, idx) => {
     const titleText = (label.textContent || '').replace(/[▼▲]/g, '').replace(/\s*\([^)]*\)\s*$/,'').trim() || 'Section';
 
-    // Collect siblings until next .section-label (within same parent)
-    const parent = label.parentElement;
+    // Collect siblings until the next .section-label
     const nodes = [];
     let n = label.nextSibling;
     while (n && !(n.nodeType === 1 && n.classList && n.classList.contains('section-label'))) {
@@ -2032,9 +2052,10 @@ function initFormAccordion() {
       n = next;
     }
 
-    // Build accordion wrapper
+    // Build wrapper
     const wrap = document.createElement('div');
     wrap.className = 'accordion-section';
+    wrap.dataset.sectionTitle = titleText;
     const head = document.createElement('div');
     head.className = 'accordion-head';
     head.innerHTML = `<span class="acc-title">${esc(titleText)}</span><span class="acc-req" style="display:none;">*</span><span class="acc-chev">▼</span>`;
@@ -2043,15 +2064,23 @@ function initFormAccordion() {
     body.className = 'accordion-body';
     wrap.appendChild(body);
 
-    // Move label (hidden by CSS) + its following siblings into the body
-    parent.insertBefore(wrap, label);
+    label.parentNode.insertBefore(wrap, label);
     body.appendChild(label);
     nodes.forEach(nd => body.appendChild(nd));
 
     sections.push({ wrap, head, body, titleText });
   });
 
-  // Click to open / close others
+  // Step 3 — reorder: Job Number first, then Basic Information, then everything else as-is.
+  const jobSec   = sections.find(s => /^Job Number/i.test(s.titleText));
+  const basicSec = sections.find(s => /^Basic Information/i.test(s.titleText));
+  if (jobSec && basicSec && jobSec.wrap.parentNode === basicSec.wrap.parentNode) {
+    basicSec.wrap.parentNode.insertBefore(jobSec.wrap, basicSec.wrap);
+  }
+  // Reorder the sections[] array to match DOM order so first-open logic picks Job Number
+  sections.sort((a, b) => (a.wrap.compareDocumentPosition(b.wrap) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+
+  // Click to open / close others (single-open-at-a-time)
   sections.forEach(s => {
     s.head.addEventListener('click', () => {
       const isOpen = s.wrap.classList.contains('open');
@@ -2063,23 +2092,25 @@ function initFormAccordion() {
     });
   });
 
-  // Open the first section (Basic Information) by default
+  // Open Job Number first by default
   if (sections[0]) sections[0].wrap.classList.add('open');
 
-  // Keep required asterix in sync (initial + on each refresh)
+  // Required asterix refresh — walk entire body subtree, including hidden containers
   const refreshRequired = () => {
     sections.forEach(s => {
-      const hasRequired = !!s.body.querySelector('[required], .required, [data-cf-required="1"]');
+      // Only count fields that are actually visible (so hidden #customFieldsSection stays silent until shown)
+      const hasRequired = !!s.body.querySelector('[required]:not([disabled]), .required, [data-cf-required="1"]');
       s.head.querySelector('.acc-req').style.display = hasRequired ? 'inline' : 'none';
     });
   };
   refreshRequired();
 
-  // Re-run when custom fields or any dynamic rows get inserted
-  const observer = new MutationObserver(() => refreshRequired());
-  sections.forEach(s => observer.observe(s.body, { childList:true, subtree:true, attributes:true, attributeFilter:['required','data-cf-required'] }));
+  const observer = new MutationObserver(refreshRequired);
+  sections.forEach(s => observer.observe(s.body, { childList:true, subtree:true, attributes:true, attributeFilter:['required','data-cf-required','style','disabled'] }));
 
-  // Expose helper so submit confirmation can jump to a section
+  _accordionSections = sections;
+
+  // Helper to jump to a section by name
   window.openAccordionSection = function(name) {
     const target = sections.find(s => s.titleText.toLowerCase().startsWith((name||'').toLowerCase()));
     if (!target) return;
@@ -2087,6 +2118,16 @@ function initFormAccordion() {
     target.wrap.classList.add('open');
     target.wrap.scrollIntoView({ behavior:'smooth', block:'start' });
   };
+}
+
+// Auto-open Basic Information when a job is selected / created
+function openBasicInformationSection() {
+  if (!_accordionSections.length) return;
+  const basic = _accordionSections.find(s => /^Basic Information/i.test(s.titleText));
+  if (!basic) return;
+  _accordionSections.forEach(x => x.wrap.classList.remove('open'));
+  basic.wrap.classList.add('open');
+  basic.wrap.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function addTask() {
@@ -2910,7 +2951,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.79`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.80`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
