@@ -1,4 +1,4 @@
-<!-- job-management/jobsheet-submission.html — V1.74 — 2026-10-12 — Bromar Hub -->
+<!-- job-management/jobsheet-submission.html — V1.75 — 2026-10-12 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -379,7 +379,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.74</div>
+<div class="revision-number">V1.75</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -1573,12 +1573,20 @@ async function loadCustomFieldsForJobType(prefix, name) {
   if (!jt) { hideCustomFields(); return; }
 
   try {
-    const { data: fields, error } = await window.sb.from('job_type_fields')
-      .select('id, job_type_id, field_key, label, field_type, options, unit, placeholder, help_text, is_required, sort_order, active')
+    // Fetch with * so column name variations (active/is_active, is_required/required) don't 400
+    let { data: fields, error } = await window.sb.from('job_type_fields')
+      .select('*')
       .eq('job_type_id', jt.id)
-      .eq('active', true)
       .order('sort_order', { ascending: true });
     if (error) throw error;
+    // Filter active locally — accept whichever flag column is present
+    fields = (fields || []).filter(f => {
+      if ('active' in f) return f.active !== false;
+      if ('is_active' in f) return f.is_active !== false;
+      return true;
+    });
+    // Normalise is_required if the column is named differently
+    fields.forEach(f => { if (f.is_required == null && 'required' in f) f.is_required = f.required; });
 
     CURRENT_JOB_TYPE_ID = jt.id;
     CURRENT_JOB_TYPE_FIELDS = fields || [];
@@ -2642,7 +2650,7 @@ async function generatePDF(sheetNumbers){
     pdf.text('2/98-108 Western Ave, Westmeadows VIC 3049  |  03 9335 5344  |  admin@bromar.com.au',pw/2,ph-9,{align:'center'});
     pdf.text(`Page ${i} of ${pageCount}`,pw-m,ph-9,{align:'right'});
     pdf.setFontSize(6.5); pdf.setTextColor(150,150,150);
-    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.74`,pw/2,ph-5,{align:'center'});
+    pdf.text(`Report ${reportNum}  |  Generated ${new Date().toLocaleDateString('en-AU')}  |  V1.75`,pw/2,ph-5,{align:'center'});
   }
   return pdf;
 }
