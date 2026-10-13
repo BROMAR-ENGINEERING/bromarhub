@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emergency Lighting Remedial Report — Bromar Hub</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/tools/auth.js"></script>
+  <link rel="stylesheet" href="/tools/bromar-hub.css"/>
+  <script src="/tools/bromar-hub.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="/tools/bromar-report-kit.js" defer></script>
+
+  <style>
+    .page-title-wrapper { margin: 84px auto 0.5rem; }
+    .page-wrapper { margin-top: 0; }
+    @media (max-width: 520px) { .page-title-wrapper { margin-top: 74px; } }
+
+    .site-line { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; }
+    .site-line span { color: var(--accent); }
+
+    .rect-item { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem; margin-bottom: 0.6rem; }
+    .rect-item.added { border-left: 3px solid var(--accent); }
+    .rect-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .rect-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); }
+    .rect-loc { font-weight: 600; font-size: 0.9rem; }
+    .rect-fault { font-size: 0.8rem; color: var(--error); margin-bottom: 0.6rem; }
+    .rect-grid { display: grid; grid-template-columns: 1fr 140px 150px; gap: 0.5rem; }
+    .rect-grid .fg label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary); }
+    .rect-grid input, .rect-grid select { padding: 0.5rem 0.6rem; font-size: 0.88rem; }
+    @media (max-width: 620px) { .rect-grid { grid-template-columns: 1fr; } }
+    .retest-pf { display: flex; gap: 0.4rem; }
+    .retest-pf button { flex: 1; padding: 0.5rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-main); cursor: pointer; font-weight: 700; font-size: 0.76rem; color: var(--text-secondary); font-family: 'Outfit', sans-serif; }
+    .retest-pf button.pass.sel { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .retest-pf button.fail.sel { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+    .rm-item { background: none; border: none; color: var(--error); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+
+    .card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+    .card-footer-title { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.8px; color: var(--text-primary); margin-bottom: 10px; }
+    .card-footer-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--accent); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+    .card-footer-version { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-controls">
+      <a href="/clients/tyrecycle/tyrecyclehome.html" class="control-btn" aria-label="Home">
+        <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+      </a>
+      <button id="themeToggle" class="control-btn" aria-label="Toggle theme">
+        <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+    <div class="header-content">
+      <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image light-logo" onerror="this.onerror=null;this.style.display='none'"/>
+      <img src="/assets/logo/bromar-logo-colour.png" alt="Bromar" class="logo-image dark-logo" onerror="this.onerror=null;this.style.display='none'"/>
+    </div>
+  </div>
+
+  <div class="page-title-wrapper">
+    <h1>Emergency Lighting Remedial Report</h1>
+    <p class="subtitle">Record rectification of items identified in a discharge test</p>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="form-card">
+      <div id="successBanner" class="success-banner"><span id="successText"></span></div>
+      <div id="infoBanner" class="info-banner"><span id="infoBannerText"></span></div>
+
+      <div class="section-label">Source Test</div>
+      <div class="site-line">Site: <span>Tyrecycle — Somerton</span></div>
+      <div class="field-group full">
+        <label for="testSelect">Select the test with failed items<span class="required">*</span></label>
+        <select id="testSelect"><option value="">Loading tests...</option></select>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="section-label">Rectification Details</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="rect_date">Date Rectified<span class="required">*</span></label>
+          <input type="date" id="rect_date"/>
+        </div>
+        <div class="field-group full">
+          <label for="rectified_by">Rectified By<span class="required">*</span></label>
+          <select id="rectified_by"><option value="">Select your name...</option></select>
+        </div>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="section-label">Items</div>
+      <div id="itemList"><p style="color:var(--text-secondary);">Select a test above to load its failed items.</p></div>
+      <button type="button" class="add-btn" id="addItem">+ Add Item Manually</button>
+
+      <div class="section-label">Summary</div>
+      <textarea id="summary" placeholder="Overall summary of remedial works carried out..." style="min-height:80px;"></textarea>
+
+      <div class="section-label">Sign-off</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="signoff_name">Signed Off By</label>
+          <input type="text" id="signoff_name" placeholder="Name"/>
+        </div>
+        <div class="field-group">
+          <label for="signoff_date">Sign-off Date</label>
+          <input type="date" id="signoff_date"/>
+        </div>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="submit-row">
+        <span class="submit-note">Rectifications are saved for audit and exported to PDF.</span>
+        <button type="button" class="btn-secondary" id="pdfBtn">⬇ PDF Report</button>
+        <button type="button" class="submit-btn" id="saveBtn">Save Rectification</button>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-footer-title">BROMAR HUB — EMERGENCY LIGHTING REMEDIAL</div>
+        <a class="card-footer-link" href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" target="_blank" rel="noopener">🐞 Report a bug or suggest an improvement</a>
+        <div class="card-footer-version">Version V1.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null, EMPLOYEES = [];
+    let items = [];          // working list of rectification items
+    let sourceTest = null;   // selected test row
+
+    const TESTS = 'emergency_lighting_tests';
+    const RECTS = 'emergency_lighting_rectifications';
+    const esc = s => BromarHub.escapeHtml(s || '');
+
+    function renderItems() {
+      if (!items.length) {
+        document.getElementById('itemList').innerHTML = '<p style="color:var(--text-secondary);">No failed items in this test. Add any remedial items manually below.</p>';
+        return;
+      }
+      document.getElementById('itemList').innerHTML = items.map((it, i) => `
+        <div class="rect-item ${it.added ? 'added' : ''}" data-i="${i}">
+          <div class="rect-head">
+            <div>
+              <span class="rect-ref">${esc(it.ref) || 'New item'}</span>
+              <span class="rect-loc">${esc(it.location)}</span>
+            </div>
+            <button type="button" class="rm-item" data-rm="${i}">Remove</button>
+          </div>
+          ${it.original_fault ? `<div class="rect-fault">Original fault: ${esc(it.original_fault)}</div>` : ''}
+          ${it.added ? `<div class="rect-grid" style="grid-template-columns:1fr 1fr;margin-bottom:0.5rem;">
+            <div class="fg"><label>Asset No.</label><input type="text" data-f="ref" value="${esc(it.ref)}"/></div>
+            <div class="fg"><label>Location</label><input type="text" data-f="location" value="${esc(it.location)}"/></div>
+          </div>` : ''}
+          <div class="rect-grid">
+            <div class="fg"><label>Action Taken</label><input type="text" data-f="action" value="${esc(it.action)}" placeholder="e.g. replaced battery pack"/></div>
+            <div class="fg"><label>Retest Date</label><input type="date" data-f="retest_date" value="${esc(it.retest_date)}"/></div>
+            <div class="fg"><label>Retest Result</label>
+              <div class="retest-pf">
+                <button type="button" class="pass ${it.retest_result==='pass'?'sel':''}" data-pf="pass">PASS</button>
+                <button type="button" class="fail ${it.retest_result==='fail'?'sel':''}" data-pf="fail">FAIL</button>
+              </div>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('itemList').addEventListener('click', e => {
+      const rm = e.target.closest('[data-rm]');
+      if (rm) { items.splice(+rm.dataset.rm, 1); renderItems(); return; }
+      const pf = e.target.closest('[data-pf]');
+      if (pf) { const i = +pf.closest('.rect-item').dataset.i; items[i].retest_result = items[i].retest_result === pf.dataset.pf ? '' : pf.dataset.pf; renderItems(); }
+    });
+    document.getElementById('itemList').addEventListener('input', e => {
+      const f = e.target.dataset.f; if (!f) return;
+      const i = +e.target.closest('.rect-item').dataset.i;
+      items[i][f] = e.target.value;
+    });
+
+    document.getElementById('addItem').addEventListener('click', () => {
+      items.push({ ref: '', location: '', original_fault: '', action: '', retest_result: '', retest_date: document.getElementById('rect_date').value, added: true });
+      renderItems();
+    });
+
+    async function loadTests() {
+      const sel = document.getElementById('testSelect');
+      const { data, error } = await window.sb.from(TESTS).select('id, test_date, tester, failed, frequency').order('test_date', { ascending: false });
+      if (error) { sel.innerHTML = '<option value="">Error loading tests</option>'; console.error(error); return; }
+      const withFails = (data || []).filter(t => (t.failed || 0) > 0);
+      if (!withFails.length) { sel.innerHTML = '<option value="">No tests with failed items found</option>'; return; }
+      sel.innerHTML = '<option value="">Select a test...</option>' + withFails.map(t =>
+        `<option value="${t.id}">${window.BromarReportKit.formatDate(new Date(t.test_date + 'T00:00:00'))} — ${esc(t.tester)} (${t.failed} failed)</option>`).join('');
+    }
+
+    document.getElementById('testSelect').addEventListener('change', async function () {
+      items = []; sourceTest = null;
+      if (!this.value) { renderItems(); return; }
+      BromarHub.showLoading('Loading test...', '');
+      const { data, error } = await window.sb.from(TESTS).select('*').eq('id', this.value).single();
+      BromarHub.hideLoading();
+      if (error) { BromarHub.showInfo('Could not load test: ' + error.message); return; }
+      sourceTest = data;
+      const fails = (data.results || []).filter(r => r.result === 'fail');
+      items = fails.map(r => ({
+        ref: r.ref, location: r.location || '', type: r.type || '', board: r.db || '', circuit: r.circuit || '',
+        original_fault: [r.duration_min ? ('extinguished at ' + r.duration_min + ' min') : '', r.fault_note, r.notes].filter(Boolean).join(' - '),
+        action: '', retest_result: '', retest_date: document.getElementById('rect_date').value, added: false
+      }));
+      renderItems();
+    });
+
+    function gather() {
+      const by = currentUser ? currentUser.name : document.getElementById('rectified_by').value;
+      const rectDate = document.getElementById('rect_date').value;
+      const errs = [];
+      if (!sourceTest && !items.length) errs.push('Select a test or add items');
+      if (!rectDate) errs.push('Date rectified');
+      if (!by) errs.push('Rectified by');
+      return { by, rectDate, errs };
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      if (!currentUser) { const s = document.getElementById('rectified_by'); if (s.value) currentUser = { name: s.value, email: s.selectedOptions[0].dataset.email || '' }; }
+      const { by, rectDate, errs } = gather();
+      if (errs.length) return BromarHub.showInfo('Required: ' + errs.join(', '));
+      const resolved = items.filter(i => i.retest_result === 'pass').length;
+      BromarHub.showLoading('Saving rectification...', '');
+      const { error } = await window.sb.from(RECTS).insert([{
+        test_id: sourceTest ? sourceTest.id : null,
+        rectified_date: rectDate, rectified_by: by, site: 'Tyrecycle — Somerton',
+        summary: document.getElementById('summary').value.trim() || null,
+        signoff_name: document.getElementById('signoff_name').value.trim() || null,
+        signoff_date: document.getElementById('signoff_date').value || null,
+        total: items.length, resolved,
+        items: items.map(({ added, ...rest }) => rest)
+      }]);
+      BromarHub.hideLoading();
+      if (error) { console.error(error); return BromarHub.showInfo('Save failed: ' + error.message); }
+      BromarHub.showSuccess(`Rectification saved — ${resolved}/${items.length} items resolved.`);
+    });
+
+    /* ── PDF (Style 1, matches Site Equipment Test Report) ── */
+    document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+    const K = () => window.BromarReportKit;
+    function setF(doc, s, st, rgb) { const k = K(); doc.setFontSize(s); doc.setFont('helvetica', st || 'normal'); const c = rgb || k.PALETTE.charcoal.rgb; doc.setTextColor(c[0], c[1], c[2]); }
+    function fmtNice(v) { if (!v) return '-'; const d = new Date(v + 'T00:00:00'); return isNaN(d) ? v : K().formatDate(d); }
+
+    function headerSync(doc, rec) {
+      const k = K(), L = k.LAYOUT, P = k.PALETTE, F = k.FONT, C = k.COMPANY, M = L.margin;
+      doc.setFillColor(P.accent.rgb[0], P.accent.rgb[1], P.accent.rgb[2]); doc.rect(0, 0, L.pageW, L.topBarH, 'F');
+      const rx = L.pageW - M; let y = L.topBarH + 8;
+      setF(doc, F.heading, 'bold', P.navy.rgb); doc.text(C.name, rx, y, { align: 'right' });
+      setF(doc, F.small, 'normal', P.charcoal.rgb);
+      y += 4.6; doc.text(C.address, rx, y, { align: 'right' });
+      y += 4.2; doc.text('PH: ' + C.phone + '     REC: ' + C.rec, rx, y, { align: 'right' });
+      y += 4.2; doc.text('WEB: ' + C.web, rx, y, { align: 'right' });
+      doc.setDrawColor(P.line.rgb[0], P.line.rgb[1], P.line.rgb[2]); doc.setLineWidth(0.3);
+      doc.line(M, L.headerH, L.pageW - M, L.headerH);
+      if (rec && rec.dataURL) { const dim = k.fitBox(rec.w, rec.h, L.logoBox.w, L.logoBox.h);
+        doc.addImage(rec.dataURL, /^data:image\/png/i.test(rec.dataURL) ? 'PNG' : 'JPEG', M, L.topBarH + 5, dim.w, dim.h, undefined, 'FAST'); }
+      else { setF(doc, F.title, 'bold', P.accent.rgb); doc.text('BROMAR', M, L.topBarH + 12); }
+    }
+    function reportTitle(doc, y, text) { const k = K(), L = k.LAYOUT, P = k.PALETTE;
+      setF(doc, 15, 'bold', P.navy.rgb); doc.text(k.normalize(text), L.pageW / 2, y, { align: 'center' });
+      y += 3.5; doc.setDrawColor(P.accent.rgb[0], P.accent.rgb[1], P.accent.rgb[2]); doc.setLineWidth(0.7);
+      doc.line(L.margin, y, L.pageW - L.margin, y); return y + 6; }
+    function secHead(doc, y, text) { const k = K(); setF(doc, 11.5, 'bold', k.PALETTE.navy.rgb); doc.text(k.normalize(text), k.LAYOUT.margin, y); return y + 5; }
+    function metaGrid(doc, y, rows) {
+      const k = K(), L = k.LAYOUT, P = k.PALETTE; const colX = [L.margin, L.pageW / 2 + 2]; const colW = L.contentW / 2 - 6;
+      rows.forEach(pair => { let lc = 1;
+        pair.forEach((cell, i) => { if (!cell) return;
+          setF(doc, 6, 'bold', P.muted.rgb); doc.text(k.normalize(cell[0]).toUpperCase(), colX[i], y);
+          setF(doc, 8.4, 'bold', P.black.rgb); const lines = doc.splitTextToSize(k.normalize(cell[1] || '-'), colW);
+          doc.text(lines, colX[i], y + 4); lc = Math.max(lc, lines.length); });
+        y += 4 + lc * 3.5 + 3; });
+      return y;
+    }
+
+    async function generatePDF() {
+      const k = K();
+      if (!k || !window.jspdf) return BromarHub.showInfo('Report kit not loaded (check /tools/bromar-report-kit.js)');
+      if (!currentUser) { const s = document.getElementById('rectified_by'); if (s.value) currentUser = { name: s.value }; }
+      BromarHub.showLoading('Building PDF...', 'Remedial report');
+      try {
+        k.configure({ logoColour: '/assets/logo/bromar-logo-colour.png', logoReverse: '/assets/logo/bromar-logo-colour.png' });
+        const logoRec = await k.loadLogoAsset('/assets/logo/bromar-logo-colour.png').catch(() => null);
+        const doc = k.createDoc(); const L = k.LAYOUT;
+        const stamped = new Set();
+        const stamp = () => { const p = doc.internal.getCurrentPageInfo().pageNumber; if (!stamped.has(p)) { headerSync(doc, logoRec); stamped.add(p); } };
+        stamp();
+
+        const rectDate = document.getElementById('rect_date').value;
+        const by = currentUser ? currentUser.name : '-';
+        const certNo = 'BRO-ER-' + (rectDate ? rectDate.replace(/-/g, '') : 'DRAFT');
+        const resolved = items.filter(i => i.retest_result === 'pass').length;
+        const outstanding = items.length - resolved;
+
+        let y = reportTitle(doc, L.headerH + 10, 'Emergency Lighting Remedial Report');
+        y = metaGrid(doc, y, [
+          [['Customer', 'Tyrecycle'], ['Site Name', 'Somerton']],
+          [['Site Address', '30-56 Encore Ave, Somerton'], ['Contact', 'Michael McNiece']],
+          [['Date Rectified', fmtNice(rectDate)], ['Rectified By', by]],
+          [['Cert No.', certNo], ['Source Test', sourceTest ? fmtNice(sourceTest.test_date) + ' (' + k.normalize(sourceTest.tester || '') + ')' : 'Manual entry']]
+        ]);
+
+        y = secHead(doc, y + 2, 'Summary');
+        const summary = document.getElementById('summary').value.trim() ||
+          `${items.length} item(s) identified for remedial works; ${resolved} confirmed resolved on retest${outstanding ? ', ' + outstanding + ' still outstanding' : ''}.`;
+        y = k.para(doc, L.margin, y, summary, { size: 8.5, lineHeight: 3.7 }) + 3;
+
+        y = secHead(doc, y + 1, 'Rectified Items');
+        doc.autoTable({
+          theme: 'grid',
+          head: [['Asset', 'Location', 'Original Fault', 'Action Taken', 'Retest', 'Date', 'By']],
+          body: items.map(it => [it.ref || '-', it.location || '-', it.original_fault || '-', it.action || '-',
+            it.retest_result === 'pass' ? 'PASS' : it.retest_result === 'fail' ? 'FAIL' : '-', fmtNice(it.retest_date), it.retest_by || by]),
+          styles: { fontSize: 7, cellPadding: 1.4, lineColor: k.PALETTE.line.rgb, lineWidth: 0.1, textColor: k.PALETTE.black.rgb, overflow: 'linebreak' },
+          headStyles: { fillColor: k.PALETTE.navy.rgb, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [246, 246, 248] },
+          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 40 }, 2: { cellWidth: 40 }, 3: { cellWidth: 40 }, 4: { cellWidth: 15 }, 5: { cellWidth: 20 }, 6: { cellWidth: 12 } },
+          margin: { top: L.headerH + 10, left: L.margin, right: L.margin, bottom: 18 },
+          didParseCell: (d) => { if (d.section === 'body' && d.column.index === 4) {
+            if (d.cell.raw === 'PASS') { d.cell.styles.textColor = k.PALETTE.success.rgb; d.cell.styles.fontStyle = 'bold'; }
+            else if (d.cell.raw === 'FAIL') { d.cell.styles.textColor = k.PALETTE.error.rgb; d.cell.styles.fontStyle = 'bold'; } } },
+          didDrawPage: stamp
+        });
+        y = doc.lastAutoTable.finalY + 8;
+
+        // Declaration + sign-off
+        if (y > 250) { doc.addPage(); stamp(); y = L.headerH + 12; }
+        y = secHead(doc, y, 'Declaration');
+        y = k.para(doc, L.margin, y, 'The remedial works listed above have been carried out and, where a retest result of PASS is recorded, the fitting has been confirmed to operate for its full rated duration in accordance with AS/NZS 2293.2. Items recorded as FAIL remain outstanding and require further action.', { size: 8, lineHeight: 3.6 }) + 6;
+
+        const sName = document.getElementById('signoff_name').value.trim();
+        const sDate = document.getElementById('signoff_date').value;
+        setF(doc, 8, 'normal', k.PALETTE.charcoal.rgb);
+        doc.text('Signed: ' + (sName || by), L.margin, y);
+        doc.text('Date: ' + (sDate ? fmtNice(sDate) : fmtNice(rectDate)), L.pageW / 2 + 2, y);
+        y += 1.5; doc.setDrawColor(k.PALETTE.line.rgb[0], k.PALETTE.line.rgb[1], k.PALETTE.line.rgb[2]);
+        doc.line(L.margin, y, L.pageW / 2 - 8, y); doc.line(L.pageW / 2 + 2, y, L.pageW - L.margin, y);
+
+        const total = doc.internal.getNumberOfPages();
+        const title = 'Emergency Lighting Remedial - Tyrecycle Somerton';
+        for (let i = 1; i <= total; i++) { doc.setPage(i); k.drawFooter(doc, { title, ref: certNo, pageNo: i + ' of ' + total }); }
+        doc.save('EMG-Remedial_Tyrecycle_' + (rectDate || 'report') + '.pdf');
+        BromarHub.hideLoading();
+      } catch (e) { BromarHub.hideLoading(); console.error(e); BromarHub.showInfo('PDF failed: ' + e.message); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.body.setAttribute('data-mode', 'test');
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById('rect_date').value = today;
+      document.getElementById('signoff_date').value = today;
+      EMPLOYEES = await BromarHub.loadEmployees('rectified_by');
+      await BromarHub.autoSelectLoggedInUser('rectified_by');
+      const rb = document.getElementById('rectified_by');
+      rb.disabled = false;
+      const badge = document.querySelector('label[for="rectified_by"] .logged-in-badge'); if (badge) badge.remove();
+      if (rb.value) { const o = rb.selectedOptions[0]; currentUser = { name: o.value, email: o.dataset.email || '' }; }
+      rb.addEventListener('change', function () { const o = this.selectedOptions[0]; currentUser = o?.value ? { name: o.value, email: o.dataset.email || '' } : null; });
+      await loadTests();
+    });
+  </script>
+</body>
+</html>
