@@ -1,4 +1,4 @@
-// Submit Timesheet Function - V1.23 - 2026-05-19 - /netlify/functions/submit-timesheet.js
+// Submit Timesheet Function - V1.24 - 2026-10-13 - /netlify/functions/submit-timesheet.js
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -14,6 +14,9 @@ const TEST_TO = process.env.TEST_TO || null;
 console.log('[boot] FROM_EMAIL =', JSON.stringify(FROM_EMAIL));
 console.log('[boot] TEST_TO =', JSON.stringify(TEST_TO));
 console.log('[boot] RESEND_API_KEY present =', !!process.env.RESEND_API_KEY);
+
+// Employee types that accrue Time in Lieu (1:1) instead of being paid overtime
+const TIL_EMPLOYEE_TYPES = ['Engineer', 'Junior Engineer', 'Admin'];
 
 // Initialize Supabase
 const supabase = createClient(
@@ -81,6 +84,10 @@ exports.handler = async (event) => {
     let totalNormalHours = 0;
     let totalOvertimeHours = 0;
     let totalTravelHours = 0;
+    // TIL employees: hours above normal accrue as TIL (1:1), never paid as overtime
+    const isTil = TIL_EMPLOYEE_TYPES.includes(employeeType);
+    let totalTilAccrued = 0;
+    let totalTilTaken = 0;
 
     console.log('=== FUNCTION DEBUG: Parsing timesheet data ===');
     console.log('Total form fields received:', Object.keys(formData).length);
@@ -139,7 +146,8 @@ exports.handler = async (event) => {
             shift,
             type,
             normal_hours: normalHours,
-            overtime_hours: overtimeHours,
+            overtime_hours: isTil ? 0 : overtimeHours,
+            til_accrued_hours: isTil ? overtimeHours : 0,
             travel_hours: travelHours,
             job_number: jobNumber,
             client,
@@ -153,7 +161,12 @@ exports.handler = async (event) => {
           });
 
           totalNormalHours += normalHours;
-          totalOvertimeHours += overtimeHours;
+          if (isTil) {
+            totalTilAccrued += overtimeHours;
+          } else {
+            totalOvertimeHours += overtimeHours;
+          }
+          if (type === 'TIL (Taken)') totalTilTaken += normalHours;
           totalTravelHours += travelHours;
           console.log(`    ✓ Added to timesheet`);
         } else {
@@ -172,7 +185,10 @@ exports.handler = async (event) => {
     console.log(`Total travel hours: ${totalTravelHours}`);
     console.log(`Standby checkbox: ${standby}`);
 
-    const totalHours = totalNormalHours + totalOvertimeHours;
+    console.log(`TIL employee: ${isTil} | TIL accrued: ${totalTilAccrued} | TIL taken: ${totalTilTaken}`);
+
+    // Total hours worked (normal + overtime or TIL accrued); travel reported separately
+    const totalHours = totalNormalHours + totalOvertimeHours + totalTilAccrued;
 
     // ============================================
     // SAVE TO SUPABASE
@@ -186,6 +202,8 @@ exports.handler = async (event) => {
         week_starting: weekStarting,
         total_normal_hours: totalNormalHours,
         total_overtime_hours: totalOvertimeHours,
+        total_til_accrued: totalTilAccrued,
+        total_til_taken: totalTilTaken,
         total_travel_hours: totalTravelHours,
         total_hours: totalHours,
         on_call_standby: standby,
@@ -201,6 +219,68 @@ exports.handler = async (event) => {
     if (dbError) {
       console.error('Supabase error:', dbError);
       throw new Error(`Failed to save to database: ${dbError.message || dbError.details || dbError.hint || 'unknown'}`);
+    }
+
+    // ============================================
+    // TIL LEDGER (TIL employees only)
+    // Replaces any previous timesheet rows for the same employee + week,
+    // so a resubmission never double-counts. Best-effort: a ledger failure
+    // is logged but does not fail the submission.
+    // ============================================
+    let tilClosingBalance = null;
+    let tilOpeningBalance = null;
+    if (isTil && employeeEmail) {
+      const ledgerEmail = String(employeeEmail).trim().toLowerCase();
+      try {
+        const { error: delErr } = await supabase
+          .from('til_ledger')
+          .delete()
+          .eq('employee_email', ledgerEmail)
+          .eq('week_starting', weekStarting)
+          .eq('source', 'timesheet');
+        if (delErr) throw delErr;
+
+        const ledgerRows = [];
+        if (totalTilAccrued > 0) {
+          ledgerRows.push({
+            employee_email: ledgerEmail,
+            employee_name: employeeName,
+            entry_date: weekStarting,
+            hours: totalTilAccrued,
+            source: 'timesheet',
+            week_starting: weekStarting,
+            timesheet_id: timesheetRecord.id,
+            notes: 'TIL accrued'
+          });
+        }
+        if (totalTilTaken > 0) {
+          ledgerRows.push({
+            employee_email: ledgerEmail,
+            employee_name: employeeName,
+            entry_date: weekStarting,
+            hours: -totalTilTaken,
+            source: 'timesheet',
+            week_starting: weekStarting,
+            timesheet_id: timesheetRecord.id,
+            notes: 'TIL taken'
+          });
+        }
+        if (ledgerRows.length) {
+          const { error: insErr } = await supabase.from('til_ledger').insert(ledgerRows);
+          if (insErr) throw insErr;
+        }
+
+        const { data: allRows, error: balErr } = await supabase
+          .from('til_ledger')
+          .select('hours')
+          .eq('employee_email', ledgerEmail);
+        if (balErr) throw balErr;
+        tilClosingBalance = (allRows || []).reduce((sum, r) => sum + (parseFloat(r.hours) || 0), 0);
+        tilOpeningBalance = tilClosingBalance - totalTilAccrued + totalTilTaken;
+        console.log(`TIL ledger updated. Opening ${tilOpeningBalance} → closing ${tilClosingBalance}`);
+      } catch (ledgerErr) {
+        console.error('TIL ledger update failed:', ledgerErr);
+      }
     }
 
     // ============================================
@@ -274,7 +354,7 @@ exports.handler = async (event) => {
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.shift}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.type}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.normal_hours.toFixed(1)}</td>
-          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.overtime_hours.toFixed(1)}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${(isTil ? entry.til_accrued_hours : entry.overtime_hours).toFixed(1)}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.travel_hours.toFixed(1)}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.job_number}</td>
           <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.client}</td>
@@ -336,10 +416,21 @@ exports.handler = async (event) => {
                         <div style="font-size:11px;color:#1e40af;font-weight:600;text-transform:uppercase;">Normal Hours</div>
                         <div style="font-size:28px;color:#1a56db;font-weight:700;">${totalNormalHours.toFixed(1)}</div>
                       </div>
+                      ${isTil ? `
+                      <div style="flex:1;min-width:150px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;">TIL Accrued</div>
+                        <div style="font-size:28px;color:#f59e0b;font-weight:700;">+${totalTilAccrued.toFixed(1)}</div>
+                      </div>
+                      <div style="flex:1;min-width:150px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;">TIL Taken</div>
+                        <div style="font-size:28px;color:#dc2626;font-weight:700;">-${totalTilTaken.toFixed(1)}</div>
+                      </div>
+                      ` : `
                       <div style="flex:1;min-width:150px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
                         <div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;">Overtime</div>
                         <div style="font-size:28px;color:#f59e0b;font-weight:700;">${totalOvertimeHours.toFixed(1)}</div>
                       </div>
+                      `}
                       <div style="flex:1;min-width:150px;background:#f3e8ff;border-left:4px solid #9333ea;border-radius:6px;padding:16px;">
                         <div style="font-size:11px;color:#581c87;font-weight:600;text-transform:uppercase;">Travel</div>
                         <div style="font-size:28px;color:#9333ea;font-weight:700;">${totalTravelHours.toFixed(1)}</div>
@@ -349,6 +440,15 @@ exports.handler = async (event) => {
                         <div style="font-size:28px;color:#0e9f6e;font-weight:700;">${totalHours.toFixed(1)}</div>
                       </div>
                     </div>
+
+                    ${isTil ? `
+                    <div style="margin-bottom:22px;padding:12px 14px;background:#f9fafb;border-radius:6px;border-left:3px solid #f59e0b;">
+                      <p style="font-size:13px;color:#374151;font-weight:600;margin:0;">⏳ Time in Lieu — ${tilClosingBalance === null
+                        ? 'balance unavailable'
+                        : `opening ${tilOpeningBalance.toFixed(2)} hrs · +${totalTilAccrued.toFixed(2)} accrued · −${totalTilTaken.toFixed(2)} taken · closing <strong>${tilClosingBalance.toFixed(2)} hrs</strong>`}</p>
+                      <p style="font-size:11px;color:#6b7280;margin:6px 0 0;">Hours above normal accrue as TIL (1:1) and are not paid as overtime.</p>
+                    </div>
+                    ` : ''}
 
                     ${standby ? `
                     <div style="margin-bottom:22px;padding:12px 14px;background:#fff3ee;border-radius:6px;border-left:3px solid #ff6b35;">
@@ -372,7 +472,7 @@ exports.handler = async (event) => {
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Shift</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Type</th>
                           <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Normal</th>
-                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">OT</th>
+                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">${isTil ? 'TIL +' : 'OT'}</th>
                           <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Travel</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Job #</th>
                           <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Client</th>
@@ -459,7 +559,8 @@ exports.handler = async (event) => {
         success: true,
         message: 'Timesheet submitted successfully',
         id: timesheetRecord.id,
-        emailId: adminRes.data?.id || employeeRes.data?.id || null
+        emailId: adminRes.data?.id || employeeRes.data?.id || null,
+        tilBalance: tilClosingBalance
       })
     };
 
