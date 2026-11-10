@@ -1,175 +1,592 @@
-// netlify/functions/submit-jobsheet.js — V1.00 — 2026-10-12 — Bromar Hub
-// ============================================================
-// Sends a signed service report PDF to the client via Resend.
-// Called by the jobsheet HTML on submit (Skip Sign-Off path and
-// after in-person signing).
-//
-// Env vars (set in Netlify → Site settings → Environment variables):
-//   RESEND_API_KEY   required
-//   FROM_EMAIL       optional, defaults to 'Bromar Hub <onboarding@resend.dev>'
-//   TEST_TO          optional, if set routes ALL mail here (testing)
-//   SUPABASE_URL     optional (reserved for future table writes)
-//   SUPABASE_KEY     optional (reserved for future table writes)
-// ============================================================
-
+// Submit Timesheet Function - V1.25 - 2026-11-03 - /netlify/functions/submit-timesheet.js
 const { Resend } = require('resend');
+const { createClient } = require('@supabase/supabase-js');
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL     = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>';
-const TEST_TO        = process.env.TEST_TO    || null;
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-console.log('[submit-jobsheet] boot — FROM:', FROM_EMAIL, '| TEST_TO:', TEST_TO || '(none)', '| API key set:', !!RESEND_API_KEY);
+// From address — during testing this stays as onboarding@resend.dev,
+// once domain is verified set FROM_EMAIL to "Bromar Hub <hub@bromar.com.au>"
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Bromar Hub <onboarding@resend.dev>';
+// Optional override — while domain is unverified, force all mail to one test inbox
+const TEST_TO = process.env.TEST_TO || null;
 
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+console.log('[boot] FROM_EMAIL =', JSON.stringify(FROM_EMAIL));
+console.log('[boot] TEST_TO =', JSON.stringify(TEST_TO));
+console.log('[boot] RESEND_API_KEY present =', !!process.env.RESEND_API_KEY);
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
-};
+// Employee types that accrue Time in Lieu (1:1) instead of being paid overtime
+const TIL_EMPLOYEE_TYPES = ['Engineer', 'Junior Engineer', 'Admin'];
+
+// Normalise a YYYY-MM-DD week_starting to its Monday (pure date maths, UTC — no timezone drift).
+// A Sunday value is the old timezone bug (Monday saved a day early), so it moves forward to Monday.
+function normaliseToMonday(dateStr) {
+  if (!dateStr) return dateStr;
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay();                    // 0 Sun … 6 Sat
+  const shift = dow === 0 ? 1 : (1 - dow);       // Sun → +1, Tue–Sat → back to Monday
+  dt.setUTCDate(dt.getUTCDate() + shift);
+  return dt.toISOString().slice(0, 10);
+}
+
+// Initialize Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS, body: '' };
-  }
+  // Only allow POST
   if (event.httpMethod !== 'POST') {
-    return respond(405, { error: 'Method not allowed' });
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
   }
-  if (!resend) {
-    return respond(500, { error: 'RESEND_API_KEY not configured on the server' });
-  }
-
-  let payload;
-  try { payload = JSON.parse(event.body || '{}'); }
-  catch (err) { return respond(400, { error: 'Invalid JSON body', details: err.message }); }
-
-  const {
-    recipientEmail, replyToEmail,
-    jobSheetNumber, jobNumber,
-    clientName, siteName, siteAddress,
-    sheetDate, preparedBy, signedByName,
-    pdfBase64
-  } = payload;
-
-  // Required field check
-  const missing = [];
-  if (!recipientEmail) missing.push('recipientEmail');
-  if (!jobSheetNumber) missing.push('jobSheetNumber');
-  if (!jobNumber)      missing.push('jobNumber');
-  if (!pdfBase64)      missing.push('pdfBase64');
-  if (missing.length) {
-    return respond(400, { error: 'Missing required fields', details: missing });
-  }
-
-  const to = TEST_TO || recipientEmail;
-  const subject = `Service Report — ${jobSheetNumber}`;
-  const html = buildEmailHtml({
-    clientName, jobNumber, jobSheetNumber, siteName, siteAddress,
-    sheetDate, preparedBy, signedByName,
-    testMode: !!TEST_TO, originalRecipient: recipientEmail
-  });
-
-  const sendOpts = {
-    from:    FROM_EMAIL,
-    to:      [to],
-    subject,
-    html,
-    attachments: [{
-      filename: `${jobSheetNumber}.pdf`,
-      content:  pdfBase64
-    }]
-  };
-  if (replyToEmail) sendOpts.reply_to = replyToEmail;
 
   try {
-    const { data, error } = await resend.emails.send(sendOpts);
-    if (error) {
-      console.error('[submit-jobsheet] Resend error:', error);
-      return respond(500, { error: error.message || 'Resend send failed', details: error });
+    // Parse body — supports JSON { form, pdf } (new) or URL-encoded (legacy)
+    let formData = {};
+    let pdfAttachment = null;
+    const contentType = (event.headers['content-type'] || event.headers['Content-Type'] || '').toLowerCase();
+
+    // Netlify may base64-encode the body for binary or large payloads
+    let rawBody = event.body || '';
+    if (event.isBase64Encoded) {
+      rawBody = Buffer.from(rawBody, 'base64').toString('utf8');
     }
-    console.log('[submit-jobsheet] sent OK — id:', data?.id, '| to:', to);
-    return respond(200, { success: true, id: data?.id, emailId: data?.id });
-  } catch (err) {
-    console.error('[submit-jobsheet] exception:', err);
-    return respond(500, { error: err.message || 'Unknown error', details: String(err) });
+
+    console.log('=== REQUEST DEBUG ===');
+    console.log('Content-Type:', contentType);
+    console.log('isBase64Encoded:', !!event.isBase64Encoded);
+    console.log('Body length:', rawBody.length);
+
+    if (contentType.includes('application/json')) {
+      const parsed = JSON.parse(rawBody || '{}');
+      formData = parsed.form || {};
+      pdfAttachment = parsed.pdf || null;  // { filename, content (base64) }
+      console.log('Parsed form fields:', Object.keys(formData).length);
+      console.log('PDF attachment present:', !!pdfAttachment);
+      if (pdfAttachment) {
+        console.log('  filename:', pdfAttachment.filename);
+        console.log('  content length:', pdfAttachment.content?.length || 0);
+      }
+    } else {
+      const params = new URLSearchParams(rawBody);
+      for (const [key, value] of params) {
+        formData[key] = value;
+      }
+      console.log('Parsed URL-encoded fields:', Object.keys(formData).length);
+    }
+
+    // Extract employee details
+    const employeeName = formData.employee_name;
+    const employeeEmail = formData.employee_email;
+    const employeeType = formData.employee_type;
+    const weekStarting = normaliseToMonday(formData.week_starting);
+    if (weekStarting !== formData.week_starting) {
+      console.log(`week_starting normalised ${formData.week_starting} → ${weekStarting}`);
+    }
+    const standby = formData.standby === 'on';
+    const generalComments = formData.general_comments || 'No additional comments';
+    const allowanceFirstAid = formData.allowance_first_aid === 'on';
+    const allowanceConstructionWiring = formData.allowance_construction_wiring === 'on';
+
+    // Parse daily timesheet data
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const timesheetEntries = [];
+    let totalNormalHours = 0;
+    let totalOvertimeHours = 0;
+    let totalTravelHours = 0;
+    // TIL employees: hours above normal accrue as TIL (1:1), never paid as overtime
+    const isTil = TIL_EMPLOYEE_TYPES.includes(employeeType);
+    let totalTilAccrued = 0;
+    let totalTilTaken = 0;
+
+    console.log('=== FUNCTION DEBUG: Parsing timesheet data ===');
+    console.log('Total form fields received:', Object.keys(formData).length);
+
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      const dayPrefix = `day_${dayIndex}`;
+      const shift = formData[`${dayPrefix}_shift`] || 'Day';
+      const laha = formData[`${dayPrefix}_laha`] === 'on';
+      const office = formData[`${dayPrefix}_office`] === 'on';
+      const owncar = formData[`${dayPrefix}_owncar`] === 'on';
+      const owncarKm = formData[`${dayPrefix}_owncar_km`] || '0';
+      const breakAchieved = formData[`${dayPrefix}_break_achieved`] === 'on';
+      const calloutStart = formData[`${dayPrefix}_callout_start`] || null;
+      const calloutFinish = formData[`${dayPrefix}_callout_finish`] || null;
+
+      console.log(`\n--- Day ${dayIndex} (${days[dayIndex]}) ---`);
+      
+      // Find all jobs for this day - using the correct field naming: job-{dayIndex}-{jobIndex}
+      let jobIndex = 0;
+      let foundJobsForDay = 0;
+      
+      while (formData[`job-${dayIndex}-${jobIndex}_type`]) {
+        const jobPrefix = `job-${dayIndex}-${jobIndex}`;
+        let type = formData[`${jobPrefix}_type`];
+        const otherType = (formData[`${jobPrefix}_other_type`] || '').trim();
+        if (type === 'Other' && otherType) {
+          type = `Other: ${otherType}`;
+        }
+        const normalHours = parseFloat(formData[`${jobPrefix}_hours`]) || 0;
+        const overtimeHours = parseFloat(formData[`${jobPrefix}_overtime`]) || 0;
+        const travelHours = parseFloat(formData[`${jobPrefix}_travel_time`]) || 0;
+        
+        console.log(`  Job ${jobIndex}: type="${type}", normal=${normalHours}, OT=${overtimeHours}, travel=${travelHours}`);
+        
+        if (type && (normalHours > 0 || overtimeHours > 0 || travelHours > 0)) {
+          foundJobsForDay++;
+          const jobNumber = formData[`${jobPrefix}_number`] || '-';
+          const client = formData[`${jobPrefix}_client`] || '-';
+          const siteAllowance = formData[`${jobPrefix}_site_allowance`] === 'on';
+          const jobOwncar = formData[`${jobPrefix}_owncar`] === 'on';
+          const jobOwncarKm = formData[`${jobPrefix}_owncar_km`] || '0';
+          const calloutReceived = formData[`${jobPrefix}_callout_received`] || null;
+          const calloutComplete = formData[`${jobPrefix}_callout_complete`] || null;
+          const comment = formData[`${jobPrefix}_comment`] || '-';
+
+          const allowances = [];
+          if (siteAllowance) allowances.push('Site');
+          if (laha) allowances.push('LAHA');
+          if (office) allowances.push('Start/Finish at Office');
+          if (owncar) allowances.push(`Own Car (${owncarKm}km)`);
+          if (jobOwncar) allowances.push(`+${jobOwncarKm}km`);
+
+          timesheetEntries.push({
+            day: days[dayIndex],
+            date: new Date(weekStarting).setDate(new Date(weekStarting).getDate() + dayIndex),
+            shift,
+            type,
+            normal_hours: normalHours,
+            overtime_hours: isTil ? 0 : overtimeHours,
+            til_accrued_hours: isTil ? overtimeHours : 0,
+            travel_hours: travelHours,
+            job_number: jobNumber,
+            client,
+            allowances: allowances.join(', ') || '-',
+            callout_received: calloutReceived,
+            callout_complete: calloutComplete,
+            comment,
+            break_achieved: breakAchieved,
+            callout_start: calloutStart,
+            callout_finish: calloutFinish
+          });
+
+          totalNormalHours += normalHours;
+          if (isTil) {
+            totalTilAccrued += overtimeHours;
+          } else {
+            totalOvertimeHours += overtimeHours;
+          }
+          if (type === 'TIL (Taken)') totalTilTaken += normalHours;
+          totalTravelHours += travelHours;
+          console.log(`    ✓ Added to timesheet`);
+        } else {
+          console.log(`    ✗ Skipped (no type or no hours)`);
+        }
+        
+        jobIndex++;
+      }
+      console.log(`  Total jobs found for ${days[dayIndex]}: ${foundJobsForDay}`);
+    }
+
+    console.log(`\n=== SUMMARY ===`);
+    console.log(`Total entries: ${timesheetEntries.length}`);
+    console.log(`Total normal hours: ${totalNormalHours}`);
+    console.log(`Total OT hours: ${totalOvertimeHours}`);
+    console.log(`Total travel hours: ${totalTravelHours}`);
+    console.log(`Standby checkbox: ${standby}`);
+
+    console.log(`TIL employee: ${isTil} | TIL accrued: ${totalTilAccrued} | TIL taken: ${totalTilTaken}`);
+
+    // Total hours worked (normal + overtime or TIL accrued); travel reported separately
+    const totalHours = totalNormalHours + totalOvertimeHours + totalTilAccrued;
+
+    // ============================================
+    // SAVE TO SUPABASE
+    // ============================================
+    const { data: timesheetRecord, error: dbError} = await supabase
+      .from('timesheets')
+      .insert({
+        employee_name: employeeName,
+        employee_email: employeeEmail,
+        employee_type: employeeType,
+        week_starting: weekStarting,
+        total_normal_hours: totalNormalHours,
+        total_overtime_hours: totalOvertimeHours,
+        total_til_accrued: totalTilAccrued,
+        total_til_taken: totalTilTaken,
+        total_travel_hours: totalTravelHours,
+        total_hours: totalHours,
+        on_call_standby: standby,
+        allowance_first_aid: allowanceFirstAid,
+        allowance_construction_wiring: allowanceConstructionWiring,
+        general_comments: generalComments,
+        timesheet_entries: timesheetEntries,
+        submitted_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Supabase error:', dbError);
+      throw new Error(`Failed to save to database: ${dbError.message || dbError.details || dbError.hint || 'unknown'}`);
+    }
+
+    // ============================================
+    // TIL LEDGER (TIL employees only)
+    // Replaces any previous timesheet rows for the same employee + week,
+    // so a resubmission never double-counts. Best-effort: a ledger failure
+    // is logged but does not fail the submission.
+    // ============================================
+    let tilClosingBalance = null;
+    let tilOpeningBalance = null;
+    if (isTil && employeeEmail) {
+      const ledgerEmail = String(employeeEmail).trim().toLowerCase();
+      try {
+        const { error: delErr } = await supabase
+          .from('til_ledger')
+          .delete()
+          .eq('employee_email', ledgerEmail)
+          .eq('week_starting', weekStarting)
+          .eq('source', 'timesheet');
+        if (delErr) throw delErr;
+
+        const ledgerRows = [];
+        if (totalTilAccrued > 0) {
+          ledgerRows.push({
+            employee_email: ledgerEmail,
+            employee_name: employeeName,
+            entry_date: weekStarting,
+            hours: totalTilAccrued,
+            source: 'timesheet',
+            week_starting: weekStarting,
+            timesheet_id: timesheetRecord.id,
+            notes: 'TIL accrued'
+          });
+        }
+        if (totalTilTaken > 0) {
+          ledgerRows.push({
+            employee_email: ledgerEmail,
+            employee_name: employeeName,
+            entry_date: weekStarting,
+            hours: -totalTilTaken,
+            source: 'timesheet',
+            week_starting: weekStarting,
+            timesheet_id: timesheetRecord.id,
+            notes: 'TIL taken'
+          });
+        }
+        if (ledgerRows.length) {
+          const { error: insErr } = await supabase.from('til_ledger').insert(ledgerRows);
+          if (insErr) throw insErr;
+        }
+
+        const { data: allRows, error: balErr } = await supabase
+          .from('til_ledger')
+          .select('hours')
+          .eq('employee_email', ledgerEmail);
+        if (balErr) throw balErr;
+        tilClosingBalance = (allRows || []).reduce((sum, r) => sum + (parseFloat(r.hours) || 0), 0);
+        tilOpeningBalance = tilClosingBalance - totalTilAccrued + totalTilTaken;
+        console.log(`TIL ledger updated. Opening ${tilOpeningBalance} → closing ${tilClosingBalance}`);
+      } catch (ledgerErr) {
+        console.error('TIL ledger update failed:', ledgerErr);
+      }
+    }
+
+    // ============================================
+    // UPLOAD PDF TO SUPABASE STORAGE
+    // Bucket: Timesheets, path: YYYY/MM/DD/<filename>.pdf
+    // ============================================
+    let pdfStoragePath = null;
+    if (pdfAttachment?.content) {
+      try {
+        // Folder path uses the timesheet's week_starting date (Monday of that week),
+        // not the submission date — so all timesheets for a given week group together.
+        const weekDate = new Date(weekStarting);
+        const yyyy = String(weekDate.getUTCFullYear());
+        const monthNum = String(weekDate.getUTCMonth() + 1).padStart(2, '0');
+        const monthName = weekDate.toLocaleString('en-AU', { month: 'long', timeZone: 'UTC' });
+        const monthFolder = `${monthNum}-${monthName}`;  // e.g. "05-May"
+        const dd = String(weekDate.getUTCDate()).padStart(2, '0');
+
+        // Filename uses submission timestamp so multiple submits for the same week don't overwrite each other
+        const now = new Date();
+        const submitMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const submitDay = String(now.getDate()).padStart(2, '0');
+        const safeName = (employeeName || 'timesheet').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        const ts = `${now.getFullYear()}${submitMonth}${submitDay}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+        const baseName = pdfAttachment.filename?.replace(/\.pdf$/i, '') || `timesheet-${safeName}-${weekStarting}`;
+        const storagePath = `${yyyy}/${monthFolder}/${dd}/${baseName}-${ts}.pdf`;
+
+        const pdfBuffer = Buffer.from(pdfAttachment.content, 'base64');
+
+        const { error: uploadErr } = await supabase
+          .storage
+          .from('Timesheets')
+          .upload(storagePath, pdfBuffer, {
+            contentType: 'application/pdf',
+            upsert: false
+          });
+
+        if (uploadErr) {
+          console.error('PDF upload failed:', uploadErr);
+        } else {
+          pdfStoragePath = storagePath;
+          console.log('PDF uploaded to storage:', storagePath);
+
+          // Best-effort: save path back to row if pdf_path column exists
+          await supabase
+            .from('timesheets')
+            .update({ pdf_path: pdfStoragePath })
+            .eq('id', timesheetRecord.id)
+            .then(({ error }) => {
+              if (error && !/column.*pdf_path/i.test(error.message)) {
+                console.warn('Could not update pdf_path:', error.message);
+              }
+            });
+        }
+      } catch (storageErr) {
+        console.error('Storage upload exception:', storageErr);
+      }
+    }
+
+    // ============================================
+    // SEND EMAIL VIA SENDGRID
+    // ============================================
+    
+    // Build HTML table for email
+    let timesheetHTML = '';
+    timesheetEntries.forEach((entry, index) => {
+      const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+      timesheetHTML += `
+        <tr style="background:${bgColor};">
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.day}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.shift}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.type}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.normal_hours.toFixed(1)}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${(isTil ? entry.til_accrued_hours : entry.overtime_hours).toFixed(1)}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:center;">${entry.travel_hours.toFixed(1)}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.job_number}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.client}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.allowances}</td>
+          <td style="padding:10px 8px;font-size:12px;color:#374151;border-bottom:1px solid #f3f4f6;">${entry.comment}</td>
+        </tr>
+      `;
+    });
+
+    const emailHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+      </head>
+      <body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;">
+          <tr>
+            <td align="center" style="padding:24px 16px;">
+              <table width="680" cellpadding="0" cellspacing="0" border="0" style="max-width:680px;background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                
+                <!-- Header -->
+                <tr>
+                  <td style="padding:28px 32px;text-align:center;border-bottom:1px solid #e5e7eb;">
+                    <h1 style="margin:0;font-size:24px;color:#111827;font-weight:700;">Employee Timesheet Submission</h1>
+                    <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Week Starting: ${new Date(weekStarting).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                  <td style="padding:28px 32px;">
+                    
+                    <!-- Employee Details -->
+                    <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Employee Information</p>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px;">
+                      <tr>
+                        <td style="padding:6px 0;color:#6b7280;width:150px;">Name:</td>
+                        <td style="padding:6px 0;color:#111827;font-weight:600;">${employeeName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#6b7280;">Email:</td>
+                        <td style="padding:6px 0;color:#111827;">${employeeEmail}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#6b7280;">Type:</td>
+                        <td style="padding:6px 0;color:#111827;">${employeeType}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#6b7280;">Submitted:</td>
+                        <td style="padding:6px 0;color:#111827;">${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                      </tr>
+                    </table>
+
+                    <!-- Hours Summary -->
+                    <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Hours Summary</p>
+                    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+                      <div style="flex:1;min-width:150px;background:#eff6ff;border-left:4px solid #1a56db;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#1e40af;font-weight:600;text-transform:uppercase;">Normal Hours</div>
+                        <div style="font-size:28px;color:#1a56db;font-weight:700;">${totalNormalHours.toFixed(1)}</div>
+                      </div>
+                      ${isTil ? `
+                      <div style="flex:1;min-width:150px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;">TIL Accrued</div>
+                        <div style="font-size:28px;color:#f59e0b;font-weight:700;">+${totalTilAccrued.toFixed(1)}</div>
+                      </div>
+                      <div style="flex:1;min-width:150px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;">TIL Taken</div>
+                        <div style="font-size:28px;color:#dc2626;font-weight:700;">-${totalTilTaken.toFixed(1)}</div>
+                      </div>
+                      ` : `
+                      <div style="flex:1;min-width:150px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;">Overtime</div>
+                        <div style="font-size:28px;color:#f59e0b;font-weight:700;">${totalOvertimeHours.toFixed(1)}</div>
+                      </div>
+                      `}
+                      <div style="flex:1;min-width:150px;background:#f3e8ff;border-left:4px solid #9333ea;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#581c87;font-weight:600;text-transform:uppercase;">Travel</div>
+                        <div style="font-size:28px;color:#9333ea;font-weight:700;">${totalTravelHours.toFixed(1)}</div>
+                      </div>
+                      <div style="flex:1;min-width:150px;background:#f0fdf4;border-left:4px solid #0e9f6e;border-radius:6px;padding:16px;">
+                        <div style="font-size:11px;color:#065f46;font-weight:600;text-transform:uppercase;">Total Hours</div>
+                        <div style="font-size:28px;color:#0e9f6e;font-weight:700;">${totalHours.toFixed(1)}</div>
+                      </div>
+                    </div>
+
+                    ${isTil ? `
+                    <div style="margin-bottom:22px;padding:12px 14px;background:#f9fafb;border-radius:6px;border-left:3px solid #f59e0b;">
+                      <p style="font-size:13px;color:#374151;font-weight:600;margin:0;">⏳ Time in Lieu — ${tilClosingBalance === null
+                        ? 'balance unavailable'
+                        : `opening ${tilOpeningBalance.toFixed(2)} hrs · +${totalTilAccrued.toFixed(2)} accrued · −${totalTilTaken.toFixed(2)} taken · closing <strong>${tilClosingBalance.toFixed(2)} hrs</strong>`}</p>
+                      <p style="font-size:11px;color:#6b7280;margin:6px 0 0;">Hours above normal accrue as TIL (1:1) and are not paid as overtime.</p>
+                    </div>
+                    ` : ''}
+
+                    ${standby ? `
+                    <div style="margin-bottom:22px;padding:12px 14px;background:#fff3ee;border-radius:6px;border-left:3px solid #ff6b35;">
+                      <p style="font-size:13px;color:#c2440e;font-weight:600;margin:0;">📞 This employee was on call/afterhours standby this week</p>
+                    </div>
+                    ` : ''}
+
+                    ${generalComments !== 'No additional comments' ? `
+                    <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Additional Comments</p>
+                    <div style="background:#fafafa;border-left:3px solid #c2440e;border-radius:0 6px 6px 0;padding:12px 14px;font-size:13px;color:#374151;line-height:1.6;margin-bottom:22px;">
+                      ${generalComments}
+                    </div>
+                    ` : ''}
+
+                    <!-- Timesheet Table -->
+                    <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c2440e;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #f5e8e3;">Timesheet Details</p>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+                      <thead>
+                        <tr style="background:#1a56db;">
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Day</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Shift</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Type</th>
+                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Normal</th>
+                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">${isTil ? 'TIL +' : 'OT'}</th>
+                          <th style="padding:10px 8px;text-align:center;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Travel</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Job #</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Client</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Allowances</th>
+                          <th style="padding:10px 8px;text-align:left;font-size:11px;color:#ffffff;font-weight:600;text-transform:uppercase;">Comment</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${timesheetHTML}
+                      </tbody>
+                    </table>
+
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 32px;text-align:center;">
+                    <p style="font-size:11px;color:#6b7280;margin:4px 0;">2/98-108 Western Ave, Westmeadows, VIC 3049</p>
+                    <p style="font-size:11px;color:#6b7280;margin:4px 0;">PH: +61 3 9335 5344  |  FAX: +61 3 9335 5322</p>
+                    <p style="font-size:11px;color:#6b7280;margin:4px 0;">EMAIL: <a href="mailto:admin@bromar.com.au" style="color:#c2440e;text-decoration:none;">admin@bromar.com.au</a>  |  REC: 30340</p>
+                    <p style="font-size:11px;color:#6b7280;margin:4px 0;">ABN: 45 634 835 939  |  ACN: 634 835 939</p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Send two separate emails via Resend:
+    //   1. Employee — HTML confirmation only (no attachment)
+    //   2. Admin    — same HTML + PDF attachment
+    const subject = `Timesheet Submission - ${employeeName} - Week of ${new Date(weekStarting).toLocaleDateString('en-AU')}`;
+
+    // TEST_TO override forces both emails to the test inbox
+    const employeeTo = TEST_TO ? [TEST_TO] : [employeeEmail];
+    const adminTo = TEST_TO ? [TEST_TO] : ['admin@bromar.com.au'];
+
+    const employeeMsg = {
+      from: FROM_EMAIL,
+      to: employeeTo,
+      reply_to: 'admin@bromar.com.au',
+      subject: `${subject} (Confirmation)`,
+      html: emailHTML,
+    };
+
+    const adminMsg = {
+      from: FROM_EMAIL,
+      to: adminTo,
+      reply_to: employeeEmail || 'admin@bromar.com.au',
+      subject,
+      html: emailHTML,
+    };
+
+    if (pdfAttachment?.content) {
+      adminMsg.attachments = [{
+        filename: pdfAttachment.filename || `timesheet-${employeeName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`,
+        content: pdfAttachment.content   // base64 string, no data: prefix
+      }];
+      console.log('PDF attached to admin email:', adminMsg.attachments[0].filename);
+    } else {
+      console.log('No PDF attachment provided');
+    }
+
+    const [employeeRes, adminRes] = await Promise.all([
+      resend.emails.send(employeeMsg),
+      resend.emails.send(adminMsg)
+    ]);
+
+    if (employeeRes.error) console.error('Resend employee email error:', employeeRes.error);
+    if (adminRes.error) console.error('Resend admin email error:', adminRes.error);
+    if (employeeRes.error && adminRes.error) {
+      throw new Error(`Email send failed: ${adminRes.error.message || 'unknown'}`);
+    }
+
+    // Return success
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        message: 'Timesheet submitted successfully',
+        id: timesheetRecord.id,
+        emailId: adminRes.data?.id || employeeRes.data?.id || null,
+        tilBalance: tilClosingBalance
+      })
+    };
+
+  } catch (error) {
+    console.error('Function error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+        error: 'Failed to submit timesheet', 
+        details: error.message 
+      })
+    };
   }
 };
-
-function respond(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
-}
-
-function buildEmailHtml({ clientName, jobNumber, jobSheetNumber, siteName, siteAddress, sheetDate, preparedBy, signedByName, testMode, originalRecipient }) {
-  const dateStr = sheetDate
-    ? new Date(sheetDate + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    : '';
-
-  const signedLine = signedByName && signedByName !== '(No signature required)'
-    ? `<p style="margin:4px 0;"><strong>Signed off by:</strong> ${esc(signedByName)}</p>`
-    : '';
-
-  const siteBlock = (siteName || siteAddress)
-    ? `<p style="margin:4px 0;"><strong>Site:</strong> ${esc([siteName, siteAddress].filter(Boolean).join(' — '))}</p>`
-    : '';
-
-  const testBanner = testMode
-    ? `<div style="background:#fff3e0; border:1px solid #c2440e; color:#c2440e; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:13px;">
-         <strong>TEST MODE</strong> — this email would normally go to <strong>${esc(originalRecipient)}</strong>.
-       </div>`
-    : '';
-
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="margin:0; padding:0; background:#f4f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#1f1f23;">
-  <div style="max-width:600px; margin:0 auto; padding:24px 16px;">
-    ${testBanner}
-    <div style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-      <div style="background:#c2440e; height:4px;"></div>
-      <div style="padding:28px 24px;">
-        <h1 style="margin:0 0 6px 0; font-size:22px; color:#c2440e; font-weight:700;">Service Report</h1>
-        <p style="margin:0 0 20px 0; font-size:14px; color:#6b6b70;">${esc(dateStr)}</p>
-
-        <p style="margin:0 0 16px 0; font-size:15px;">Hi ${esc(clientName || 'there')},</p>
-        <p style="margin:0 0 20px 0; font-size:15px; line-height:1.5;">
-          Please find attached your service report for job <strong>${esc(jobNumber)}</strong>.
-        </p>
-
-        <div style="background:#fafafa; border-left:3px solid #c2440e; padding:14px 16px; border-radius:4px; margin:16px 0;">
-          <p style="margin:4px 0;"><strong>Job:</strong> ${esc(jobNumber)}</p>
-          <p style="margin:4px 0;"><strong>Report #:</strong> ${esc(jobSheetNumber)}</p>
-          ${siteBlock}
-          ${preparedBy ? `<p style="margin:4px 0;"><strong>Prepared by:</strong> ${esc(preparedBy)}</p>` : ''}
-          ${signedLine}
-        </div>
-
-        <p style="margin:20px 0 0 0; font-size:14px; line-height:1.5; color:#4a4a4e;">
-          If you have any questions, reply to this email or call us on <strong>03 9335 5344</strong>.
-        </p>
-      </div>
-
-      <div style="background:#f7f7f9; padding:20px 24px; border-top:1px solid #e4e4e7; font-size:12px; color:#6b6b70; line-height:1.6;">
-        <div style="font-weight:600; color:#1f1f23; margin-bottom:6px;">Bromar Electrical Services Pty Ltd</div>
-        2/98-108 Western Ave, Westmeadows VIC 3049<br>
-        PH: +61 3 9335 5344 &nbsp;·&nbsp; <a href="mailto:admin@bromar.com.au" style="color:#c2440e; text-decoration:none;">admin@bromar.com.au</a><br>
-        ABN: 45 634 835 939 &nbsp;·&nbsp; REC: 30340
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-function esc(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
