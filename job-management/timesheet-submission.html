@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Employee Timesheet Submission - V1.28 - 2026-09-28 - /job-management/timesheet-submission.html -->
+<!-- Employee Timesheet Submission - V1.30 - 2026-11-03 - /job-management/timesheet-submission.html -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -625,6 +625,43 @@
     .job-row.is-public-holiday .ph-work-toggle { display: block; }
     .ph-work-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
+    /* ── TIME IN LIEU ── */
+    .wt-til-only { display: none !important; }
+    body.is-til-employee .wt-til-only { display: flex !important; }
+    body.is-til-employee .wt-divider.wt-til-only { display: block !important; }
+    .wt-value.til-neg { color: var(--error); }
+    .til-balance-card {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 1.25rem;
+    }
+    .til-balance-card .tbc-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
+    }
+    .til-balance-card .tbc-row strong { font-size: 1.15rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .til-balance-card .tbc-sub {
+      font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .til-balance-card .tbc-warn {
+      margin-top: 8px; padding: 8px 10px;
+      background: var(--error-bg); border: 1px solid var(--error-border);
+      color: var(--error); border-radius: 8px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .summary-til {
+      background: var(--bg-main); border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 0.85rem; margin-bottom: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-til .st-warn { color: var(--error); font-weight: 700; margin-top: 4px; }
+
     /* ── SOURCE BADGE (auto-populated from jobsheet) ── */
     .source-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -723,8 +760,13 @@
   </div>
   <div class="wt-divider"></div>
   <div class="wt-item">
-    <span class="wt-label">OT</span>
+    <span class="wt-label" id="wtOtLabel">OT</span>
     <span class="wt-value" id="wtOvertime">0.0</span>
+  </div>
+  <div class="wt-divider wt-til-only"></div>
+  <div class="wt-item wt-til-only">
+    <span class="wt-label">TIL −</span>
+    <span class="wt-value" id="wtTilTaken">0.00</span>
   </div>
   <div class="wt-divider"></div>
   <div class="wt-item">
@@ -735,6 +777,11 @@
   <div class="wt-item">
     <span class="wt-label">Total</span>
     <span class="wt-value" id="wtTotal">0.0</span>
+  </div>
+  <div class="wt-divider wt-til-only"></div>
+  <div class="wt-item wt-til-only">
+    <span class="wt-label">TIL Bal</span>
+    <span class="wt-value" id="wtTilBalance">—</span>
   </div>
 </div>
 
@@ -833,6 +880,13 @@
         </div>
       </div>
 
+      <!-- TIME IN LIEU BALANCE (TIL employees only) -->
+      <div class="til-balance-card" id="tilBalanceCard" style="display:none;">
+        <div class="tbc-row"><span>⏳ Time in Lieu balance</span><strong id="tilOpening">—</strong></div>
+        <div class="tbc-sub" id="tilBalanceSub">Accrued this week +0.00 · Taken −0.00 · After this week —</div>
+        <div class="tbc-warn" id="tilWarn" style="display:none;"></div>
+      </div>
+
       <!-- TIMESHEET DAYS -->
       <div class="section-label">Daily Timesheet</div>
 
@@ -868,7 +922,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.28</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.30</p>
       </div>
     </div>
   </div>
@@ -898,23 +952,44 @@
     maxJobsPerDay: 5
   };
 
+  // Time in Lieu — employee types that accrue TIL 1:1 instead of overtime
+  const TIL_EMPLOYEE_TYPES = ['Engineer', 'Junior Engineer', 'Admin'];
+  const tilState = { rows: null, email: null, error: false };
+
   // ============================================================
   // WEEK MANAGEMENT
   // ============================================================
   const weekStartingInput = document.getElementById('week_starting');
   
+  // ── LOCAL DATE HELPERS ──
+  // Never convert calendar dates through UTC (toISOString / new Date('YYYY-MM-DD')):
+  // Melbourne is UTC+10/+11, so that shifts dates back a day before 10–11am.
+  function toLocalISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function parseLocalDate(str) {
+    if (!str) return new Date(NaN);
+    const [y, m, d] = String(str).slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d);   // local midnight
+  }
+  function addDays(date, n) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
   function getWeekStarting(date) {
-    // Get the Monday (week starting) for a given date
-    const d = new Date(date);
+    // Monday (local midnight) of the week containing `date`
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const day = d.getDay();
-    const diff = day === 0 ? -6 : (1 - day); // Days until Monday (if Sunday, go back 6 days)
+    const diff = day === 0 ? -6 : (1 - day); // Sunday belongs to the week that started the previous Monday
     d.setDate(d.getDate() + diff);
     return d;
   }
 
   function setWeekStarting(date) {
     const weekStart = getWeekStarting(date);
-    weekStartingInput.value = weekStart.toISOString().split('T')[0];
+    weekStartingInput.value = toLocalISO(weekStart);
     generateWeek();
   }
 
@@ -1196,30 +1271,17 @@
   });
 
   document.getElementById('prevWeek').addEventListener('click', () => {
-    const current = new Date(weekStartingInput.value);
-    current.setDate(current.getDate() - 7);
-    setWeekStarting(current);
+    setWeekStarting(addDays(parseLocalDate(weekStartingInput.value), -7));
   });
 
   document.getElementById('nextWeek').addEventListener('click', () => {
-    const current = new Date(weekStartingInput.value);
-    current.setDate(current.getDate() + 7);
-    setWeekStarting(current);
+    setWeekStarting(addDays(parseLocalDate(weekStartingInput.value), 7));
   });
 
   weekStartingInput.addEventListener('change', () => {
     if (weekStartingInput.value) {
-      const selectedDate = new Date(weekStartingInput.value);
-      const dayOfWeek = selectedDate.getDay();
-      
-      // If not a Monday (1), find the nearest Monday
-      if (dayOfWeek !== 1) {
-        const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // If Sunday, next day; otherwise find next Monday
-        selectedDate.setDate(selectedDate.getDate() + daysToMonday);
-        weekStartingInput.value = selectedDate.toISOString().split('T')[0];
-      }
-      
-      setWeekStarting(new Date(weekStartingInput.value));
+      // Any date picked snaps to the Monday of that week
+      setWeekStarting(parseLocalDate(weekStartingInput.value));
     }
   });
 
@@ -1244,13 +1306,16 @@
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   function generateWeek() {
-    const weekStart = new Date(weekStartingInput.value);
+    // Always work from the Monday — also corrects Sunday values restored from older auto-saves
+    const weekStart = getWeekStarting(parseLocalDate(weekStartingInput.value));
+    if (toLocalISO(weekStart) !== weekStartingInput.value) {
+      weekStartingInput.value = toLocalISO(weekStart);
+    }
     daysContainer.innerHTML = '';
 
     // Generate 7 days (Monday to Sunday) starting from the selected Monday
     for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
+      const date = addDays(weekStart, i);
       
       const dayCard = createDayCard(date, i);
       daysContainer.appendChild(dayCard);
@@ -1328,11 +1393,9 @@
   // Cache for one session
   let phCache = null;
   async function fetchPublicHolidaysForWeek(weekStart) {
-    const start = new Date(weekStart);
-    const end = new Date(weekStart);
-    end.setDate(start.getDate() + 6);
-    const startIso = start.toISOString().slice(0, 10);
-    const endIso   = end.toISOString().slice(0, 10);
+    const start = addDays(weekStart, 0);
+    const startIso = toLocalISO(start);
+    const endIso   = toLocalISO(addDays(start, 6));
 
     const map = {};
     // Try Supabase first
@@ -1354,8 +1417,7 @@
     }
     // Fallback: hardcoded list
     for (let i = 0; i < 7; i++) {
-      const d = new Date(start); d.setDate(start.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toLocalISO(addDays(start, i));
       if (PUBLIC_HOLIDAY_FALLBACK[iso]) map[iso] = PUBLIC_HOLIDAY_FALLBACK[iso];
     }
     return map;
@@ -1371,13 +1433,12 @@
     }
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toLocalISO(addDays(weekStart, i));
       const name = holidays[iso];
       if (!name) continue;
 
       const card = daysContainer.querySelector(`.day-card[data-day-index="${i}"]`);
-      if (!card) return;
+      if (!card) continue;
       card.classList.add('public-holiday');
       card.dataset.publicHoliday = name;
 
@@ -1433,7 +1494,7 @@
         t.innerHTML = `
           <label>
             <input type="checkbox" class="ph-worked-checkbox" data-day="${i}"/>
-            Worked on this public holiday (overtime rate)
+            <span class="ph-worked-text">${isTilEmployee() ? 'Worked on this public holiday (accrue TIL)' : 'Worked on this public holiday (overtime rate)'}</span>
           </label>
         `;
         firstRow.appendChild(t);
@@ -1483,7 +1544,7 @@
   function openDefaultDay(weekStart) {
     const today = new Date(); today.setHours(0,0,0,0);
     const wsMid = new Date(weekStart); wsMid.setHours(0,0,0,0);
-    const diff = Math.floor((today - wsMid) / 86400000);
+    const diff = Math.round((today - wsMid) / 86400000);
     const idx = diff >= 0 && diff < 7 ? diff : 0;   // this week → today, otherwise Monday
     const card = daysContainer.querySelector(`.day-card[data-day-index="${idx}"]`);
     if (card) card.classList.add('open');
@@ -2112,6 +2173,89 @@
   }
 
   // ============================================================
+  // TIME IN LIEU (TIL)
+  // Engineer / Junior Engineer / Admin accrue TIL 1:1 instead of overtime.
+  // Balance = sum of til_ledger rows, excluding any previous submission
+  // for the week currently on screen (a resubmit replaces those rows).
+  // ============================================================
+
+  function isTilEmployee() {
+    const v = document.getElementById('employee_type')?.value || '';
+    return TIL_EMPLOYEE_TYPES.includes(v);
+  }
+
+  async function loadTilLedger(force) {
+    const email = (document.getElementById('employee_email')?.value || window.currentUser?.email || '').trim().toLowerCase();
+    if (!email || !window.sb) return;
+    if (!force && tilState.rows && tilState.email === email) { updateWeekTotals(); return; }
+    try {
+      const { data, error } = await window.sb
+        .from('til_ledger')
+        .select('hours, source, week_starting')
+        .eq('employee_email', email);
+      if (error) throw error;
+      tilState.rows = data || [];
+      tilState.email = email;
+      tilState.error = false;
+    } catch (err) {
+      console.warn('[TIL] ledger load failed:', err.message || err);
+      tilState.rows = null;
+      tilState.error = true;
+    }
+    updateWeekTotals();
+  }
+
+  function getTilWeekFigures() {
+    let accrued = 0, taken = 0;
+    document.querySelectorAll('.overtime-hours').forEach(i => { accrued += parseFloat(i.value) || 0; });
+    document.querySelectorAll('.job-row').forEach(r => {
+      if (r.querySelector('.job-type')?.value === 'TIL (Taken)') {
+        taken += parseFloat(r.querySelector('.normal-hours')?.value) || 0;
+      }
+    });
+    const ws = document.getElementById('week_starting')?.value || '';
+    let opening = null;
+    if (tilState.rows) {
+      opening = tilState.rows
+        .filter(r => !(r.source === 'timesheet' && r.week_starting === ws))
+        .reduce((sum, r) => sum + (parseFloat(r.hours) || 0), 0);
+    }
+    const closing = opening === null ? null : opening + accrued - taken;
+    return { accrued, taken, opening, closing };
+  }
+
+  function refreshTilUi() {
+    const til = isTilEmployee();
+    document.body.classList.toggle('is-til-employee', til);
+    const otLabel = document.getElementById('wtOtLabel');
+    if (otLabel) otLabel.textContent = til ? 'TIL +' : 'OT';
+    const card = document.getElementById('tilBalanceCard');
+    if (!card) return;
+    card.style.display = til ? '' : 'none';
+    if (!til) return;
+
+    const f = getTilWeekFigures();
+    const fmt = v => v === null ? '—' : `${v.toFixed(2)} hrs`;
+    document.getElementById('wtTilTaken').textContent = f.taken.toFixed(2);
+    const balEl = document.getElementById('wtTilBalance');
+    balEl.textContent = f.closing === null ? '—' : f.closing.toFixed(2);
+    balEl.classList.toggle('til-neg', f.closing !== null && f.closing < 0);
+
+    document.getElementById('tilOpening').textContent =
+      tilState.error ? 'Unavailable' : (f.opening === null ? 'Loading…' : fmt(f.opening));
+    document.getElementById('tilBalanceSub').textContent =
+      `Accrued this week +${f.accrued.toFixed(2)} · Taken −${f.taken.toFixed(2)} · After this week ${fmt(f.closing)}`;
+
+    const warn = document.getElementById('tilWarn');
+    if (f.closing !== null && f.closing < 0) {
+      warn.textContent = `⚠️ TIL taken exceeds your available balance by ${Math.abs(f.closing).toFixed(2)} hrs — check with admin before submitting.`;
+      warn.style.display = '';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+
+  // ============================================================
   // FLOATING WEEK TOTALS BAR
   // ============================================================
   function updateWeekTotals() {
@@ -2136,9 +2280,8 @@
     const weekLabel = document.getElementById('wtWeek');
     const wsInput = document.getElementById('week_starting');
     if (weekLabel && wsInput?.value) {
-      const start = new Date(wsInput.value);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
+      const start = parseLocalDate(wsInput.value);
+      const end = addDays(start, 6);
       const fmt = d => d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
       weekLabel.textContent = `Week of ${fmt(start)} – ${fmt(end)}`;
     }
@@ -2148,6 +2291,9 @@
       bar.style.display = '';
       document.body.classList.add('has-week-totals-bar');
     }
+
+    // TIL figures (no-op for non-TIL employees)
+    refreshTilUi();
   }
 
   // ============================================================
@@ -2375,7 +2521,7 @@
     doc.text(`Name: ${employeeName}`, margin, y); y += 4.5;
     doc.text(`Email: ${employeeEmail}`, margin, y); y += 4.5;
     doc.text(`Type: ${employeeType}`, margin, y); y += 4.5;
-    doc.text(`Week Starting: ${weekStarting ? new Date(weekStarting).toLocaleDateString('en-AU') : ''}`, margin, y); y += 4.5;
+    doc.text(`Week Starting: ${weekStarting ? parseLocalDate(weekStarting).toLocaleDateString('en-AU') : ''}`, margin, y); y += 4.5;
     if (standby) { doc.text('On-Call Standby: Yes', margin, y); y += 4.5; }
     const weeklyAllowances = [];
     if (firstAid) weeklyAllowances.push('First Aid');
@@ -2385,7 +2531,8 @@
     // ── Parse jobs from formData (same pattern as backend) ──
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const rows = [];
-    let totalNormal = 0, totalOT = 0, totalTravel = 0;
+    let totalNormal = 0, totalOT = 0, totalTravel = 0, totalTilTaken = 0;
+    const pdfTil = TIL_EMPLOYEE_TYPES.includes(formData.employee_type || '');
 
     for (let d = 0; d < 7; d++) {
       const dayPrefix = `day_${d}`;
@@ -2429,6 +2576,7 @@
           totalNormal += normal;
           totalOT += ot;
           totalTravel += travel;
+          if (type === 'TIL (Taken)') totalTilTaken += normal;
         }
         j++;
       }
@@ -2440,7 +2588,7 @@
     const boxH = 16;
     const totals = [
       { label: 'NORMAL', value: totalNormal.toFixed(2), color: [26, 86, 219] },
-      { label: 'OVERTIME', value: totalOT.toFixed(2), color: [245, 158, 11] },
+      { label: pdfTil ? 'TIL ACCRUED' : 'OVERTIME', value: totalOT.toFixed(2), color: [245, 158, 11] },
       { label: 'TRAVEL', value: totalTravel.toFixed(2), color: [147, 51, 234] },
       { label: 'TOTAL', value: (totalNormal + totalOT + totalTravel).toFixed(2), color: [14, 159, 110] }
     ];
@@ -2459,10 +2607,21 @@
     });
     y += boxH + 6;
 
+    // TIL balance line (TIL employees only)
+    if (pdfTil) {
+      const tf = getTilWeekFigures();
+      const f2 = v => v === null ? '—' : v.toFixed(2);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(17, 24, 39);
+      doc.text(`Time in Lieu (1:1, not paid as overtime) — Opening ${f2(tf.opening)} · +${totalOT.toFixed(2)} accrued · -${totalTilTaken.toFixed(2)} taken · Closing ${f2(tf.opening === null ? null : tf.opening + totalOT - totalTilTaken)} hrs`, margin, y);
+      y += 6;
+    }
+
     // ── Entries table ──
     doc.autoTable({
       startY: y,
-      head: [['Day', 'Shift', 'Type', 'Normal', 'OT', 'Travel', 'Job #', 'Client', 'Allowances', 'Comment']],
+      head: [['Day', 'Shift', 'Type', 'Normal', pdfTil ? 'TIL+' : 'OT', 'Travel', 'Job #', 'Client', 'Allowances', 'Comment']],
       body: rows.length ? rows : [['—', '—', 'No entries', '', '', '', '', '', '', '']],
       styles: { fontSize: 7.5, cellPadding: 1.8, overflow: 'linebreak' },
       headStyles: { fillColor: [26, 86, 219], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
@@ -2612,7 +2771,7 @@
         const weekText = document.getElementById('successWeekText');
         const weekVal = debugData.week_starting;
         if (weekText && weekVal) {
-          weekText.textContent = `Week starting ${new Date(weekVal).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+          weekText.textContent = `Week starting ${parseLocalDate(weekVal).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
         }
         document.getElementById('successScreen').style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2719,8 +2878,8 @@
     const wsInput = document.getElementById('week_starting');
     let weekLine = '';
     if (wsInput?.value) {
-      const start = new Date(wsInput.value);
-      const end = new Date(start); end.setDate(start.getDate() + 6);
+      const start = parseLocalDate(wsInput.value);
+      const end = addDays(start, 6);
       const fmt = d => d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
       weekLine = `${name} • Week of ${fmt(start)} – ${fmt(end)}`;
     }
@@ -2731,6 +2890,9 @@
     document.querySelectorAll('.overtime-hours').forEach(i => o += parseFloat(i.value) || 0);
     document.querySelectorAll('.travel-hours').forEach(i => t += parseFloat(i.value) || 0);
     const stateCls = n < 40 ? 'under' : (n === 40 ? 'ok' : 'over');
+    const tilEmp = isTilEmployee();
+    const otShort = tilEmp ? 'TIL+' : 'OT';
+    const tf = tilEmp ? getTilWeekFigures() : null;
 
     // Per-day breakdown
     const dayNamesArr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -2745,7 +2907,7 @@
       if (dn + doo + dt === 0) continue;
       const parts = [];
       if (dn)  parts.push(`${dn.toFixed(2)} N`);
-      if (doo) parts.push(`${doo.toFixed(2)} OT`);
+      if (doo) parts.push(`${doo.toFixed(2)} ${otShort}`);
       if (dt)  parts.push(`${dt.toFixed(2)} T`);
       dayRows += `<div class="summary-day-row"><span class="summary-day-name">${dayNamesArr[d]}</span><span class="summary-day-hours">${parts.join(' + ')}</span></div>`;
 
@@ -2799,7 +2961,7 @@
           <div class="st-value">${n.toFixed(2)}</div>
         </div>
         <div class="st-box">
-          <div class="st-label">OT</div>
+          <div class="st-label">${tilEmp ? 'TIL Accrued' : 'OT'}</div>
           <div class="st-value">${o.toFixed(2)}</div>
         </div>
         <div class="st-box">
@@ -2811,6 +2973,11 @@
           <div class="st-value">${(n + o + t).toFixed(2)}</div>
         </div>
       </div>
+      ${tilEmp ? `
+      <div class="summary-til">
+        ⏳ <strong>Time in Lieu</strong> — opening ${tf.opening === null ? '—' : tf.opening.toFixed(2)} · +${tf.accrued.toFixed(2)} accrued · −${tf.taken.toFixed(2)} taken · closing <strong>${tf.closing === null ? '—' : tf.closing.toFixed(2)} hrs</strong>
+        ${tf.closing !== null && tf.closing < 0 ? `<div class="st-warn">TIL taken exceeds available balance by ${Math.abs(tf.closing).toFixed(2)} hrs</div>` : ''}
+      </div>` : ''}
       <div class="summary-day-list">${dayRows}</div>
       ${flags.length ? `<div>${flags.map(f => `<span class="summary-flag">${f}</span>`).join('')}</div>` : ''}
       ${comments ? `<div class="summary-comment"><strong>Notes:</strong> ${comments.replace(/</g, '&lt;')}</div>` : ''}
@@ -2848,10 +3015,7 @@
       return;
     }
 
-    const weekStart = new Date(weekStartStr);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    const weekEndStr = toLocalISO(addDays(parseLocalDate(weekStartStr), 6));
 
     window.BromarHub?.showLoading('Loading job sheets…', `Searching for ${userName}`);
 
@@ -2872,7 +3036,7 @@
         (sheet.labour || []).forEach(l => {
           if ((l.employee || '').trim().toLowerCase() !== userName.toLowerCase()) return;
 
-          const sheetDate = new Date(sheet.sheet_date);
+          const sheetDate = parseLocalDate(sheet.sheet_date);
           const jsDay = sheetDate.getDay();
           const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
           const key = `${dayIndex}::${sheet.job_number}`;
@@ -3064,10 +3228,13 @@
     const isApprentice = employeeType === 'Apprentice';
     const isAdminOps = employeeType === 'Admin' || employeeType === 'Operations';
     
-    // Update Overtime labels to TIL for Engineers
-    const allOvertimeLabels = document.querySelectorAll('.overtime-label');
-    allOvertimeLabels.forEach(label => {
-      label.textContent = isEngineer ? 'Time in Lieu (Accrued)' : 'Overtime Hours';
+    // TIL employees (Engineer / Junior Engineer / Admin) accrue TIL instead of overtime
+    const isTil = isTilEmployee();
+    document.querySelectorAll('.overtime-label').forEach(label => {
+      label.textContent = isTil ? 'TIL Accrued' : 'Overtime Hours';
+    });
+    document.querySelectorAll('.ph-worked-text').forEach(span => {
+      span.textContent = isTil ? 'Worked on this public holiday (accrue TIL)' : 'Worked on this public holiday (overtime rate)';
     });
     
     // Show/hide Construction Wiring based on employee type
@@ -3123,7 +3290,15 @@
     });
   }
   
-  employeeTypeSelect.addEventListener('change', updateEmployeeTypeOptions);
+  employeeTypeSelect.addEventListener('change', () => {
+    updateEmployeeTypeOptions();
+    if (isTilEmployee()) loadTilLedger();
+    updateWeekTotals();
+  });
+  // Manual email entry (not logged in) — reload balance for that email
+  document.getElementById('employee_email')?.addEventListener('change', () => {
+    if (isTilEmployee()) loadTilLedger(true);
+  });
   
   // Apply initial visibility on page load
   updateEmployeeTypeOptions();
