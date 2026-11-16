@@ -1,4 +1,4 @@
-// Submit Timesheet Function - V1.24 - 2026-10-13 - /netlify/functions/submit-timesheet.js
+// Submit Timesheet Function - V1.25 - 2026-11-03 - /netlify/functions/submit-timesheet.js
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -17,6 +17,18 @@ console.log('[boot] RESEND_API_KEY present =', !!process.env.RESEND_API_KEY);
 
 // Employee types that accrue Time in Lieu (1:1) instead of being paid overtime
 const TIL_EMPLOYEE_TYPES = ['Engineer', 'Junior Engineer', 'Admin'];
+
+// Normalise a YYYY-MM-DD week_starting to its Monday (pure date maths, UTC — no timezone drift).
+// A Sunday value is the old timezone bug (Monday saved a day early), so it moves forward to Monday.
+function normaliseToMonday(dateStr) {
+  if (!dateStr) return dateStr;
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay();                    // 0 Sun … 6 Sat
+  const shift = dow === 0 ? 1 : (1 - dow);       // Sun → +1, Tue–Sat → back to Monday
+  dt.setUTCDate(dt.getUTCDate() + shift);
+  return dt.toISOString().slice(0, 10);
+}
 
 // Initialize Supabase
 const supabase = createClient(
@@ -72,7 +84,10 @@ exports.handler = async (event) => {
     const employeeName = formData.employee_name;
     const employeeEmail = formData.employee_email;
     const employeeType = formData.employee_type;
-    const weekStarting = formData.week_starting;
+    const weekStarting = normaliseToMonday(formData.week_starting);
+    if (weekStarting !== formData.week_starting) {
+      console.log(`week_starting normalised ${formData.week_starting} → ${weekStarting}`);
+    }
     const standby = formData.standby === 'on';
     const generalComments = formData.general_comments || 'No additional comments';
     const allowanceFirstAid = formData.allowance_first_aid === 'on';
