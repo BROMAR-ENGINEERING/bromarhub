@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Employee Timesheet Submission - V1.30 - 2026-11-03 - /job-management/timesheet-submission.html -->
+<!-- Employee Timesheet Submission - V1.31 - 2026-11-17 - /job-management/timesheet-submission.html -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -922,7 +922,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.30</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.31</p>
       </div>
     </div>
   </div>
@@ -985,6 +985,15 @@
     const diff = day === 0 ? -6 : (1 - day); // Sunday belongs to the week that started the previous Monday
     d.setDate(d.getDate() + diff);
     return d;
+  }
+
+  // Normalise a STORED week value (auto-save / restore) to its Monday.
+  // A Sunday is the old timezone bug (Monday saved a day early) → move forward.
+  // Any other non-Monday → back to that week's Monday.
+  function normaliseStoredWeek(str) {
+    const d = parseLocalDate(str);
+    if (isNaN(d)) return str;
+    return toLocalISO(d.getDay() === 0 ? addDays(d, 1) : getWeekStarting(d));
   }
 
   function setWeekStarting(date) {
@@ -1082,7 +1091,7 @@
       
       // Restore week starting and regenerate days
       if (formData.week_starting) {
-        weekStartingInput.value = formData.week_starting;
+        weekStartingInput.value = normaliseStoredWeek(formData.week_starting);
         generateWeek();
         
         // Wait for DOM to update, then restore day data
@@ -1306,11 +1315,10 @@
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   function generateWeek() {
-    // Always work from the Monday — also corrects Sunday values restored from older auto-saves
-    const weekStart = getWeekStarting(parseLocalDate(weekStartingInput.value));
-    if (toLocalISO(weekStart) !== weekStartingInput.value) {
-      weekStartingInput.value = toLocalISO(weekStart);
-    }
+    // Always work from the Monday — corrects Sunday values left by older versions
+    const mondayIso = normaliseStoredWeek(weekStartingInput.value);
+    if (mondayIso !== weekStartingInput.value) weekStartingInput.value = mondayIso;
+    const weekStart = parseLocalDate(mondayIso);
     daysContainer.innerHTML = '';
 
     // Generate 7 days (Monday to Sunday) starting from the selected Monday
