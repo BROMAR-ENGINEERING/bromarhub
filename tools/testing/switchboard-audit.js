@@ -6,12 +6,14 @@
 window.BromarTest = window.BromarTest || {};
 window.BromarTest.SwitchboardAudit = (function () {
 
-  const VERSION = 'V1.03';
+  const VERSION = 'V1.05';
   const TABLE = 'testing_switchboard_audit';
   const BUCKET = 'testing';
   const FOLDER = 'switchboard-audit';
   const NAVY = [36, 59, 107], ORANGE = [234, 88, 12], MUTED = [107, 114, 128];
-  const ORG = { name: 'Bromar Electrical Services Pty Ltd', addr: '2/98-108 Western Ave, Westmeadows 3049', phoneRec: 'PH: 9335 5344    REC: 40430', web: 'www.bromar.com.au' };
+  const ORG = { name: 'Bromar Electrical Services AUST', addr: '2/98-108 Western Ave, Westmeadows 3049', phoneRec: 'PH: 9335 5344    REC: 40430', web: 'www.bromar.com.au' };
+  const WIP_TABLE = 'work_in_progress';
+  const WIP_KIND = 'test-switchboard';
 
   const CATEGORIES = [
     { name: 'General Access & Location', items: [
@@ -283,8 +285,9 @@ window.BromarTest.SwitchboardAudit = (function () {
       </div>
       <div class="sa-photo-grid" id="saPhotoGrid"></div>
       <div class="form-divider"></div>
+      <div id="saAutoSaveStatus" style="font-size:0.78rem;color:var(--text-secondary);text-align:center;margin-bottom:0.75rem;min-height:1.2em;"></div>
       <div class="submit-row">
-        <button class="btn-secondary" id="saSaveDraft" style="padding:0.875rem 1.5rem;">\uD83D\uDCBE Save Progress</button>
+        <button class="btn-secondary" id="saSaveDraft" style="padding:0.875rem 1.5rem;">\uD83D\uDCBE Save Draft</button>
         <button class="submit-btn" id="saSubmit">Submit Audit & Generate PDF</button>
       </div>
     `;
@@ -383,7 +386,24 @@ window.BromarTest.SwitchboardAudit = (function () {
     const photoGrid = container.querySelector('#saPhotoGrid');
     photoArea.addEventListener('click', () => photoInput.click());
     photoInput.addEventListener('change', e => {
-      Array.from(e.target.files || []).forEach(file => { const reader = new FileReader(); reader.onload = ev => { photos.push({ file, dataUrl: ev.target.result, description: '' }); renderPhotos(); }; reader.readAsDataURL(file); });
+      Array.from(e.target.files || []).forEach(file => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          /* Draw to canvas to apply EXIF orientation (browsers auto-correct) */
+          const MAX = 1200;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+          const cvs = document.createElement('canvas'); cvs.width = w; cvs.height = h;
+          cvs.getContext('2d').drawImage(img, 0, 0, w, h);
+          const corrected = cvs.toDataURL('image/jpeg', 0.85);
+          URL.revokeObjectURL(url);
+          photos.push({ file, dataUrl: corrected, description: '' });
+          renderPhotos();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); };
+        img.src = url;
+      });
       photoInput.value = '';
     });
     function renderPhotos() {
@@ -391,47 +411,108 @@ window.BromarTest.SwitchboardAudit = (function () {
       photoGrid.querySelectorAll('.sa-photo-card').forEach(card => { const idx = parseInt(card.dataset.idx); card.querySelector('textarea').addEventListener('input', e => { photos[idx].description = e.target.value; }); card.querySelector('.remove-btn').addEventListener('click', () => { photos.splice(idx, 1); renderPhotos(); }); });
     }
 
-    /* Submit + Save Draft */
-    let _draftId = null;
-    container.querySelector('#saSubmit').addEventListener('click', () => submitAudit(container, cfg));
-    container.querySelector('#saSaveDraft').addEventListener('click', async () => {
-      const data = collectData(container);
-      if (!data.auditor) { BromarHub.showInfo('Select an auditor before saving'); return; }
-      const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
-      BromarHub.showLoading('Saving draft...');
+    /* ── WIP Auto-save ── */
+    let _wipId = cfg.wipId || null;
+    let _draftId = (cfg.editRecord && cfg.editRecord.status === 'draft') ? cfg.editRecord.id : null;
+    let _autoSaveTimer = null;
+    const statusEl = container.querySelector('#saAutoSaveStatus');
+
+    async function getAuthUser() {
       try {
-        const record = { job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'draft' };
-        if (_draftId) { await sb.from(TABLE).update(record).eq('id', _draftId); }
-        else { const { data: ins, error } = await sb.from(TABLE).insert(record).select('id').single(); if (error) throw error; _draftId = ins.id; }
-        BromarHub.hideLoading(); BromarHub.showSuccess('Draft saved');
-      } catch (e) { BromarHub.hideLoading(); BromarHub.showInfo('Save failed: ' + (e.message || e)); }
+        const { data: { user } } = await (cfg.supabase || window.sb).auth.getUser();
+        return user || null;
+      } catch (_) { return null; }
+    }
+
+    async function wipSave(showBanner) {
+      const data = collectData(container);
+      const sb = cfg.supabase || window.sb;
+      const jobNumber = cfg.jobNumber || data.jobNumber;
+      const user = await getAuthUser();
+      const title = (jobNumber ? jobNumber + ' — ' : '') + (data.client || data.boardId || 'Switchboard Audit') + (data.boardId && data.client ? ' — ' + data.boardId : '');
+
+      try {
+        if (statusEl && !showBanner) statusEl.textContent = 'Saving...';
+        const wipRow = {
+          kind: WIP_KIND,
+          title: title || 'Switchboard Audit ' + data.date,
+          status: 'in_progress',
+          employee_email: user?.email || '',
+          employee_name: data.auditor || user?.user_metadata?.full_name || '',
+          job_number: jobNumber || '',
+          form_data: data,
+          last_saved_at: new Date().toISOString(),
+        };
+
+        if (_wipId) {
+          await sb.from(WIP_TABLE).update(wipRow).eq('id', _wipId);
+        } else {
+          const { data: ins, error } = await sb.from(WIP_TABLE).insert(wipRow).select('id').single();
+          if (error) throw error;
+          _wipId = ins.id;
+        }
+
+        const t = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+        if (statusEl) statusEl.innerHTML = '\u2713 Progress saved at ' + t;
+        if (showBanner) BromarHub.showSuccess('Draft saved');
+      } catch (e) {
+        console.warn('[SwitchboardAudit] WIP save failed:', e);
+        if (statusEl) statusEl.textContent = '';
+        if (showBanner) BromarHub.showInfo('Save failed: ' + (e.message || e));
+      }
+    }
+
+    function triggerAutoSave() {
+      clearTimeout(_autoSaveTimer);
+      _autoSaveTimer = setTimeout(() => wipSave(false), 15000);
+    }
+
+    container.addEventListener('change', triggerAutoSave);
+    container.addEventListener('input', e => {
+      if (e.target.matches('input, textarea, select')) triggerAutoSave();
     });
 
-    /* ── Pre-fill form when editing ── */
-    if (cfg.editRecord) {
-      const r = cfg.editRecord;
+    container.querySelector('#saSaveDraft').addEventListener('click', () => wipSave(true));
+    container.querySelector('#saSubmit').addEventListener('click', () => submitAudit(container, cfg, _draftId, _wipId));
+
+    /* ── Pre-fill: from editRecord, wipData, or URL ?wip= ── */
+    const prefillData = cfg.editRecord || cfg.wipData || null;
+    if (prefillData) {
+      const r = cfg.editRecord || {};
+      const wd = cfg.wipData?.form_data || {};
+      const src = cfg.editRecord ? r : wd;
+
       const set = (id, v) => { const el = container.querySelector('#' + id); if (el && v) el.value = v; };
-      set('saClient', r.client_name);
-      set('saSiteName', r.site_name);
-      set('saSiteAddress', r.site_address);
-      set('saBoardId', r.switchboard_id);
-      set('saLocation', r.location);
-      set('saDate', r.audit_date);
-      if (r.tested_by && auditorSel) { auditorSel.value = r.tested_by; auditorSel.disabled = false; }
-      /* Check radios */
-      if (Array.isArray(r.inspection_items)) {
-        r.inspection_items.forEach(item => {
+      set('saClient', src.client_name || src.client || '');
+      set('saSiteName', src.site_name || src.siteName || '');
+      set('saSiteAddress', src.site_address || src.siteAddress || '');
+      set('saBoardId', src.switchboard_id || src.boardId || '');
+      set('saLocation', src.location || '');
+      set('saDate', src.audit_date || src.date || '');
+      if (src.job_number || src.jobNumber) {
+        const jnEl = container.querySelector('#saJobNumber');
+        if (jnEl) jnEl.value = src.job_number || src.jobNumber || '';
+      }
+      const tester = src.tested_by || src.auditor || '';
+      if (tester && auditorSel) { auditorSel.value = tester; auditorSel.disabled = false; }
+
+      const items = src.inspection_items || src.items || [];
+      if (Array.isArray(items)) {
+        items.forEach(item => {
           if (item.result) {
             const radio = container.querySelector(`input[name="item_${item.num}"][value="${item.result}"]`);
             if (radio) radio.checked = true;
           }
         });
       }
-      /* Populate hazards */
-      if (Array.isArray(r.hazards)) r.hazards.forEach(h => addDynRow(hazardsContainer, h, null));
-      /* Populate remedial */
+      const hazardList = src.hazards || [];
+      if (Array.isArray(hazardList)) hazardList.forEach(h => addDynRow(hazardsContainer, h, null));
       const remedialContainer = container.querySelector('#saRemedial');
-      if (Array.isArray(r.remedial_works)) r.remedial_works.forEach(rw => addDynRow(remedialContainer, rw, null));
+      const remedialList = src.remedial_works || src.remedial || [];
+      if (Array.isArray(remedialList)) remedialList.forEach(rw => addDynRow(remedialContainer, rw, null));
+
+      if (cfg.wipData && statusEl) statusEl.textContent = '\u2713 Resuming work in progress';
+      if (cfg.editRecord?.status === 'draft' && statusEl) statusEl.textContent = '\u2713 Resuming saved draft';
     }
   }
 
@@ -474,27 +555,53 @@ window.BromarTest.SwitchboardAudit = (function () {
     }
   }
 
-  async function submitAudit(container, cfg) {
+  async function submitAudit(container, cfg, draftId, wipId) {
     const data = collectData(container);
     const err = validate(data, container);
     if (err) { showValidationError(container, err); return; }
     const sb = cfg.supabase;
     const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
+    const isDraftResume = cfg.editRecord && cfg.editRecord.status === 'draft';
+    const isEditRevision = cfg.editRecord && cfg.editRecord.status === 'completed';
     BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
     try {
       /* Revision control */
       let revMajor = 1, revMinor = 0, parentId = null;
-      if (cfg.editRecord) {
+      if (isEditRevision) {
         revMajor = cfg.editRecord.rev_major || 1;
         revMinor = (cfg.editRecord.rev_minor || 0) + 1;
         parentId = cfg.editRecord.parent_id || cfg.editRecord.id;
+      } else if (isDraftResume) {
+        revMajor = cfg.editRecord.rev_major || 1;
+        revMinor = cfg.editRecord.rev_minor || 0;
+        parentId = cfg.editRecord.parent_id || null;
       }
       const revStr = 'V' + revMajor + '.' + String(revMinor).padStart(2, '0');
 
       const record = { job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'completed', rev_major: revMajor, rev_minor: revMinor, parent_id: parentId };
-      const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
-      if (insertErr) throw insertErr;
-      const recordId = inserted.id;
+
+      let recordId;
+      if (isDraftResume && draftId) {
+        /* Update existing draft to completed */
+        const { error: upErr } = await sb.from(TABLE).update(record).eq('id', draftId);
+        if (upErr) throw upErr;
+        recordId = draftId;
+      } else if (isEditRevision) {
+        /* Create new revision record */
+        const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
+        if (insertErr) throw insertErr;
+        recordId = inserted.id;
+      } else {
+        /* New audit (or draft being completed for first time) */
+        if (draftId) {
+          await sb.from(TABLE).update(record).eq('id', draftId);
+          recordId = draftId;
+        } else {
+          const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
+          if (insertErr) throw insertErr;
+          recordId = inserted.id;
+        }
+      }
       const photoPaths = [];
       for (let i = 0; i < photos.length; i++) { const p = photos[i]; const ext = p.file.name.split('.').pop() || 'jpg'; const path = `${jobNumber}/${FOLDER}/${recordId}/photo_${i + 1}.${ext}`; const { error: upErr } = await sb.storage.from(BUCKET).upload(path, p.file, { upsert: true }); if (!upErr) photoPaths.push({ path, description: p.description }); }
       if (photoPaths.length) await sb.from(TABLE).update({ photos: photoPaths }).eq('id', recordId);
@@ -502,6 +609,12 @@ window.BromarTest.SwitchboardAudit = (function () {
       const pdfBlob = await generatePDF(data, jobNumber, revStr);
       const pdfPath = `${jobNumber}/${FOLDER}/${recordId}.pdf`;
       await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+      /* Delete WIP row on successful submit */
+      if (wipId) {
+        try { await sb.from(WIP_TABLE).delete().eq('id', wipId); } catch (_) {}
+      }
+
       BromarHub.hideLoading();
       const pdfUrl = URL.createObjectURL(pdfBlob);
       const fname = `${jobNumber}_Switchboard_Audit_${data.date}.pdf`;
