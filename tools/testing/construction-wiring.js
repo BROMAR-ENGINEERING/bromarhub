@@ -6,12 +6,12 @@
 window.BromarTest = window.BromarTest || {};
 window.BromarTest.ConstructionWiring = (function () {
 
-  const VERSION = 'V1.00';
+  const VERSION = 'V1.01';
   const TABLE = 'testing_construction_wiring';
   const BUCKET = 'testing';
   const FOLDER = 'construction-wiring';
   const NAVY = [36, 59, 107], ORANGE = [234, 88, 12], MUTED = [107, 114, 128];
-  const ORG = { name: 'Bromar Electrical Services Pty Ltd', addr: '2/98-108 Western Ave, Westmeadows 3049', phoneRec: 'PH: 9335 5344    REC: 40430', web: 'www.bromar.com.au' };
+  const ORG = { name: 'Bromar Electrical Services AUST', addr: '2/98-108 Western Ave, Westmeadows 3049', phoneRec: 'PH: 9335 5344    REC: 40430', web: 'www.bromar.com.au' };
 
   const CATEGORIES = [
     { name: 'General Site Compliance', items: [
@@ -142,7 +142,7 @@ window.BromarTest.ConstructionWiring = (function () {
     }
 
     container.innerHTML = `
-      ${cfg.onBack ? '<button class="cw-back" id="cwBack">← Back</button>' : ''}
+      ${cfg.onBack ? '<button class="cw-back" id="cwBack">← Back to Testing</button>' : ''}
       <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;">🔧 Construction Wiring Inspection (AS3012)</h3>
       <div class="section-label">Job Details</div>
       ${cfg.jobNumber ? '' : `<div class="field-row"><div class="field-group full" style="grid-column:1/-1;"><label>Job Number <span class="required">*</span></label><div class="autocomplete-wrapper"><input type="text" id="cwJobNumber" placeholder="Search job number, client, or site..." autocomplete="off"><div class="autocomplete-results" id="cwJobResults"></div></div></div></div>`}
@@ -152,6 +152,7 @@ window.BromarTest.ConstructionWiring = (function () {
       <div class="section-label">Inspection Items</div>
       <table class="cw-table"><thead><tr><th>Item</th><th>Description</th><th>Pass / Fail</th><th>N/A</th></tr></thead><tbody>${checklistHtml}</tbody></table>
       <div class="section-label">Non-Compliance / Issues Identified</div>
+      <p style="font-size:0.8rem;color:var(--text-secondary);margin:-0.5rem 0 1rem;line-height:1.5;">Items marked as Fail are automatically added below. You can edit the text or add more detail as needed.</p>
       <div class="cw-dynamic-list" id="cwIssues"></div><button class="add-btn" id="cwAddIssue">+ Add Issue</button>
       <div class="section-label">Corrective Actions Required</div>
       <div class="cw-dynamic-list" id="cwActions"></div><button class="add-btn" id="cwAddAction">+ Add Corrective Action</button>
@@ -231,7 +232,26 @@ window.BromarTest.ConstructionWiring = (function () {
 
     const photoArea = container.querySelector('#cwPhotoArea'); const photoInput = container.querySelector('#cwPhotoInput'); const photoGrid = container.querySelector('#cwPhotoGrid');
     photoArea.addEventListener('click', () => photoInput.click());
-    photoInput.addEventListener('change', e => { Array.from(e.target.files||[]).forEach(file => { const reader = new FileReader(); reader.onload = ev => { photos.push({ file, dataUrl: ev.target.result, description: '' }); renderPhotos(); }; reader.readAsDataURL(file); }); photoInput.value = ''; });
+    photoInput.addEventListener('change', e => {
+      Array.from(e.target.files||[]).forEach(file => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 1200;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+          const cvs = document.createElement('canvas'); cvs.width = w; cvs.height = h;
+          cvs.getContext('2d').drawImage(img, 0, 0, w, h);
+          const corrected = cvs.toDataURL('image/jpeg', 0.85);
+          URL.revokeObjectURL(url);
+          photos.push({ file, dataUrl: corrected, description: '' });
+          renderPhotos();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); };
+        img.src = url;
+      });
+      photoInput.value = '';
+    });
     function renderPhotos() {
       photoGrid.innerHTML = photos.map((p, i) => `<div class="cw-photo-card" data-idx="${i}"><img src="${p.dataUrl}" alt="Photo ${i+1}"><textarea placeholder="Description...">${esc(p.description)}</textarea><button class="remove-btn" type="button">Remove</button></div>`).join('');
       photoGrid.querySelectorAll('.cw-photo-card').forEach(card => { const idx = parseInt(card.dataset.idx); card.querySelector('textarea').addEventListener('input', e => { photos[idx].description = e.target.value; }); card.querySelector('.remove-btn').addEventListener('click', () => { photos.splice(idx, 1); renderPhotos(); }); });
@@ -265,17 +285,25 @@ window.BromarTest.ConstructionWiring = (function () {
     };
   }
 
-  function validate(data) {
-    if (!data.inspector) return 'Inspector is required';
-    if (!data.date) return 'Date is required';
+  function validate(data, container) {
+    if (!data.inspector) return { msg: 'Inspector is required', el: '#cwInspector' };
+    if (!data.date) return { msg: 'Date is required', el: '#cwDate' };
     const un = data.items.filter(i => !i.result);
-    if (un.length) return `${un.length} item(s) not answered (item ${un[0].num})`;
+    if (un.length) return { msg: `${un.length} item(s) not answered (item ${un[0].num})`, el: `input[name="cw_item_${un[0].num}"]` };
     return null;
   }
 
+  function showValidationError(container, result) {
+    BromarHub.showInfo(result.msg);
+    if (result.el) {
+      const target = container.querySelector(result.el);
+      if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.focus?.(); target.style.outline = '2px solid var(--error)'; setTimeout(() => { target.style.outline = ''; }, 3000); }
+    }
+  }
+
   async function submitInspection(container, cfg) {
-    const data = collectData(container); const err = validate(data);
-    if (err) { BromarHub.showInfo(err); return; }
+    const data = collectData(container); const err = validate(data, container);
+    if (err) { showValidationError(container, err); return; }
     const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating inspection...', 'Creating PDF and saving');
     try {
