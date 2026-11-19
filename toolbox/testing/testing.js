@@ -35,7 +35,7 @@
 
   function makeConfig(job, goBack, editRecord) {
     return {
-      jobNumber: String(JM.state.selectedJob || ''),
+      jobNumber: typeof JM.state.selectedJob === 'object' && JM.state.selectedJob !== null ? (JM.state.selectedJob.job_number || '') : String(JM.state.selectedJob || ''),
       clientName: job?.client_name || '',
       siteName: job?.site_name || '',
       siteAddress: job?.site_address || '',
@@ -64,7 +64,8 @@
     label: 'Testing', icon: '🧪',
     count: d => d.testing.length,
     async render(panel, d, job) {
-      const jobNumber = JM.state.selectedJob;
+      const raw = JM.state.selectedJob;
+      const jobNumber = typeof raw === 'object' && raw !== null ? (raw.job_number || raw.jobNumber || String(raw)) : String(raw || '');
 
       panel.innerHTML = `
         <div style="margin-bottom:2rem;">
