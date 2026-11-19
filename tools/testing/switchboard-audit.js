@@ -331,7 +331,7 @@ window.BromarTest.SwitchboardAudit = (function () {
       try {
         if (cfg.supabase) {
           const { data: { user } } = await cfg.supabase.auth.getUser();
-          if (user?.email) { const m = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase()); if (m) { auditorSel.value = m.full_name; auditorSel.disabled = true; return; } }
+          if (user?.email) { const m = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase()); if (m) { auditorSel.value = m.full_name; if (!cfg.editRecord && !cfg.wipData) auditorSel.disabled = true; return; } }
         }
         if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
       } catch (_) { if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name; }
@@ -424,7 +424,10 @@ window.BromarTest.SwitchboardAudit = (function () {
       } catch (_) { return null; }
     }
 
+    let _submitting = false;
+
     async function wipSave(showBanner) {
+      if (_submitting) return;
       const data = collectData(container);
       const sb = cfg.supabase || window.sb;
       const jobNumber = cfg.jobNumber || data.jobNumber;
@@ -556,9 +559,11 @@ window.BromarTest.SwitchboardAudit = (function () {
   }
 
   async function submitAudit(container, cfg, draftId, wipId) {
+    _submitting = true;
+    clearTimeout(_autoSaveTimer);
     const data = collectData(container);
     const err = validate(data, container);
-    if (err) { showValidationError(container, err); return; }
+    if (err) { _submitting = false; showValidationError(container, err); return; }
     const sb = cfg.supabase;
     const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     const isDraftResume = cfg.editRecord && cfg.editRecord.status === 'draft';
