@@ -572,7 +572,6 @@ window.BromarTest.SwitchboardAudit = (function () {
 
   async function submitAudit(container, cfg, draftId, wipId) {
     _submitting = true;
-    clearTimeout(_autoSaveTimer);
     const data = collectData(container);
     const err = validate(data, container);
     if (err) { _submitting = false; showValidationError(container, err); return; }
