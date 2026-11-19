@@ -6,7 +6,7 @@
 window.BromarTest = window.BromarTest || {};
 window.BromarTest.SwitchboardAudit = (function () {
 
-  const VERSION = 'V1.05';
+  const VERSION = 'V1.06';
   const TABLE = 'testing_switchboard_audit';
   const BUCKET = 'testing';
   const FOLDER = 'switchboard-audit';
@@ -203,21 +203,62 @@ window.BromarTest.SwitchboardAudit = (function () {
     });
   }
 
+  /* Load jsPDF and the autoTable plugin independently — host pages may already load jsPDF without autoTable */
   let _jspdfPromise = null;
-  function ensureJsPDF() {
-    if (window.jspdf) return Promise.resolve();
-    if (_jspdfPromise) return _jspdfPromise;
-    _jspdfPromise = new Promise((resolve, reject) => {
-      const s1 = document.createElement('script'); s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      s1.onload = () => { const s2 = document.createElement('script'); s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'; s2.onload = resolve; s2.onerror = reject; document.head.appendChild(s2); };
-      s1.onerror = reject; document.head.appendChild(s1);
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script'); s.src = src;
+      s.onload = resolve; s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
     });
+  }
+  function ensureJsPDF() {
+    const hasCore = () => !!(window.jspdf && window.jspdf.jsPDF);
+    const hasAutoTable = () => hasCore() && typeof window.jspdf.jsPDF.API.autoTable === 'function';
+    if (hasAutoTable()) return Promise.resolve();
+    if (_jspdfPromise) return _jspdfPromise;
+    _jspdfPromise = (async () => {
+      if (!hasCore()) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      if (!hasAutoTable()) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+      if (!hasAutoTable()) throw new Error('PDF table plugin did not load');
+    })();
+    _jspdfPromise.catch(() => { _jspdfPromise = null; });
     return _jspdfPromise;
   }
 
+  /* Convert a data URL to a Blob for upload */
+  function dataUrlToBlob(dataUrl) {
+    const [head, b64] = dataUrl.split(',');
+    const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+    const bin = atob(b64); const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  /* Download a stored photo and return an upright JPEG data URL */
+  async function storedPhotoToDataUrl(sb, path) {
+    const { data: blob, error } = await sb.storage.from(BUCKET).download(path);
+    if (error || !blob) return null;
+    const url = URL.createObjectURL(blob);
+    try {
+      return await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const cvs = document.createElement('canvas'); cvs.width = img.naturalWidth; cvs.height = img.naturalHeight;
+          cvs.getContext('2d').drawImage(img, 0, 0);
+          resolve(cvs.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  let _submitting = false;
+
   /* ── Render form ── */
   function renderForm(container, config) {
-    injectStyles(); photos = [];
+    injectStyles(); photos = []; _submitting = false;
     const cfg = config || {};
     const today = new Date().toISOString().split('T')[0];
 
@@ -427,11 +468,10 @@ window.BromarTest.SwitchboardAudit = (function () {
       } catch (_) { return null; }
     }
 
-    let _submitting = false;
-
     async function wipSave(showBanner) {
       if (_submitting) return;
       const data = collectData(container);
+      delete data.photos; /* photos are not stored in WIP — too large */
       const sb = cfg.supabase || window.sb;
       const jobNumber = cfg.jobNumber || data.jobNumber;
       const user = await getAuthUser();
@@ -479,7 +519,7 @@ window.BromarTest.SwitchboardAudit = (function () {
     });
 
     container.querySelector('#saSaveDraft').addEventListener('click', () => wipSave(true));
-    container.querySelector('#saSubmit').addEventListener('click', () => submitAudit(container, cfg, _draftId, _wipId));
+    container.querySelector('#saSubmit').addEventListener('click', () => { clearTimeout(_autoSaveTimer); submitAudit(container, cfg, _draftId, _wipId); });
 
     /* ── Pre-fill: from editRecord, wipData, or URL ?wip= ── */
     const prefillData = cfg.editRecord || cfg.wipData || null;
@@ -528,6 +568,18 @@ window.BromarTest.SwitchboardAudit = (function () {
 
       if (cfg.wipData && statusEl) statusEl.textContent = '\u2713 Resuming work in progress';
       if (cfg.editRecord?.status === 'draft' && statusEl) statusEl.textContent = '\u2713 Resuming saved draft';
+
+      /* Load existing photos so they carry forward into the new revision */
+      const storedPhotos = Array.isArray(cfg.editRecord?.photos) ? cfg.editRecord.photos : [];
+      if (storedPhotos.length && cfg.supabase) {
+        (async () => {
+          for (const sp of storedPhotos) {
+            if (!sp?.path) continue;
+            const dataUrl = await storedPhotoToDataUrl(cfg.supabase, sp.path);
+            if (dataUrl) { photos.push({ file: null, dataUrl, description: sp.description || '' }); renderPhotos(); }
+          }
+        })();
+      }
     }
   }
 
@@ -571,14 +623,17 @@ window.BromarTest.SwitchboardAudit = (function () {
   }
 
   async function submitAudit(container, cfg, draftId, wipId) {
-    _submitting = true;
+    if (_submitting) return;
     const data = collectData(container);
     const err = validate(data, container);
-    if (err) { _submitting = false; showValidationError(container, err); return; }
-    const sb = cfg.supabase;
+    if (err) { showValidationError(container, err); return; }
+    _submitting = true;
+    const submitBtn = container.querySelector('#saSubmit');
+    if (submitBtn) submitBtn.disabled = true;
+    const sb = cfg.supabase || window.sb;
     const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     const isDraftResume = cfg.editRecord && cfg.editRecord.status === 'draft';
-    const isEditRevision = cfg.editRecord && cfg.editRecord.status === 'completed';
+    const isEditRevision = cfg.editRecord && cfg.editRecord.status !== 'draft';
     BromarHub.showLoading('Generating audit...', 'Creating PDF and saving record');
     try {
       /* Revision control */
@@ -594,37 +649,36 @@ window.BromarTest.SwitchboardAudit = (function () {
       }
       const revStr = 'V' + revMajor + '.' + String(revMinor).padStart(2, '0');
 
-      const record = { job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: [], status: 'completed', rev_major: revMajor, rev_minor: revMinor, parent_id: parentId };
+      /* Record id decided up front so files can be stored before the DB write */
+      const recordId = (isDraftResume && draftId) ? draftId
+        : (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }));
 
-      let recordId;
-      if (isDraftResume && draftId) {
-        /* Update existing draft to completed */
-        const { error: upErr } = await sb.from(TABLE).update(record).eq('id', draftId);
-        if (upErr) throw upErr;
-        recordId = draftId;
-      } else if (isEditRevision) {
-        /* Create new revision record */
-        const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
-        if (insertErr) throw insertErr;
-        recordId = inserted.id;
-      } else {
-        /* New audit (or draft being completed for first time) */
-        if (draftId) {
-          await sb.from(TABLE).update(record).eq('id', draftId);
-          recordId = draftId;
-        } else {
-          const { data: inserted, error: insertErr } = await sb.from(TABLE).insert(record).select('id').single();
-          if (insertErr) throw insertErr;
-          recordId = inserted.id;
-        }
-      }
-      const photoPaths = [];
-      for (let i = 0; i < photos.length; i++) { const p = photos[i]; const ext = p.file.name.split('.').pop() || 'jpg'; const path = `${jobNumber}/${FOLDER}/${recordId}/photo_${i + 1}.${ext}`; const { error: upErr } = await sb.storage.from(BUCKET).upload(path, p.file, { upsert: true }); if (!upErr) photoPaths.push({ path, description: p.description }); }
-      if (photoPaths.length) await sb.from(TABLE).update({ photos: photoPaths }).eq('id', recordId);
+      /* 1. Build the PDF first — if this fails nothing is saved */
       BromarHub.showLoading('Generating PDF...', 'Please wait');
       const pdfBlob = await generatePDF(data, jobNumber, revStr);
+
+      /* 2. Upload photos (upright JPEGs) */
+      BromarHub.showLoading('Uploading photos...', photos.length ? photos.length + ' photo(s)' : '');
+      const photoPaths = [];
+      for (let i = 0; i < photos.length; i++) {
+        const path = `${jobNumber}/${FOLDER}/${recordId}/photo_${i + 1}.jpg`;
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(path, dataUrlToBlob(photos[i].dataUrl), { contentType: 'image/jpeg', upsert: true });
+        if (upErr) throw new Error('Photo ' + (i + 1) + ' upload failed: ' + upErr.message);
+        photoPaths.push({ path, description: photos[i].description || '' });
+      }
+
+      /* 3. Upload PDF */
       const pdfPath = `${jobNumber}/${FOLDER}/${recordId}.pdf`;
-      await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+      const { error: pdfErr } = await sb.storage.from(BUCKET).upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+      if (pdfErr) throw new Error('PDF upload failed: ' + pdfErr.message);
+
+      /* 4. Save the record last */
+      BromarHub.showLoading('Saving record...', '');
+      const record = { id: recordId, job_number: jobNumber, client_name: data.client, site_name: data.siteName, site_address: data.siteAddress, switchboard_id: data.boardId, location: data.location, tested_by: data.auditor, audit_date: data.date, inspection_items: data.items, hazards: data.hazards, remedial_works: data.remedial, photos: photoPaths, status: 'completed', rev_major: revMajor, rev_minor: revMinor, parent_id: parentId, updated_at: new Date().toISOString() };
+      const { error: saveErr } = (isDraftResume && draftId)
+        ? await sb.from(TABLE).update(record).eq('id', draftId)
+        : await sb.from(TABLE).insert(record);
+      if (saveErr) throw saveErr;
 
       /* Delete WIP row on successful submit */
       if (wipId) {
@@ -637,7 +691,13 @@ window.BromarTest.SwitchboardAudit = (function () {
       container.innerHTML = `<div class="pdf-actions show"><h3>\u2705 Switchboard Audit Saved</h3><p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0.5rem;">PDF generated and uploaded to storage.</p><div class="pdf-actions-buttons"><a href="${pdfUrl}" download="${fname}" class="pdf-btn" id="saDownloadPdf">\uD83D\uDCE5 Download PDF</a><button class="pdf-btn" id="saViewPdf">\uD83D\uDC41 View PDF</button><button class="pdf-btn" id="saDone">\u2713 Done</button></div></div>`;
       container.querySelector('#saViewPdf').addEventListener('click', () => window.open(pdfUrl, '_blank'));
       container.querySelector('#saDone').addEventListener('click', () => { URL.revokeObjectURL(pdfUrl); if (cfg.onComplete) cfg.onComplete(); });
-    } catch (e) { console.error('[SwitchboardAudit]', e); BromarHub.hideLoading(); BromarHub.showInfo('Error saving audit: ' + (e.message || e)); }
+    } catch (e) {
+      console.error('[SwitchboardAudit]', e);
+      BromarHub.hideLoading();
+      BromarHub.showInfo('Error saving audit: ' + (e.message || e) + ' — nothing was saved, you can try again.');
+      _submitting = false;
+      if (submitBtn) submitBtn.disabled = false;
+    }
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -744,14 +804,28 @@ window.BromarTest.SwitchboardAudit = (function () {
     if (photos.length > 0) {
       doc.addPage(); stamp(); y = 26;
       doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(...NAVY); doc.text('Photos', M, y); y += 8;
-      const photoW = 85, photoH = 65, gap = 8, cols = 2;
+      /* Each cell is 87 x 100mm; photo is fitted inside keeping its aspect ratio, centred */
+      const cellW = 87, cellH = 100, gap = 8, cols = 2;
       for (let i = 0; i < photos.length; i++) {
         const col = i % cols;
-        if (col === 0 && i > 0) y += photoH + 22;
-        if (y + photoH + 22 > 280) { doc.addPage(); stamp(); y = 26; }
-        const px = M + col * (photoW + gap);
-        try { doc.addImage(photos[i].dataUrl, 'JPEG', px, y, photoW, photoH); } catch (_) { doc.setDrawColor(200); doc.rect(px, y, photoW, photoH); }
-        if (photos[i].description) { doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED); doc.text(doc.splitTextToSize(photos[i].description, photoW).slice(0, 3), px, y + photoH + 4); }
+        if (col === 0 && i > 0) y += cellH + 18;
+        if (y + cellH + 18 > 280) { doc.addPage(); stamp(); y = 26; }
+        const px = M + col * (cellW + gap);
+        try {
+          const props = doc.getImageProperties(photos[i].dataUrl);
+          const ratio = props.width / props.height;
+          let w = cellW, h = cellW / ratio;
+          if (h > cellH) { h = cellH; w = cellH * ratio; }
+          const ox = px + (cellW - w) / 2, oy = y + (cellH - h) / 2;
+          doc.setFillColor(244, 247, 252).rect(px, y, cellW, cellH, 'F');
+          doc.addImage(photos[i].dataUrl, 'JPEG', ox, oy, w, h);
+        } catch (_) { doc.setDrawColor(200); doc.rect(px, y, cellW, cellH); }
+        doc.setFont('helvetica', 'bold').setFontSize(7.5).setTextColor(...NAVY);
+        doc.text('Photo ' + (i + 1), px, y + cellH + 4);
+        if (photos[i].description) {
+          doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...MUTED);
+          doc.text(doc.splitTextToSize(photos[i].description, cellW).slice(0, 3), px, y + cellH + 8);
+        }
       }
     }
 
