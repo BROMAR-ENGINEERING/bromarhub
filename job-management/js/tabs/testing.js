@@ -15,7 +15,7 @@
     for (const t of TEST_TYPES) {
       try {
         const { data, error } = await sb.from(t.table)
-          .select('id, created_at, tested_by, status, site_name, switchboard_id, rev_major, rev_minor, parent_id')
+          .select('*')
           .eq('job_number', jobNumber)
           .order('created_at', { ascending: false });
         if (!error && data) data.forEach(row => results.push({ ...row, _type: t }));
@@ -35,7 +35,7 @@
 
   function makeConfig(job, goBack, editRecord) {
     return {
-      jobNumber: String(JM.state.selectedJob || ''),
+      jobNumber: typeof JM.state.selectedJob === 'object' && JM.state.selectedJob !== null ? (JM.state.selectedJob.job_number || '') : String(JM.state.selectedJob || ''),
       clientName: job?.client_name || '',
       siteName: job?.site_name || '',
       siteAddress: job?.site_address || '',
@@ -64,7 +64,8 @@
     label: 'Testing', icon: '🧪',
     count: d => d.testing.length,
     async render(panel, d, job) {
-      const jobNumber = JM.state.selectedJob;
+      const raw = JM.state.selectedJob;
+      const jobNumber = typeof raw === 'object' && raw !== null ? (raw.job_number || raw.jobNumber || String(raw)) : String(raw || '');
 
       panel.innerHTML = `
         <div style="margin-bottom:2rem;">
@@ -103,19 +104,25 @@
         const t = row._type;
         const date = JM.fmtDate(row.created_at);
         const status = row.status || 'completed';
+        const isDraft = status === 'draft';
         const rev = (row.rev_major != null && row.rev_minor != null) ? `V${row.rev_major}.${String(row.rev_minor).padStart(2, '0')}` : '';
         const label = row.switchboard_id ? `${JM.esc(t.label)} — ${JM.esc(row.switchboard_id)}` : JM.esc(t.label);
+        const statusBadge = isDraft
+          ? '<span style="font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:20px;background:rgba(234,88,12,0.12);color:var(--accent);">DRAFT</span>'
+          : JM.statusBadge(status);
         return `
-          <div class="tool-card" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem 1rem;margin-bottom:0.5rem;border-radius:10px;" data-type="${t.key}" data-id="${row.id}" data-table="${t.table}">
+          <div class="tool-card" style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem 1rem;margin-bottom:0.5rem;border-radius:10px;${isDraft ? 'border-left:3px solid var(--accent);' : ''}" data-type="${t.key}" data-id="${row.id}" data-table="${t.table}">
             <span style="font-size:1.25rem;">${t.icon}</span>
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary);">${label}${rev ? ' <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:500;font-family:\'JetBrains Mono\',monospace;">' + rev + '</span>' : ''}</div>
               <div style="font-size:0.78rem;color:var(--text-secondary);">${date}${row.site_name ? ' · ' + JM.esc(row.site_name) : ''}${row.tested_by ? ' · ' + JM.esc(row.tested_by) : ''}</div>
             </div>
-            ${JM.statusBadge(status)}
+            ${statusBadge}
             <div style="display:flex;gap:4px;">
-              <button class="btn-secondary test-view-btn" data-type="${t.key}" data-id="${row.id}" style="padding:4px 10px;font-size:0.75rem;" title="View PDF">📄</button>
-              <button class="btn-secondary test-edit-btn" data-type="${t.key}" data-id="${row.id}" data-table="${t.table}" style="padding:4px 10px;font-size:0.75rem;" title="Edit / New Revision">✏️</button>
+              ${isDraft
+                ? '<button class="btn-secondary test-edit-btn" data-type="' + t.key + '" data-id="' + row.id + '" data-table="' + t.table + '" style="padding:4px 10px;font-size:0.75rem;color:var(--accent);border-color:var(--accent);" title="Resume draft">▶ Resume</button>'
+                : '<button class="btn-secondary test-view-btn" data-type="' + t.key + '" data-id="' + row.id + '" style="padding:4px 10px;font-size:0.75rem;" title="View PDF">📄</button><button class="btn-secondary test-edit-btn" data-type="' + t.key + '" data-id="' + row.id + '" data-table="' + t.table + '" style="padding:4px 10px;font-size:0.75rem;" title="Edit / New Revision">✏️</button>'
+              }
             </div>
           </div>`;
       }).join('');
