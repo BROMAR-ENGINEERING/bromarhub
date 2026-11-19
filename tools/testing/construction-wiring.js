@@ -202,7 +202,7 @@ window.BromarTest.ConstructionWiring = (function () {
           const { data: { user } } = await cfg.supabase.auth.getUser();
           if (user?.email) {
             const match = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase());
-            if (match) { inspSel.value = match.full_name; inspSel.disabled = true; return; }
+            if (match) { inspSel.value = match.full_name; if (!cfg.editRecord && !cfg.wipData) inspSel.disabled = true; return; }
           }
         }
         if (cfg.currentUser?.name) inspSel.value = cfg.currentUser.name;
@@ -257,6 +257,7 @@ window.BromarTest.ConstructionWiring = (function () {
       photoGrid.querySelectorAll('.cw-photo-card').forEach(card => { const idx = parseInt(card.dataset.idx); card.querySelector('textarea').addEventListener('input', e => { photos[idx].description = e.target.value; }); card.querySelector('.remove-btn').addEventListener('click', () => { photos.splice(idx, 1); renderPhotos(); }); });
     }
     let _draftId = null;
+    let _submitting = false;
     container.querySelector('#cwSubmit').addEventListener('click', () => submitInspection(container, cfg));
     container.querySelector('#cwSaveDraft').addEventListener('click', async () => {
       const data = collectData(container);
@@ -302,8 +303,9 @@ window.BromarTest.ConstructionWiring = (function () {
   }
 
   async function submitInspection(container, cfg) {
+    _submitting = true;
     const data = collectData(container); const err = validate(data, container);
-    if (err) { showValidationError(container, err); return; }
+    if (err) { _submitting = false; showValidationError(container, err); return; }
     const sb = cfg.supabase; const jobNumber = cfg.jobNumber || data.jobNumber || 'STANDALONE';
     BromarHub.showLoading('Generating inspection...', 'Creating PDF and saving');
     try {
