@@ -327,15 +327,18 @@ window.BromarTest.SwitchboardAudit = (function () {
     /* Auditor auto-fill */
     const auditorSel = container.querySelector('#saAuditor');
     (cfg.employees || []).forEach(e => { const o = document.createElement('option'); o.value = e.full_name; o.textContent = e.full_name; o.dataset.email = e.email || ''; auditorSel.appendChild(o); });
-    (async () => {
-      try {
-        if (cfg.supabase) {
-          const { data: { user } } = await cfg.supabase.auth.getUser();
-          if (user?.email) { const m = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase()); if (m) { auditorSel.value = m.full_name; if (!cfg.editRecord && !cfg.wipData) auditorSel.disabled = true; return; } }
-        }
-        if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
-      } catch (_) { if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name; }
-    })();
+    /* Auto-fill auditor only on new audits (not edit/resume) */
+    if (!cfg.editRecord && !cfg.wipData) {
+      (async () => {
+        try {
+          if (cfg.supabase) {
+            const { data: { user } } = await cfg.supabase.auth.getUser();
+            if (user?.email) { const m = (cfg.employees || []).find(e => e.email?.toLowerCase() === user.email.toLowerCase()); if (m) { auditorSel.value = m.full_name; auditorSel.disabled = true; return; } }
+          }
+          if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name;
+        } catch (_) { if (cfg.currentUser?.name) auditorSel.value = cfg.currentUser.name; }
+      })();
+    }
 
     /* Info popup */
     const overlay = container.querySelector('#saInfoOverlay');
@@ -497,7 +500,16 @@ window.BromarTest.SwitchboardAudit = (function () {
         if (jnEl) jnEl.value = src.job_number || src.jobNumber || '';
       }
       const tester = src.tested_by || src.auditor || '';
-      if (tester && auditorSel) { auditorSel.value = tester; auditorSel.disabled = false; }
+      if (tester && auditorSel) {
+        /* Ensure the name exists as an option */
+        if (!Array.from(auditorSel.options).some(o => o.value === tester)) {
+          const opt = document.createElement('option');
+          opt.value = tester; opt.textContent = tester;
+          auditorSel.appendChild(opt);
+        }
+        auditorSel.value = tester;
+        auditorSel.disabled = false;
+      }
 
       const items = src.inspection_items || src.items || [];
       if (Array.isArray(items)) {
