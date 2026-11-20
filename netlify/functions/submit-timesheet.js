@@ -1,4 +1,4 @@
-// Submit Timesheet Function - V1.25 - 2026-11-03 - /netlify/functions/submit-timesheet.js
+// Submit Timesheet Function - V1.26 - 2026-11-20 - /netlify/functions/submit-timesheet.js
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -141,8 +141,8 @@ exports.handler = async (event) => {
           foundJobsForDay++;
           const jobNumber = formData[`${jobPrefix}_number`] || '-';
           const client = formData[`${jobPrefix}_client`] || '-';
-          const siteAllowance = formData[`${jobPrefix}_site_allowance`] === 'on';
-          const jobOwncar = formData[`${jobPrefix}_owncar`] === 'on';
+          const siteAllowance = ['on', 'Yes'].includes(formData[`${jobPrefix}_site_allowance`]);
+          const jobOwncar = ['on', 'Yes'].includes(formData[`${jobPrefix}_owncar`]);
           const jobOwncarKm = formData[`${jobPrefix}_owncar_km`] || '0';
           const calloutReceived = formData[`${jobPrefix}_callout_received`] || null;
           const calloutComplete = formData[`${jobPrefix}_callout_complete`] || null;
@@ -234,6 +234,23 @@ exports.handler = async (event) => {
     if (dbError) {
       console.error('Supabase error:', dbError);
       throw new Error(`Failed to save to database: ${dbError.message || dbError.details || dbError.hint || 'unknown'}`);
+    }
+
+    // ============================================
+    // MARK DRAFT AS SUBMITTED (best-effort — never fails the submission)
+    // ============================================
+    if (employeeEmail) {
+      try {
+        const { error: draftErr } = await supabase
+          .from('timesheet_drafts')
+          .update({ status: 'submitted', submitted_at: new Date().toISOString(), timesheet_id: timesheetRecord.id })
+          .eq('employee_email', String(employeeEmail).trim().toLowerCase())
+          .eq('week_starting', weekStarting)
+          .eq('status', 'draft');
+        if (draftErr) console.warn('Draft status update failed:', draftErr.message);
+      } catch (draftEx) {
+        console.warn('Draft status update exception:', draftEx.message);
+      }
     }
 
     // ============================================
