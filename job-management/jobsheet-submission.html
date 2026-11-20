@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.83 — 2026-10-12 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.84 — 2026-11-20 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -70,19 +70,17 @@
 </div>
 
 <div class="page-wrapper">
-  <!-- Draft resume banner -->
-<div id="draftBanner" style="display:none; margin-bottom:1rem; background:var(--info-bg); border:1px solid var(--info-border); border-radius:12px; padding:1rem 1.25rem;">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-    <div>
-      <div style="font-weight:600; color:var(--info-text); margin-bottom:2px;">📋 You have an unfinished job sheet</div>
-      <div id="draftBannerDetail" style="font-size:0.82rem; color:var(--text-secondary);"></div>
-    </div>
-    <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-      <button type="button" id="draftDiscardBtn" class="btn-secondary" style="padding:0.5rem 1rem; font-size:0.85rem;">Discard</button>
-      <button type="button" id="draftResumeBtn" class="submit-btn"    style="padding:0.5rem 1rem; font-size:0.85rem;">Resume</button>
-    </div>
-  </div>
-</div>
+  <!-- Draft banner — Claude drafts (🤖) and unfinished autosaves, filled by renderDraftBanner() -->
+<div id="draftBanner" style="display:none; margin-bottom:1rem; background:var(--info-bg); border:1px solid var(--info-border); border-radius:12px; padding:1rem 1.25rem;"></div>
+<style>
+  .draft-row { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; padding:0.6rem 0; }
+  .draft-row + .draft-row { border-top:1px solid var(--info-border); }
+  .draft-row-title { font-weight:600; color:var(--info-text); font-size:0.92rem; }
+  .draft-row-detail { font-size:0.8rem; color:var(--text-secondary); }
+  .draft-row-btns { display:flex; gap:0.5rem; flex-shrink:0; }
+  .draft-row-btns button { padding:0.45rem 0.9rem; font-size:0.82rem; }
+  .claude-badge { display:inline-block; margin-left:6px; font-size:0.7rem; font-weight:700; color:var(--accent); background:var(--card-hover); border:1px solid var(--accent); border-radius:10px; padding:0 6px; vertical-align:middle; }
+</style>
 
 <div class="form-card">
     <form id="jobSheetForm" novalidate autocomplete="off">
@@ -133,7 +131,17 @@
             <input type="radio" id="new_job" name="job_type" value="new"/>
             <label for="new_job">✨ Create New Job</label>
           </div>
+          <div class="radio-option">
+            <input type="radio" id="enter_job" name="job_type" value="enter"/>
+            <label for="enter_job">🔢 Enter Existing Job Number</label>
+          </div>
         </div>
+        <style>
+          @media (max-width: 620px) { .job-number-toggle { flex-direction:column; } }
+          #new-job-fields.enter-mode #nextJobPreviewWrap { display:none; }
+          #new-job-fields:not(.enter-mode) #enterJobNumberWrap { display:none; }
+          #new-job-fields.enter-mode .job-type-required { display:none; }
+        </style>
 
         <!-- EXISTING JOB -->
         <div id="existing-job-fields" class="job-number-fields active">
@@ -166,15 +174,20 @@
         <div id="new-job-fields" class="job-number-fields">
           <div class="field-row">
             <div class="field-group full">
-              <label for="new_job_type">Job Type <span class="required">*</span></label>
+              <label for="new_job_type">Job Type <span class="required job-type-required">*</span></label>
               <select id="new_job_type">
                 <option value="">Loading job types...</option>
               </select>
             </div>
             <div style="display:none;"><input type="hidden" id="new_prefix"/></div>
-            <div class="field-group">
+            <div class="field-group" id="nextJobPreviewWrap">
               <label>Job Number</label>
               <input type="text" id="next_job_preview" disabled style="font-weight:700; color:var(--accent);" placeholder="Select job type first..."/>
+            </div>
+            <div class="field-group" id="enterJobNumberWrap">
+              <label for="enter_job_number">Job Number <span class="required">*</span></label>
+              <input type="text" id="enter_job_number" placeholder="e.g. BE5835" autocomplete="off" style="font-weight:700; color:var(--accent); text-transform:uppercase;"/>
+              <div id="enterJobNumberHint" style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">An existing number not yet in Bromar Hub. It's kept exactly as entered.</div>
             </div>
           </div>
 
@@ -403,7 +416,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.83</div>
+<div class="revision-number">V1.84</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -498,8 +511,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── DRAFT ─────────────────────────────────────────────────
   if (currentUser) await checkForDraft();
   document.getElementById('saveDraftBtn').addEventListener('click', () => saveDraft(false));
-  document.getElementById('draftResumeBtn').addEventListener('click', resumeDraft);
-  document.getElementById('draftDiscardBtn').addEventListener('click', discardDraft);
   setInterval(() => { if (selectedJobData && currentUser && !submissionComplete && !isAmending) saveDraft(true); }, 30000);
 
   // Job type toggle
@@ -514,15 +525,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         selectedJobData = null;
         document.getElementById('newJobCreatedNotice').classList.remove('show');
-        ['new_prefix','new_job_type'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+        ['new_prefix','new_job_type','enter_job_number'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
         document.getElementById('site_select').disabled = false;
         if (bromarScanner) bromarScanner.options.pathPrefix = 'scans';
         setPostJobSectionsVisible(false);
         document.getElementById('confirmNewJobBtn').style.display = 'none';
       }
-      document.getElementById('existing-job-fields').classList.toggle('active', this.value === 'existing');
-      document.getElementById('new-job-fields').classList.toggle('active', this.value === 'new');
+      setJobEntryMode(this.value);
     });
+  });
+
+  // Enter existing job number — tidy as typed, then re-check the button
+  document.getElementById('enter_job_number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase().replace(/\s+/g, '');
+    updateConfirmJobBtn();
   });
 
   // Existing job search
@@ -541,6 +557,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const preview = document.getElementById('next_job_preview');
     if (!this.value) { preview.value = 'Select job type first...'; document.getElementById('new_prefix').value = ''; updateConfirmJobBtn(); hideCustomFields(); return; }
     const [prefix, name] = this.value.split('|');
+    // Entering an existing number: the number sets the prefix — type only drives the details fields
+    if (currentJobEntryMode() === 'enter') {
+      updateConfirmJobBtn();
+      loadCustomFieldsForJobType(prefix, name);
+      return;
+    }
     document.getElementById('new_prefix').value = prefix;
     preview.value = 'Loading...';
     try {
@@ -652,7 +674,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const prefix     = document.getElementById('new_prefix').value;
     const clientId   = document.getElementById('selected_client_id').value;
     const siteId     = document.getElementById('selected_site_id').value;
-    console.log('[Create Job] Click →', { prefix, jobTypeVal, clientId, siteId });
+    console.log('[Create Job] Click →', { mode: currentJobEntryMode(), prefix, jobTypeVal, clientId, siteId });
+
+    // Enter Existing Job Number → register the typed number as-is
+    if (currentJobEntryMode() === 'enter') {
+      const num = normaliseJobNumber(document.getElementById('enter_job_number').value);
+      if (!num) { BromarHub.showInfo('Enter a job number like BE5835'); return; }
+      if (!clientId && !siteId) { BromarHub.showInfo('Please select a client or site'); return; }
+      btn.disabled = true; btn.textContent = 'Adding...';
+      try { await registerExistingJobNow(num, clientId || null, siteId || null, jobTypeVal.split('|')[1] || ''); }
+      finally { btn.disabled = false; btn.textContent = 'Add Job & Continue →'; }
+      return;
+    }
+
     if (!prefix || (!clientId && !siteId)) {
       BromarHub.showInfo('Please select a job type and a client or site'); return;
     }
@@ -795,22 +829,50 @@ function collectDraftData() {
   };
 }
 
-let storedDraft = null;
+// ── DRAFTS ───────────────────────────────────────────────────
+// Two kinds of draft live in job_sheet_drafts:
+//   source 'autosave' → this page's own 30-second save (one per person, key autosave:<email>)
+//   source 'claude'   → written by Claude from chat/voice; opened here, checked, then submitted
+let pendingDrafts = [];          // drafts shown in the banner
+let activeClaudeDraft = null;    // the Claude draft currently loaded into the form
+
+function userEmailLower() { return (currentUser?.email || '').toLowerCase(); }
+function autosaveKey()    { return 'autosave:' + (userEmailLower() || (currentUser?.name || '').toLowerCase()); }
 
 async function saveDraft(silent = false) {
   if (!currentUser || !selectedJobData) return;
+  const now = new Date().toISOString();
+  const draftData = collectDraftData();
   try {
-    const draftData = collectDraftData();
-    await window.sb.from('job_sheet_drafts').upsert({
-      user_name: currentUser.name,
-      job_number: selectedJobData.job_number,
-      client_name: selectedJobData.client_name,
-      draft_data: draftData,
-      saved_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    }, { onConflict: 'user_name' });
+    let error;
+    if (activeClaudeDraft) {
+      // Keep working in the Claude draft row so there's only ever one copy of this sheet
+      ({ error } = await window.sb.from('job_sheet_drafts').update({
+        job_number: selectedJobData.job_number,
+        client_name: selectedJobData.client_name,
+        sheet_date: draftData.sheet_date || null,
+        draft_data: draftData,
+        saved_at: now, updated_at: now
+      }).eq('id', activeClaudeDraft.id));
+    } else {
+      ({ error } = await window.sb.from('job_sheet_drafts').upsert({
+        draft_key: autosaveKey(),
+        source: 'autosave',
+        status: 'draft',
+        user_name: currentUser.name,
+        employee_email: userEmailLower() || null,
+        job_number: selectedJobData.job_number,
+        client_name: selectedJobData.client_name,
+        sheet_date: draftData.sheet_date || null,
+        draft_data: draftData,
+        saved_at: now, updated_at: now,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }, { onConflict: 'draft_key' }));
+    }
+    if (error) throw error;
     if (!silent) BromarHub.showSuccess('Draft saved');
   } catch (err) {
+    console.error('[Draft] save failed', err);
     if (!silent) BromarHub.showInfo('Could not save draft: ' + err.message);
   }
 }
@@ -818,129 +880,278 @@ async function saveDraft(silent = false) {
 async function checkForDraft() {
   if (!currentUser) return;
   try {
-    const { data } = await window.sb.from('job_sheet_drafts')
-      .select('*').eq('user_name', currentUser.name)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
-    if (!data) return;
-    storedDraft = data;
-    const savedAt = new Date(data.saved_at);
-    const timeAgo = formatTimeAgo(savedAt);
-    const detail = `${data.job_number ? data.job_number + ' — ' : ''}${data.client_name || 'Unknown job'}, saved ${timeAgo}`;
-    document.getElementById('draftBannerDetail').textContent = detail;
-    document.getElementById('draftBanner').style.display = 'block';
-  } catch {}
+    const email = userEmailLower();
+    let q = window.sb.from('job_sheet_drafts').select('*').eq('status', 'draft');
+    q = email ? q.or(`employee_email.eq.${email},user_name.eq."${currentUser.name}"`) : q.eq('user_name', currentUser.name);
+    const { data, error } = await q.order('sheet_date', { ascending: true });
+    if (error) throw error;
+    const nowIso = new Date().toISOString();
+    pendingDrafts = (data || []).filter(d =>
+      d.source === 'claude' || !d.expires_at || d.expires_at > nowIso
+    ).sort((a, b) => (a.source === 'claude' ? 0 : 1) - (b.source === 'claude' ? 0 : 1));
+    renderDraftBanner();
+  } catch (err) { console.warn('[Draft] check failed', err); }
 }
 
-async function resumeDraft() {
-  if (!storedDraft) return;
-  document.getElementById('draftBanner').style.display = 'none';
-  const d = storedDraft.draft_data;
+function draftJobLabel(d) {
+  const nj = d.new_job || {};
+  const num = d.job_number || nj.job_number || (nj.job_type ? `New ${nj.job_type} job` : 'New job');
+  const who = d.client_name || nj.client_name || nj.site_name || '';
+  return who ? `${num} — ${who}` : num;
+}
 
-  // Restore date
-  if (d.sheet_date) document.getElementById('sheet_date').value = d.sheet_date;
-  applyDateRulesToAllLabour();
+function renderDraftBanner() {
+  const banner = document.getElementById('draftBanner');
+  const list = pendingDrafts.filter(d => d.id !== activeClaudeDraft?.id);
+  if (!list.length) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  banner.innerHTML = list.map(d => {
+    const isClaude = d.source === 'claude';
+    const day = d.sheet_date ? new Date(d.sheet_date + 'T12:00:00').toLocaleDateString('en-AU', { weekday:'short', day:'numeric', month:'short' }) : '';
+    const title = isClaude ? '🤖 Job sheet drafted by Claude' : '📋 Unfinished job sheet';
+    const detail = [draftJobLabel(d), day, isClaude ? '' : 'saved ' + formatTimeAgo(new Date(d.saved_at))].filter(Boolean).join(' · ');
+    return `<div class="draft-row">
+      <div style="min-width:0;">
+        <div class="draft-row-title">${title}</div>
+        <div class="draft-row-detail">${esc(detail)}</div>
+      </div>
+      <div class="draft-row-btns">
+        <button type="button" class="btn-secondary" onclick="discardDraft('${d.id}')">Discard</button>
+        <button type="button" class="submit-btn" onclick="openDraft('${d.id}')">${isClaude ? 'Open' : 'Resume'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  banner.style.display = 'block';
+}
 
-  // Restore job selection
+function formHasUserEntries() {
+  if (selectedJobData) return true;
+  return Array.from(document.querySelectorAll('.task-description')).some(t => t.value.trim());
+}
+
+window.openDraft = async function(id) {
+  const d = pendingDrafts.find(x => x.id === id);
+  if (!d) return;
+  if (formHasUserEntries() && !confirm('You have already started this job sheet. Replace what\'s on screen with the draft?')) return;
+  if (d.source === 'claude') await loadClaudeDraft(d);
+  else await resumeDraft(d);
+  renderDraftBanner();
+};
+
+window.discardDraft = async function(id) {
+  const d = pendingDrafts.find(x => x.id === id);
+  if (!d) return;
+  if (d.source === 'claude' && !confirm('Discard this Claude draft? It won\'t be offered again.')) return;
+  try {
+    if (d.source === 'claude') await window.sb.from('job_sheet_drafts').update({ status: 'discarded', updated_at: new Date().toISOString() }).eq('id', id);
+    else await window.sb.from('job_sheet_drafts').delete().eq('id', id);
+  } catch (err) { console.warn('[Draft] discard failed', err); }
+  pendingDrafts = pendingDrafts.filter(x => x.id !== id);
+  renderDraftBanner();
+};
+
+// Restore a page autosave (job was already chosen when it was saved)
+async function resumeDraft(row) {
+  const d = row.draft_data || {};
+  activeClaudeDraft = null;
+  if (d.sheet_date) setSheetDate(d.sheet_date);
+
   if (d.selectedJobData) {
     selectedJobData = d.selectedJobData;
-    if (d.job_type === 'existing') {
-      document.getElementById('existing_job').checked = true;
-      document.getElementById('existing-job-fields').classList.add('active');
-      document.getElementById('new-job-fields').classList.remove('active');
-      document.getElementById('existing_job_number').value = d.selectedJobData.job_number;
-      document.getElementById('detail-client').textContent = d.selectedJobData.client_name;
-      document.getElementById('detail-site-name').textContent = d.selectedJobData.site_name ? d.selectedJobData.site_name + ' · ' : '';
-      document.getElementById('detail-address').textContent = d.selectedJobData.site_address || '';
-      document.getElementById('job-details-display').style.display = 'block';
-    }
+    setJobEntryMode('existing');
+    document.getElementById('existing_job_number').value = d.selectedJobData.job_number;
+    document.getElementById('detail-client').textContent = d.selectedJobData.client_name || '';
+    document.getElementById('detail-site-name').textContent = d.selectedJobData.site_name ? d.selectedJobData.site_name + ' · ' : '';
+    document.getElementById('detail-address').textContent = d.selectedJobData.site_address || '';
+    document.getElementById('job-details-display').style.display = 'block';
     if (bromarScanner) bromarScanner.options.pathPrefix = `${d.selectedJobData.job_number}/scans`;
     setPostJobSectionsVisible(true);
   }
 
-  // Restore tasks
+  applyDraftBody(d, false);
+  if (d.selectedJobData) await loadCustomFieldsForExistingJob(d.selectedJobData);
+  BromarHub.showSuccess('Draft restored');
+}
+
+// Open a draft Claude wrote: pick/prepare the job, then pre-fill everything else
+async function loadClaudeDraft(row) {
+  const d  = row.draft_data || {};
+  const nj = row.new_job || {};
+  activeClaudeDraft = row;
+  if (row.sheet_date || d.sheet_date) setSheetDate(row.sheet_date || d.sheet_date);
+
+  // Body first — custom field values are queued and applied once the job type's fields render
+  applyDraftBody(d, true);
+
+  const wantedNumber = normaliseJobNumber(row.job_number || nj.job_number || '');
+  let job = null;
+  if (wantedNumber) {
+    const { data } = await window.sb.from('job_number_register')
+      .select('job_number, client_name, site_name, site_address, prefix, status, client_id, site_id, job_type')
+      .eq('job_number', wantedNumber).maybeSingle();
+    job = data || null;
+  }
+
+  if (job) {
+    setJobEntryMode('existing');
+    await applyJobSelection(job);
+    BromarHub.showSuccess('🤖 Draft loaded from Claude — check it, then Save Job Sheet');
+    return;
+  }
+
+  // Job isn't in the register yet → prepare "Enter Existing Job Number" or "Create New Job"
+  setJobEntryMode(wantedNumber ? 'enter' : 'new');
+  if (wantedNumber) document.getElementById('enter_job_number').value = wantedNumber;
+  await presetJobType(nj.job_type, nj.prefix);
+  await presetClientSite(nj.client_id, nj.site_id);
+  updateConfirmJobBtn();
+  expandJobNumberSection();
+  if (typeof openAccordionSection === 'function') openAccordionSection('Job Number');
+  BromarHub.showInfo(wantedNumber
+    ? `🤖 Draft loaded — confirm the client/site and tap Add Job & Continue to add ${wantedNumber}`
+    : '🤖 Draft loaded — check the job type and client/site, then tap Create Job & Continue', 10000);
+}
+
+function setSheetDate(val) {
+  const el = document.getElementById('sheet_date');
+  el.value = val;
+  el.dispatchEvent(new Event('change'));
+}
+
+async function presetJobType(typeName, prefix) {
+  if (!typeName && !prefix) return;
+  if (!JOB_TYPES.length) await loadJobTypesIntoSelect();
+  const sel = document.getElementById('new_job_type');
+  const opt = Array.from(sel.options).find(o => {
+    if (!o.value) return false;
+    const [code, name] = o.value.split('|');
+    if (typeName && name.toLowerCase() === String(typeName).toLowerCase()) return !prefix || code === prefix || currentJobEntryMode() === 'enter';
+    return false;
+  }) || (prefix ? Array.from(sel.options).find(o => o.value.startsWith(prefix + '|')) : null);
+  if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change')); }
+}
+
+async function presetClientSite(clientId, siteId) {
+  try {
+    if (siteId) {
+      const { data: s } = await window.sb.from('client_sites')
+        .select('id, site_name, address, city, region, postcode, client_id, contact_name, email, phone')
+        .eq('id', siteId).maybeSingle();
+      if (s) {
+        const { data: c } = s.client_id ? await window.sb.from('clients').select('id, name, email').eq('id', s.client_id).maybeSingle() : { data: null };
+        const addr = [s.address, s.city, s.region, s.postcode].filter(Boolean).join(', ');
+        selectSite(s.id, s.site_name, addr, s.client_id, c?.name || '', { contactName: s.contact_name, contactEmail: s.email, contactPhone: s.phone, clientEmail: c?.email });
+        return;
+      }
+    }
+    if (clientId) {
+      const { data: c } = await window.sb.from('clients').select('id, name, email').eq('id', clientId).maybeSingle();
+      if (c) selectClient(c.id, c.name, c.email);
+    }
+  } catch (err) { console.warn('[Draft] client/site preset failed', err); }
+}
+
+// Fill tasks, labour, materials, notes, report options and details fields from a draft.
+// Accepts the page's own keys and the simpler keys Claude may write.
+function applyDraftBody(d, fromClaude) {
+  const badge = fromClaude ? ' <span class="claude-badge">🤖</span>' : '';
+  const mark = (card, sel) => { if (fromClaude) { const t = card?.querySelector(sel); if (t) t.insertAdjacentHTML('beforeend', badge); } };
+
+  // Tasks
+  const tasks = (d.tasks || []).map(t => typeof t === 'string' ? t : (t?.description || t?.text || ''));
   document.getElementById('tasksContainer').innerHTML = '';
   taskCount = 0;
-  (d.tasks || ['']).forEach(text => { addTask(); document.querySelectorAll('.task-description')[taskCount - 1].value = text; });
-
-  // Restore labour
-  document.getElementById('labourContainer').innerHTML = '';
-  labourCount = 0;
-  (d.labour || [{}]).forEach(l => {
-    addLabour();
-    const card = document.querySelectorAll('[data-labour-id]')[labourCount - 1];
-    if (l.employee) card.querySelector('.labour-employee').value = l.employee;
-    card.querySelector('.labour-normal').value = l.normalHours || 0;
-    card.querySelector('.labour-overtime').value = l.overtimeHours || 0;
+  (tasks.length ? tasks : ['']).forEach(text => {
+    addTask();
+    const card = document.querySelector(`[data-task-id="${taskCount}"]`);
+    card.querySelector('.task-description').value = text || '';
+    if (text) mark(card, '.task-title');
   });
 
-  // Restore materials
+  // Labour
+  const labour = d.labour || [];
+  document.getElementById('labourContainer').innerHTML = '';
+  labourCount = 0;
+  (labour.length ? labour : [{}]).forEach(l => {
+    addLabour();
+    const card = document.querySelectorAll('[data-labour-id]')[labourCount - 1];
+    const emp = l.employee || l.name || '';
+    if (emp) {
+      const sel = card.querySelector('.labour-employee');
+      sel.value = emp;
+      if (sel.value !== emp) console.warn('[Draft] labour employee not in active list:', emp);
+    }
+    card.querySelector('.labour-normal').value   = l.normalHours ?? l.normal_hours ?? 0;
+    card.querySelector('.labour-overtime').value = l.overtimeHours ?? l.overtime_hours ?? 0;
+    if (emp) mark(card, '.labour-title');
+  });
+  if (typeof applyDateRulesToAllLabour === 'function') applyDateRulesToAllLabour();
+
+  // Materials
   document.getElementById('materialsContainer').innerHTML = '';
   materialCount = 0;
   (d.materials || []).forEach(m => {
     addMaterial();
     const card = document.querySelectorAll('[data-material-id]')[materialCount - 1];
-    card.querySelector('.material-name').value = m.name || '';
-    card.querySelector('.material-qty').value  = m.quantity || 0;
-    card.querySelector('.material-unit').value = m.unit || 'ea';
+    card.querySelector('.material-name').value = m.name || m.description || '';
+    card.querySelector('.material-qty').value  = m.quantity ?? m.qty ?? 0;
+    const unit = card.querySelector('.material-unit');
+    unit.value = m.unit || 'ea';
+    if (!unit.value) unit.value = 'ea';
+    mark(card, '.labour-title');
   });
 
-  // Restore notes
+  // Notes
   document.getElementById('notesContainer').innerHTML = '';
   noteCount = 0;
   (d.notes || []).forEach(n => {
+    const text = typeof n === 'string' ? n : (n.text || '');
     addNote();
     const card = document.querySelectorAll('.note-card')[noteCount - 1];
-    card.querySelector('.note-text').value = n.text || '';
+    card.querySelector('.note-text').value = text;
     (n.notifyPeople || []).forEach(name => {
       const cb = Array.from(card.querySelectorAll('.note-notify-cb')).find(c => c.value === name);
       if (cb) { cb.checked = true; highlightNoteEmp(cb); }
     });
+    mark(card, '.note-title');
   });
 
-  // Restore service report options
+  // Service report options
   if (d.isServiceReport) {
     document.getElementById('isServiceReport').checked = true;
     document.getElementById('reportSections').classList.add('show');
     document.getElementById('signatureSection').classList.add('show');
-    if (d.reportSections) {
-      Object.entries(d.reportSections).forEach(([k, v]) => {
-        const el = document.getElementById(`include_${k}`); if (el) el.checked = v;
-      });
-    }
-    if (d.signoffMethod) {
-      const radio = document.getElementById(`signoff_${d.signoffMethod}`);
-      if (radio) radio.checked = true;
-    }
+    if (d.reportSections) Object.entries(d.reportSections).forEach(([k, v]) => {
+      const el = document.getElementById(`include_${k}`); if (el) el.checked = v;
+    });
+    if (d.signoffMethod) { const r = document.getElementById(`signoff_${d.signoffMethod}`); if (r) r.checked = true; }
     if (d.signoffEmail) document.getElementById('signoff_email').value = d.signoffEmail;
   }
 
-  if (d.jobCompleted) {
-    const radio = document.getElementById(`job_complete_${d.jobCompleted}`);
-    if (radio) radio.checked = true;
-  }
+  // Job completed?
+  const done = d.jobCompleted === true ? 'yes' : d.jobCompleted === false ? 'no' : d.jobCompleted;
+  if (done) { const r = document.getElementById(`job_complete_${done}`); if (r) r.checked = true; }
 
-  // Restore custom fields: queue values, then load the field set for this job
-  if (d.customFields && d.customFields.length) {
-    PENDING_CUSTOM_VALUES = d.customFields;
-  }
-  if (d.selectedJobData) await loadCustomFieldsForExistingJob(d.selectedJobData);
-
-  BromarHub.showSuccess('Draft restored');
+  // Details (custom) fields — applied once the job type's fields render
+  if (d.customFields && d.customFields.length) PENDING_CUSTOM_VALUES = d.customFields;
 }
 
-async function discardDraft() {
-  document.getElementById('draftBanner').style.display = 'none';
-  storedDraft = null;
-  if (!currentUser) return;
-  try {
-    await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name);
-  } catch {}
-}
-
+// After a successful submit: clear the autosave and close off the Claude draft
 async function deleteDraftAfterSubmit() {
   if (!currentUser) return;
-  try { await window.sb.from('job_sheet_drafts').delete().eq('user_name', currentUser.name); } catch {}
+  try {
+    await window.sb.from('job_sheet_drafts').delete().eq('draft_key', autosaveKey());
+    if (activeClaudeDraft) {
+      const now = new Date().toISOString();
+      await window.sb.from('job_sheet_drafts').update({
+        status: 'submitted',
+        job_number: currentJobNumber || selectedJobData?.job_number || null,
+        job_sheet_number: currentJobSheetNumber,
+        submitted_at: now, updated_at: now
+      }).eq('id', activeClaudeDraft.id);
+      pendingDrafts = pendingDrafts.filter(x => x.id !== activeClaudeDraft.id);
+      activeClaudeDraft = null;
+    }
+  } catch (err) { console.warn('[Draft] post-submit cleanup failed', err); }
 }
 
 function formatTimeAgo(date) {
@@ -1074,6 +1285,17 @@ async function searchJobs(query) {
       .or(`job_number.ilike.%${query}%,client_name.ilike.%${query}%`)
       .order('job_number', { ascending: false }).limit(10);
     if (error) throw error;
+    // Typed a full job number that isn't in the register → offer "Enter Existing Job Number"
+    // Only offer once a full 4-digit number is typed (so 'BE58' while typing doesn't trigger it)
+    const typedNum = /^(BE|BC|BA|BS|BM)\s*\d{4}$/i.test(query.trim()) ? normaliseJobNumber(query) : '';
+    const exact = typedNum && (data || []).some(j => j.job_number === typedNum);
+    const enterOption = (typedNum && !exact) ? `
+      <div class="autocomplete-item" data-enter-number="${esc(typedNum)}" style="border-top:1px dashed var(--border);">
+        <div class="autocomplete-item-number">🔢 ${esc(typedNum)} isn't in Bromar Hub yet</div>
+        <div class="autocomplete-item-client">Tap to enter it as an existing job number</div>
+      </div>` : '';
+    const wireEnter = () => results.querySelectorAll('[data-enter-number]').forEach(el =>
+      el.addEventListener('click', () => goToEnterExistingNumber(el.dataset.enterNumber)));
     if (data?.length > 0) {
       results.innerHTML = data.map(job => `
         <div class="autocomplete-item" data-job='${JSON.stringify(job).replace(/'/g,"&#39;")}'>
@@ -1083,13 +1305,17 @@ async function searchJobs(query) {
           </div>
           <div class="autocomplete-item-client">${job.client_name}</div>
           ${job.site_name ? `<div style="font-size:0.8rem; color:var(--accent); margin-top:1px;">📍 ${job.site_name}</div>` : ''}
-        </div>`).join('');
-      results.querySelectorAll('.autocomplete-item').forEach(item => {
+        </div>`).join('') + enterOption;
+      results.querySelectorAll('.autocomplete-item[data-job]').forEach(item => {
         item.addEventListener('click', () => selectJob(JSON.parse(item.dataset.job.replace(/&#39;/g,"'"))));
       });
+      wireEnter();
       results.classList.add('show');
     } else {
-      results.innerHTML = '<div class="autocomplete-item">No jobs found</div>';
+      results.innerHTML = enterOption || `
+        <div class="autocomplete-item">No jobs found</div>
+        <div class="autocomplete-item" data-enter-number="" style="color:var(--accent);">🔢 Job not listed? Enter existing job number</div>`;
+      wireEnter();
       results.classList.add('show');
     }
   } catch (err) { BromarHub.showInfo('Search failed: ' + err.message); }
@@ -1386,11 +1612,89 @@ function onSiteSelected(siteId) {
 
 // ── NEW JOB CREATION ─────────────────────────────────────────
 function updateConfirmJobBtn() {
-  const jobType = document.querySelector('input[name="job_type"]:checked').value;
-  if (jobType !== 'new' || selectedJobData) { document.getElementById('confirmNewJobBtn').style.display='none'; return; }
-  const ok = document.getElementById('new_prefix').value
-          && (document.getElementById('selected_client_id').value || document.getElementById('selected_site_id').value);
-  document.getElementById('confirmNewJobBtn').style.display = ok ? 'block' : 'none';
+  const mode = currentJobEntryMode();
+  const btn  = document.getElementById('confirmNewJobBtn');
+  if (mode === 'existing' || selectedJobData) { btn.style.display = 'none'; return; }
+  const hasClientOrSite = document.getElementById('selected_client_id').value || document.getElementById('selected_site_id').value;
+  const ok = mode === 'enter'
+    ? (normaliseJobNumber(document.getElementById('enter_job_number').value) && hasClientOrSite)
+    : (document.getElementById('new_prefix').value && hasClientOrSite);
+  btn.textContent = mode === 'enter' ? 'Add Job & Continue →' : 'Create Job & Continue →';
+  btn.style.display = ok ? 'block' : 'none';
+}
+
+// ── JOB ENTRY MODE: existing / new / enter (existing number not in register) ──
+function currentJobEntryMode() {
+  return document.querySelector('input[name="job_type"]:checked')?.value || 'existing';
+}
+
+function setJobEntryMode(mode) {
+  const radio = document.getElementById(mode === 'enter' ? 'enter_job' : mode === 'new' ? 'new_job' : 'existing_job');
+  if (radio) radio.checked = true;
+  const newFields = document.getElementById('new-job-fields');
+  document.getElementById('existing-job-fields').classList.toggle('active', mode === 'existing');
+  newFields.classList.toggle('active', mode === 'new' || mode === 'enter');
+  newFields.classList.toggle('enter-mode', mode === 'enter');
+  const typeSel = document.getElementById('new_job_type');
+  if (mode === 'new' && typeSel.value) typeSel.dispatchEvent(new Event('change'));
+  updateConfirmJobBtn();
+}
+
+// "be 5835" → "BE5835"; returns '' if it isn't a valid Bromar job number
+function normaliseJobNumber(raw) {
+  const v = String(raw || '').toUpperCase().replace(/\s+/g, '');
+  const m = v.match(/^(BE|BC|BA|BS|BM)(\d{1,4})$/);
+  if (!m || parseInt(m[2], 10) < 1) return '';
+  return m[1] + m[2].padStart(4, '0');
+}
+
+window.goToEnterExistingNumber = function(num) {
+  document.getElementById('autocompleteResults').classList.remove('show');
+  setJobEntryMode('enter');
+  document.getElementById('enter_job_number').value = normaliseJobNumber(num) || String(num || '').toUpperCase();
+  updateConfirmJobBtn();
+  document.getElementById('client_search').focus();
+};
+
+async function registerExistingJobNow(jobNumber, clientId, siteId, jobTypeLabel) {
+  try {
+    const { data: newJobNum, error } = await window.sb.rpc('register_existing_job', {
+      p_job_number: jobNumber,
+      p_client_id:  clientId,
+      p_site_id:    siteId,
+      p_job_type:   jobTypeLabel || null,
+      p_created_by: currentUser?.name || null
+    });
+    console.log('[Enter Job] Response:', { newJobNum, error });
+    if (error) throw error;
+    if (!newJobNum) throw new Error('No job number returned');
+
+    // Read back the row the RPC wrote so names/addresses match the register exactly
+    const { data: job } = await window.sb.from('job_number_register')
+      .select('job_number, client_name, site_name, site_address, prefix, status, client_id, site_id, job_type')
+      .eq('job_number', newJobNum).maybeSingle();
+
+    selectedJobData = { ...(job || { job_number: newJobNum, prefix: newJobNum.slice(0, 2), client_id: clientId, site_id: siteId }), justCreated: true };
+    if (bromarScanner) bromarScanner.options.pathPrefix = `${newJobNum}/scans`;
+    ['new_job_type','enter_job_number'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = true; });
+    document.getElementById('site_select').disabled = true;
+
+    document.getElementById('newJobCreatedNumber').textContent = newJobNum;
+    document.getElementById('newJobCreatedNotice').classList.add('show');
+    document.getElementById('confirmNewJobBtn').style.display = 'none';
+
+    const sheetNum = `${newJobNum}-JS001`;
+    const sp = document.getElementById('detail-sheet-preview'); if (sp) { sp.style.display = 'block'; document.getElementById('detail-sheet-number').textContent = sheetNum; }
+    document.getElementById('submitSheetNumber').textContent = sheetNum;
+    document.getElementById('submitSheetNumber').style.display = 'inline';
+    setPostJobSectionsVisible(true);
+    // Only load details fields if the job type picker hasn't already rendered them (keeps anything queued from a draft)
+    if (!CURRENT_JOB_TYPE_FIELDS.length) loadCustomFieldsForExistingJob(selectedJobData);
+  } catch (err) {
+    console.error('[Enter Job] Failed:', err);
+    BromarHub.showInfo('Could not add job: ' + (err.message || err.toString()));
+    document.getElementById('confirmNewJobBtn').style.display = 'block';
+  }
 }
 
 function checkAndCreateNewJob() {
@@ -1594,8 +1898,12 @@ async function loadJobTypesIntoSelect() {
 function findJobType(prefix, name) {
   if (!JOB_TYPES.length) return null;
   if (name) {
-    const byName = JOB_TYPES.find(jt => jt.code === prefix && (jt.name || '').toLowerCase() === String(name).toLowerCase());
+    const lower = String(name).toLowerCase();
+    const byName = JOB_TYPES.find(jt => jt.code === prefix && (jt.name || '').toLowerCase() === lower);
     if (byName) return byName;
+    // Entered existing numbers (e.g. BE) can carry any job type — match on name alone
+    const nameOnly = JOB_TYPES.find(jt => (jt.name || '').toLowerCase() === lower);
+    if (nameOnly) return nameOnly;
   }
   return JOB_TYPES.find(jt => jt.code === prefix) || null;
 }
@@ -1621,6 +1929,9 @@ async function loadCustomFieldsForJobType(prefix, name) {
     if (error) throw error;
     // Filter active locally — accept whichever flag column is present
     fields = (fields || []).filter(f => {
+      // IMS 'form' fields are parked: they'll become outstanding tasks against the employee + job,
+      // not something completed on the job sheet. Skip them so they never block a submit.
+      if (f.field_type === 'form') return false;
       if ('active' in f) return f.active !== false;
       if ('is_active' in f) return f.is_active !== false;
       return true;
@@ -2930,7 +3241,7 @@ async function generatePDF(sheetNumbers) {
     footerRight: `${S2.icon('calendar')}<span>Generated ${new Date().toLocaleDateString('en-AU')}</span>`
   });
 
-  return await S2.generate({ element: el, filename: `service-report-${reportNum}`, rev: `V1.83`, save: false });
+  return await S2.generate({ element: el, filename: `service-report-${reportNum}`, rev: `V1.84`, save: false });
 }
 
 function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
