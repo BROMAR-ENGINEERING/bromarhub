@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Employee Timesheet Submission - V1.31 - 2026-11-17 - /job-management/timesheet-submission.html -->
+<!-- Employee Timesheet Submission - V1.32 - 2026-11-20 - /job-management/timesheet-submission.html -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -673,9 +673,22 @@
       border: 1px solid var(--accent);
       margin-left: 8px;
     }
-    .job-row.from-jobsheet {
+    .job-row.from-jobsheet,
+    .job-row.from-draft {
       border-left: 3px solid var(--accent);
     }
+    .draft-banner {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card-hover);
+      border: 1px solid var(--accent);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .draft-banner .db-sub { font-weight: 400; color: var(--text-secondary); font-size: 0.78rem; }
     #loadJobSheetsBtn { width: auto; padding: 0 12px; font-size: 0.8rem; }
     #loadJobSheetsBtn:hover {
       border-color: var(--accent);
@@ -880,6 +893,15 @@
         </div>
       </div>
 
+      <!-- DRAFT BANNER (shown when a draft from Claude is loaded) -->
+      <div class="draft-banner" id="draftBanner" style="display:none;">
+        <span>🤖</span>
+        <div>
+          <div id="draftBannerText">Draft loaded from Claude — check and submit.</div>
+          <div class="db-sub" id="draftBannerSub"></div>
+        </div>
+      </div>
+
       <!-- TIME IN LIEU BALANCE (TIL employees only) -->
       <div class="til-balance-card" id="tilBalanceCard" style="display:none;">
         <div class="tbc-row"><span>⏳ Time in Lieu balance</span><strong id="tilOpening">—</strong></div>
@@ -922,7 +944,7 @@
         <a href="https://bromarhub.netlify.app/employee-resources/suggestions-feedback" class="footer-bug-link">
           🐞 Report a bug or suggest an improvement
         </a>
-        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.31</p>
+        <p style="margin: 12px 0 4px 0; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">Version V1.32</p>
       </div>
     </div>
   </div>
@@ -1343,8 +1365,248 @@
     // Show bar + update week label whenever the week is (re)built
     if (typeof updateWeekTotals === 'function') updateWeekTotals();
 
-    // Apply public holidays for this week (async — no blocking)
-    applyPublicHolidays(weekStart);
+    // Apply public holidays, then check for a saved draft for this week (async — no blocking)
+    const weekIso = toLocalISO(weekStart);
+    const draftBanner = document.getElementById('draftBanner');
+    if (draftBanner) draftBanner.style.display = 'none';
+    applyPublicHolidays(weekStart)
+      .catch(() => {})
+      .finally(() => checkForTimesheetDraft(weekIso));
+  }
+
+  // ============================================================
+  // TIMESHEET DRAFTS (written by Claude via Supabase → timesheet_drafts)
+  // One draft per employee per week. Pre-fills the form; submit marks it used.
+  // ============================================================
+  const draftCheckedWeeks = new Set();   // check each week once per page load
+  window.currentDraftId = null;
+
+  async function getLoggedInEmail(timeoutMs = 10000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const email = (window.currentUser?.email || '').trim().toLowerCase();
+      if (email && window.sb) return email;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    return '';
+  }
+
+  function formHasUserEntries() {
+    return Array.from(document.querySelectorAll('.job-row')).some(r => {
+      if (r.classList.contains('is-public-holiday')) return false;
+      const type = r.querySelector('.job-type')?.value;
+      const nh = parseFloat(r.querySelector('.normal-hours')?.value) || 0;
+      const oh = parseFloat(r.querySelector('.overtime-hours')?.value) || 0;
+      const th = parseFloat(r.querySelector('.travel-hours')?.value) || 0;
+      return !!type || nh || oh || th;
+    });
+  }
+
+  async function checkForTimesheetDraft(weekIso) {
+    if (!weekIso || draftCheckedWeeks.has(weekIso)) return;
+    const email = await getLoggedInEmail();
+    if (!email) return;
+    // Week may have changed while waiting
+    if (normaliseStoredWeek(weekStartingInput.value) !== weekIso) return;
+    draftCheckedWeeks.add(weekIso);
+
+    let draft = null;
+    try {
+      const { data, error } = await window.sb
+        .from('timesheet_drafts')
+        .select('*')
+        .eq('employee_email', email)
+        .eq('week_starting', weekIso)
+        .eq('status', 'draft')
+        .maybeSingle();
+      if (error) throw error;
+      draft = data;
+    } catch (err) {
+      console.warn('[Draft] lookup failed:', err.message || err);
+      return;
+    }
+    if (!draft || !Array.isArray(draft.timesheet_entries) || !draft.timesheet_entries.length) return;
+
+    if (formHasUserEntries()) {
+      const ok = await bhConfirm(
+        'A draft timesheet from Claude exists for this week. Load it? This replaces the entries on the days it covers.',
+        { icon: '🤖', title: 'Draft found', okText: 'Load draft', cancelText: 'Keep mine' }
+      );
+      if (!ok) return;
+    }
+    applyTimesheetDraft(draft);
+  }
+
+  const DRAFT_DAY_INDEX = {
+    monday: 0, mon: 0, tuesday: 1, tue: 1, tues: 1, wednesday: 2, wed: 2,
+    thursday: 3, thu: 3, thur: 3, thurs: 3, friday: 4, fri: 4,
+    saturday: 5, sat: 5, sunday: 6, sun: 6
+  };
+
+  function draftDayIndex(entry, weekIso) {
+    if (entry.day !== undefined && entry.day !== null) {
+      if (typeof entry.day === 'number') return entry.day;
+      const k = String(entry.day).trim().toLowerCase();
+      if (k in DRAFT_DAY_INDEX) return DRAFT_DAY_INDEX[k];
+    }
+    if (entry.date) {
+      const diff = Math.round((parseLocalDate(String(entry.date).slice(0, 10)) - parseLocalDate(weekIso)) / 86400000);
+      if (diff >= 0 && diff < 7) return diff;
+    }
+    return -1;
+  }
+
+  function setField(row, suffix, value) {
+    const el = row.querySelector(`[name$="${suffix}"]`);
+    if (!el || value === undefined || value === null || value === '' || value === '-') return;
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function tickBox(el, on) {
+    if (!el || !on) return;
+    el.checked = true;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function applyTimesheetDraft(draft) {
+    const weekIso = draft.week_starting;
+    const byDay = new Map();
+    let skipped = 0;
+    draft.timesheet_entries.forEach(e => {
+      const d = draftDayIndex(e, weekIso);
+      if (d < 0 || d > 6) { skipped++; return; }
+      if (!byDay.has(d)) byDay.set(d, []);
+      byDay.get(d).push(e);
+    });
+
+    byDay.forEach((entries, d) => {
+      const card = daysContainer.querySelector(`.day-card[data-day-index="${d}"]`);
+      if (!card) return;
+      const dayBody = card.querySelector('.day-body');
+
+      // Weekend: turn the day on
+      if (d >= 5) {
+        const wt = card.querySelector('.weekend-worked');
+        if (wt && !wt.checked) { wt.checked = true; wt.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+
+      // Draft is authoritative for the days it covers — rebuild rows from scratch
+      dayBody.querySelectorAll('.job-row').forEach(r => r.remove());
+      const addBtn = dayBody.querySelector('.add-job-btn');
+      if (addBtn) { addBtn.disabled = false; addBtn.textContent = '+ Add Job'; }
+
+      entries.slice(0, CONFIG.maxJobsPerDay).forEach(e => {
+        addJobRow(dayBody, d);
+        const rows = dayBody.querySelectorAll('.job-row');
+        const row = rows[rows.length - 1];
+        if (!row) return;
+
+        // Type (unknown types go in as Other)
+        let type = String(e.type || '').trim();
+        let otherType = String(e.other_type || '').trim();
+        if (/^other:/i.test(type)) { otherType = otherType || type.replace(/^other:\s*/i, ''); type = 'Other'; }
+        const typeSelect = row.querySelector('.job-type');
+        if (typeSelect && type) {
+          const match = Array.from(typeSelect.options).find(o => o.value.toLowerCase() === type.toLowerCase());
+          if (match) { typeSelect.value = match.value; }
+          else { typeSelect.value = 'Other'; otherType = otherType || type; }
+          typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        setField(row, '_other_type', otherType);
+
+        // Hours (overtime or TIL accrued both go in the overtime/TIL field)
+        const nh = parseFloat(e.normal_hours);
+        const oh = parseFloat(e.overtime_hours) || parseFloat(e.til_accrued_hours) || 0;
+        const th = parseFloat(e.travel_hours);
+        if (!isNaN(nh)) setField(row, '_hours', nh.toFixed(2));
+        if (oh) setField(row, '_overtime', oh.toFixed(2));
+        if (!isNaN(th) && th) setField(row, '_travel_time', th.toFixed(2));
+
+        setField(row, '_number', e.job_number);
+        setField(row, '_client', e.client);
+        setField(row, '_callout_received', e.callout_received);
+        setField(row, '_callout_complete', e.callout_complete);
+
+        if (e.comment && e.comment !== '-') {
+          setField(row, '_comment', e.comment);
+          row.querySelector('.comment-field')?.classList.add('show');
+          const ct = row.querySelector('.comment-toggle');
+          if (ct) ct.style.display = 'none';
+        }
+
+        // Shift (day level)
+        if (e.shift) {
+          const shiftSel = card.querySelector('.shift-select');
+          if (shiftSel) shiftSel.value = e.shift;
+        }
+
+        // Allowances — string "Site, LAHA, Own Car (40km), +12km" or array
+        const allow = Array.isArray(e.allowances)
+          ? e.allowances.map(String)
+          : String(e.allowances || '').split(',').map(a => a.trim()).filter(Boolean);
+        allow.forEach(a => {
+          const al = a.toLowerCase();
+          if (al === 'site' || al === 'site allowance') {
+            tickBox(row.querySelector('[name$="_site_allowance"]'), true);
+          } else if (al === 'laha') {
+            tickBox(card.querySelector('.laha-checkbox'), true);
+          } else if (al.includes('office')) {
+            tickBox(card.querySelector('.office-checkbox'), true);
+          } else if (/^own car/.test(al)) {
+            tickBox(card.querySelector('.owncar-checkbox'), true);
+            const km = (a.match(/(\d+(?:\.\d+)?)\s*km/i) || [])[1];
+            const kmIn = card.querySelector('.owncar-km-input');
+            if (km && kmIn) kmIn.value = km;
+          } else if (/^\+?\d+(?:\.\d+)?\s*km$/.test(al)) {
+            tickBox(row.querySelector('.job-owncar-checkbox'), true);
+            const km = (a.match(/(\d+(?:\.\d+)?)/) || [])[1];
+            const kmIn = row.querySelector('[name$="_owncar_km"]');
+            if (km && kmIn) kmIn.value = km;
+          }
+        });
+
+        // Badge
+        row.classList.add('from-draft');
+        const badge = row.querySelector('.job-number-badge');
+        if (badge && !row.querySelector('.source-badge')) {
+          const src = document.createElement('span');
+          src.className = 'source-badge';
+          src.textContent = '🤖 From draft';
+          badge.after(src);
+        }
+      });
+
+      updateDayTotal(d);
+    });
+
+    // Weekly flags + comments
+    tickBox(document.getElementById('standby'), draft.standby);
+    tickBox(document.getElementById('allowance_first_aid'), draft.allowance_first_aid);
+    tickBox(document.getElementById('allowance_construction_wiring'), draft.allowance_construction_wiring);
+    if (draft.general_comments) {
+      const gc = document.getElementById('general_comments');
+      if (gc) gc.value = draft.general_comments;
+    }
+
+    window.currentDraftId = draft.id;
+    updateWeekTotals();
+    if (typeof saveFormData === 'function') saveFormData();
+
+    // Open the first day the draft covers
+    const firstDay = Math.min(...byDay.keys());
+    if (isFinite(firstDay)) {
+      daysContainer.querySelectorAll('.day-card.open').forEach(c => c.classList.remove('open'));
+      daysContainer.querySelector(`.day-card[data-day-index="${firstDay}"]`)?.classList.add('open');
+    }
+
+    const banner = document.getElementById('draftBanner');
+    if (banner) {
+      const saved = draft.updated_at ? new Date(draft.updated_at).toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+      document.getElementById('draftBannerSub').textContent =
+        `${draft.timesheet_entries.length - skipped} entr${draft.timesheet_entries.length - skipped === 1 ? 'y' : 'ies'} pre-filled${saved ? ` · saved ${saved}` : ''}${skipped ? ` · ${skipped} skipped (no valid day)` : ''}`;
+      banner.style.display = '';
+    }
   }
 
   // ============================================================
@@ -2563,11 +2825,11 @@
 
         if (type && (normal > 0 || ot > 0 || travel > 0)) {
           const allowances = [];
-          if (formData[`${p}_site_allowance`] === 'on') allowances.push('Site');
+          if (['on','Yes'].includes(formData[`${p}_site_allowance`])) allowances.push('Site');
           if (laha) allowances.push('LAHA');
           if (office) allowances.push('Office');
           if (owncar) allowances.push(`Own Car (${owncarKm}km)`);
-          if (formData[`${p}_owncar`] === 'on') allowances.push(`+${formData[`${p}_owncar_km`] || 0}km`);
+          if (['on','Yes'].includes(formData[`${p}_owncar`])) allowances.push(`+${formData[`${p}_owncar_km`] || 0}km`);
 
           rows.push([
             days[d],
