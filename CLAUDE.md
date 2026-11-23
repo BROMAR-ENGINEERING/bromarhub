@@ -1,3 +1,5 @@
+Last reviewed 24 Nov 2026
+
 # CLAUDE.md — Bromar Hub
 
 Guide for Claude (and humans) working in this repo. Read this before changing anything.
