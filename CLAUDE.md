@@ -185,6 +185,11 @@ Claude can pre-fill drafts in Supabase; the user opens the app, checks, and subm
 - **`TEST_TO`:** if set, functions send all mail there — remember to unset in production.
 - **Deploy:** push to `main` → Netlify auto-deploys. Local: `npm install` then `netlify dev`.
 
+### Pull request rules
+- Always put "Fixes #<issue number>" in the PR description so merging closes the issue.
+- One issue per PR.
+- Before finishing, check the change against the issue and say what was done.
+
 ## 7. Open questions
 
 1. `submit-jobsheet.js` is a copy of the timesheet function. Is there a real job-sheet/service-report email function that should be here?
