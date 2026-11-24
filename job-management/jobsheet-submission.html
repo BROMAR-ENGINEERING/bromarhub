@@ -1,4 +1,4 @@
-<!-- /job-management/jobsheet-submission.html — V1.84 — 2026-11-20 — Bromar Hub -->
+<!-- /job-management/jobsheet-submission.html — V1.85 — 2026-11-24 — Bromar Hub -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -416,7 +416,7 @@
   </div>
 </div>
 
-<div class="revision-number">V1.84</div>
+<div class="revision-number">V1.85</div>
 
 <!-- SIGN-OFF MODAL -->
 <div class="signoff-modal" id="signoffModal">
@@ -510,6 +510,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── DRAFT ─────────────────────────────────────────────────
   if (currentUser) await checkForDraft();
+  // Opened from the banner on the "Job Sheet Saved" screen → load that draft now
+  const draftParam = new URLSearchParams(location.search).get('draft');
+  if (draftParam) {
+    history.replaceState(null, '', location.pathname);
+    if (pendingDrafts.some(x => x.id === draftParam)) await openDraft(draftParam);
+  }
   document.getElementById('saveDraftBtn').addEventListener('click', () => saveDraft(false));
   setInterval(() => { if (selectedJobData && currentUser && !submissionComplete && !isAmending) saveDraft(true); }, 30000);
 
@@ -931,6 +937,12 @@ function formHasUserEntries() {
 window.openDraft = async function(id) {
   const d = pendingDrafts.find(x => x.id === id);
   if (!d) return;
+  // A sheet was just saved: the form is hidden and still holds that sheet.
+  // Reload for a clean form, then open this draft straight away.
+  if (submissionComplete || isAmending) {
+    location.href = location.pathname + '?draft=' + encodeURIComponent(id);
+    return;
+  }
   if (formHasUserEntries() && !confirm('You have already started this job sheet. Replace what\'s on screen with the draft?')) return;
   if (d.source === 'claude') await loadClaudeDraft(d);
   else await resumeDraft(d);
@@ -3241,7 +3253,7 @@ async function generatePDF(sheetNumbers) {
     footerRight: `${S2.icon('calendar')}<span>Generated ${new Date().toLocaleDateString('en-AU')}</span>`
   });
 
-  return await S2.generate({ element: el, filename: `service-report-${reportNum}`, rev: `V1.84`, save: false });
+  return await S2.generate({ element: el, filename: `service-report-${reportNum}`, rev: `V1.85`, save: false });
 }
 
 function loadImage(url){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='Anonymous';img.onload=()=>res(img);img.onerror=rej;img.src=url;});}
