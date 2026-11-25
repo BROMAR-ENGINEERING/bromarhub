@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     BROMAR HUB — ASH PERSONAL DASHBOARD
+     Version: V1.00 — 2026-11-25 — /ash-dashboard/index.html
+     Private, unlinked. Own login (no tools/auth.js redirect).
+     Data protected by RLS on personal_tasks (owner only).
+     ============================================================ -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/tools/bromar-hub.css"/>
+<style>
+  body { margin: 0; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 16px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .topbar h1 { margin: 0; font-size: 1.3rem; color: var(--text-primary); }
+  .topbar .sub { font-size: .8rem; color: var(--text-secondary); }
+  .link-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; color: var(--text-secondary); cursor: pointer; font-family: inherit; font-size: .8rem; }
+  .link-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px var(--shadow); }
+  .card h2 { margin: 0 0 10px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; }
+  .count { background: var(--accent); color: #fff; border-radius: 10px; padding: 1px 8px; font-size: .7rem; letter-spacing: 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-bottom: 12px; align-items: start; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .item { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: .9rem; color: var(--text-primary); }
+  .item:last-of-type { border-bottom: none; }
+  .item input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .item .body { flex: 1; min-width: 0; }
+  .item .meta { font-size: .75rem; color: var(--text-secondary); }
+  .item.done .title { text-decoration: line-through; }
+  .item.done { opacity: .45; }
+  .opt { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent); border: 1px dashed var(--accent); border-radius: 8px; padding: 1px 6px; margin-left: 6px; }
+  .sub-item { margin-left: 26px; }
+  .empty { font-size: .85rem; color: var(--text-secondary); font-style: italic; }
+
+  .sched-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: .88rem; color: var(--text-primary); }
+  .sched-row:last-child { border-bottom: none; }
+  .sched-row .d { color: var(--text-secondary); white-space: nowrap; font-size: .8rem; }
+
+  .quick { display: flex; gap: 6px; margin-top: 8px; }
+  .quick input { flex: 1; min-width: 0; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-primary); font-family: inherit; font-size: .85rem; }
+  .quick input:focus { outline: none; border-color: var(--accent); }
+  .quick button { padding: 7px 12px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  details.card summary { cursor: pointer; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .6px; color: var(--text-secondary); }
+  details.card[open] summary { margin-bottom: 10px; }
+
+  #login { max-width: 360px; margin: 12vh auto; }
+  #login input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 10px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-primary); font-family: inherit; }
+  #login button { width: 100%; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; }
+  #loginErr { color: var(--error); font-size: .85rem; margin-bottom: 8px; min-height: 1em; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="card" hidden>
+    <h2 style="font-size:1rem;text-transform:none;letter-spacing:0">Sign in</h2>
+    <div id="loginErr"></div>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" autocomplete="username" required/>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required/>
+      <button type="submit" id="loginBtn">Log in</button>
+    </form>
+  </div>
+
+  <div id="denied" class="card" hidden style="max-width:420px;margin:12vh auto;text-align:center">
+    <p style="color:var(--text-primary)">This page isn't available for this account.</p>
+    <button class="link-btn" id="deniedOut">Sign out</button>
+  </div>
+
+  <div id="app" hidden>
+    <div class="topbar">
+      <div><h1>Dashboard</h1><div class="sub" id="today"></div></div>
+      <button class="link-btn" id="signOut">Sign out</button>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><h2>Quotes to send <span class="count" id="cQuote">0</span></h2><div id="quotes"></div></div>
+      <div class="card"><h2>Close &amp; invoice <span class="count" id="cOpen">0</span></h2><div id="opens"></div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><h2>Today</h2><div id="schedToday"></div></div>
+      <div class="card"><h2>This week</h2><div id="schedWeek"></div></div>
+    </div>
+
+    <div class="grid-cards" id="cards"></div>
+
+    <details class="card" id="laterBox">
+      <summary>Later / automation</summary>
+      <div id="later"></div>
+    </details>
+  </div>
+</div>
+
+<script>
+(function () {
+  const OWNER = 'ashleys@bromar.com.au';
+  const EMPLOYEE = 'Ashley';
+  const CLIENTS = ['Tyrecycle', 'Elastomers', 'Grain and Bake', 'Abey', 'Bromar'];
+  const SUPABASE_URL = 'https://iwtvlpfprxqwveqadlwl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3dHZscGZwcnhxd3ZlcWFkbHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzczMDQsImV4cCI6MjA5MzExMzMwNH0.X6tOhxgFnJDDipltIuILOaZRv4bM4RE9kVV1R_UsE5k';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: true, persistSession: true, storage: window.localStorage }
+  });
+  window.sb = sb;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let tasks = [], assignments = [], channel = null, started = false;
+
+  function show(which) {
+    ['login', 'denied', 'app'].forEach(k => $(k).hidden = (k !== which));
+  }
+
+  async function route(session) {
+    if (!session) { stop(); show('login'); return; }
+    const email = (session.user.email || '').toLowerCase();
+    if (email !== OWNER) { stop(); show('denied'); return; }
+    show('app');
+    if (!started) { started = true; await start(); }
+  }
+
+  function stop() {
+    started = false; tasks = []; assignments = [];
+    if (channel) { sb.removeChannel(channel); channel = null; }
+  }
+
+  async function start() {
+    $('today').textContent = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+    await Promise.all([loadTasks(), loadSchedule()]);
+    render(); renderSchedule();
+    channel = sb.channel('personal-tasks-ash')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_tasks' }, onChange)
+      .subscribe();
+  }
+
+  async function loadTasks() {
+    const { data, error } = await sb.from('personal_tasks').select('*').eq('owner_email', OWNER).order('sort_order', { ascending: true });
+    if (error) { console.error(error); return; }
+    tasks = data || [];
+  }
+
+  function onChange(p) {
+    if (p.eventType === 'DELETE') { tasks = tasks.filter(t => t.id !== p.old.id); }
+    else {
+      const row = p.new;
+      if ((row.owner_email || '').toLowerCase() !== OWNER) return;
+      const i = tasks.findIndex(t => t.id === row.id);
+      if (i >= 0) tasks[i] = row; else tasks.push(row);
+    }
+    render();
+  }
+
+  // ---------- schedule ----------
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function skips(a) {
+    const s = a.skip_dates;
+    if (Array.isArray(s)) return s;
+    if (typeof s === 'string') { try { const p = JSON.parse(s); return Array.isArray(p) ? p : []; } catch { return []; } }
+    return [];
+  }
+  function activeOn(a, ds) {
+    if (a.is_active === false) return false;
+    if (ds < a.start_date) return false;
+    if (skips(a).includes(ds)) return false;
+    if (a.schedule === 'oneoff') return ds <= (a.end_date || a.start_date);
+    if (a.schedule === 'duration') return a.end_date ? ds <= a.end_date : true;
+    return true;
+  }
+  async function loadSchedule() {
+    const { data, error } = await sb.from('schedule_assignments').select('*')
+      .eq('employee_name', EMPLOYEE).eq('is_active', true);
+    if (error) { console.error(error); return; }
+    assignments = data || [];
+  }
+  function schedLine(a, dayLabel) {
+    const what = a.type === 'job' ? (a.job_number || 'Job') : (a.site_name || a.type || '');
+    const client = [a.client_name, a.site_name && a.type === 'job' ? a.site_name : ''].filter(Boolean).join(' · ');
+    return '<div class="sched-row"><div><strong>' + esc(client || what) + '</strong>' +
+      (client && what ? ' <span class="d">' + esc(what) + '</span>' : '') + '</div>' +
+      (dayLabel ? '<div class="d">' + esc(dayLabel) + '</div>' : '') + '</div>';
+  }
+  function renderSchedule() {
+    const now = new Date();
+    const todayRows = assignments.filter(a => activeOn(a, iso(now)));
+    $('schedToday').innerHTML = todayRows.length ? todayRows.map(a => schedLine(a, '')).join('') : '<div class="empty">Nothing scheduled</div>';
+    // rest of this week (today → Sunday)
+    const out = [];
+    const dow = (now.getDay() + 6) % 7; // Mon=0
+    for (let i = 0; i < 7 - dow; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const label = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' });
+      assignments.filter(a => activeOn(a, iso(d))).forEach(a => out.push(schedLine(a, label)));
+    }
+    $('schedWeek').innerHTML = out.length ? out.join('') : '<div class="empty">Nothing scheduled</div>';
+  }
+
+  // ---------- render tasks ----------
+  function sorted(list) {
+    return list.slice().sort((a, b) => (a.done - b.done) || ((a.sort_order || 0) - (b.sort_order || 0)));
+  }
+  function itemHtml(t, sub) {
+    return '<label class="item' + (t.done ? ' done' : '') + (sub ? ' sub-item' : '') + '">' +
+      '<input type="checkbox" data-id="' + esc(t.id) + '"' + (t.done ? ' checked' : '') + '/>' +
+      '<span class="body"><span class="title">' + esc(t.title) + '</span>' +
+      (t.optional ? '<span class="opt">Optional</span>' : '') +
+      (t.client && t.kind !== 'task' ? '<span class="meta"> — ' + esc(t.client) + '</span>' : '') +
+      (t.note ? '<div class="meta">' + esc(t.note) + '</div>' : '') + '</span></label>';
+  }
+  function listHtml(list) {
+    if (!list.length) return '<div class="empty">Nothing here</div>';
+    const ids = new Set(list.map(t => t.id));
+    const tops = sorted(list.filter(t => !t.parent_id || !ids.has(t.parent_id)));
+    return tops.map(t => {
+      const kids = sorted(list.filter(c => c.parent_id === t.id));
+      return itemHtml(t, false) + kids.map(k => itemHtml(k, true)).join('');
+    }).join('');
+  }
+
+  function render() {
+    const by = k => tasks.filter(t => t.kind === k);
+    const q = by('quote'), o = by('open');
+    $('quotes').innerHTML = listHtml(q);
+    $('opens').innerHTML = listHtml(o);
+    $('cQuote').textContent = q.filter(t => !t.done).length;
+    $('cOpen').textContent = o.filter(t => !t.done).length;
+
+    const hit = by('task');
+    const names = CLIENTS.slice();
+    hit.forEach(t => { const c = t.client || 'Bromar'; if (!names.includes(c)) names.push(c); });
+    const keep = {};
+    document.querySelectorAll('#cards .quick input').forEach(i => { keep[i.dataset.client] = i.value; });
+    const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.client : null;
+    $('cards').innerHTML = names.map(c => {
+      const list = hit.filter(t => (t.client || 'Bromar') === c);
+      return '<div class="card"><h2>' + esc(c) + ' <span class="count">' + list.filter(t => !t.done).length + '</span></h2>' +
+        listHtml(list) +
+        '<form class="quick" data-client="' + esc(c) + '"><input data-client="' + esc(c) + '" placeholder="Add task…" value="' + esc(keep[c] || '') + '"/><button type="submit">+</button></form></div>';
+    }).join('');
+    if (focused) { const el = document.querySelector('#cards input[data-client="' + CSS.escape(focused) + '"]'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+
+    $('later').innerHTML = listHtml(by('later')) +
+      '<form class="quick" data-client="" data-kind="later"><input placeholder="Add…"/><button type="submit">+</button></form>';
+  }
+
+  // ---------- actions ----------
+  async function toggle(id, checked) {
+    const t = tasks.find(x => x.id === id); if (!t) return;
+    const patch = { done: checked, done_at: checked ? new Date().toISOString() : null };
+    Object.assign(t, patch); render(); // optimistic
+    const { error } = await sb.from('personal_tasks').update(patch).eq('id', id).eq('owner_email', OWNER);
+    if (error) { console.error(error); await loadTasks(); render(); }
+  }
+
+  async function add(form) {
+    const input = form.querySelector('input');
+    const title = input.value.trim(); if (!title) return;
+    const kind = form.dataset.kind || 'task';
+    const client = form.dataset.client || null;
+    const max = tasks.filter(t => t.kind === kind && (t.client || null) === client).reduce((m, t) => Math.max(m, t.sort_order || 0), 0);
+    input.value = '';
+    const { data, error } = await sb.from('personal_tasks')
+      .insert({ owner_email: OWNER, title, client, kind, sort_order: max + 10, done: false })
+      .select().single();
+    if (error) { console.error(error); input.value = title; return; }
+    if (!tasks.some(t => t.id === data.id)) tasks.push(data);
+    render();
+  }
+
+  document.addEventListener('change', e => {
+    const cb = e.target.closest('input[type=checkbox][data-id]');
+    if (cb) toggle(cb.dataset.id, cb.checked);
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('form.quick');
+    if (f) { e.preventDefault(); add(f); }
+  });
+
+  $('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('loginErr').textContent = ''; $('loginBtn').disabled = true;
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    $('loginBtn').disabled = false;
+    if (error) $('loginErr').textContent = error.message || 'Login failed';
+  });
+  const out = async () => { await sb.auth.signOut(); };
+  $('signOut').addEventListener('click', out);
+  $('deniedOut').addEventListener('click', out);
+
+  sb.auth.onAuthStateChange((ev, session) => {
+    if (ev === 'INITIAL_SESSION' || ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') setTimeout(() => route(session), 0);
+  });
+})();
+</script>
+</body>
+</html>
